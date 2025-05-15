@@ -1,0 +1,22 @@
+<div class="nemo-preset-enhancer-settings"> 
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>NemoPreset UI</b> 
+            <div class="inline-drawer-icon fa-solid fa-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div class="form-group">
+                <label for="nemoDividerRegexPattern">Divider Regex Pattern</label>
+                <input type="text" id="nemoDividerRegexPattern" class="text_pole"> 
+                <small>
+                    Enter the regex pattern for dividers (e.g., <code>=+</code> or <code>---+</code>).
+                    The script anchors this to the start of the prompt name. Default: <code>=+</code>
+                </small>
+            </div>
+            <button id="nemoSaveRegexSettings" class="menu_button">
+                <i class="fa-solid fa-save"></i> Save Regex Pattern
+            </button>
+            <div id="nemoRegexStatus" style="margin-top: 10px; font-style: italic;"></div>
+        </div>
+    </div>
+</div>

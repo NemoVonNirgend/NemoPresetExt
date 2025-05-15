@@ -1,0 +1,159 @@
+/* styles.css for NemoPreset UI Enhancer */
+
+/* Collapsible section container (<details> element) */
+.nemo-engine-section {
+    /* margin-bottom: 3px; */ /* Optional: Adds a small space between sections */
+}
+
+/* Clickable header (<summary> element) of a section */
+.nemo-engine-section summary {
+    cursor: pointer; /* Indicates it's clickable */
+    display: flex; /* Aligns items horizontally */
+    align-items: center; /* Vertically aligns items in the summary */
+    list-style: none; /* Removes default list bullet/marker */
+    position: relative; /* For positioning the custom arrow */
+}
+
+/* Styling for prompt items (<li>), whether in a summary (divider) or section content */
+.nemo-engine-section summary > li.completion_prompt_manager_prompt,
+li.completion_prompt_manager_prompt { /* Applies to all prompt list items */
+    display: flex; /* Use flexbox for internal layout of the <li> */
+    align-items: center; /* Vertically align content within the <li> */
+    width: 100%; /* Make the <li> take full available width */
+    justify-content: space-between; /* Pushes name to left, controls to right */
+    flex-wrap: nowrap; /* Prevent wrapping of items inside the <li> */
+    padding: 2px 0; /* Consistent vertical padding */
+}
+
+/* Hide default disclosure marker (e.g., triangle) for <details> in WebKit browsers */
+.nemo-engine-section summary::-webkit-details-marker { display: none; }
+/* Hide default disclosure marker for <details> in other browsers */
+.nemo-engine-section summary::marker { display: none; }
+
+/* Custom arrow indicator for closed sections (▶) */
+.nemo-engine-section summary::before {
+    content: '▶'; /* Unicode right-pointing triangle */
+    font-size: 0.75em; /* Slightly smaller than main text */
+    position: absolute; /* Position relative to the summary */
+    left: -15px; /* Position to the left of the summary content */
+    top: 50%; /* Align vertically */
+    transform: translateY(calc(-50% - 2px)); /* Fine-tune vertical alignment */
+    color: #aaa; /* Light gray color */
+    pointer-events: none; /* Arrow itself is not interactive */
+}
+/* Custom arrow indicator for open sections (▼) */
+.nemo-engine-section[open] > summary::before {
+    content: '▼'; /* Unicode down-pointing triangle */
+}
+
+/* Margin for prompt name within a summary to make space for the custom arrow */
+.nemo-engine-section summary > li.completion_prompt_manager_prompt > span.completion_prompt_manager_prompt_name {
+     margin-left: 18px; /* Adjust based on arrow size and desired spacing */
+}
+
+/* Content area of a section (holds child prompts) */
+.nemo-engine-section .nemo-section-content {
+    padding-left: 25px; /* Indent content to the right */
+    border-left: 1px solid #444; /* Visual cue for nesting */
+    margin-left: 10px; /* Margin for the entire content block, aligning with summary text */
+}
+
+/* Styling for the prompt name span */
+span.completion_prompt_manager_prompt_name {
+    flex-grow: 1; /* Allows name to take available space */
+    flex-shrink: 1; /* Allows name to shrink if needed */
+    flex-basis: 0%; /* Initial basis for flex distribution */
+    min-width: 50px; /* Minimum width before truncating */
+    overflow: hidden; /* Hide overflow */
+    text-overflow: ellipsis; /* Show '...' for long names */
+    white-space: nowrap; /* Prevent name from wrapping to new line */
+    margin-right: 10px; /* Space between name and right-side controls wrapper */
+    display: flex; /* To align icon and text within the name span */
+    align-items: center; /* Vertically align icon and text */
+}
+/* Styling for FontAwesome icons (e.g., asterisk for active prompt) within the prompt name */
+span.completion_prompt_manager_prompt_name > span.fa-fw {
+    margin-right: 4px; /* Space after the icon */
+    flex-shrink: 0; /* Prevent icon from shrinking */
+}
+/* Styling for the inspect action link (the prompt name itself) */
+span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block; /* Needed for text-overflow to work correctly */
+    max-width: 100%; /* Ensure link doesn't overflow its container (the name span) */
+}
+
+/* Wrapper for all controls on the right side of a prompt item (custom count, ST controls, tokens) */
+.nemo-right-controls-wrapper {
+    display: flex;
+    align-items: center; /* Vertically align items within this wrapper */
+    flex-shrink: 0; /* Prevent this wrapper from shrinking */
+}
+
+/* Styling for the "enabled items count" display (appears in section summaries) */
+.nemo-enabled-count {
+    font-weight: normal;
+    font-size: 0.9em; /* Slightly smaller text */
+    color: #ff8c00; /* Orange color, often used for attention/info */
+    margin-right: 8px; /* Space before ST controls */
+    white-space: nowrap; /* Prevent count from wrapping */
+    line-height: 1; /* Ensure consistent line height */
+}
+
+/* SillyTavern's native prompt controls container */
+.prompt_manager_prompt_controls {
+    display: flex !important; /* Override ST styles if necessary for flex layout */
+    align-items: center !important; /* Override ST styles for vertical alignment */
+    gap: 6px !important; /* Space between individual control icons */
+    line-height: 1 !important; /* Ensure consistent line height */
+    margin-right: 8px; /* Space between this controls block and the token count */
+}
+/* Ensure SillyTavern's icons within controls have consistent line height */
+.prompt_manager_prompt_controls > span[class*="fa-"] { /* Targets FontAwesome icons */
+    line-height: 1 !important;
+}
+
+/* SillyTavern's token count display */
+.prompt_manager_prompt_tokens {
+    display: inline-flex; /* Allows alignment with other flex items */
+    align-items: center; /* Vertically align text */
+    line-height: 1; /* Consistent line height */
+    white-space: nowrap; /* Prevent token count from wrapping */
+}
+
+/* --- Loading Overlay Styles --- */
+/* Full-area overlay shown during processing */
+.nemo-loading-overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0; /* Cover parent */
+    background-color: rgba(30, 30, 30, 0.7); /* Semi-transparent dark background */
+    display: flex;
+    justify-content: center; /* Center spinner horizontally */
+    align-items: center; /* Center spinner vertically */
+    z-index: 1000; /* Appear on top of other content */
+    opacity: 0; /* Start hidden */
+    visibility: hidden; /* Start hidden and not interactive */
+    transition: opacity 0.3s ease, visibility 0.3s ease; /* Smooth fade-in/out */
+    pointer-events: none; /* Don't block interactions when hidden */
+}
+/* Visible state for the loading overlay */
+.nemo-loading-overlay.nemo-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto; /* Block interactions when visible */
+}
+/* Animated spinner element */
+.nemo-spinner {
+    border: 4px solid #f3f3f3; /* Light grey track */
+    border-top: 4px solid #ff8c00; /* Orange spinning part */
+    border-radius: 50%; /* Make it a circle */
+    width: 40px;
+    height: 40px;
+    animation: nemo-spin 1s linear infinite; /* Apply rotation animation */
+}
+/* Keyframes for the spinner rotation animation */
+@keyframes nemo-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

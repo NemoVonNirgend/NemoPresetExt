@@ -1,0 +1,12 @@
+{
+    "display_name": "NemoPresetExt",
+    "author": "@NemoVonNirgend",
+    "version": "1.0.1",
+    "description": "Enhances the SillyTavern preset UI by making sections collapsible, with configurable divider regex.",
+    "requires": [],
+    "optional": [],
+    "js": "content.js",
+    "css": "styles.css",
+	"homePage": "https://github.com/NemoVonNirgend/NemoPresetExt",
+    "loading_order": 1000
+}
