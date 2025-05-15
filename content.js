@@ -11,7 +11,9 @@ import {
 // -----------------------------------------------------------------------------
 
 // NEMO_EXTENSION_NAME: The unique name for this extension.
-const NEMO_EXTENSION_NAME = "NemoPreset";
+// IMPORTANT: This should match the "display_name" in manifest.json if used for path construction.
+// Also used as the key in extension_settings.
+const NEMO_EXTENSION_NAME = "NemoPresetExt"; // Matches manifest.json
 
 // NEMO_DEFAULT_REGEX_PATTERN: The default regular expression pattern used to identify "divider" prompts.
 // This pattern is used if no custom pattern is saved in settings.
@@ -49,7 +51,7 @@ let settingsUiInitialized = false; // Flag to prevent multiple initializations o
 let mainFeatureInitialized = false; // Flag to prevent multiple initializations of the main organizing feature.
 
 // LOG_PREFIX: Standardized prefix for console log messages from this extension.
-const LOG_PREFIX = `[${NEMO_EXTENSION_NAME}Ext]`;
+const LOG_PREFIX = `[${NEMO_EXTENSION_NAME}]`;
 
 /**
  * Ensures that the namespace for this extension's settings exists within the global `extension_settings`.
@@ -489,6 +491,8 @@ async function organizePrompts() {
 // 3. SETTINGS UI INJECTION
 // -----------------------------------------------------------------------------
 // Path to the folder containing extension assets like settings.html and styles.css
+// This path construction assumes SillyTavern places extensions in a predictable way.
+// NEMO_EXTENSION_NAME should match the folder name ST creates for the extension.
 const extensionBaseFolderPath = `scripts/extensions/third-party/${NEMO_EXTENSION_NAME}`;
 
 /**
@@ -528,10 +532,13 @@ async function initializeNemoSettingsUI() {
             console.log(`${LOG_PREFIX} Settings UI snippet already present in DOM. Skipping injection.`);
         } else {
             // Fetch and inject the settings.html snippet.
-            console.log(`${LOG_PREFIX} Fetching settings HTML from: ${extensionBaseFolderPath}/settings.html`);
-            const response = await fetch(`${extensionBaseFolderPath}/settings.html`);
+            // Construct the path using extensionBaseFolderPath, which is built using the corrected NEMO_EXTENSION_NAME.
+            const settingsHtmlPath = `${extensionBaseFolderPath}/settings.html`; // REVERTED to use extensionBaseFolderPath
+            console.log(`${LOG_PREFIX} Fetching settings HTML from: ${settingsHtmlPath}`);
+            const response = await fetch(settingsHtmlPath);
             if (!response.ok) {
-                throw new Error(`Failed to fetch settings.html: ${response.status} ${response.statusText}`);
+                // For debugging, it's useful to include the path that failed.
+                throw new Error(`Failed to fetch settings.html from '${settingsHtmlPath}': ${response.status} ${response.statusText}`);
             }
             const settingsHtmlSnippet = await response.text();
             console.log(`${LOG_PREFIX} Successfully fetched settings.html snippet.`);
@@ -757,4 +764,4 @@ if (document.readyState === 'loading') {
     setTimeout(initializeExtension, 300);
 }
 
-console.log(`${LOG_PREFIX} content.js (${NEMO_EXTENSION_NAME}) script loaded.`);
+console.log(`${LOG_PREFIX} content.js script loaded.`);
