@@ -1,159 +1,89 @@
-/* styles.css for NemoPreset UI Enhancer */
+/* styles.css for NemoPresetExt */
 
-/* Collapsible section container (<details> element) */
-.nemo-engine-section {
-    /* margin-bottom: 3px; */ /* Optional: Adds a small space between sections */
-}
+/* --- Collapsible Sections & Core UI --- */
+.nemo-engine-section summary { cursor: pointer; display: flex; align-items: center; list-style: none; position: relative; }
+.nemo-engine-section summary > li.completion_prompt_manager_prompt, li.completion_prompt_manager_prompt { display: flex; align-items: center; width: 100%; justify-content: space-between; flex-wrap: nowrap; padding: 2px 0; }
+.nemo-engine-section summary::-webkit-details-marker, .nemo-engine-section summary::marker { display: none; }
+.nemo-engine-section summary::before { content: '▶'; font-size: 0.75em; position: absolute; left: -15px; top: 50%; transform: translateY(calc(-50% - 2px)); color: #aaa; pointer-events: none; }
+.nemo-engine-section[open] > summary::before { content: '▼'; }
+.nemo-engine-section summary > li.completion_prompt_manager_prompt > span.completion_prompt_manager_prompt_name { margin-left: 18px; }
+.nemo-engine-section .nemo-section-content { padding-left: 25px; border-left: 1px solid #444; margin-left: 10px; }
+span.completion_prompt_manager_prompt_name { flex-grow: 1; flex-shrink: 1; min-width: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 10px; display: flex; align-items: center; }
+span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; max-width: 100%; }
+.nemo-right-controls-wrapper { display: flex; align-items: center; flex-shrink: 0; gap: 8px; }
+.nemo-enabled-count { font-weight: normal; font-size: 0.9em; color: #ff8c00; white-space: nowrap; line-height: 1; margin-left: 5px;}
+.prompt_manager_prompt_controls { display: flex !important; align-items: center !important; gap: 6px !important; line-height: 1 !important; }
+.nemo-section-master-toggle { font-size: 0.9em !important; padding: 2px 5px !important; min-width: auto !important; line-height: 1 !important; background-color: #444; border: 1px solid #555; }
+.nemo-section-master-toggle.nemo-active { background-color: #5a4000; border-color: #ff8c00; }
 
-/* Clickable header (<summary> element) of a section */
-.nemo-engine-section summary {
-    cursor: pointer; /* Indicates it's clickable */
-    display: flex; /* Aligns items horizontally */
-    align-items: center; /* Vertically aligns items in the summary */
-    list-style: none; /* Removes default list bullet/marker */
-    position: relative; /* For positioning the custom arrow */
-}
+/* --- Preset Selector --- */
+.nemo-preset-selector-wrapper { display: flex; align-items: center; gap: 5px; }
+.nemo-preset-selector-wrapper > .text_pole { flex-grow: 1; }
 
-/* Styling for prompt items (<li>), whether in a summary (divider) or section content */
-.nemo-engine-section summary > li.completion_prompt_manager_prompt,
-li.completion_prompt_manager_prompt { /* Applies to all prompt list items */
-    display: flex; /* Use flexbox for internal layout of the <li> */
-    align-items: center; /* Vertically align content within the <li> */
-    width: 100%; /* Make the <li> take full available width */
-    justify-content: space-between; /* Pushes name to left, controls to right */
-    flex-wrap: nowrap; /* Prevent wrapping of items inside the <li> */
-    padding: 2px 0; /* Consistent vertical padding */
-}
+/* --- Search Bar & Snapshot Controls --- */
+#nemoSearchAndStatusWrapper { display: flex; flex-direction: column; margin-bottom: 10px; }
+#nemoPresetSearchContainer { display: flex; align-items: center; gap: 10px; }
+#nemoPresetSearchContainer .text_pole { flex-grow: 1; margin-right: 0; }
+.nemo-search-controls { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
+.nemo-search-controls .menu_button { min-width: auto; padding: 5px 8px; font-size: 0.9em; }
+.nemo-search-divider { width: 1px; height: 20px; background-color: #555; margin: 0 5px; }
 
-/* Hide default disclosure marker (e.g., triangle) for <details> in WebKit browsers */
-.nemo-engine-section summary::-webkit-details-marker { display: none; }
-/* Hide default disclosure marker for <details> in other browsers */
-.nemo-engine-section summary::marker { display: none; }
+/* --- Snapshot Status Message --- */
+.nemo-status-message { text-align: center; padding: 0 8px; margin-top: 0; border-radius: 4px; font-style: italic; font-size: 0.9em; opacity: 0; max-height: 0; overflow: hidden; transition: opacity 0.3s ease, max-height 0.3s ease, padding 0.3s ease, margin-top 0.3s ease; }
+.nemo-status-message.visible { opacity: 1; max-height: 50px; padding: 8px; margin-top: 8px; }
+.nemo-status-message.success { color: lightgreen; background-color: rgba(144, 238, 144, 0.1); }
+.nemo-status-message.info { color: #ffc107; background-color: rgba(255, 193, 7, 0.1); }
+.nemo-status-message.error { color: #ff8a8a; background-color: rgba(255, 138, 138, 0.1); }
 
-/* Custom arrow indicator for closed sections (▶) */
-.nemo-engine-section summary::before {
-    content: '▶'; /* Unicode right-pointing triangle */
-    font-size: 0.75em; /* Slightly smaller than main text */
-    position: absolute; /* Position relative to the summary */
-    left: -15px; /* Position to the left of the summary content */
-    top: 50%; /* Align vertically */
-    transform: translateY(calc(-50% - 2px)); /* Fine-tune vertical alignment */
-    color: #aaa; /* Light gray color */
-    pointer-events: none; /* Arrow itself is not interactive */
-}
-/* Custom arrow indicator for open sections (▼) */
-.nemo-engine-section[open] > summary::before {
-    content: '▼'; /* Unicode down-pointing triangle */
-}
+/* --- Contextual Triggers --- */
+.nemo-triggers-container { margin-top: 15px; padding-top: 15px; border-top: 1px solid #444; }
+.nemo-triggers-settings { display: flex; gap: 15px; margin-top: 5px; flex-wrap: wrap; }
 
-/* Margin for prompt name within a summary to make space for the custom arrow */
-.nemo-engine-section summary > li.completion_prompt_manager_prompt > span.completion_prompt_manager_prompt_name {
-     margin-left: 18px; /* Adjust based on arrow size and desired spacing */
-}
+/* --- Loading Overlay --- */
+.nemo-loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(30, 30, 30, 0.7); display: flex; justify-content: center; align-items: center; z-index: 10000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; pointer-events: none; }
+.nemo-loading-overlay.nemo-visible { opacity: 1; visibility: visible; pointer-events: auto; }
+.nemo-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #ff8c00; border-radius: 50%; width: 40px; height: 40px; animation: nemo-spin 1s linear infinite; }
+@keyframes nemo-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-/* Content area of a section (holds child prompts) */
-.nemo-engine-section .nemo-section-content {
-    padding-left: 25px; /* Indent content to the right */
-    border-left: 1px solid #444; /* Visual cue for nesting */
-    margin-left: 10px; /* Margin for the entire content block, aligning with summary text */
-}
+/* --- PRESET NAVIGATOR MODAL (GRID VIEW) --- */
+.nemo-preset-navigator-modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); }
+.nemo-preset-navigator-modal .modal-content { background-color: #2c2f33; margin: 5vh auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 1400px; height: 90vh; display: flex; flex-direction: column; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+.nemo-preset-navigator-modal .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0; }
+.nemo-preset-navigator-modal .modal-header h2 { margin: 0; }
+.nemo-preset-navigator-modal .close-button { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; transition: color 0.2s; }
+.nemo-preset-navigator-modal .close-button:hover { color: #fff; }
+.nemo-preset-navigator-modal .navigator-body { display: flex; flex-grow: 1; overflow: hidden; }
+.nemo-preset-navigator-modal .navigator-main-panel { flex-grow: 1; display: flex; flex-direction: column; background-color: #232528; padding: 15px; border-radius: 5px; }
 
-/* Styling for the prompt name span */
-span.completion_prompt_manager_prompt_name {
-    flex-grow: 1; /* Allows name to take available space */
-    flex-shrink: 1; /* Allows name to shrink if needed */
-    flex-basis: 0%; /* Initial basis for flex distribution */
-    min-width: 50px; /* Minimum width before truncating */
-    overflow: hidden; /* Hide overflow */
-    text-overflow: ellipsis; /* Show '...' for long names */
-    white-space: nowrap; /* Prevent name from wrapping to new line */
-    margin-right: 10px; /* Space between name and right-side controls wrapper */
-    display: flex; /* To align icon and text within the name span */
-    align-items: center; /* Vertically align icon and text */
-}
-/* Styling for FontAwesome icons (e.g., asterisk for active prompt) within the prompt name */
-span.completion_prompt_manager_prompt_name > span.fa-fw {
-    margin-right: 4px; /* Space after the icon */
-    flex-shrink: 0; /* Prevent icon from shrinking */
-}
-/* Styling for the inspect action link (the prompt name itself) */
-span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    display: inline-block; /* Needed for text-overflow to work correctly */
-    max-width: 100%; /* Ensure link doesn't overflow its container (the name span) */
-}
+/* Grid Header & Search */
+#navigator-grid-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid #444; flex-shrink: 0; gap: 20px; }
+#navigator-breadcrumbs { font-size: 1.1em; color: #ccc; flex-shrink: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#navigator-breadcrumbs .link { color: #ffc107; cursor: pointer; text-decoration: underline; }
+#navigator-header-controls { display: flex; align-items: center; gap: 15px; flex-shrink: 0; }
+#navigator-search-controls { display: flex; align-items: center; }
+#navigator-search-input { width: 200px; }
+#navigator-search-clear { margin-left: -26px; background: transparent; border: none; cursor: pointer; color: #aaa; padding: 5px; }
+#navigator-search-clear:hover { color: #fff; }
 
-/* Wrapper for all controls on the right side of a prompt item (custom count, ST controls, tokens) */
-.nemo-right-controls-wrapper {
-    display: flex;
-    align-items: center; /* Vertically align items within this wrapper */
-    flex-shrink: 0; /* Prevent this wrapper from shrinking */
-}
+/* Grid View & Items */
+#navigator-grid-view { display: flex; flex-wrap: wrap; gap: 20px; padding: 10px; overflow-y: auto; align-content: flex-start; align-items: flex-start; flex-grow: 1; }
+.grid-item { width: 140px; min-height: 160px; background-color: #36393f; border-radius: 8px; border: 2px solid transparent; display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease-in-out; user-select: none; }
+.grid-item:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.3); border-color: #555; }
+.grid-item.selected { border-color: #ff8c00; background-color: #40444b; }
+.grid-item .item-icon { height: 100px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; font-size: 3.5em; color: #ffc107; border-top-left-radius: 6px; border-top-right-radius: 6px; background-size: cover; background-position: center; background-repeat: no-repeat; }
+.grid-item.preset .item-icon { color: #8ea9e8; }
+.grid-item .item-name { flex-grow: 1; padding: 8px; text-align: center; font-size: 0.9em; background-color: rgba(0,0,0,0.2); border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; white-space: normal; word-break: break-word; line-height: 1.3; display: flex; align-items: center; justify-content: center; }
 
-/* Styling for the "enabled items count" display (appears in section summaries) */
-.nemo-enabled-count {
-    font-weight: normal;
-    font-size: 0.9em; /* Slightly smaller text */
-    color: #ff8c00; /* Orange color, often used for attention/info */
-    margin-right: 8px; /* Space before ST controls */
-    white-space: nowrap; /* Prevent count from wrapping */
-    line-height: 1; /* Ensure consistent line height */
-}
+/* Modal Footer */
+.nemo-preset-navigator-modal .modal-footer { border-top: 1px solid #444; padding-top: 15px; margin-top: 15px; display: flex; justify-content: flex-end; align-items: center; flex-shrink: 0; }
+.nemo-preset-navigator-modal .modal-footer .action-controls { display: flex; gap: 10px; align-items: center; }
 
-/* SillyTavern's native prompt controls container */
-.prompt_manager_prompt_controls {
-    display: flex !important; /* Override ST styles if necessary for flex layout */
-    align-items: center !important; /* Override ST styles for vertical alignment */
-    gap: 6px !important; /* Space between individual control icons */
-    line-height: 1 !important; /* Ensure consistent line height */
-    margin-right: 8px; /* Space between this controls block and the token count */
-}
-/* Ensure SillyTavern's icons within controls have consistent line height */
-.prompt_manager_prompt_controls > span[class*="fa-"] { /* Targets FontAwesome icons */
-    line-height: 1 !important;
-}
+/* Drag and Drop Styles */
+.grid-item.dragging { opacity: 0.5; transform: scale(0.95); }
+.grid-item.folder.drag-over { border: 2px dashed #ff8c00; background-color: #4f545c; transform: scale(1.05); }
 
-/* SillyTavern's token count display */
-.prompt_manager_prompt_tokens {
-    display: inline-flex; /* Allows alignment with other flex items */
-    align-items: center; /* Vertically align text */
-    line-height: 1; /* Consistent line height */
-    white-space: nowrap; /* Prevent token count from wrapping */
-}
-
-/* --- Loading Overlay Styles --- */
-/* Full-area overlay shown during processing */
-.nemo-loading-overlay {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0; /* Cover parent */
-    background-color: rgba(30, 30, 30, 0.7); /* Semi-transparent dark background */
-    display: flex;
-    justify-content: center; /* Center spinner horizontally */
-    align-items: center; /* Center spinner vertically */
-    z-index: 1000; /* Appear on top of other content */
-    opacity: 0; /* Start hidden */
-    visibility: hidden; /* Start hidden and not interactive */
-    transition: opacity 0.3s ease, visibility 0.3s ease; /* Smooth fade-in/out */
-    pointer-events: none; /* Don't block interactions when hidden */
-}
-/* Visible state for the loading overlay */
-.nemo-loading-overlay.nemo-visible {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto; /* Block interactions when visible */
-}
-/* Animated spinner element */
-.nemo-spinner {
-    border: 4px solid #f3f3f3; /* Light grey track */
-    border-top: 4px solid #ff8c00; /* Orange spinning part */
-    border-radius: 50%; /* Make it a circle */
-    width: 40px;
-    height: 40px;
-    animation: nemo-spin 1s linear infinite; /* Apply rotation animation */
-}
-/* Keyframes for the spinner rotation animation */
-@keyframes nemo-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+/* Context Menu */
+.nemo-context-menu { display: none; position: fixed; background-color: #36393f; border: 1px solid #1e2124; z-index: 10000; list-style: none; padding: 5px 0; margin: 0; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.nemo-context-menu li { padding: 8px 12px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.nemo-context-menu li:hover { background-color: #4f545c; }
+.nemo-context-menu i { width: 1em; text-align: center; }
