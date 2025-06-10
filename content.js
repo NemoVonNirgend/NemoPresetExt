@@ -350,42 +350,73 @@ class PresetNavigator {
         this.allPresets = [];
         this.selectedPreset = { value: null, filename: null };
 
+        this.longPressTimer = null;
+        this.isDragging = false;
+        this.draggedItem = null;
+        this.ghostElement = null;
+        this.lastDropTarget = null;
+        this.gestureHappened = false;
+        this.touchStartX = 0;
+        this.touchStartY = 0;
+        this.DRAG_THRESHOLD = 10;
+
         this.init();
     }
 
     init() {
-        this.modal.querySelector('.close-button').addEventListener('click', () => this.close());
         this.modal.querySelector('#navigator-load-btn').addEventListener('click', () => this.loadSelectedPreset());
         this.newFolderBtn.addEventListener('click', () => this.createNewFolder());
         
-        // Search listeners
+        this.modal.querySelector('.close-button').addEventListener('click', () => {
+            const popupBg = document.querySelector('.popup_background');
+            if (popupBg) popupBg.click();
+        });
+
         this.searchInput.addEventListener('input', () => this.renderGridView());
         this.searchClearBtn.addEventListener('click', () => {
             this.searchInput.value = '';
             this.renderGridView();
         });
 
-        // Event delegation for the grid view
-        this.mainView.addEventListener('click', (e) => this.handleGridClick(e));
+        this.mainView.addEventListener('click', (e) => this.handleGridClick(e), true);
+        document.addEventListener('click', () => this.hideContextMenu(), true);
+
         this.mainView.addEventListener('contextmenu', (e) => this.handleGridContextMenu(e));
         this.mainView.addEventListener('dragstart', (e) => this.handleDragStart(e));
         this.mainView.addEventListener('dragover', (e) => this.handleDragOver(e));
         this.mainView.addEventListener('dragleave', (e) => this.handleDragLeave(e));
         this.mainView.addEventListener('drop', (e) => this.handleDrop(e));
 
-        document.addEventListener('click', () => this.hideContextMenu(), true);
+        this.mainView.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+        this.mainView.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        this.mainView.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+        this.mainView.addEventListener('touchcancel', (e) => this.handleTouchEnd(e));
     }
 
     async open() {
         this.loadMetadata();
         this.allPresets = await this.fetchPresetList();
         this.searchInput.value = '';
-        this.modal.style.display = 'block';
         this.render();
+    
+        const content = this.modal.querySelector('.modal-content');
+        if (!content) return;
+    
+        const originalParent = content.parentNode;
+        if (originalParent) originalParent.removeChild(content);
+    
+        try {
+            await callGenericPopup(content, POPUP_TYPE.DISPLAY, null, { wide: true, large: true });
+        }
+        finally {
+            if (originalParent && !originalParent.contains(content)) {
+                originalParent.appendChild(content);
+            }
+            this.close();
+        }
     }
 
     close() {
-        this.modal.style.display = 'none';
         this.selectedPreset = { value: null, filename: null };
         this.mainView.innerHTML = '';
         this.currentPath = [{ id: 'root', name: 'Home' }];
@@ -424,7 +455,6 @@ class PresetNavigator {
         const currentFolderId = this.currentPath[this.currentPath.length - 1].id;
         const searchTerm = this.searchInput.value.toLowerCase().trim();
 
-        // Filter and Render Sub-folders
         Object.values(this.metadata.folders)
             .filter(folder => folder.parentId === currentFolderId && folder.name.toLowerCase().includes(searchTerm))
             .sort((a,b) => a.name.localeCompare(b.name))
@@ -433,7 +463,6 @@ class PresetNavigator {
                 this.mainView.appendChild(item);
             });
 
-        // Get presets assigned to this folder
         const presetsInThisFolder = new Set();
         Object.entries(this.metadata.presets).forEach(([filename, data]) => {
             if (data.folderId === currentFolderId) {
@@ -441,7 +470,6 @@ class PresetNavigator {
             }
         });
 
-        // Filter and Render assigned presets
         this.allPresets
             .filter(p => presetsInThisFolder.has(p.name) && p.name.toLowerCase().includes(searchTerm))
             .sort((a,b) => a.name.localeCompare(b.name))
@@ -451,7 +479,6 @@ class PresetNavigator {
                 this.mainView.appendChild(item);
             });
         
-        // In root, also filter and render unassigned presets
         if (currentFolderId === 'root') {
              this.allPresets
                 .filter(p => !this.metadata.presets[p.name]?.folderId && p.name.toLowerCase().includes(searchTerm))
@@ -497,8 +524,14 @@ class PresetNavigator {
         return item;
     }
 
-    // --- Event Handlers ---
     handleGridClick(e) {
+        if (this.gestureHappened) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.gestureHappened = false; 
+            return;
+        }
+
         const item = e.target.closest('.grid-item');
         if (!item) return;
 
@@ -518,6 +551,7 @@ class PresetNavigator {
         }
     }
 
+    // ⭐️⭐️⭐️ THIS IS THE CORRECTED FUNCTION ⭐️⭐️⭐️
     handleGridContextMenu(e) {
         e.preventDefault();
         this.hideContextMenu();
@@ -531,22 +565,68 @@ class PresetNavigator {
         let itemsHTML = '';
         if (type === 'folder') {
             itemsHTML = `
-                <li data-action="rename_folder" data-id="${id}"><i class="fa-solid fa-i-cursor"></i> Rename</li>
-                <li data-action="delete_folder" data-id="${id}"><i class="fa-solid fa-trash-can"></i> Delete</li>
+                <li data-action="rename_folder" data-id="${id}"><i class="fa-solid fa-i-cursor"></i><span>Rename</span></li>
+                <li data-action="delete_folder" data-id="${id}"><i class="fa-solid fa-trash-can"></i><span>Delete</span></li>
             `;
         } else if (type === 'preset') {
             itemsHTML = `
-                <li data-action="set_image" data-id="${id}"><i class="fa-solid fa-image"></i> Set Image</li>
-                <li data-action="add_to_folder" data-id="${id}"><i class="fa-solid fa-folder-plus"></i> Add to Folder...</li>
-                <li data-action="remove_from_folder" data-id="${id}"><i class="fa-solid fa-folder-minus"></i> Remove from current Folder</li>
+                <li data-action="set_image" data-id="${id}"><i class="fa-solid fa-image"></i><span>Set Image</span></li>
+                <li data-action="add_to_folder" data-id="${id}"><i class="fa-solid fa-folder-plus"></i><span>Add to Folder...</span></li>
+                <li data-action="remove_from_folder" data-id="${id}"><i class="fa-solid fa-folder-minus"></i><span>Remove from current Folder</span></li>
             `;
         }
         menu.innerHTML = itemsHTML;
-        document.body.appendChild(menu);
 
+        const popupContainer = item.closest('.popup');
+        if (!popupContainer) {
+            console.error(`${LOG_PREFIX} Could not find popup container for context menu.`);
+            return;
+        }
+        popupContainer.appendChild(menu);
+
+        menu.style.visibility = 'hidden';
         menu.style.display = 'block';
-        menu.style.top = `${e.clientY}px`;
-        menu.style.left = `${e.clientX}px`;
+        const menuWidth = menu.offsetWidth;
+        const menuHeight = menu.offsetHeight;
+        menu.style.display = 'none';
+        menu.style.visibility = 'visible';
+
+        const popupRect = popupContainer.getBoundingClientRect();
+        let localX, localY;
+
+        // Mobile-first, touch-friendly logic (using a common breakpoint)
+        if (window.innerWidth <= 768) {
+            // Center the menu horizontally on the click/tap
+            let viewportX = e.clientX - (menuWidth / 2);
+
+            // Clamp to prevent viewport overflow, with a small margin
+            const margin = 10;
+            if (viewportX < margin) {
+                viewportX = margin;
+            }
+            if (viewportX + menuWidth > window.innerWidth - margin) {
+                viewportX = window.innerWidth - menuWidth - margin;
+            }
+            localX = viewportX - popupRect.left;
+        }
+        // Desktop, mouse-friendly logic
+        else {
+            localX = e.clientX - popupRect.left;
+            // Flip if it overflows the right edge of the viewport
+            if (e.clientX + menuWidth > window.innerWidth) {
+                localX = e.clientX - popupRect.left - menuWidth;
+            }
+        }
+
+        // Vertical positioning logic (same for both platforms)
+        localY = e.clientY - popupRect.top;
+        if (e.clientY + menuHeight > window.innerHeight) {
+            localY = e.clientY - popupRect.top - menuHeight;
+        }
+
+        menu.style.left = `${localX}px`;
+        menu.style.top = `${localY}px`;
+        menu.style.display = 'block';
 
         menu.addEventListener('click', (me) => {
             const actionTarget = me.target.closest('li[data-action]');
@@ -557,6 +637,157 @@ class PresetNavigator {
         });
     }
 
+    handleTouchStart(e) {
+        this.gestureHappened = false;
+        const item = e.target.closest('.grid-item');
+        if (!item) return;
+
+        const touch = e.touches[0];
+        this.touchStartX = touch.clientX;
+        this.touchStartY = touch.clientY;
+
+        this.longPressTimer = setTimeout(() => {
+            this.gestureHappened = true;
+            const mockEvent = { clientX: this.touchStartX, clientY: this.touchStartY, preventDefault: () => {}, target: e.target };
+            this.handleGridContextMenu(mockEvent);
+        }, 500);
+
+        if (item.dataset.type === 'preset') {
+            this.draggedItem = item;
+        }
+    }
+
+    handleTouchMove(e) {
+        if (!this.draggedItem) return;
+
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - this.touchStartX;
+        const deltaY = touch.clientY - this.touchStartY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        if (distance > this.DRAG_THRESHOLD) {
+            clearTimeout(this.longPressTimer);
+            
+            if (!this.isDragging) {
+                if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    this.isDragging = true;
+                    this.gestureHappened = true;
+                    this.ghostElement = this.draggedItem.cloneNode(true);
+                    this.ghostElement.classList.add('dragging');
+                    Object.assign(this.ghostElement.style, {
+                        position: 'fixed', zIndex: '100000', pointerEvents: 'none',
+                        width: `${this.draggedItem.offsetWidth}px`, height: `${this.draggedItem.offsetHeight}px`,
+                    });
+                    document.body.appendChild(this.ghostElement);
+                    this.draggedItem.classList.add('dragging');
+                } else {
+                    this.draggedItem = null;
+                    return;
+                }
+            }
+        }
+
+        if (this.isDragging) {
+            e.preventDefault();
+            this.ghostElement.style.left = `${touch.clientX - this.ghostElement.offsetWidth / 2}px`;
+            this.ghostElement.style.top = `${touch.clientY - this.ghostElement.offsetHeight / 2}px`;
+
+            this.ghostElement.style.display = 'none';
+            const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+            this.ghostElement.style.display = '';
+
+            const dropTarget = elementUnder ? elementUnder.closest('.grid-item.folder') : null;
+
+            if (this.lastDropTarget && this.lastDropTarget !== dropTarget) {
+                this.lastDropTarget.classList.remove('drag-over');
+            }
+            if (dropTarget) {
+                dropTarget.classList.add('drag-over');
+                this.lastDropTarget = dropTarget;
+            } else {
+                this.lastDropTarget = null;
+            }
+        }
+    }
+
+    handleTouchEnd(e) {
+        clearTimeout(this.longPressTimer);
+
+        if (this.isDragging) {
+            if (this.lastDropTarget) {
+                const presetId = this.draggedItem.dataset.id;
+                const folderId = this.lastDropTarget.dataset.id;
+                if (presetId && folderId) {
+                    this.metadata.presets[presetId] = this.metadata.presets[presetId] || {};
+                    this.metadata.presets[presetId].folderId = folderId;
+                    this.saveMetadata();
+                    this.render();
+                }
+                this.lastDropTarget.classList.remove('drag-over');
+            }
+            this.draggedItem.classList.remove('dragging');
+            if (this.ghostElement) document.body.removeChild(this.ghostElement);
+        }
+
+        this.isDragging = false;
+        this.draggedItem = null;
+        this.ghostElement = null;
+        this.lastDropTarget = null;
+    }
+
+    handleDragStart(e) {
+        this.isDragging = true;
+        const item = e.target.closest('.grid-item.preset');
+        if (!item) { e.preventDefault(); return; }
+        e.dataTransfer.setData('text/plain', item.dataset.id);
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => item.classList.add('dragging'), 0);
+    }
+
+    handleDragOver(e) {
+        e.preventDefault();
+        const target = e.target.closest('.grid-item.folder');
+        if (this.lastDropTarget && this.lastDropTarget !== target) {
+            this.lastDropTarget.classList.remove('drag-over');
+        }
+        if (target) {
+            target.classList.add('drag-over');
+            this.lastDropTarget = target;
+            e.dataTransfer.dropEffect = 'move';
+        } else {
+            e.dataTransfer.dropEffect = 'none';
+            this.lastDropTarget = null;
+        }
+    }
+
+    handleDragLeave(e) {
+        const target = e.target.closest('.grid-item.folder');
+        if (target) {
+            target.classList.remove('drag-over');
+        }
+    }
+
+    handleDrop(e) {
+        e.preventDefault();
+        if (this.lastDropTarget) {
+            this.lastDropTarget.classList.remove('drag-over');
+            const presetId = e.dataTransfer.getData('text/plain');
+            const folderId = this.lastDropTarget.dataset.id;
+            
+            if (presetId && folderId) {
+                this.metadata.presets[presetId] = this.metadata.presets[presetId] || {};
+                this.metadata.presets[presetId].folderId = folderId;
+                this.saveMetadata();
+                this.render();
+            }
+        }
+        const originalItem = this.mainView.querySelector(`.grid-item[data-id="${e.dataTransfer.getData('text/plain')}"]`);
+        if(originalItem) originalItem.classList.remove('dragging');
+
+        this.isDragging = false;
+        this.lastDropTarget = null;
+    }
+    
     async runContextMenuAction(action, id) {
         switch (action) {
             case 'rename_folder': {
@@ -618,57 +849,7 @@ class PresetNavigator {
     hideContextMenu() {
         document.querySelector('.nemo-context-menu')?.remove();
     }
-
-    // --- Drag and Drop Handlers ---
-    handleDragStart(e) {
-        const item = e.target.closest('.grid-item.preset');
-        if (!item) {
-            e.preventDefault();
-            return;
-        }
-        e.dataTransfer.setData('text/plain', item.dataset.id);
-        e.dataTransfer.effectAllowed = 'move';
-        item.classList.add('dragging');
-    }
-
-    handleDragOver(e) {
-        e.preventDefault();
-        const target = e.target.closest('.grid-item.folder');
-        if (target) {
-            target.classList.add('drag-over');
-            e.dataTransfer.dropEffect = 'move';
-        } else {
-            e.dataTransfer.dropEffect = 'none';
-        }
-    }
-
-    handleDragLeave(e) {
-        const target = e.target.closest('.grid-item.folder');
-        if (target) {
-            target.classList.remove('drag-over');
-        }
-    }
-
-    handleDrop(e) {
-        e.preventDefault();
-        const folderItem = e.target.closest('.grid-item.folder');
-        if (folderItem) {
-            folderItem.classList.remove('drag-over');
-            const presetId = e.dataTransfer.getData('text/plain');
-            const folderId = folderItem.dataset.id;
-            
-            if (presetId && folderId) {
-                this.metadata.presets[presetId] = this.metadata.presets[presetId] || {};
-                this.metadata.presets[presetId].folderId = folderId;
-                this.saveMetadata();
-                this.render();
-            }
-        }
-        const draggingEl = this.mainView.querySelector('.dragging');
-        if (draggingEl) draggingEl.classList.remove('dragging');
-    }
     
-    // --- Other logic ---
     async createNewFolder() {
         const name = await callGenericPopup('New Folder Name:', POPUP_TYPE.INPUT, 'New Folder');
         if (!name) return;
@@ -706,12 +887,7 @@ class PresetNavigator {
     }
 
     async fetchPresetList() {
-        let select;
-        if (this.apiType === 'prompt') {
-            select = document.querySelector(SELECTORS.promptPresetSelect);
-        } else {
-            select = document.querySelector(`select[data-preset-manager-for="${this.apiType}"]`);
-        }
+        const select = document.querySelector(`select[data-preset-manager-for="${this.apiType}"]`);
         return select ? Array.from(select.options).map(opt => ({ name: opt.textContent, value: opt.value })).filter(item => item.name && item.value) : [];
     }
 
@@ -723,14 +899,16 @@ class PresetNavigator {
     async loadSelectedPreset() {
         if (!this.selectedPreset.value) return;
         
-        const select = (this.apiType === 'prompt')
-            ? document.querySelector(SELECTORS.promptPresetSelect)
-            : document.querySelector(`select[data-preset-manager-for="${this.apiType}"]`);
+        const select = document.querySelector(`select[data-preset-manager-for="${this.apiType}"]`);
         
         if (select) {
             select.value = this.selectedPreset.value;
             select.dispatchEvent(new Event('change', { bubbles: true }));
-            this.close();
+            
+            const popupBg = document.querySelector('.popup_background');
+            if (popupBg) {
+                popupBg.click();
+            }
         } else {
             callGenericPopup(`Could not find the preset dropdown for "${this.apiType}".`, 'error');
         }
@@ -758,7 +936,7 @@ class PresetNavigator {
 function injectNavigatorModal() {
     if (document.getElementById('nemo-preset-navigator-modal')) return;
     const modalHTML = `
-    <div id="nemo-preset-navigator-modal" class="nemo-preset-navigator-modal">
+    <div id="nemo-preset-navigator-modal" class="nemo-preset-navigator-modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Preset Navigator</h2>
@@ -804,8 +982,9 @@ function initPresetNavigatorForApi(apiType) {
 
     const browseButton = document.createElement('button');
     browseButton.textContent = 'Browse...';
-    browseButton.className = 'menu_button';
-    browseButton.addEventListener('click', () => {
+    browseButton.className = 'menu_button interactable';
+    
+    browseButton.addEventListener('click', (event) => {
         const navigator = new PresetNavigator(apiType);
         navigator.open();
     });
@@ -815,20 +994,6 @@ function initPresetNavigatorForApi(apiType) {
     wrapper.appendChild(browseButton);
 }
 
-function initPromptManagerNavigator() {
-    const header = document.querySelector(SELECTORS.promptManagerHeader);
-    if (header && !header.querySelector('#nemo-browse-prompts-btn')) {
-        const browseButton = document.createElement('button');
-        browseButton.id = 'nemo-browse-prompts-btn';
-        browseButton.className = 'menu_button';
-        browseButton.innerHTML = '<i class="fa-solid fa-folder-open"></i> Browse Prompts...';
-        browseButton.addEventListener('click', () => {
-            const navigator = new PresetNavigator('prompt');
-            navigator.open();
-        });
-        header.appendChild(browseButton);
-    }
-}
 
 // 7. INITIALIZATION
 async function initializeNemoSettingsUI() {
@@ -879,8 +1044,6 @@ $(document).ready(() => {
                     initializeSearchAndSections(promptList);
                 }
                 
-                initPromptManagerNavigator();
-
                 const apis = ['openai', 'novel', 'kobold', 'textgenerationwebui'];
                 apis.forEach(api => {
                     const select = document.querySelector(`select[data-preset-manager-for="${api}"]`);
