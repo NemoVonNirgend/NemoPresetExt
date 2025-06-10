@@ -66,8 +66,8 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 #navigator-search-clear:hover { color: #fff; }
 
 /* Grid View & Items */
-#navigator-grid-view { display: flex; flex-wrap: wrap; gap: 20px; padding: 10px; overflow-y: auto; align-content: flex-start; align-items: flex-start; flex-grow: 1; }
-.grid-item { width: 140px; min-height: 160px; background-color: #36393f; border-radius: 8px; border: 2px solid transparent; display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease-in-out; user-select: none; }
+#navigator-grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; padding: 10px; overflow-y: auto; align-content: flex-start; flex-grow: 1; }
+.grid-item { min-height: 160px; background-color: #36393f; border-radius: 8px; border: 2px solid transparent; display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease-in-out; user-select: none; }
 .grid-item:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.3); border-color: #555; }
 .grid-item.selected { border-color: #ff8c00; background-color: #40444b; }
 .grid-item .item-icon { height: 100px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; font-size: 3.5em; color: #ffc107; border-top-left-radius: 6px; border-top-right-radius: 6px; background-size: cover; background-position: center; background-repeat: no-repeat; }
@@ -83,7 +83,113 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 .grid-item.folder.drag-over { border: 2px dashed #ff8c00; background-color: #4f545c; transform: scale(1.05); }
 
 /* Context Menu */
-.nemo-context-menu { display: none; position: fixed; background-color: #36393f; border: 1px solid #1e2124; z-index: 10000; list-style: none; padding: 5px 0; margin: 0; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-.nemo-context-menu li { padding: 8px 12px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.nemo-context-menu {
+    display: none;
+    position: fixed;
+    background-color: #36393f;
+    border: 1px solid #1e2124;
+    z-index: 99999;
+    list-style: none;
+    padding: 5px 0;
+    margin: 0;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+/* ⭐️⭐️⭐️ THIS IS THE CORRECTED RULE ⭐️⭐️⭐️ */
+.nemo-context-menu li {
+    padding: 8px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex !important; /* Force flex display to override global styles */
+    align-items: center;
+    gap: 8px;
+}
 .nemo-context-menu li:hover { background-color: #4f545c; }
 .nemo-context-menu i { width: 1em; text-align: center; }
+
+/* --- Mobile Friendliness for Navigator --- */
+@media (max-width: 768px) {
+    .nemo-preset-navigator-modal .modal-content {
+        width: 95vw;
+        height: 95vh;
+        padding: 10px;
+        margin: 2.5vh auto;
+    }
+
+    .nemo-preset-navigator-modal .modal-header {
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+    }
+
+    .nemo-preset-navigator-modal .modal-header h2 {
+        font-size: 1.2em;
+    }
+    
+    #navigator-grid-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    #navigator-breadcrumbs {
+        font-size: 1em;
+        text-align: center;
+    }
+
+    #navigator-header-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    #navigator-search-controls {
+        width: 100%;
+        display: flex;
+    }
+
+    #navigator-search-input {
+        flex-grow: 1;
+        width: auto;
+    }
+    
+    #navigator-new-synthetic-folder-btn {
+        width: 100%;
+    }
+
+    #navigator-grid-view {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+        padding: 5px;
+    }
+
+    .grid-item {
+        min-height: 130px;
+    }
+
+    .grid-item .item-icon {
+        height: 80px;
+        font-size: 3em;
+    }
+
+    .grid-item .item-name {
+        font-size: 0.8em;
+        padding: 5px;
+    }
+    
+    .nemo-preset-navigator-modal .modal-footer {
+        flex-direction: column;
+        align-items: stretch;
+        margin-top: 10px;
+        padding-top: 10px;
+    }
+
+    .nemo-preset-navigator-modal .modal-footer .action-controls {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    #navigator-load-btn {
+        width: 100%;
+    }
+}
