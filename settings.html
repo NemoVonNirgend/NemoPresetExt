@@ -6,15 +6,16 @@
         </div>
         <div class="inline-drawer-content">
             <div class="form-group">
-                <label for="nemoDividerRegexPattern">Divider Regex Pattern</label>
+                <!-- MODIFIED: Update label and help text -->
+                <label for="nemoDividerRegexPattern">Custom Divider Patterns</label>
                 <input type="text" id="nemoDividerRegexPattern" class="text_pole"> 
                 <small>
-                    Enter the regex pattern for dividers (e.g., <code>=+</code> or <code>---+</code>).
-                    The script anchors this to the start of the prompt name. Default: <code>=+</code>
+                    Add custom divider patterns, separated by commas (e.g., <code>###+</code>, <code>//--</code>).
+                    Built-in patterns like <code>=+</code>, <code>⭐─+</code>, <code>━+</code> are always active.
                 </small>
             </div>
             <button id="nemoSaveRegexSettings" class="menu_button">
-                <i class="fa-solid fa-save"></i> Save Regex Pattern
+                <i class="fa-solid fa-save"></i> Save Custom Patterns
             </button>
             <div id="nemoRegexStatus" style="margin-top: 10px; font-style: italic;"></div>
         </div>
