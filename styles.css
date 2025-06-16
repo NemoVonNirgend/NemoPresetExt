@@ -172,3 +172,11 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     .nemo-preset-navigator-modal .modal-footer .action-controls { justify-content: center; width: 100%; }
     #navigator-load-btn { width: 100%; }
 }
+.nemo-header-item {
+    pointer-events: none;
+    cursor: default !important;
+}
+
+.nemo-header-item > * {
+    pointer-events: auto;
+}
