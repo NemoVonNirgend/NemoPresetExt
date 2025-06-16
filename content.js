@@ -10,6 +10,7 @@ import {
     getContext,
 } from '../../../extensions.js';
 import { callGenericPopup, POPUP_TYPE } from '../../../popup.js';
+import { oai_settings, openai_setting_names, promptManager, Message } from '../../../../scripts/openai.js';
 
 // 0. DYNAMIC DEPENDENCY LOADING
 // -----------------------------------------------------------------------------
@@ -98,14 +99,15 @@ function showStatusMessage(message, type = 'info', duration = 4000) {
 }
 
 async function takeSnapshot() {
-    const enabledToggles = document.querySelectorAll(`${SELECTORS.promptsContainer} ${SELECTORS.toggleButton}.${SELECTORS.enabledToggleClass}`);
+    if (!promptManager) return;
     const activeIdentifiers = new Set();
-    enabledToggles.forEach(toggle => {
+    document.querySelectorAll(`${SELECTORS.promptsContainer} ${SELECTORS.toggleButton}.${SELECTORS.enabledToggleClass}`).forEach(toggle => {
         const promptLi = toggle.closest(SELECTORS.promptItemRow);
         if (promptLi) {
             activeIdentifiers.add(promptLi.dataset.pmIdentifier);
         }
     });
+
     const snapshotArray = Array.from(activeIdentifiers);
     localStorage.setItem(NEMO_SNAPSHOT_KEY, JSON.stringify(snapshotArray));
     document.getElementById('nemoApplySnapshotBtn').disabled = false;
@@ -119,14 +121,18 @@ async function applySnapshot() {
         return;
     }
     const snapshotIdentifiers = new Set(JSON.parse(snapshotJSON));
+    
     const allPromptItems = document.querySelectorAll(`${SELECTORS.promptsContainer} ${SELECTORS.promptItemRow}`);
     const togglesToClick = [];
+
     allPromptItems.forEach(item => {
         const identifier = item.dataset.pmIdentifier;
         const toggleButton = item.querySelector(SELECTORS.toggleButton);
         if (!identifier || !toggleButton) return;
+
         const isCurrentlyEnabled = toggleButton.classList.contains(SELECTORS.enabledToggleClass);
         const shouldBeEnabled = snapshotIdentifiers.has(identifier);
+
         if (isCurrentlyEnabled !== shouldBeEnabled) {
             togglesToClick.push(toggleButton);
         }
@@ -145,10 +151,12 @@ async function applySnapshot() {
     }
 }
 
+
 // 4. COLLAPSIBLE SECTIONS & SEARCH
 function getDividerInfo(promptElement) {
     const promptNameElement = promptElement.querySelector(SELECTORS.promptNameLink);
     if (!promptNameElement) return { isDivider: false };
+
     const promptName = promptNameElement.textContent.trim();
     if (DIVIDER_PREFIX_REGEX.test(promptName)) {
         const match = promptName.match(DIVIDER_PREFIX_REGEX);
@@ -162,11 +170,18 @@ function getDividerInfo(promptElement) {
 
 function updateSectionCount(sectionElement) {
     if (!sectionElement) return;
+    
+    const content = sectionElement.querySelector('.nemo-section-content');
+    if (!content) return;
+    
+    const totalCount = content.querySelectorAll(SELECTORS.toggleButton).length;
+    const enabledCount = content.querySelectorAll(`${SELECTORS.toggleButton}.${SELECTORS.enabledToggleClass}`).length;
+
     const countSpan = sectionElement.querySelector('summary .nemo-enabled-count');
-    if (!countSpan) return;
-    const enabledCount = sectionElement.querySelectorAll(`.nemo-section-content ${SELECTORS.toggleButton}.${SELECTORS.enabledToggleClass}`).length;
-    const totalCount = sectionElement.querySelectorAll('.nemo-section-content .prompt-manager-toggle-action').length;
-    countSpan.textContent = ` (${enabledCount}/${totalCount})`;
+    if (countSpan) {
+        countSpan.textContent = ` (${enabledCount}/${totalCount})`;
+    }
+
     const masterToggle = sectionElement.querySelector('.nemo-section-master-toggle');
     if(masterToggle){
         masterToggle.classList.toggle('nemo-active', enabledCount > 0);
@@ -179,15 +194,20 @@ async function organizePrompts() {
     promptsContainer.dataset.nemoOrganizing = 'true';
 
     promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(section => {
-        const summary = section.querySelector('summary');
         const content = section.querySelector('.nemo-section-content');
-        if (content) { while (content.firstChild) { section.parentNode.insertBefore(content.firstChild, section); } }
-        if (summary) { const summaryLi = summary.querySelector('summary > li'); if (summaryLi) { summaryLi.querySelector('.nemo-enabled-count')?.remove(); section.parentNode.insertBefore(summaryLi, section); } }
+        if (content) {
+            while (content.firstChild) {
+                section.parentNode.insertBefore(content.firstChild, section);
+            }
+        }
+        const summaryLi = section.querySelector('summary > li');
+        if (summaryLi) {
+            section.parentNode.insertBefore(summaryLi, section);
+        }
         section.remove();
     });
 
     const allItems = Array.from(promptsContainer.children);
-    promptsContainer.innerHTML = '';
     let currentSectionContent = null;
 
     for (const item of allItems) {
@@ -203,22 +223,37 @@ async function organizePrompts() {
 
         const dividerInfo = getDividerInfo(item);
         if (dividerInfo.isDivider) {
-            const details = document.createElement('details'); details.className = 'nemo-engine-section'; details.open = openSectionStates[dividerInfo.originalText] || false;
+            const details = document.createElement('details'); 
+            details.className = 'nemo-engine-section'; 
+            details.open = openSectionStates[dividerInfo.originalText] || false;
+            
             const summary = document.createElement('summary'); 
-            item.querySelector('span.completion_prompt_manager_prompt_name').insertAdjacentHTML('beforeend', '<span class="nemo-enabled-count"></span>'); 
+            const nameSpan = item.querySelector('span.completion_prompt_manager_prompt_name');
+            if (nameSpan && !nameSpan.querySelector('.nemo-enabled-count')) {
+                nameSpan.insertAdjacentHTML('beforeend', '<span class="nemo-enabled-count"></span>');
+            }
 
-            const masterToggleButton = document.createElement('button');
-            masterToggleButton.className = 'menu_button nemo-section-master-toggle';
-            masterToggleButton.title = 'Toggle all in section';
-            masterToggleButton.innerHTML = '<i class="fa-solid fa-power-off"></i>';
-            item.querySelector('.nemo-right-controls-wrapper').prepend(masterToggleButton);
+            const wrapper = item.querySelector('.nemo-right-controls-wrapper');
+            if (wrapper && !wrapper.querySelector('.nemo-section-master-toggle')) {
+                const masterToggleButton = document.createElement('button');
+                masterToggleButton.className = 'menu_button nemo-section-master-toggle';
+                masterToggleButton.title = 'Toggle all in section';
+                masterToggleButton.innerHTML = '<i class="fa-solid fa-power-off"></i>';
+                wrapper.prepend(masterToggleButton);
+            }
 
             summary.appendChild(item); 
             details.appendChild(summary);
-            const contentDiv = document.createElement('div'); contentDiv.className = 'nemo-section-content'; details.appendChild(contentDiv);
+            const contentDiv = document.createElement('div'); 
+            contentDiv.className = 'nemo-section-content'; 
+            details.appendChild(contentDiv);
             promptsContainer.appendChild(details);
             currentSectionContent = contentDiv;
-        } else { (currentSectionContent || promptsContainer).appendChild(item); }
+        } else {
+            if (currentSectionContent) {
+                currentSectionContent.appendChild(item);
+            }
+        }
     }
 
     promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(updateSectionCount);
@@ -237,7 +272,10 @@ function handlePresetSearch() {
         promptsContainer.querySelectorAll(`${SELECTORS.promptItemRow}, details.nemo-engine-section`).forEach(el => el.style.display = '');
         promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(section => {
             const summaryLi = section.querySelector('summary > li');
-            if (summaryLi) { const dividerInfo = getDividerInfo(summaryLi); section.open = openSectionStates[dividerInfo.originalText] || false; }
+            if (summaryLi) {
+                const dividerInfo = getDividerInfo(summaryLi);
+                section.open = openSectionStates[dividerInfo.originalText] || false;
+            }
         });
         return;
     }
@@ -247,7 +285,10 @@ function handlePresetSearch() {
         if (name.includes(searchTerm)) {
             item.style.display = '';
             const parentSection = item.closest('details.nemo-engine-section');
-            if (parentSection) { parentSection.style.display = ''; parentSection.open = true; }
+            if (parentSection) { 
+                parentSection.style.display = ''; 
+                parentSection.open = true; 
+            }
         }
     });
 }
@@ -293,10 +334,17 @@ function initializeSearchAndSections(container) {
 
     container.addEventListener('click', (event) => {
         if (event.target.closest('summary') && !event.target.closest('a, button')) {
-            const details = event.target.closest('details'); const li = details.querySelector('summary > li'); const dividerInfo = getDividerInfo(li);
+            const details = event.target.closest('details'); 
+            const li = details.querySelector('summary > li');
+            const dividerInfo = getDividerInfo(li);
             setTimeout(() => { openSectionStates[dividerInfo.originalText] = details.open; }, 0);
         } else if (event.target.closest(SELECTORS.toggleButton)) {
-            setTimeout(() => updateSectionCount(event.target.closest('details.nemo-engine-section')), 100);
+            setTimeout(() => {
+                const section = event.target.closest('details.nemo-engine-section');
+                if (section) {
+                    updateSectionCount(section);
+                }
+            }, 100);
         } else if (event.target.closest('.nemo-section-master-toggle')) {
             event.preventDefault();
             event.stopPropagation();
@@ -345,10 +393,16 @@ class PresetNavigator {
         this.searchInput = document.getElementById('navigator-search-input');
         this.searchClearBtn = document.getElementById('navigator-search-clear');
         
+        // NEW: State for enhanced features
         this.metadata = { folders: {}, presets: {} };
         this.currentPath = [{ id: 'root', name: 'Home' }];
         this.allPresets = [];
         this.selectedPreset = { value: null, filename: null };
+        this.bulkSelection = new Set();
+        this.lastSelectedItem = null; // For shift-click
+        this.viewMode = 'grid'; // 'grid' or 'list'
+        this.currentSort = 'name-asc'; // e.g., 'name-desc', 'date-asc', 'date-desc'
+        this.currentFilter = 'all'; // 'all', 'uncategorized', 'has-image'
 
         this.longPressTimer = null;
         this.isDragging = false;
@@ -367,10 +421,13 @@ class PresetNavigator {
         this.modal.querySelector('#navigator-load-btn').addEventListener('click', () => this.loadSelectedPreset());
         this.newFolderBtn.addEventListener('click', () => this.createNewFolder());
         
-        this.modal.querySelector('.close-button').addEventListener('click', () => {
-            const popupBg = document.querySelector('.popup_background');
-            if (popupBg) popupBg.click();
-        });
+        const closeButton = this.modal.querySelector('.close-button');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => {
+                const popupBg = document.querySelector('.popup_background');
+                if (popupBg) popupBg.click();
+            });
+        }
 
         this.searchInput.addEventListener('input', () => this.renderGridView());
         this.searchClearBtn.addEventListener('click', () => {
@@ -379,7 +436,16 @@ class PresetNavigator {
         });
 
         this.mainView.addEventListener('click', (e) => this.handleGridClick(e), true);
+        this.mainView.addEventListener('dblclick', (e) => this.handleGridDoubleClick(e));
+        this.modal.querySelector('#navigator-import-btn').addEventListener('click', () => this.importPreset());
+
         document.addEventListener('click', () => this.hideContextMenu(), true);
+        
+        this.modal.querySelector('#navigator-view-toggle-btn').addEventListener('click', () => this.toggleViewMode());
+        this.modal.querySelector('#navigator-sort-btn').addEventListener('click', (e) => this.showSortMenu(e));
+        this.modal.querySelector('#navigator-filter-btn').addEventListener('click', (e) => this.showFilterMenu(e));
+        this.modal.addEventListener('keydown', (e) => this.handleKeyDown(e));
+
 
         this.mainView.addEventListener('contextmenu', (e) => this.handleGridContextMenu(e));
         this.mainView.addEventListener('dragstart', (e) => this.handleDragStart(e));
@@ -397,23 +463,13 @@ class PresetNavigator {
         this.loadMetadata();
         this.allPresets = await this.fetchPresetList();
         this.searchInput.value = '';
+        this.bulkSelection.clear();
         this.render();
-    
+        
         const content = this.modal.querySelector('.modal-content');
         if (!content) return;
-    
-        const originalParent = content.parentNode;
-        if (originalParent) originalParent.removeChild(content);
-    
-        try {
-            await callGenericPopup(content, POPUP_TYPE.DISPLAY, null, { wide: true, large: true });
-        }
-        finally {
-            if (originalParent && !originalParent.contains(content)) {
-                originalParent.appendChild(content);
-            }
-            this.close();
-        }
+        
+        callGenericPopup(content, POPUP_TYPE.DISPLAY, null, { wide: true, large: true });
     }
 
     close() {
@@ -426,6 +482,7 @@ class PresetNavigator {
         this.renderBreadcrumbs();
         this.renderGridView();
         this.updateLoadButton();
+        this.updateHeaderControls();
     }
 
     renderBreadcrumbs() {
@@ -451,107 +508,209 @@ class PresetNavigator {
     }
 
     renderGridView() {
-        this.mainView.innerHTML = '';
         const currentFolderId = this.currentPath[this.currentPath.length - 1].id;
         const searchTerm = this.searchInput.value.toLowerCase().trim();
 
+        // 1. GATHER ALL ITEMS (folders and presets)
+        let items = [];
+        // Add folders
         Object.values(this.metadata.folders)
-            .filter(folder => folder.parentId === currentFolderId && folder.name.toLowerCase().includes(searchTerm))
-            .sort((a,b) => a.name.localeCompare(b.name))
-            .forEach(folder => {
-                const item = this.createGridItem(folder.name, 'folder', folder.id);
-                this.mainView.appendChild(item);
-            });
+            .filter(folder => folder.parentId === currentFolderId)
+            .forEach(folder => items.push({ type: 'folder', data: folder, id: folder.id, name: folder.name }));
 
-        const presetsInThisFolder = new Set();
-        Object.entries(this.metadata.presets).forEach(([filename, data]) => {
-            if (data.folderId === currentFolderId) {
-                presetsInThisFolder.add(filename);
+        // Add presets
+        this.allPresets.forEach(p => {
+            const meta = this.metadata.presets[p.name] || {};
+            const isUncategorized = !meta.folderId;
+            const isInCurrentFolder = meta.folderId === currentFolderId;
+            const isInRootAndCurrentIsRoot = isUncategorized && currentFolderId === 'root';
+
+            if (isInCurrentFolder || isInRootAndCurrentIsRoot) {
+                items.push({ type: 'preset', data: { ...p, ...meta }, id: p.name, name: p.name });
+            }
+        });
+        
+        // 2. FILTER
+        items = items.filter(item => {
+            // Search filter
+            if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) {
+                return false;
+            }
+            // Advanced filter
+            if (this.currentFilter === 'uncategorized' && item.type === 'preset' && item.data.folderId) {
+                return false;
+            }
+            if (this.currentFilter === 'has-image' && item.type === 'preset' && !item.data.imageUrl) {
+                return false;
+            }
+            return true;
+        });
+
+        // 3. SORT
+        items.sort((a, b) => {
+            // Always keep folders on top
+            if (a.type === 'folder' && b.type === 'preset') return -1;
+            if (a.type === 'preset' && b.type === 'folder') return 1;
+
+            const aDate = a.data.lastModified || a.data.createdAt || '1970-01-01';
+            const bDate = b.data.lastModified || b.data.createdAt || '1970-01-01';
+
+            switch (this.currentSort) {
+                case 'name-desc': return b.name.localeCompare(a.name);
+                case 'date-asc': return new Date(aDate) - new Date(bDate);
+                case 'date-desc': return new Date(bDate) - new Date(aDate);
+                case 'name-asc':
+                default:
+                    return a.name.localeCompare(b.name);
             }
         });
 
-        this.allPresets
-            .filter(p => presetsInThisFolder.has(p.name) && p.name.toLowerCase().includes(searchTerm))
-            .sort((a,b) => a.name.localeCompare(b.name))
-            .forEach(p => {
-                const presetMeta = this.metadata.presets[p.name] || {};
-                const item = this.createGridItem(p.name, 'preset', p.name, p.value, presetMeta.imageUrl);
-                this.mainView.appendChild(item);
-            });
-        
-        if (currentFolderId === 'root') {
-             this.allPresets
-                .filter(p => !this.metadata.presets[p.name]?.folderId && p.name.toLowerCase().includes(searchTerm))
-                .sort((a,b) => a.name.localeCompare(b.name))
-                .forEach(p => {
-                    const item = this.createGridItem(p.name, 'preset', p.name, p.value);
-                    this.mainView.appendChild(item);
-                });
+        // 4. RENDER
+        this.mainView.innerHTML = '';
+        this.mainView.className = `view-mode-${this.viewMode}`;
+        this.mainView.classList.add('fade-in');
+
+        if (items.length === 0) {
+            const emptyEl = document.createElement('div');
+            emptyEl.className = 'navigator-empty-state';
+            emptyEl.innerHTML = searchTerm ? `<h3>No results for "${searchTerm}"</h3>` : `<h3>This folder is empty.</h3><p>Drag presets here to add them.</p>`;
+            this.mainView.appendChild(emptyEl);
+            return;
         }
+
+        items.forEach(item => {
+            const itemEl = (this.viewMode === 'grid') ? this.createGridItem(item) : this.createListItem(item);
+            this.mainView.appendChild(itemEl);
+        });
+
+        this.updateBulkSelectionVisuals();
     }
 
-    createGridItem(name, type, id, value = '', imageUrl = '') {
-        const item = document.createElement('div');
-        item.className = `grid-item ${type}`;
-        item.dataset.type = type;
-        item.dataset.id = id;
-        item.draggable = (type === 'preset');
+    createGridItem(item) {
+        const { type, data, id } = item;
+        const itemEl = document.createElement('div');
+        itemEl.className = `grid-item ${type}`;
+        itemEl.dataset.type = type;
+        itemEl.dataset.id = id;
+        itemEl.draggable = true;
 
         if (type === 'preset') {
-            item.dataset.value = value;
+            itemEl.dataset.value = data.value;
+        }
+        if (data.color) {
+            itemEl.style.setProperty('--nemo-folder-color', data.color);
         }
 
         const icon = document.createElement('div');
         icon.className = 'item-icon';
-        if (imageUrl) {
-            icon.style.backgroundImage = `url('${imageUrl}')`;
+        if (data.imageUrl) {
+            icon.style.backgroundImage = `url('${data.imageUrl}')`;
         } else {
             icon.innerHTML = `<i class="fa-solid ${type === 'folder' ? 'fa-folder' : 'fa-file-lines'}"></i>`;
         }
 
         const nameEl = document.createElement('div');
         nameEl.className = 'item-name';
-        nameEl.textContent = name.split('/').pop();
-        nameEl.title = name;
+        nameEl.textContent = data.name.split('/').pop();
         
-        item.appendChild(icon);
-        item.appendChild(nameEl);
+        const lastMod = data.lastModified ? new Date(data.lastModified).toLocaleDateString() : 'N/A';
+        nameEl.title = `${data.name}\nModified: ${lastMod}`;
+        
+        itemEl.appendChild(icon);
+        itemEl.appendChild(nameEl);
 
         if (type === 'preset' && this.selectedPreset.filename === id) {
-            item.classList.add('selected');
+            itemEl.classList.add('selected');
         }
 
-        return item;
+        return itemEl;
+    }
+    
+    createListItem(item) {
+        const { type, data, id } = item;
+        const itemEl = document.createElement('div');
+        itemEl.className = `grid-item list-item ${type}`;
+        itemEl.dataset.type = type;
+        itemEl.dataset.id = id;
+        itemEl.draggable = true;
+
+        if (type === 'preset') {
+            itemEl.dataset.value = data.value;
+        }
+        if (data.color) {
+            itemEl.style.setProperty('--nemo-folder-color', data.color);
+        }
+
+        const icon = document.createElement('div');
+        icon.className = 'item-icon';
+        icon.innerHTML = `<i class="fa-solid ${type === 'folder' ? 'fa-folder' : 'fa-file-lines'}"></i>`;
+        
+        const nameEl = document.createElement('div');
+        nameEl.className = 'item-name';
+        nameEl.textContent = data.name.split('/').pop();
+        nameEl.title = data.name;
+
+        const dateEl = document.createElement('div');
+        dateEl.className = 'item-date';
+        dateEl.textContent = data.lastModified ? new Date(data.lastModified).toLocaleDateString() : '—';
+        
+        itemEl.appendChild(icon);
+        itemEl.appendChild(nameEl);
+        itemEl.appendChild(dateEl);
+
+        if (type === 'preset' && this.selectedPreset.filename === id) {
+            itemEl.classList.add('selected');
+        }
+        return itemEl;
+    }
+
+    async handleGridDoubleClick(e) {
+        const item = e.target.closest('.grid-item.preset');
+        if (!item) return;
+        
+        const { id, value } = item.dataset;
+        this.mainView.querySelectorAll('.grid-item.selected').forEach(el => el.classList.remove('selected'));
+        item.classList.add('selected');
+        this.selectedPreset = { value: value, filename: id };
+        this.updateLoadButton();
+
+        await this.loadSelectedPreset();
     }
 
     handleGridClick(e) {
         if (this.gestureHappened) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.gestureHappened = false; 
-            return;
+            e.preventDefault(); e.stopPropagation(); this.gestureHappened = false; return;
         }
-
         const item = e.target.closest('.grid-item');
         if (!item) return;
 
         const { type, id, value } = item.dataset;
+        
+        if (e.shiftKey && this.lastSelectedItem) {
+            this.handleShiftClick(item);
+        } else if (e.ctrlKey || e.metaKey) {
+            this.toggleBulkSelection(id);
+            this.lastSelectedItem = item;
+        } else {
+            this.bulkSelection.clear();
+            this.updateBulkSelectionVisuals();
 
-        if (type === 'folder') {
-            const folder = this.metadata.folders[id];
-            if (folder) {
-                this.currentPath.push({ id: folder.id, name: folder.name });
-                this.render();
+            if (type === 'folder') {
+                const folder = this.metadata.folders[id];
+                if (folder) {
+                    this.currentPath.push({ id: folder.id, name: folder.name });
+                    this.render();
+                }
+            } else if (type === 'preset') {
+                this.mainView.querySelectorAll('.grid-item.selected').forEach(el => el.classList.remove('selected'));
+                item.classList.add('selected');
+                this.selectedPreset = { value: value, filename: id };
+                this.lastSelectedItem = item;
             }
-        } else if (type === 'preset') {
-            this.mainView.querySelectorAll('.grid-item.selected').forEach(el => el.classList.remove('selected'));
-            item.classList.add('selected');
-            this.selectedPreset = { value: value, filename: id };
-            this.updateLoadButton();
         }
+        this.updateLoadButton();
     }
 
-    // ⭐️⭐️⭐️ THIS IS THE CORRECTED FUNCTION ⭐️⭐️⭐️
     handleGridContextMenu(e) {
         e.preventDefault();
         this.hideContextMenu();
@@ -559,20 +718,28 @@ class PresetNavigator {
         if (!item) return;
 
         const { type, id } = item.dataset;
+        const isBulk = this.bulkSelection.size > 1 && this.bulkSelection.has(id);
         const menu = document.createElement('ul');
         menu.className = 'nemo-context-menu';
 
         let itemsHTML = '';
-        if (type === 'folder') {
+        if (isBulk) {
+            const count = this.bulkSelection.size;
+            itemsHTML = `
+                <li data-action="bulk_move"><i class="fa-solid fa-folder-plus"></i><span>Move ${count} items...</span></li>
+                <li data-action="bulk_delete"><i class="fa-solid fa-trash-can"></i><span>Delete ${count} items</span></li>
+            `;
+        } else if (type === 'folder') {
             itemsHTML = `
                 <li data-action="rename_folder" data-id="${id}"><i class="fa-solid fa-i-cursor"></i><span>Rename</span></li>
+                <li data-action="set_folder_color" data-id="${id}"><i class="fa-solid fa-palette"></i><span>Set Color</span></li>
                 <li data-action="delete_folder" data-id="${id}"><i class="fa-solid fa-trash-can"></i><span>Delete</span></li>
             `;
         } else if (type === 'preset') {
             itemsHTML = `
                 <li data-action="set_image" data-id="${id}"><i class="fa-solid fa-image"></i><span>Set Image</span></li>
-                <li data-action="add_to_folder" data-id="${id}"><i class="fa-solid fa-folder-plus"></i><span>Add to Folder...</span></li>
-                <li data-action="remove_from_folder" data-id="${id}"><i class="fa-solid fa-folder-minus"></i><span>Remove from current Folder</span></li>
+                <li data-action="add_to_folder" data-id="${id}"><i class="fa-solid fa-folder-plus"></i><span>Move to Folder...</span></li>
+                <li data-action="remove_from_folder" data-id="${id}"><i class="fa-solid fa-folder-minus"></i><span>Remove from Folder</span></li>
             `;
         }
         menu.innerHTML = itemsHTML;
@@ -583,7 +750,7 @@ class PresetNavigator {
             return;
         }
         popupContainer.appendChild(menu);
-
+        
         menu.style.visibility = 'hidden';
         menu.style.display = 'block';
         const menuWidth = menu.offsetWidth;
@@ -594,35 +761,19 @@ class PresetNavigator {
         const popupRect = popupContainer.getBoundingClientRect();
         let localX, localY;
 
-        // Mobile-first, touch-friendly logic (using a common breakpoint)
         if (window.innerWidth <= 768) {
-            // Center the menu horizontally on the click/tap
             let viewportX = e.clientX - (menuWidth / 2);
-
-            // Clamp to prevent viewport overflow, with a small margin
             const margin = 10;
-            if (viewportX < margin) {
-                viewportX = margin;
-            }
-            if (viewportX + menuWidth > window.innerWidth - margin) {
-                viewportX = window.innerWidth - menuWidth - margin;
-            }
+            if (viewportX < margin) viewportX = margin;
+            if (viewportX + menuWidth > window.innerWidth - margin) viewportX = window.innerWidth - menuWidth - margin;
             localX = viewportX - popupRect.left;
-        }
-        // Desktop, mouse-friendly logic
-        else {
+        } else {
             localX = e.clientX - popupRect.left;
-            // Flip if it overflows the right edge of the viewport
-            if (e.clientX + menuWidth > window.innerWidth) {
-                localX = e.clientX - popupRect.left - menuWidth;
-            }
+            if (e.clientX + menuWidth > window.innerWidth) localX = e.clientX - popupRect.left - menuWidth;
         }
 
-        // Vertical positioning logic (same for both platforms)
         localY = e.clientY - popupRect.top;
-        if (e.clientY + menuHeight > window.innerHeight) {
-            localY = e.clientY - popupRect.top - menuHeight;
-        }
+        if (e.clientY + menuHeight > window.innerHeight) localY = e.clientY - popupRect.top - menuHeight;
 
         menu.style.left = `${localX}px`;
         menu.style.top = `${localY}px`;
@@ -636,28 +787,40 @@ class PresetNavigator {
             this.hideContextMenu();
         });
     }
-
+    
+    // MODIFIED: This function is the key to the fix.
     handleTouchStart(e) {
         this.gestureHappened = false;
         const item = e.target.closest('.grid-item');
         if (!item) return;
 
-        const touch = e.touches[0];
-        this.touchStartX = touch.clientX;
-        this.touchStartY = touch.clientY;
+        // Only initiate drag/long-press logic if the item is ALREADY selected.
+        // This prevents interfering with the browser's native scrolling on non-selected items.
+        if (item.classList.contains('selected') || item.classList.contains('bulk-selected')) {
+            const touch = e.touches[0];
+            this.touchStartX = touch.clientX;
+            this.touchStartY = touch.clientY;
 
-        this.longPressTimer = setTimeout(() => {
-            this.gestureHappened = true;
-            const mockEvent = { clientX: this.touchStartX, clientY: this.touchStartY, preventDefault: () => {}, target: e.target };
-            this.handleGridContextMenu(mockEvent);
-        }, 500);
+            // Set up a long-press for the context menu
+            this.longPressTimer = setTimeout(() => {
+                this.gestureHappened = true;
+                const mockEvent = { clientX: this.touchStartX, clientY: this.touchStartY, preventDefault: () => {}, target: e.target };
+                this.handleGridContextMenu(mockEvent);
+            }, 500);
 
-        if (item.dataset.type === 'preset') {
-            this.draggedItem = item;
+            // Set the item as a potential drag target.
+            // This will be checked in handleTouchMove to initiate the drag.
+            if (item.dataset.type === 'preset' || item.dataset.type === 'folder') {
+                this.draggedItem = item;
+            }
         }
+        // If the item is NOT selected, we do nothing here. The browser will handle
+        // the touch as a scroll, and the 'click' event will handle selection on tap.
     }
 
     handleTouchMove(e) {
+        // This check is now the gatekeeper. It will only be true if the touch
+        // started on an already-selected item, as per the new handleTouchStart logic.
         if (!this.draggedItem) return;
 
         const touch = e.touches[0];
@@ -669,25 +832,21 @@ class PresetNavigator {
             clearTimeout(this.longPressTimer);
             
             if (!this.isDragging) {
-                if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                    this.isDragging = true;
-                    this.gestureHappened = true;
-                    this.ghostElement = this.draggedItem.cloneNode(true);
-                    this.ghostElement.classList.add('dragging');
-                    Object.assign(this.ghostElement.style, {
-                        position: 'fixed', zIndex: '100000', pointerEvents: 'none',
-                        width: `${this.draggedItem.offsetWidth}px`, height: `${this.draggedItem.offsetHeight}px`,
-                    });
-                    document.body.appendChild(this.ghostElement);
-                    this.draggedItem.classList.add('dragging');
-                } else {
-                    this.draggedItem = null;
-                    return;
-                }
+                this.isDragging = true;
+                this.gestureHappened = true;
+                this.ghostElement = this.draggedItem.cloneNode(true);
+                this.ghostElement.classList.add('dragging');
+                Object.assign(this.ghostElement.style, {
+                    position: 'fixed', zIndex: '100000', pointerEvents: 'none',
+                    width: `${this.draggedItem.offsetWidth}px`, height: `${this.draggedItem.offsetHeight}px`,
+                });
+                document.body.appendChild(this.ghostElement);
+                this.draggedItem.classList.add('dragging-source');
             }
         }
 
         if (this.isDragging) {
+            // Prevent default scroll behavior ONLY if we are actually dragging.
             e.preventDefault();
             this.ghostElement.style.left = `${touch.clientX - this.ghostElement.offsetWidth / 2}px`;
             this.ghostElement.style.top = `${touch.clientY - this.ghostElement.offsetHeight / 2}px`;
@@ -715,17 +874,14 @@ class PresetNavigator {
 
         if (this.isDragging) {
             if (this.lastDropTarget) {
-                const presetId = this.draggedItem.dataset.id;
+                const draggedId = this.draggedItem.dataset.id;
                 const folderId = this.lastDropTarget.dataset.id;
-                if (presetId && folderId) {
-                    this.metadata.presets[presetId] = this.metadata.presets[presetId] || {};
-                    this.metadata.presets[presetId].folderId = folderId;
-                    this.saveMetadata();
-                    this.render();
+                if (draggedId && folderId) {
+                    this.moveItemToFolder(draggedId, folderId);
                 }
                 this.lastDropTarget.classList.remove('drag-over');
             }
-            this.draggedItem.classList.remove('dragging');
+            this.draggedItem.classList.remove('dragging-source');
             if (this.ghostElement) document.body.removeChild(this.ghostElement);
         }
 
@@ -737,11 +893,11 @@ class PresetNavigator {
 
     handleDragStart(e) {
         this.isDragging = true;
-        const item = e.target.closest('.grid-item.preset');
+        const item = e.target.closest('.grid-item');
         if (!item) { e.preventDefault(); return; }
         e.dataTransfer.setData('text/plain', item.dataset.id);
         e.dataTransfer.effectAllowed = 'move';
-        setTimeout(() => item.classList.add('dragging'), 0);
+        setTimeout(() => item.classList.add('dragging-source'), 0);
     }
 
     handleDragOver(e) {
@@ -771,23 +927,21 @@ class PresetNavigator {
         e.preventDefault();
         if (this.lastDropTarget) {
             this.lastDropTarget.classList.remove('drag-over');
-            const presetId = e.dataTransfer.getData('text/plain');
+            const draggedId = e.dataTransfer.getData('text/plain');
             const folderId = this.lastDropTarget.dataset.id;
             
-            if (presetId && folderId) {
-                this.metadata.presets[presetId] = this.metadata.presets[presetId] || {};
-                this.metadata.presets[presetId].folderId = folderId;
-                this.saveMetadata();
-                this.render();
+            if (draggedId && folderId) {
+                this.moveItemToFolder(draggedId, folderId);
             }
         }
-        const originalItem = this.mainView.querySelector(`.grid-item[data-id="${e.dataTransfer.getData('text/plain')}"]`);
-        if(originalItem) originalItem.classList.remove('dragging');
+        const draggedId = e.dataTransfer.getData('text/plain');
+        const originalItem = this.mainView.querySelector(`.grid-item[data-id="${draggedId}"]`) || document.querySelector(`.grid-item.dragging-source[data-id="${draggedId}"]`);
+        if(originalItem) originalItem.classList.remove('dragging-source');
 
         this.isDragging = false;
         this.lastDropTarget = null;
     }
-    
+
     async runContextMenuAction(action, id) {
         switch (action) {
             case 'rename_folder': {
@@ -796,49 +950,49 @@ class PresetNavigator {
                 const newName = await callGenericPopup('Enter new folder name:', POPUP_TYPE.INPUT, folder.name);
                 if (newName && newName !== folder.name) {
                     folder.name = newName;
-                    this.saveMetadata();
-                    this.render();
+                    this.updateMetadataTimestamp(id, 'folder');
+                    this.saveMetadata(); this.render();
                 }
                 break;
             }
             case 'delete_folder': {
                 const confirmed = await callGenericPopup(`Delete "${this.metadata.folders[id].name}"? Presets inside will become unassigned.`, POPUP_TYPE.CONFIRM);
                 if (confirmed) {
-                    Object.values(this.metadata.presets).forEach(p => {
-                        if (p.folderId === id) delete p.folderId;
-                    });
+                    Object.values(this.metadata.presets).forEach(p => { if (p.folderId === id) delete p.folderId; });
                     delete this.metadata.folders[id];
-                    this.saveMetadata();
-                    this.render();
+                    this.saveMetadata(); this.render();
                 }
                 break;
             }
-            case 'set_image': {
-                this.promptForLocalImage(id);
-                break;
-            }
-            case 'add_to_folder': {
-                const folderNames = Object.values(this.metadata.folders).map(f => f.name).join(', ');
-                if (!folderNames) {
-                    callGenericPopup("No folders created yet. Create a folder first.", "info");
-                    return;
-                }
-                const targetName = await callGenericPopup(`Enter folder name to add to:\n(${folderNames})`, POPUP_TYPE.INPUT);
-                const targetFolder = Object.values(this.metadata.folders).find(f => f.name.toLowerCase() === targetName?.toLowerCase());
-                if (targetFolder) {
-                    this.metadata.presets[id] = this.metadata.presets[id] || {};
-                    this.metadata.presets[id].folderId = targetFolder.id;
-                    this.saveMetadata();
-                    this.render();
-                } else if(targetName) {
-                    callGenericPopup(`Folder "${targetName}" not found.`, "error");
+            case 'set_image': { this.promptForLocalImage(id); break; }
+            case 'set_folder_color': {
+                const color = await callGenericPopup('Enter a CSS color for the folder (e.g., #ff5733, red):', POPUP_TYPE.INPUT, this.metadata.folders[id].color || '');
+                if (color !== null) {
+                    this.metadata.folders[id].color = color;
+                    this.updateMetadataTimestamp(id, 'folder');
+                    this.saveMetadata(); this.render();
                 }
                 break;
             }
+            case 'add_to_folder': { this.moveItemToFolderDialog([id]); break; }
             case 'remove_from_folder': {
                 if (this.metadata.presets[id]?.folderId) {
                     delete this.metadata.presets[id].folderId;
+                    this.updateMetadataTimestamp(id, 'preset');
+                    this.saveMetadata(); this.render();
+                }
+                break;
+            }
+            case 'bulk_move': { this.moveItemToFolderDialog(Array.from(this.bulkSelection)); break; }
+            case 'bulk_delete': {
+                const confirmed = await callGenericPopup(`Delete ${this.bulkSelection.size} selected items? This cannot be undone.`, POPUP_TYPE.CONFIRM);
+                if (confirmed) {
+                    this.bulkSelection.forEach(itemId => {
+                        if (this.metadata.presets[itemId]) delete this.metadata.presets[itemId];
+                        if (this.metadata.folders[itemId]) delete this.metadata.folders[itemId];
+                    });
                     this.saveMetadata();
+                    this.bulkSelection.clear();
                     this.render();
                 }
                 break;
@@ -855,17 +1009,30 @@ class PresetNavigator {
         if (!name) return;
         const newId = generateUUID();
         const parentId = this.currentPath[this.currentPath.length - 1].id;
-        this.metadata.folders[newId] = { id: newId, name, parentId };
-        this.saveMetadata();
-        this.render();
+        const now = new Date().toISOString();
+        this.metadata.folders[newId] = { id: newId, name, parentId, createdAt: now, lastModified: now };
+        this.saveMetadata(); this.render();
     }
 
     promptForLocalImage(presetId) {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        input.style.display = 'none';
-
+    
+        // Visually hide the input but keep it in the layout for mobile compatibility.
+        input.style.position = 'fixed';
+        input.style.top = '-1000px';
+        input.style.left = '-1000px';
+    
+        // This function will handle cleaning up the input element.
+        const cleanup = () => {
+            if (document.body.contains(input)) {
+                document.body.removeChild(input);
+            }
+            window.removeEventListener('focus', cleanup);
+        };
+    
+        // Listen for when a file is selected.
         input.addEventListener('change', () => {
             const file = input.files[0];
             if (file) {
@@ -874,40 +1041,70 @@ class PresetNavigator {
                     const dataUrl = e.target.result;
                     this.metadata.presets[presetId] = this.metadata.presets[presetId] || {};
                     this.metadata.presets[presetId].imageUrl = dataUrl;
+                    this.updateMetadataTimestamp(presetId, 'preset');
                     this.saveMetadata();
                     this.render();
                 };
                 reader.readAsDataURL(file);
             }
-            document.body.removeChild(input);
         });
-
+    
+        // Listen for the window to regain focus. This happens when the file
+        // picker is closed, either by selection or cancellation. This is a
+        // reliable way to trigger the cleanup.
+        window.addEventListener('focus', cleanup, { once: true });
+    
+        // Add the input to the document and trigger the click.
         document.body.appendChild(input);
         input.click();
     }
 
     async fetchPresetList() {
+        if (this.apiType === 'openai' && openai_setting_names) {
+            return Object.keys(openai_setting_names).map(name => ({
+                name: name,
+                value: openai_setting_names[name]
+            }));
+        }
+        
         const select = document.querySelector(`select[data-preset-manager-for="${this.apiType}"]`);
         return select ? Array.from(select.options).map(opt => ({ name: opt.textContent, value: opt.value })).filter(item => item.name && item.value) : [];
     }
 
     updateLoadButton() {
-        const btn = this.modal.querySelector('#navigator-load-btn');
-        btn.disabled = !this.selectedPreset.value;
+        const btn = document.querySelector('#navigator-load-btn');
+        if (!btn) return; 
+        const selectedCount = this.bulkSelection.size;
+        
+        if (selectedCount > 1) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-ban"></i> ${selectedCount} items selected`;
+        } else if (this.selectedPreset.value !== null) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-upload"></i> Load Selected Preset`;
+        } else {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-upload"></i> Load Selected Preset`;
+        }
     }
 
     async loadSelectedPreset() {
-        if (!this.selectedPreset.value) return;
-        
+        if (this.selectedPreset.value === null) return;
         const select = document.querySelector(`select[data-preset-manager-for="${this.apiType}"]`);
-        
         if (select) {
-            select.value = this.selectedPreset.value;
+            if (this.apiType === 'openai') {
+                select.value = this.selectedPreset.value;
+            } else {
+                const option = Array.from(select.options).find(opt => opt.textContent === this.selectedPreset.filename);
+                if (option) select.value = option.value;
+            }
             select.dispatchEvent(new Event('change', { bubbles: true }));
-            
-            const popupBg = document.querySelector('.popup_background');
-            if (popupBg) {
-                popupBg.click();
+
+            await delay(50);
+
+            const closeButton = document.querySelector('.popup-button-close');
+            if (closeButton) {
+                closeButton.click();
             }
         } else {
             callGenericPopup(`Could not find the preset dropdown for "${this.apiType}".`, 'error');
@@ -931,10 +1128,282 @@ class PresetNavigator {
     saveMetadata() {
         localStorage.setItem(NEMO_METADATA_KEY, JSON.stringify(this.metadata));
     }
+    
+    updateMetadataTimestamp(id, type) {
+        const item = (type === 'folder') ? this.metadata.folders[id] : this.metadata.presets[id];
+        if (item) {
+            item.lastModified = new Date().toISOString();
+        }
+    }
+
+    async moveItemToFolder(itemId, folderId) {
+        const itemType = this.metadata.folders[itemId] ? 'folder' : 'preset';
+        if (itemType === 'folder') {
+            this.metadata.folders[itemId].parentId = folderId;
+        } else {
+            this.metadata.presets[itemId] = this.metadata.presets[itemId] || {};
+            this.metadata.presets[itemId].folderId = folderId;
+        }
+        this.updateMetadataTimestamp(itemId, itemType);
+        this.saveMetadata();
+        this.render();
+    }
+    
+    async moveItemToFolderDialog(itemIds) {
+        const folderNames = Object.values(this.metadata.folders).map(f => f.name).join(', ');
+        if (!folderNames) {
+            callGenericPopup("No folders created yet. Create a folder first.", "info");
+            return;
+        }
+        const targetName = await callGenericPopup(`Enter folder name to move to:\n(${folderNames})`, POPUP_TYPE.INPUT);
+        const targetFolder = Object.values(this.metadata.folders).find(f => f.name.toLowerCase() === targetName?.toLowerCase());
+        if (targetFolder) {
+            itemIds.forEach(id => {
+                const isFolder = !!this.metadata.folders[id];
+                if (isFolder) {
+                    this.metadata.folders[id].parentId = targetFolder.id;
+                    this.updateMetadataTimestamp(id, 'folder');
+                } else {
+                    this.metadata.presets[id] = this.metadata.presets[id] || {};
+                    this.metadata.presets[id].folderId = targetFolder.id;
+                    this.updateMetadataTimestamp(id, 'preset');
+                }
+            });
+            this.saveMetadata();
+            this.render();
+        } else if (targetName) {
+            callGenericPopup(`Folder "${targetName}" not found.`, "error");
+        }
+    }
+    
+    toggleBulkSelection(id) {
+        if (this.bulkSelection.has(id)) {
+            this.bulkSelection.delete(id);
+        } else {
+            this.bulkSelection.add(id);
+        }
+        this.updateBulkSelectionVisuals();
+    }
+    
+    handleShiftClick(clickedItem) {
+        const allVisibleItems = Array.from(this.mainView.querySelectorAll('.grid-item'));
+        const startIndex = allVisibleItems.indexOf(this.lastSelectedItem);
+        const endIndex = allVisibleItems.indexOf(clickedItem);
+        if (startIndex === -1 || endIndex === -1) return;
+
+        const [start, end] = [startIndex, endIndex].sort((a,b) => a - b);
+        for (let i = start; i <= end; i++) {
+            this.bulkSelection.add(allVisibleItems[i].dataset.id);
+        }
+        this.updateBulkSelectionVisuals();
+    }
+
+    updateBulkSelectionVisuals() {
+        this.mainView.querySelectorAll('.grid-item').forEach(el => {
+            el.classList.toggle('bulk-selected', this.bulkSelection.has(el.dataset.id));
+        });
+    }
+
+    handleKeyDown(e) {
+        if (e.key === ' ' && this.selectedPreset.filename && !e.target.matches('input, textarea')) {
+            e.preventDefault();
+            const presetData = this.allPresets.find(p => p.name === this.selectedPreset.filename);
+            if (presetData) {
+                const presetContent = oai_settings[presetData.value];
+                const content = presetContent ? JSON.stringify(presetContent, null, 2) : 'Could not load preset content.';
+                callGenericPopup(`<pre>${content.replace(/</g, "<")}</pre>`, POPUP_TYPE.DISPLAY, `Quick Look: ${presetData.name}`, { wide: true });
+            }
+        }
+    }
+    
+    toggleViewMode() {
+        this.viewMode = (this.viewMode === 'grid') ? 'list' : 'grid';
+        this.render();
+    }
+    
+    updateHeaderControls() {
+        const viewBtn = this.modal.querySelector('#navigator-view-toggle-btn i');
+        viewBtn.className = `fa-solid ${this.viewMode === 'grid' ? 'fa-list' : 'fa-grip'}`;
+        viewBtn.parentElement.title = `Switch to ${this.viewMode === 'grid' ? 'List' : 'Grid'} View`;
+    }
+
+    showSortMenu(e) {
+        this.hideContextMenu();
+        const options = {
+            'name-asc': 'Name (A-Z)', 'name-desc': 'Name (Z-A)',
+            'date-desc': 'Date Modified (Newest)', 'date-asc': 'Date Modified (Oldest)'
+        };
+        const menu = document.createElement('ul');
+        menu.className = 'nemo-context-menu';
+        menu.innerHTML = Object.entries(options).map(([key, value]) => 
+            `<li data-action="sort" data-value="${key}" class="${this.currentSort === key ? 'active' : ''}">${value}</li>`
+        ).join('');
+        
+        this.showMiniMenu(e.currentTarget, menu);
+        menu.addEventListener('click', (me) => {
+            const li = me.target.closest('li[data-action="sort"]');
+            if (li) {
+                this.currentSort = li.dataset.value;
+                this.render();
+            }
+            this.hideContextMenu();
+        });
+    }
+    
+    showFilterMenu(e) {
+        this.hideContextMenu();
+        const options = { 'all': 'All Items', 'uncategorized': 'Uncategorized', 'has-image': 'With Images' };
+        const menu = document.createElement('ul');
+        menu.className = 'nemo-context-menu';
+        menu.innerHTML = Object.entries(options).map(([key, value]) => 
+            `<li data-action="filter" data-value="${key}" class="${this.currentFilter === key ? 'active' : ''}">${value}</li>`
+        ).join('');
+        
+        this.showMiniMenu(e.currentTarget, menu);
+        menu.addEventListener('click', (me) => {
+            const li = me.target.closest('li[data-action="filter"]');
+            if (li) {
+                this.currentFilter = li.dataset.value;
+                this.render();
+            }
+            this.hideContextMenu();
+        });
+    }
+
+    showMiniMenu(anchor, menu) {
+        const popupContainer = anchor.closest('.popup');
+        popupContainer.appendChild(menu);
+        const anchorRect = anchor.getBoundingClientRect();
+        const popupRect = popupContainer.getBoundingClientRect();
+        
+        menu.style.left = `${anchorRect.left - popupRect.left}px`;
+        menu.style.top = `${anchorRect.bottom - popupRect.top + 5}px`;
+        menu.style.display = 'block';
+    }
+
+    async importPreset() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,.settings';
+        input.style.display = 'none';
+
+        input.onchange = async (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                document.body.removeChild(input);
+                return;
+            }
+
+            const fileName = file.name.replace(/\.[^/.]+$/, "");
+            const fileContent = await file.text();
+            
+            try {
+                const presetBody = JSON.parse(fileContent);
+
+                if (typeof presetBody.temp !== 'number' && typeof presetBody.temperature !== 'number') {
+                    throw new Error("This does not appear to be a valid SillyTavern preset file.");
+                }
+
+                if (Object.keys(openai_setting_names).includes(fileName)) {
+                    const confirm = await callGenericPopup(`Preset "${fileName}" already exists. Overwrite?`, POPUP_TYPE.CONFIRM);
+                    if (!confirm) {
+                        document.body.removeChild(input);
+                        return;
+                    }
+                }
+
+                const saveResponse = await fetch(`/api/presets/save-openai?name=${encodeURIComponent(fileName)}`, {
+                    method: 'POST',
+                    headers: getRequestHeaders(),
+                    body: JSON.stringify(presetBody),
+                });
+
+                if (!saveResponse.ok) {
+                    throw new Error(`Server failed to save preset: ${await saveResponse.text()}`);
+                }
+                
+                const responseData = await saveResponse.json();
+                const { name: newName, key: newKey } = responseData;
+
+                if (!newName || !newKey) {
+                    throw new Error("Server response did not include new preset details.");
+                }
+                
+                // Update client-side state without reloading
+                openai_setting_names[newName] = newKey;
+                oai_settings[newKey] = presetBody;
+
+                const select = document.querySelector(`select[data-preset-manager-for="${this.apiType}"]`);
+                if (select) {
+                    const newOption = new Option(newName, newKey);
+                    select.appendChild(newOption);
+                }
+
+                await callGenericPopup(`Preset "${fileName}" imported successfully.`, 'success');
+
+                // Refresh the navigator view
+                this.allPresets = await this.fetchPresetList();
+                this.render();
+
+            } catch (ex) {
+                console.error(`${LOG_PREFIX} Error importing preset:`, ex);
+                callGenericPopup(`Error importing preset: ${ex.message}`, 'error');
+            } finally {
+                if (document.body.contains(input)) {
+                    document.body.removeChild(input);
+                }
+            }
+        };
+
+        document.body.appendChild(input);
+        input.click();
+    }
+
+    exportMetadata() {
+        const dataStr = JSON.stringify(this.metadata, null, 2);
+        const dataBlob = new Blob([dataStr], {type: "application/json"});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `sillytavern_navigator_backup_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    importMetadata() {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = '.json'; input.style.display = 'none';
+        input.addEventListener('change', async () => {
+            const file = input.files[0];
+            if (file) {
+                try {
+                    const text = await file.text();
+                    const importedData = JSON.parse(text);
+                    if (importedData.folders && importedData.presets) {
+                        const confirmed = await callGenericPopup('Replace current navigator data with the imported file? This cannot be undone.', POPUP_TYPE.CONFIRM);
+                        if (confirmed) {
+                            this.metadata = importedData;
+                            this.saveMetadata();
+                            this.render();
+                        }
+                    } else {
+                        callGenericPopup('Invalid metadata file.', 'error');
+                    }
+                } catch (ex) {
+                    callGenericPopup('Failed to read or parse the file.', 'error');
+                }
+            }
+            document.body.removeChild(input);
+        });
+        document.body.appendChild(input); input.click();
+    }
 }
 
 function injectNavigatorModal() {
     if (document.getElementById('nemo-preset-navigator-modal')) return;
+    // MODIFIED: Removed the export button from the modal footer HTML
     const modalHTML = `
     <div id="nemo-preset-navigator-modal" class="nemo-preset-navigator-modal" style="display: none;">
         <div class="modal-content">
@@ -951,13 +1420,21 @@ function injectNavigatorModal() {
                                 <input type="search" id="navigator-search-input" class="text_pole" placeholder="Search...">
                                 <button id="navigator-search-clear" title="Clear Search" class="menu_button"><i class="fa-solid fa-times"></i></button>
                             </div>
-                            <button id="navigator-new-synthetic-folder-btn" class="menu_button" title="New Folder"><i class="fa-solid fa-folder-plus"></i> New Folder</button>
+                            <div class="nemo-header-buttons">
+                                <button id="navigator-filter-btn" class="menu_button" title="Filter"><i class="fa-solid fa-filter"></i></button>
+                                <button id="navigator-sort-btn" class="menu_button" title="Sort"><i class="fa-solid fa-arrow-up-z-a"></i></button>
+                                <button id="navigator-view-toggle-btn" class="menu_button" title="Switch View"><i class="fa-solid fa-list"></i></button>
+                                <button id="navigator-new-synthetic-folder-btn" class="menu_button" title="New Folder"><i class="fa-solid fa-folder-plus"></i></button>
+                            </div>
                         </div>
                     </div>
                     <div id="navigator-grid-view"></div>
                 </div>
             </div>
             <div class="modal-footer">
+                <div class="action-controls">
+                    <button id="navigator-import-btn" class="menu_button" title="Import preset from file"><i class="fa-solid fa-file-import"></i></button>
+                </div>
                 <div class="action-controls">
                     <button id="navigator-load-btn" class="menu_button" disabled><i class="fa-solid fa-upload"></i> Load Selected Preset</button>
                 </div>
@@ -985,6 +1462,8 @@ function initPresetNavigatorForApi(apiType) {
     browseButton.className = 'menu_button interactable';
     
     browseButton.addEventListener('click', (event) => {
+        document.getElementById('nemo-preset-navigator-modal')?.remove();
+        injectNavigatorModal();
         const navigator = new PresetNavigator(apiType);
         navigator.open();
     });
@@ -1027,7 +1506,6 @@ async function initializeNemoSettingsUI() {
     }, 500);
 }
 
-// Use the delayed initialization pattern to ensure all core scripts are loaded.
 $(document).ready(() => {
     setTimeout(async function() {
         try {
