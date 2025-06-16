@@ -19,9 +19,10 @@ const LOG_PREFIX = `[NemoPresetExt]`;
 // 1. CONFIGURATION
 // -----------------------------------------------------------------------------
 const NEMO_EXTENSION_NAME = "NemoPresetExt";
-const NEMO_DEFAULT_REGEX_PATTERN = '=+';
+const NEMO_BUILT_IN_PATTERNS = ['=+', '⭐─+', '━+'];
 const NEMO_SNAPSHOT_KEY = 'nemoPromptSnapshotData'; // localStorage key
 const NEMO_METADATA_KEY = 'nemoNavigatorMetadata'; // localStorage key for folders/images
+const NEMO_SECTIONS_ENABLED_KEY = 'nemoSectionsEnabled'; // localStorage key for the new toggle
 
 const SELECTORS = {
     promptsContainer: '#completion_prompt_manager_list',
@@ -39,9 +40,10 @@ const SELECTORS = {
 };
 
 // State Variables
-let DIVIDER_PREFIX_REGEX = new RegExp(`^(${NEMO_DEFAULT_REGEX_PATTERN})`);
+let DIVIDER_PREFIX_REGEX;
 let openSectionStates = {};
 let organizeTimeout;
+let isSectionsFeatureEnabled = true;
 
 // 2. UTILITY & HELPER FUNCTIONS
 // -----------------------------------------------------------------------------
@@ -52,16 +54,26 @@ function ensureSettingsNamespace() {
 }
 
 async function loadAndSetDividerRegex() {
-    let patternString = NEMO_DEFAULT_REGEX_PATTERN;
+    let finalPatterns = [...NEMO_BUILT_IN_PATTERNS];
+    
     if (ensureSettingsNamespace()) {
-        const savedPattern = extension_settings[NEMO_EXTENSION_NAME].dividerRegexPattern;
-        if (savedPattern) patternString = String(savedPattern).trim();
+        const savedPatternString = extension_settings[NEMO_EXTENSION_NAME].dividerRegexPattern;
+        if (savedPatternString) {
+            const customPatterns = String(savedPatternString)
+                .split(',')
+                .map(p => p.trim())
+                .filter(p => p.length > 0);
+            finalPatterns.push(...customPatterns);
+        }
     }
+
+    const combinedPatternString = [...new Set(finalPatterns)].join('|');
+    
     try {
-        DIVIDER_PREFIX_REGEX = new RegExp(`^(${patternString})`);
+        DIVIDER_PREFIX_REGEX = new RegExp(`^(${combinedPatternString})`);
     } catch (e) {
-        console.error(`${LOG_PREFIX} Invalid regex pattern. Using default.`, e);
-        DIVIDER_PREFIX_REGEX = new RegExp(`^(${NEMO_DEFAULT_REGEX_PATTERN})`);
+        console.error(`${LOG_PREFIX} Invalid regex pattern. Using built-ins only.`, e);
+        DIVIDER_PREFIX_REGEX = new RegExp(`^(${NEMO_BUILT_IN_PATTERNS.join('|')})`);
     }
 }
 
@@ -193,36 +205,41 @@ async function organizePrompts() {
     if (!promptsContainer || promptsContainer.dataset.nemoOrganizing === 'true') return;
     promptsContainer.dataset.nemoOrganizing = 'true';
 
-    promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(section => {
-        const content = section.querySelector('.nemo-section-content');
-        if (content) {
-            while (content.firstChild) {
-                section.parentNode.insertBefore(content.firstChild, section);
-            }
+    // Phase 1: Collect all items in their current order.
+    const allDomItems = Array.from(promptsContainer.querySelectorAll(':scope > li, :scope > details'));
+    const flatList = [];
+    allDomItems.forEach(element => {
+        if (element.matches('details.nemo-engine-section')) {
+            const summaryLi = element.querySelector('summary > li');
+            if (summaryLi) flatList.push(summaryLi);
+            const content = element.querySelector('.nemo-section-content');
+            if (content) flatList.push(...content.children);
+        } else if (element.matches('li.completion_prompt_manager_prompt')) {
+            flatList.push(element);
         }
-        const summaryLi = section.querySelector('summary > li');
-        if (summaryLi) {
-            section.parentNode.insertBefore(summaryLi, section);
-        }
-        section.remove();
     });
 
-    const allItems = Array.from(promptsContainer.children);
+    // Reset all items to their default state (remove our class).
+    flatList.forEach(item => item.classList.remove('nemo-header-item'));
+
+    // If the feature is disabled, just put the flat list back and we're done.
+    if (!isSectionsFeatureEnabled) {
+        promptsContainer.innerHTML = '';
+        flatList.forEach(item => promptsContainer.appendChild(item));
+        delete promptsContainer.dataset.nemoOrganizing;
+        return;
+    }
+
+    // Phase 2: Build the new, organized structure in a document fragment.
+    const fragment = document.createDocumentFragment();
     let currentSectionContent = null;
 
-    for (const item of allItems) {
-        if (!item.matches(SELECTORS.promptItemRow)) continue;
-        
-        const controls = item.querySelector(SELECTORS.promptControls);
-        if (controls && !controls.closest('.nemo-right-controls-wrapper')) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'nemo-right-controls-wrapper';
-            controls.parentNode.insertBefore(wrapper, controls);
-            wrapper.appendChild(controls);
-        }
-
+    for (const item of flatList) {
         const dividerInfo = getDividerInfo(item);
         if (dividerInfo.isDivider) {
+            // This is a header. Add the class that disables dragging via CSS.
+            item.classList.add('nemo-header-item');
+
             const details = document.createElement('details'); 
             details.className = 'nemo-engine-section'; 
             details.open = openSectionStates[dividerInfo.originalText] || false;
@@ -247,14 +264,20 @@ async function organizePrompts() {
             const contentDiv = document.createElement('div'); 
             contentDiv.className = 'nemo-section-content'; 
             details.appendChild(contentDiv);
-            promptsContainer.appendChild(details);
+            fragment.appendChild(details);
             currentSectionContent = contentDiv;
         } else {
             if (currentSectionContent) {
                 currentSectionContent.appendChild(item);
+            } else {
+                fragment.appendChild(item); // Item belongs before the first section
             }
         }
     }
+
+    // Phase 3: Replace the live DOM with the new structure in one operation.
+    promptsContainer.innerHTML = '';
+    promptsContainer.appendChild(fragment);
 
     promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(updateSectionCount);
     delete promptsContainer.dataset.nemoOrganizing;
@@ -270,13 +293,15 @@ function handlePresetSearch() {
 
     if (searchTerm === '') {
         promptsContainer.querySelectorAll(`${SELECTORS.promptItemRow}, details.nemo-engine-section`).forEach(el => el.style.display = '');
-        promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(section => {
-            const summaryLi = section.querySelector('summary > li');
-            if (summaryLi) {
-                const dividerInfo = getDividerInfo(summaryLi);
-                section.open = openSectionStates[dividerInfo.originalText] || false;
-            }
-        });
+        if (isSectionsFeatureEnabled) {
+            promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(section => {
+                const summaryLi = section.querySelector('summary > li');
+                if (summaryLi) {
+                    const dividerInfo = getDividerInfo(summaryLi);
+                    section.open = openSectionStates[dividerInfo.originalText] || false;
+                }
+            });
+        }
         return;
     }
 
@@ -306,6 +331,7 @@ function initializeSearchAndSections(container) {
                 <div class="nemo-search-controls">
                     <button id="nemoPresetSearchClear" title="Clear search" class="menu_button"><i class="fa-solid fa-times"></i></button>
                     <div class="nemo-search-divider"></div>
+                    <button id="nemoToggleSectionsBtn" title="Toggle Collapsible Sections" class="menu_button"><i class="fa-solid fa-list-ul"></i></button>
                     <button id="nemoTakeSnapshotBtn" title="Take a snapshot of the current prompt state" class="menu_button"><i class="fa-solid fa-camera"></i></button>
                     <button id="nemoApplySnapshotBtn" title="Apply the last snapshot" class="menu_button" disabled><i class="fa-solid fa-wand-magic-sparkles"></i></button>
                 </div>
@@ -328,6 +354,15 @@ function initializeSearchAndSections(container) {
         });
         document.getElementById('nemoTakeSnapshotBtn').addEventListener('click', takeSnapshot);
         document.getElementById('nemoApplySnapshotBtn').addEventListener('click', applySnapshot);
+
+        const toggleBtn = document.getElementById('nemoToggleSectionsBtn');
+        toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
+        toggleBtn.addEventListener('click', () => {
+            isSectionsFeatureEnabled = !isSectionsFeatureEnabled;
+            localStorage.setItem(NEMO_SECTIONS_ENABLED_KEY, isSectionsFeatureEnabled);
+            toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
+            organizePrompts();
+        });
     }
 
     organizePrompts();
@@ -788,7 +823,6 @@ class PresetNavigator {
         });
     }
     
-    // MODIFIED: This function is the key to the fix.
     handleTouchStart(e) {
         this.gestureHappened = false;
         const item = e.target.closest('.grid-item');
@@ -1484,21 +1518,31 @@ async function initializeNemoSettingsUI() {
             const response = await fetch(`scripts/extensions/third-party/${NEMO_EXTENSION_NAME}/settings.html`);
             if (!response.ok) { console.error(`${LOG_PREFIX} Failed to fetch settings.html`); return; }
             container.insertAdjacentHTML('beforeend', await response.text());
+
             const regexInput = document.getElementById('nemoDividerRegexPattern');
             const saveButton = document.getElementById('nemoSaveRegexSettings');
             const statusDiv = document.getElementById('nemoRegexStatus');
-            regexInput.value = extension_settings[NEMO_EXTENSION_NAME]?.dividerRegexPattern || NEMO_DEFAULT_REGEX_PATTERN;
+
+            regexInput.value = extension_settings[NEMO_EXTENSION_NAME]?.dividerRegexPattern || '';
+            
             saveButton.addEventListener('click', async () => {
-                const pattern = regexInput.value.trim() || NEMO_DEFAULT_REGEX_PATTERN;
+                const customPatternString = regexInput.value.trim();
+                
                 try {
-                    new RegExp(`^(${pattern})`);
-                    extension_settings[NEMO_EXTENSION_NAME].dividerRegexPattern = pattern;
+                    if (customPatternString) {
+                        const testPatterns = customPatternString.split(',').map(p => p.trim()).filter(Boolean);
+                        testPatterns.forEach(p => new RegExp(p));
+                    }
+                    
+                    extension_settings[NEMO_EXTENSION_NAME].dividerRegexPattern = customPatternString;
                     saveSettingsDebounced();
+                    
                     await loadAndSetDividerRegex();
                     await organizePrompts();
+                    
                     statusDiv.textContent = 'Pattern saved!'; statusDiv.style.color = 'lightgreen';
                 } catch(e) {
-                    statusDiv.textContent = 'Invalid Regex!'; statusDiv.style.color = 'red';
+                    statusDiv.textContent = `Invalid Regex part: ${e.message}`; statusDiv.style.color = 'red';
                 }
                 setTimeout(() => statusDiv.textContent = '', 4000);
             });
@@ -1512,6 +1556,8 @@ $(document).ready(() => {
             console.log(`${LOG_PREFIX} Initializing...`);
             ensureSettingsNamespace();
             
+            isSectionsFeatureEnabled = localStorage.getItem(NEMO_SECTIONS_ENABLED_KEY) !== 'false';
+
             await loadAndSetDividerRegex();
             initContextualTriggers();
             injectNavigatorModal();
