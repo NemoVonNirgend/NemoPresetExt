@@ -137,6 +137,54 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 .list-item .item-name { background: none; text-align: left; flex-grow: 1; padding: 0 10px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 .list-item .item-date { font-size: 0.9em; color: var(--nemo-text-muted); flex-shrink: 0; }
 
+/* --- Item Menu Button (Three Dots) --- */
+.nemo-item-menu-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 5;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 1em;
+    color: var(--nemo-text-color);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out, background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.grid-item:hover .nemo-item-menu-btn,
+.list-item:hover .nemo-item-menu-btn,
+.grid-item:focus-within .nemo-item-menu-btn,
+.list-item:focus-within .nemo-item-menu-btn {
+    opacity: 1;
+}
+
+.nemo-item-menu-btn:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.list-item .nemo-item-menu-btn {
+    position: static; /* Override absolute positioning for list view */
+    margin-left: auto; /* Push it to the far right */
+    flex-shrink: 0;
+}
+
+/* Make button always visible on touch devices / small screens for accessibility */
+@media (pointer: coarse), (max-width: 768px) {
+    .grid-item .nemo-item-menu-btn,
+    .list-item .nemo-item-menu-btn {
+        opacity: 1;
+        background-color: rgba(0, 0, 0, 0.3);
+    }
+}
+
 /* Modal Footer */
 .nemo-preset-navigator-modal .modal-footer { border-top: 1px solid var(--nemo-border-color); padding-top: 15px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
 .nemo-preset-navigator-modal .modal-footer .action-controls { display: flex; gap: 10px; align-items: center; }
@@ -172,11 +220,33 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     .nemo-preset-navigator-modal .modal-footer .action-controls { justify-content: center; width: 100%; }
     #navigator-load-btn { width: 100%; }
 }
+/* MODIFIED: Allow header items to be grabbed */
 .nemo-header-item {
     pointer-events: none;
-    cursor: default !important;
+    cursor: grab !important;
 }
 
 .nemo-header-item > * {
     pointer-events: auto;
+}
+
+/* --- Drag and Drop for Prompt List --- */
+li.completion_prompt_manager_prompt[draggable="true"] {
+    cursor: grab;
+}
+
+li.completion_prompt_manager_prompt.nemo-dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+#nemo-drop-indicator {
+    position: absolute;
+    height: 2px;
+    background-color: var(--nemo-primary-accent);
+    width: 100%;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 0 5px var(--nemo-glow-color);
+    display: none; /* Initially hidden */
 }
