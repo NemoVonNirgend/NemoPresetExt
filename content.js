@@ -44,6 +44,7 @@ let DIVIDER_PREFIX_REGEX;
 let openSectionStates = {};
 let organizeTimeout;
 let isSectionsFeatureEnabled = true;
+let dropIndicator; // NEW: For drag-and-drop visual aid
 
 // 2. UTILITY & HELPER FUNCTIONS
 // -----------------------------------------------------------------------------
@@ -279,6 +280,11 @@ async function organizePrompts() {
     promptsContainer.innerHTML = '';
     promptsContainer.appendChild(fragment);
 
+    // NEW: Make all items draggable after organizing
+    promptsContainer.querySelectorAll('li.completion_prompt_manager_prompt').forEach(item => {
+        item.draggable = true;
+    });
+
     promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(updateSectionCount);
     delete promptsContainer.dataset.nemoOrganizing;
 }
@@ -366,6 +372,78 @@ function initializeSearchAndSections(container) {
     }
 
     organizePrompts();
+
+    // NEW: Initialize the drop indicator element once
+    if (!document.getElementById('nemo-drop-indicator')) {
+        dropIndicator = document.createElement('div');
+        dropIndicator.id = 'nemo-drop-indicator';
+        document.body.appendChild(dropIndicator);
+    }
+
+    // NEW: Drag and Drop Event Listeners
+    let draggedItem = null;
+
+    container.addEventListener('dragstart', (e) => {
+        const target = e.target.closest('li.completion_prompt_manager_prompt');
+        if (target) {
+            draggedItem = target;
+            // Use a timeout to allow the browser to create its drag ghost image
+            setTimeout(() => target.classList.add('nemo-dragging'), 0);
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', target.dataset.pmIdentifier);
+        }
+    });
+
+    container.addEventListener('dragover', (e) => {
+        e.preventDefault(); // This is crucial to allow dropping
+        const target = e.target.closest('li.completion_prompt_manager_prompt');
+        if (target && target !== draggedItem) {
+            const rect = target.getBoundingClientRect();
+            // Position the indicator above or below the target item
+            const isAfter = e.clientY > rect.top + rect.height / 2;
+            const top = isAfter ? rect.bottom : rect.top;
+            
+            dropIndicator.style.display = 'block';
+            dropIndicator.style.left = `${rect.left}px`;
+            dropIndicator.style.top = `${top - 1}px`; // -1 for pixel-perfect centering
+            dropIndicator.style.width = `${rect.width}px`;
+        }
+    });
+
+    container.addEventListener('dragleave', (e) => {
+        // Hide the indicator if we leave the container area
+        if (e.target === container) {
+            dropIndicator.style.display = 'none';
+        }
+    });
+
+    container.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        dropIndicator.style.display = 'none';
+        const targetItem = e.target.closest('li.completion_prompt_manager_prompt');
+        if (targetItem && draggedItem && targetItem !== draggedItem) {
+            const rect = targetItem.getBoundingClientRect();
+            const isAfter = e.clientY > rect.top + rect.height / 2;
+            
+            // Move the dragged item in the DOM
+            if (isAfter) {
+                targetItem.parentNode.insertBefore(draggedItem, targetItem.nextSibling);
+            } else {
+                targetItem.parentNode.insertBefore(draggedItem, targetItem);
+            }
+
+            // Re-run the organization logic to fix sections and counts
+            await organizePrompts();
+        }
+    });
+
+    container.addEventListener('dragend', (e) => {
+        if (draggedItem) {
+            draggedItem.classList.remove('nemo-dragging');
+        }
+        draggedItem = null;
+        dropIndicator.style.display = 'none';
+    });
 
     container.addEventListener('click', (event) => {
         if (event.target.closest('summary') && !event.target.closest('a, button')) {
@@ -654,6 +732,13 @@ class PresetNavigator {
         itemEl.appendChild(icon);
         itemEl.appendChild(nameEl);
 
+        // NEW: Add the menu button
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'menu_button nemo-item-menu-btn';
+        menuBtn.title = 'More options';
+        menuBtn.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
+        itemEl.appendChild(menuBtn);
+
         if (type === 'preset' && this.selectedPreset.filename === id) {
             itemEl.classList.add('selected');
         }
@@ -693,6 +778,13 @@ class PresetNavigator {
         itemEl.appendChild(nameEl);
         itemEl.appendChild(dateEl);
 
+        // NEW: Add the menu button
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'menu_button nemo-item-menu-btn';
+        menuBtn.title = 'More options';
+        menuBtn.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
+        itemEl.appendChild(menuBtn);
+
         if (type === 'preset' && this.selectedPreset.filename === id) {
             itemEl.classList.add('selected');
         }
@@ -716,6 +808,25 @@ class PresetNavigator {
         if (this.gestureHappened) {
             e.preventDefault(); e.stopPropagation(); this.gestureHappened = false; return;
         }
+
+        // NEW: Handle click on the three-dots menu button
+        const menuBtn = e.target.closest('.nemo-item-menu-btn');
+        if (menuBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const item = menuBtn.closest('.grid-item');
+            const rect = menuBtn.getBoundingClientRect();
+            // Create a mock event to pass to the context menu handler
+            const mockEvent = {
+                clientX: rect.right,
+                clientY: rect.top,
+                preventDefault: () => {},
+                target: item,
+            };
+            this.handleGridContextMenu(mockEvent);
+            return; // Stop further execution
+        }
+
         const item = e.target.closest('.grid-item');
         if (!item) return;
 
