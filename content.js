@@ -1686,13 +1686,10 @@ $(document).ready(() => {
                         initPresetNavigatorForApi(api);
                     }
                 });
-
-                for (const mutation of mutations) {
-                    const popup = document.querySelector(`${SELECTORS.promptEditorPopup}:not([data-nemo-trigger-ui-injected])`);
-                    if (popup) {
-                        injectTriggerUI(popup);
-                        popup.dataset.nemoTriggerUiInjected = 'true';
-                    }
+                const popup = document.querySelector(`${SELECTORS.promptEditorPopup}:not([data-nemo-trigger-ui-injected])`);
+                if (popup) {
+                    injectTriggerUI(popup);
+                    popup.dataset.nemoTriggerUiInjected = 'true';
                 }
             });
 
