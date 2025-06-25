@@ -621,6 +621,23 @@ class PresetNavigator {
     }
 
     renderGridView() {
+        // MODIFIED: Onboard new presets into the metadata system to ensure they have dates.
+        let metadataWasUpdated = false;
+        const now = new Date().toISOString();
+        this.allPresets.forEach(p => {
+            if (!this.metadata.presets[p.name]) {
+                this.metadata.presets[p.name] = { 
+                    createdAt: now,
+                    lastModified: now 
+                };
+                metadataWasUpdated = true;
+            }
+        });
+
+        if (metadataWasUpdated) {
+            this.saveMetadata();
+        }
+
         const currentFolderId = this.currentPath[this.currentPath.length - 1].id;
         const searchTerm = this.searchInput.value.toLowerCase().trim();
 
@@ -1673,7 +1690,7 @@ $(document).ready(() => {
             initContextualTriggers();
             injectNavigatorModal();
 
-            const observer = new MutationObserver((mutations) => {
+            const observer = new MutationObserver(() => {
                 const promptList = document.querySelector(SELECTORS.promptsContainer);
                 if (promptList && !promptList.dataset.nemoPromptsInitialized) {
                     initializeSearchAndSections(promptList);
@@ -1687,12 +1704,13 @@ $(document).ready(() => {
                     }
                 });
 
-                for (const mutation of mutations) {
-                    const popup = document.querySelector(`${SELECTORS.promptEditorPopup}:not([data-nemo-trigger-ui-injected])`);
-                    if (popup) {
-                        injectTriggerUI(popup);
-                        popup.dataset.nemoTriggerUiInjected = 'true';
-                    }
+                // The loop over `mutations` has been removed. This check now runs only once
+                // per observer callback, preventing massive performance hits on page load when many
+                // DOM changes occur at once.
+                const popup = document.querySelector(`${SELECTORS.promptEditorPopup}:not([data-nemo-trigger-ui-injected])`);
+                if (popup) {
+                    injectTriggerUI(popup);
+                    popup.dataset.nemoTriggerUiInjected = 'true';
                 }
             });
 
