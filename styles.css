@@ -2,8 +2,6 @@
 
 /* --- CSS Variables --- */
 :root {
-    /* MODIFIED: Map SillyTavern's theme variables to our extension's variables. */
-    /* The second value is a fallback in case the ST variable isn't defined. */
     --nemo-primary-accent: var(--primary-accent, #ff8c00);
     --nemo-secondary-accent: var(--secondary-accent, #ffc107);
     --nemo-primary-bg: var(--secondary-bg, #2c2f33);
@@ -15,13 +13,15 @@
     --nemo-border-color: var(--border-color, #444);
     --nemo-shadow-color: rgba(0, 0, 0, 0.3);
     --nemo-glow-color: var(--primary-accent-glow, rgba(255, 140, 0, 0.7));
-    --nemo-folder-color: var(--nemo-secondary-accent); /* NEW: Default folder color */
+    --nemo-folder-color: var(--nemo-secondary-accent);
 }
 
-/* --- Collapsible Sections & Core UI --- */
+/* === NEMO PRESET MANAGER & PROMPT UI ENHANCEMENTS === */
+
+/* --- Collapsible Sections & Core Prompt UI --- */
 .nemo-engine-section summary { cursor: pointer; display: flex; align-items: center; list-style: none; position: relative; }
 .nemo-engine-section summary > li.completion_prompt_manager_prompt, li.completion_prompt_manager_prompt { display: flex; align-items: center; width: 100%; justify-content: space-between; flex-wrap: nowrap; padding: 2px 0; }
-.nemo-engine-section summary::-webkit-details-marker, .nemo-engine-section summary::marker { display: none; }
+.nemo-engine-section summary::-webkit-details-marker, .nimo-engine-section summary::marker { display: none; }
 .nemo-engine-section summary::before { content: '▶'; font-size: 0.75em; position: absolute; left: -15px; top: 50%; transform: translateY(-50%); color: var(--nemo-text-muted); pointer-events: none; transition: transform 0.2s ease; }
 .nemo-engine-section[open] > summary::before { transform: translateY(-50%) rotate(90deg); }
 .nemo-engine-section summary > li.completion_prompt_manager_prompt > span.completion_prompt_manager_prompt_name { margin-left: 18px; }
@@ -45,13 +45,7 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 .nemo-search-controls { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
 .nemo-search-controls .menu_button { min-width: auto; padding: 5px 8px; font-size: 0.9em; }
 .nemo-search-divider { width: 1px; height: 20px; background-color: #555; margin: 0 5px; }
-
-/* NEW: Active state for the new section toggle button */
-.nemo-search-controls .menu_button.nemo-active {
-    color: var(--nemo-primary-accent);
-    border-color: var(--nemo-primary-accent);
-    box-shadow: 0 0 5px var(--nemo-glow-color);
-}
+.nemo-search-controls .menu_button.nemo-active { color: var(--nemo-primary-accent); border-color: var(--nemo-primary-accent); box-shadow: 0 0 5px var(--nemo-glow-color); }
 
 /* --- Snapshot Status Message --- */
 .nemo-status-message { text-align: center; padding: 0 8px; margin-top: 0; border-radius: 4px; font-style: italic; font-size: 0.9em; opacity: 0; max-height: 0; overflow: hidden; transition: opacity 0.3s ease, max-height 0.3s ease, padding 0.3s ease, margin-top 0.3s ease; }
@@ -64,15 +58,12 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 .nemo-triggers-container { margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--nemo-border-color); }
 .nemo-triggers-settings { display: flex; gap: 15px; margin-top: 5px; flex-wrap: wrap; }
 
-/* --- PRESET NAVIGATOR MODAL (GRID VIEW) --- */
-.nemo-preset-navigator-modal { display: none; position: fixed; z-index: 9999; inset: 0; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
-.nemo-preset-navigator-modal .modal-content { color: var(--nemo-text-color); background: var(--nemo-primary-bg); margin: 5vh auto; padding: 20px; border: 1px solid var(--nemo-border-color); width: 90%; max-width: 1400px; height: 90vh; display: flex; flex-direction: column; border-radius: 12px; box-shadow: 0 8px 32px var(--nemo-shadow-color); }
-.nemo-preset-navigator-modal .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--nimo-border-color); padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0; }
-.nemo-preset-navigator-modal .modal-header h2 { margin: 0; color: var(--nemo-primary-accent); }
-.nemo-preset-navigator-modal .close-button { color: var(--nemo-text-muted); font-size: 28px; font-weight: bold; cursor: pointer; transition: color 0.2s, transform 0.2s; }
-.nemo-preset-navigator-modal .close-button:hover { color: #fff; transform: scale(1.1); }
-.nemo-preset-navigator-modal .navigator-body { display: flex; flex-grow: 1; overflow: hidden; }
-.nemo-preset-navigator-modal .navigator-main-panel { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--nemo-secondary-bg); padding: 15px; border-radius: 8px; }
+/* === PRESET NAVIGATOR (UNSTYLED - USES DEFAULT POPUP) === */
+/* The outer modal styling has been removed to use the default SillyTavern popup style. */
+/* We only style the *content* that we are injecting into the popup. */
+
+.nemo-preset-navigator-content-wrapper .navigator-body { display: flex; flex-grow: 1; overflow: hidden; min-height: 60vh; }
+.nemo-preset-navigator-content-wrapper .navigator-main-panel { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--nemo-secondary-bg); padding: 15px; border-radius: 8px; }
 
 /* Grid Header & Search */
 #navigator-grid-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--nemo-border-color); flex-shrink: 0; gap: 20px; flex-wrap: wrap; }
@@ -84,37 +75,17 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 #navigator-search-input { width: 220px; padding-right: 30px; }
 #navigator-search-clear { position: absolute; right: 0; top: 0; bottom: 0; background: transparent; border: none; cursor: pointer; color: var(--nemo-text-muted); padding: 0 10px; }
 #navigator-search-clear:hover { color: #fff; }
-.nemo-header-buttons { display: flex; gap: 5px; } /* NEW */
+.nemo-header-buttons { display: flex; gap: 5px; }
 
 /* Main View Area */
-/* NEW: Keyframe animation for navigator items fading in */
-@keyframes fadeInItems {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-#navigator-grid-view.fade-in .grid-item, 
-#navigator-grid-view.fade-in .list-item {
-    animation: fadeInItems 0.4s ease-out both;
-}
-/* Stagger the animation for a nicer effect */
+@keyframes fadeInItems { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+#navigator-grid-view.fade-in .grid-item, #navigator-grid-view.fade-in .list-item { animation: fadeInItems 0.4s ease-out both; }
 #navigator-grid-view.fade-in .grid-item:nth-child(2), #navigator-grid-view.fade-in .list-item:nth-child(2) { animation-delay: 0.02s; }
 #navigator-grid-view.fade-in .grid-item:nth-child(3), #navigator-grid-view.fade-in .list-item:nth-child(3) { animation-delay: 0.04s; }
-#navigator-grid-view.fade-in .grid-item:nth-child(4), #navigator-grid-view.fade-in .list-item:nth-child(4) { animation-delay: 0.06s; }
-#navigator-grid-view.fade-in .grid-item:nth-child(5), #navigator-grid-view.fade-in .list-item:nth-child(5) { animation-delay: 0.08s; }
-/* ...and so on, this covers a good amount */
-#navigator-grid-view.fade-in .grid-item:nth-child(n+6), #navigator-grid-view.fade-in .list-item:nth-child(n+6) { animation-delay: 0.1s; }
+#navigator-grid-view.fade-in .grid-item:nth-child(n+4) { animation-delay: 0.06s; }
 
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-/* MODIFIED: Added properties for smooth mobile scrolling */
-#navigator-grid-view { 
-    overflow-y: auto; 
-    flex-grow: 1; 
-    padding: 10px; 
-    -webkit-overflow-scrolling: touch; /* For momentum-based scrolling on iOS */
-    overscroll-behavior-y: contain;   /* Prevents scrolling the page behind the modal */
-}
-.navigator-empty-state { text-align: center; color: var(--nemo-text-muted); padding: 40px; } /* NEW */
+#navigator-grid-view { overflow-y: auto; flex-grow: 1; padding: 10px; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+.navigator-empty-state { text-align: center; color: var(--nemo-text-muted); padding: 40px; }
 .navigator-empty-state h3 { margin: 0 0 10px; }
 .navigator-empty-state p { margin: 0; }
 
@@ -125,7 +96,7 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 @keyframes pulse-glow { 0% { box-shadow: 0 0 5px var(--nemo-glow-color), 0 0 10px var(--nemo-glow-color); } 50% { box-shadow: 0 0 10px var(--nemo-glow-color), 0 0 20px var(--nemo-glow-color); } 100% { box-shadow: 0 0 5px var(--nemo-glow-color), 0 0 10px var(--nemo-glow-color); } }
 .grid-item.selected { border-color: var(--nemo-primary-accent); background-color: var(--nemo-item-hover-bg); animation: pulse-glow 2s infinite ease-in-out; }
 .grid-item .item-icon { height: 100px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; font-size: 3.5em; color: var(--nemo-secondary-accent); border-top-left-radius: 6px; border-top-right-radius: 6px; background-size: cover; background-position: center; background-repeat: no-repeat; }
-.grid-item.folder .item-icon { color: var(--nemo-folder-color); } /* MODIFIED */
+.grid-item.folder .item-icon { color: var(--nemo-folder-color); }
 .grid-item.preset .item-icon { color: #8ea9e8; }
 .grid-item .item-name { flex-grow: 1; padding: 8px; text-align: center; font-size: 0.9em; background-color: rgba(0,0,0,0.2); border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; white-space: normal; word-break: break-word; line-height: 1.3; display: flex; align-items: center; justify-content: center; }
 
@@ -137,116 +108,161 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 .list-item .item-name { background: none; text-align: left; flex-grow: 1; padding: 0 10px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 .list-item .item-date { font-size: 0.9em; color: var(--nemo-text-muted); flex-shrink: 0; }
 
-/* --- Item Menu Button (Three Dots) --- */
-.nemo-item-menu-btn {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    z-index: 5;
-    background-color: rgba(0, 0, 0, 0.4);
-    border: none;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    font-size: 1em;
-    color: var(--nemo-text-color);
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out, background-color 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+/* Item Menu Button (Three Dots) */
+.nemo-item-menu-btn { position: absolute; top: 4px; right: 4px; z-index: 5; background-color: rgba(0, 0, 0, 0.4); border: none; border-radius: 50%; width: 28px; height: 28px; padding: 0; font-size: 1em; color: var(--nemo-text-color); cursor: pointer; opacity: 0; transition: opacity 0.2s ease-in-out, background-color 0.2s; display: flex; align-items: center; justify-content: center; }
+.grid-item:hover .nemo-item-menu-btn, .list-item:hover .nemo-item-menu-btn, .grid-item:focus-within .nemo-item-menu-btn, .list-item:focus-within .nemo-item-menu-btn { opacity: 1; }
+.nemo-item-menu-btn:hover { background-color: rgba(0, 0, 0, 0.7); }
+.list-item .nemo-item-menu-btn { position: static; margin-left: auto; flex-shrink: 0; }
+@media (pointer: coarse), (max-width: 768px) { .grid-item .nemo-item-menu-btn, .list-item .nemo-item-menu-btn { opacity: 1; background-color: rgba(0, 0, 0, 0.3); } }
 
-.grid-item:hover .nemo-item-menu-btn,
-.list-item:hover .nemo-item-menu-btn,
-.grid-item:focus-within .nemo-item-menu-btn,
-.list-item:focus-within .nemo-item-menu-btn {
-    opacity: 1;
-}
-
-.nemo-item-menu-btn:hover {
-    background-color: rgba(0, 0, 0, 0.7);
-}
-
-.list-item .nemo-item-menu-btn {
-    position: static; /* Override absolute positioning for list view */
-    margin-left: auto; /* Push it to the far right */
-    flex-shrink: 0;
-}
-
-/* Make button always visible on touch devices / small screens for accessibility */
-@media (pointer: coarse), (max-width: 768px) {
-    .grid-item .nemo-item-menu-btn,
-    .list-item .nemo-item-menu-btn {
-        opacity: 1;
-        background-color: rgba(0, 0, 0, 0.3);
-    }
-}
-
-/* Modal Footer */
-.nemo-preset-navigator-modal .modal-footer { border-top: 1px solid var(--nemo-border-color); padding-top: 15px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-.nemo-preset-navigator-modal .modal-footer .action-controls { display: flex; gap: 10px; align-items: center; }
+/* Navigator Footer (inside popup) */
+.nemo-preset-navigator-content-wrapper .modal-footer { border-top: 1px solid var(--nemo-border-color); padding-top: 15px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.nemo-preset-navigator-content-wrapper .modal-footer .action-controls { display: flex; gap: 10px; align-items: center; }
 
 /* Drag, Drop, and Selection Styles */
 .grid-item.dragging-source { opacity: 0.4; transform: scale(0.95); }
 .grid-item.dragging { position: fixed; z-index: 100000; pointer-events: none; opacity: 0.8; }
 .grid-item.folder.drag-over { border: 2px dashed var(--nemo-primary-accent); background-color: var(--nemo-item-hover-bg); transform: scale(1.05); }
-.grid-item.bulk-selected { outline: 2px solid var(--nemo-primary-accent); outline-offset: 2px; background-color: var(--nemo-item-hover-bg); } /* NEW */
+.grid-item.bulk-selected { outline: 2px solid var(--nemo-primary-accent); outline-offset: 2px; background-color: var(--nemo-item-hover-bg); }
 
-/* Context Menu */
-.nemo-context-menu { display: none; position: fixed; background-color: var(--nemo-primary-bg); border: 1px solid var(--nemo-border-color); z-index: 99999; list-style: none; padding: 5px 0; margin: 0; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+/* Context Menu & Color Picker */
+.nemo-context-menu { display: none; position: absolute; background-color: var(--nemo-primary-bg); border: 1px solid var(--nemo-border-color); z-index: 10000; list-style: none; padding: 5px 0; margin: 0; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
 .nemo-context-menu li { padding: 8px 12px; cursor: pointer; white-space: nowrap; display: flex !important; align-items: center; gap: 8px; }
 .nemo-context-menu li:hover { background-color: var(--nemo-item-hover-bg); }
-.nemo-context-menu li.active { background-color: var(--nemo-primary-accent); color: white; } /* NEW */
+.nemo-context-menu li.active { background-color: var(--nemo-primary-accent); color: white; }
 .nemo-context-menu i { width: 1em; text-align: center; }
 
-/* --- Mobile Friendliness for Navigator --- */
+.nemo-color-picker-popup { padding: 10px; }
+.nemo-color-picker-popup h4 { margin-top: 0; margin-bottom: 15px; text-align: center; color: var(--nemo-secondary-accent); }
+.nemo-color-swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; justify-content: center; }
+.nemo-color-swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid var(--nemo-border-color); transition: transform 0.1s ease, box-shadow 0.1s ease; }
+.nemo-color-swatch:hover { transform: scale(1.1); box-shadow: 0 0 5px var(--nemo-glow-color); }
+.nemo-color-swatch.selected { border-color: var(--nemo-primary-accent); transform: scale(1.1); box-shadow: 0 0 8px var(--nemo-glow-color); }
+#nemo-clear-folder-color { display: block; margin: 10px auto 0; }
+
+/* Mobile Friendliness for Navigator Content */
 @media (max-width: 768px) {
-    .nemo-preset-navigator-modal .modal-content { width: 95vw; height: 95vh; padding: 10px; margin: 2.5vh auto; }
-    .nemo-preset-navigator-modal .modal-header h2 { font-size: 1.2em; }
     #navigator-grid-header { flex-direction: column; align-items: stretch; gap: 10px; }
-    #navigator-breadcrumbs { font-size: 1em; text-align: center; }
-    #navigator-header-controls { flex-direction: column; align-items: stretch; gap: 10px; }
-    #navigator-search-controls { width: 100%; }
-    #navigator-search-input { flex-grow: 1; width: auto; }
-    .nemo-header-buttons { justify-content: space-around; }
-    .view-mode-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; padding: 5px; }
+    .view-mode-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
     .grid-item { min-height: 140px; }
     .grid-item .item-icon { height: 80px; font-size: 3em; }
     .grid-item .item-name { font-size: 0.8em; padding: 5px; }
-    .nemo-preset-navigator-modal .modal-footer { flex-direction: column; align-items: stretch; margin-top: 10px; padding-top: 10px; gap: 10px; }
-    .nemo-preset-navigator-modal .modal-footer .action-controls { justify-content: center; width: 100%; }
-    #navigator-load-btn { width: 100%; }
-}
-/* MODIFIED: Allow header items to be grabbed */
-.nemo-header-item {
-    pointer-events: none;
-    cursor: grab !important;
+    .nemo-preset-navigator-content-wrapper .modal-footer { flex-direction: column; align-items: stretch; gap: 10px; }
 }
 
-.nemo-header-item > * {
-    pointer-events: auto;
+/* Allow header items to be grabbed for D&D in prompt list */
+.nemo-header-item { pointer-events: none; cursor: grab !important; }
+.nemo-header-item > * { pointer-events: auto; }
+
+/* Drag and Drop for Prompt List */
+li.completion_prompt_manager_prompt[draggable="true"] { cursor: grab; }
+li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbing; }
+#nemo-drop-indicator { position: absolute; height: 2px; background-color: var(--nemo-primary-accent); width: 100%; pointer-events: none; z-index: 100; box-shadow: 0 0 5px var(--nemo-glow-color); display: none; }
+
+/* === NEMO CHARACTER MANAGER ENHANCEMENTS === */
+/* The only remaining style is for the header that contains the "Browse" button. */
+.nemo-character-navigator-header { 
+    display: flex; 
+    justify-content: flex-end; 
+    align-items: center; 
+    padding: 5px 0 10px; 
+    margin-top: 5px;
+    border-bottom: 1px solid var(--border-color); 
 }
 
-/* --- Drag and Drop for Prompt List --- */
-li.completion_prompt_manager_prompt[draggable="true"] {
-    cursor: grab;
+/* === NEMO GLOBAL UI TWEAKS === */
+@keyframes nemo-pulsing-stop-animation { 0% { box-shadow: 0 0 0 0px var(--nemo-glow-color); border-color: var(--nemo-border-color); } 50% { box-shadow: 0 0 10px 4px var(--nemo-glow-color); border-color: var(--nemo-primary-accent); } 100% { box-shadow: 0 0 0 0px var(--nemo-glow-color); border-color: var(--nemo-border-color); } }
+#send_form_stop_button.nemo-generating-animation { border: 2px solid var(--nemo-border-color) !important; border-radius: 50%; animation: nemo-pulsing-stop-animation 1.5s infinite ease-in-out; }
+
+.inline-drawer.nemo-converted-drawer .inline-drawer-header { background-color: var(--nemo-tertiary-bg); padding: 8px 10px; margin-bottom: 5px; border-radius: 4px; }
+.inline-drawer.nemo-converted-drawer .inline-drawer-header b { color: var(--nemo-secondary-accent); }
+.inline-drawer.nemo-converted-drawer .inline-drawer-content { padding: 0 10px 10px 20px; border-left: 2px solid var(--nemo-border-color); margin-left: 5px; }
+
+/* Styles for the new standalone prompt header */
+.nemo-standalone-prompt-header {
+    background-color: var(--nemo-tertiary-bg);
+    padding: 8px 10px;
+    margin-top: 15px; /* Add some space above the header */
+    margin-bottom: 5px;
+    border-radius: 4px;
+    color: var(--nemo-secondary-accent);
+    font-weight: bold;
 }
 
-li.completion_prompt_manager_prompt.nemo-dragging {
-    opacity: 0.5;
-    cursor: grabbing;
-}
+/* === CHARACTER MANAGER (Pop-out) === */
+.nemo-character-manager-content-wrapper .navigator-body { display: flex; flex-grow: 1; overflow: hidden; min-height: 60vh; }
+.nemo-character-manager-content-wrapper .navigator-main-panel { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--nemo-secondary-bg); padding: 15px; border-radius: 8px; }
 
-#nemo-drop-indicator {
-    position: absolute;
-    height: 2px;
-    background-color: var(--nemo-primary-accent);
-    width: 100%;
-    pointer-events: none;
-    z-index: 100;
-    box-shadow: 0 0 5px var(--nemo-glow-color);
-    display: none; /* Initially hidden */
+/* Grid Header & Search */
+#char-manager-grid-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--nemo-border-color); flex-shrink: 0; gap: 20px; flex-wrap: wrap; }
+#char-manager-breadcrumbs { font-size: 1.1em; color: var(--nemo-text-color); flex-shrink: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#char-manager-breadcrumbs .link { color: var(--nemo-secondary-accent); cursor: pointer; text-decoration: none; border-bottom: 1px dotted var(--nemo-secondary-accent); transition: color 0.2s; }
+#char-manager-breadcrumbs .link:hover { color: #fff; }
+#char-manager-header-controls { display: flex; align-items: center; gap: 15px; flex-shrink: 0; }
+#char-manager-search-controls { display: flex; align-items: center; position: relative; }
+#char-manager-search-input { width: 220px; padding-right: 30px; }
+#char-manager-search-clear { position: absolute; right: 0; top: 0; bottom: 0; background: transparent; border: none; cursor: pointer; color: var(--nemo-text-muted); padding: 0 10px; }
+#char-manager-search-clear:hover { color: #fff; }
+
+/* Main View Area */
+#char-manager-grid-view { overflow-y: auto; flex-grow: 1; padding: 10px; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+.char-manager-empty-state { text-align: center; color: var(--nemo-text-muted); padding: 40px; }
+.char-manager-empty-state h3 { margin: 0 0 10px; }
+.char-manager-empty-state p { margin: 0; }
+
+/* Grid View Mode */
+.view-mode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; align-content: flex-start; }
+.grid-item .item-icon {
+    height: 100px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3.5em;
+    color: var(--nemo-secondary-accent);
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
+.grid-item.folder .item-icon { color: var(--nemo-folder-color); }
+.grid-item.character .item-icon { color: #8ea9e8; }
+
+/* List View Mode */
+.view-mode-list { display: flex; flex-direction: column; gap: 5px; }
+.list-item { min-height: auto; flex-direction: row; align-items: center; padding: 5px 10px; }
+.list-item:hover { transform: none; box-shadow: none; background-color: var(--nemo-item-hover-bg); }
+.list-item .item-icon { height: auto; width: 25px; font-size: 1.2em; }
+.list-item .item-name { background: none; text-align: left; flex-grow: 1; padding: 0 10px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.list-item .item-date { font-size: 0.9em; color: var(--nemo-text-muted); flex-shrink: 0; }
+
+/* Item Menu Button (Three Dots) */
+.nemo-item-menu-btn { position: absolute; top: 4px; right: 4px; z-index: 5; background-color: rgba(0, 0, 0, 0.4); border: none; border-radius: 50%; width: 28px; height: 28px; padding: 0; font-size: 1em; color: var(--nemo-text-color); cursor: pointer; opacity: 0; transition: opacity 0.2s ease-in-out, background-color 0.2s; display: flex; align-items: center; justify-content: center; }
+.grid-item:hover .nemo-item-menu-btn, .list-item:hover .nemo-item-menu-btn, .grid-item:focus-within .nemo-item-menu-btn, .list-item:focus-within .nemo-item-menu-btn { opacity: 1; }
+.nemo-item-menu-btn:hover { background-color: rgba(0, 0, 0, 0.7); }
+.list-item .nemo-item-menu-btn { position: static; margin-left: auto; flex-shrink: 0; }
+
+/* Footer */
+.nemo-character-manager-content-wrapper .modal-footer { border-top: 1px solid var(--nemo-border-color); padding-top: 15px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.nemo-character-manager-content-wrapper .modal-footer .action-controls { display: flex; gap: 10px; align-items: center; }
+
+/* Drag, Drop, and Selection Styles */
+.grid-item.dragging-source { opacity: 0.4; transform: scale(0.95); }
+.grid-item.folder.drag-over { border: 2px dashed var(--nemo-primary-accent); background-color: var(--nemo-item-hover-bg); transform: scale(1.05); }
+.grid-item.bulk-selected { outline: 2px solid var(--nemo-primary-accent); outline-offset: 2px; background-color: var(--nemo-item-hover-bg); }
+
+/* === EXTENSION SORTING STYLES === */
+.nemo-sortable-ghost { opacity: 0.4; background-color: var(--nemo-item-hover-bg); border: 1px dashed var(--nemo-primary-accent); }
+.nemo-sortable-drag { opacity: 0.9; background-color: var(--nemo-tertiary-bg); box-shadow: 0 5px 15px var(--nemo-shadow-color); }
+#extensions_settings .inline-drawer-header, #extensions_settings2 .inline-drawer-header { cursor: grab; }
+#extensions_settings .inline-drawer-header:active, #extensions_settings2 .inline-drawer-header:active { cursor: grabbing; }
+
+/* === GROUPING STYLES === */
+.nemo-group-container { padding: 5px; background-color: rgba(0,0,0,0.2); border-radius: 5px; margin-bottom: 10px; }
+.nemo-group-header { display: flex; justify-content: space-between; align-items: center; padding: 8px; background-color: var(--nemo-tertiary-bg); border-radius: 4px; }
+.nemo-group-title { font-weight: bold; color: var(--nemo-secondary-accent); }
+.nemo-group-controls { display: flex; gap: 10px; }
+.nemo-group-controls i { cursor: pointer; }
+.nemo-group-content { min-height: 20px; padding: 10px 5px 5px; }
+#nemo-add-group-button { margin-left: auto; }
