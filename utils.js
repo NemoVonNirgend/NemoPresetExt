@@ -114,3 +114,26 @@ export async function showColorPickerPopup(currentSelectedColorValue, title = "S
         }
     });
 }
+/**
+ * Waits for a DOM element to appear before executing a callback.
+ * Uses requestAnimationFrame for efficient polling.
+ * @param {string} selector - The CSS selector of the element to wait for.
+ * @param {function} callback - The function to execute once the element is found.
+ * @param {number} [timeout=5000] - The maximum time to wait in milliseconds.
+ */
+export function waitForElement(selector, callback, timeout = 5000) {
+    const startTime = Date.now();
+
+    function poll() {
+        const element = document.querySelector(selector);
+        if (element) {
+            callback(element);
+        } else if (Date.now() - startTime < timeout) {
+            requestAnimationFrame(poll);
+        } else {
+            console.warn(`${LOG_PREFIX} Timed out waiting for element: ${selector}`);
+        }
+    }
+
+    poll();
+}

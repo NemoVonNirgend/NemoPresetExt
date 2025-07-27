@@ -26,9 +26,12 @@ export const NemoGlobalUI = {
         drawerContent.className = 'inline-drawer-content';
         if (!isOpenByDefault) drawerContent.style.display = 'none';
 
+        // Use a DocumentFragment to batch append operations for performance
+        const fragment = document.createDocumentFragment();
         while (targetElement.firstChild) {
-            drawerContent.appendChild(targetElement.firstChild);
+            fragment.appendChild(targetElement.firstChild);
         }
+        drawerContent.appendChild(fragment);
 
         drawer.appendChild(drawerToggle);
         drawer.appendChild(drawerContent);
@@ -96,7 +99,16 @@ export const NemoGlobalUI = {
             });
         };
 
-        const panelObserver = new MutationObserver(convertTargets);
+        const panelObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        convertTargets();
+                        break;
+                    }
+                }
+            }
+        });
         panelObserver.observe(leftNavPanel, { childList: true, subtree: true });
         convertTargets();
     },

@@ -1,6 +1,6 @@
 import { callGenericPopup, POPUP_TYPE } from '../../../popup.js';
 import { getContext } from '../../../extensions.js';
-import { LOG_PREFIX, generateUUID } from './utils.js';
+import { LOG_PREFIX, generateUUID, debounce } from './utils.js';
 import { loadCharacterMetadata, saveCharacterMetadata, updateMetadataTimestamp } from './character-manager.js';
 import { selectCharacterById } from '../../../../script.js';
 
@@ -10,6 +10,7 @@ export class CharacterManagerUI {
         this.element.id = `nemo-character-manager-content-${generateUUID()}`;
         this.currentPath = [];
         this.selectedCharacter = null;
+        this.debouncedRender = debounce(() => this.render(), 250);
         this.bulkSelection = new Set();
         this.lastSelectedItem = null;
         this.viewMode = 'grid';
@@ -26,20 +27,25 @@ export class CharacterManagerUI {
         const response = await fetch('scripts/extensions/third-party/NemoPresetExt/character-manager-ui.html');
         this.element.innerHTML = await response.text();
 
+        // Cache DOM elements
         this.mainView = this.element.querySelector('#char-manager-grid-view');
         this.breadcrumbs = this.element.querySelector('#char-manager-breadcrumbs');
         this.searchInput = this.element.querySelector('#char-manager-search-input');
         this.searchClearBtn = this.element.querySelector('#char-manager-search-clear');
+        this.loadBtn = this.element.querySelector('#char-manager-load-btn');
+        this.newFolderBtn = this.element.querySelector('#char-manager-new-folder-btn');
+        this.viewToggleBtn = this.element.querySelector('#char-manager-view-toggle-btn');
+        this.sortBtn = this.element.querySelector('#char-manager-sort-btn');
+        this.filterBtn = this.element.querySelector('#char-manager-filter-btn');
 
-        this.element.querySelector('#char-manager-load-btn').addEventListener('click', () => this.loadSelectedCharacter());
-        this.element.querySelector('#char-manager-new-folder-btn').addEventListener('click', () => this.createNewFolder());
-        this.searchInput.addEventListener('input', () => this.render());
+        // Add event listeners
+        this.loadBtn.addEventListener('click', () => this.loadSelectedCharacter());
+        this.newFolderBtn.addEventListener('click', () => this.createNewFolder());
+        this.searchInput.addEventListener('input', this.debouncedRender);
         this.searchClearBtn.addEventListener('click', () => { this.searchInput.value = ''; this.render(); });
-        this.element.querySelector('#char-manager-view-toggle-btn').addEventListener('click', () => this.toggleViewMode());
-        
-        // Placeholder for soon-to-be-implemented features
-        this.element.querySelector('#char-manager-sort-btn').addEventListener('click', (e) => this.showSortMenu(e));
-        this.element.querySelector('#char-manager-filter-btn').addEventListener('click', (e) => this.showFilterMenu(e));
+        this.viewToggleBtn.addEventListener('click', () => this.toggleViewMode());
+        this.sortBtn.addEventListener('click', (e) => this.showSortMenu(e));
+        this.filterBtn.addEventListener('click', (e) => this.showFilterMenu(e));
 
         this.mainView.addEventListener('click', (e) => this.handleGridClick(e), true);
         this.mainView.addEventListener('dblclick', (e) => this.handleGridDoubleClick(e));
@@ -156,26 +162,27 @@ export class CharacterManagerUI {
             }
         });
 
-        this.mainView.innerHTML = '';
         this.mainView.className = `view-mode-${this.viewMode}`;
+        const fragment = document.createDocumentFragment();
 
         if (items.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.className = 'char-manager-empty-state';
             emptyEl.innerHTML = searchTerm ? `<h3>No results for "${searchTerm}"</h3>` : `<h3>This folder is empty.</h3>`;
-            this.mainView.appendChild(emptyEl);
-            return;
+            fragment.appendChild(emptyEl);
+        } else {
+            items.forEach(item => {
+                const itemEl = (this.viewMode === 'grid') ? this.createGridItem(item) : this.createListItem(item);
+                fragment.appendChild(itemEl);
+            });
         }
-
-        items.forEach(item => {
-            const itemEl = (this.viewMode === 'grid') ? this.createGridItem(item) : this.createListItem(item);
-            this.mainView.appendChild(itemEl);
-        });
+        
+        this.mainView.innerHTML = '';
+        this.mainView.appendChild(fragment);
     }
 
     updateLoadButton() {
-        const btn = this.element.querySelector('#char-manager-load-btn');
-        btn.disabled = !this.selectedCharacter;
+        this.loadBtn.disabled = !this.selectedCharacter;
     }
 
     async loadSelectedCharacter() {
@@ -277,9 +284,9 @@ export class CharacterManagerUI {
     }
 
     updateHeaderControls() {
-        const viewBtn = this.element.querySelector('#char-manager-view-toggle-btn i');
-        viewBtn.className = `fa-solid ${this.viewMode === 'grid' ? 'fa-list' : 'fa-grip'}`;
-        viewBtn.parentElement.title = `Switch to ${this.viewMode === 'grid' ? 'List' : 'Grid'} View`;
+        const viewIcon = this.viewToggleBtn.querySelector('i');
+        viewIcon.className = `fa-solid ${this.viewMode === 'grid' ? 'fa-list' : 'fa-grip'}`;
+        this.viewToggleBtn.title = `Switch to ${this.viewMode === 'grid' ? 'List' : 'Grid'} View`;
     }
 
     handleGridClick(e) {
