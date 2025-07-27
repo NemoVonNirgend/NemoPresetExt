@@ -1,0 +1,50 @@
+<div id="nemo-world-info-redesign" class="nemo-world-info-container">
+    <!-- Left Column: Lorebook List and Management -->
+    <div class="nemo-world-info-left-column">
+        <div class="nemo-world-info-active-section">
+            <div class="nemo-world-info-active-header">Active Lorebooks</div>
+            <div id="nemo-world-info-active-list" class="nemo-world-info-active-list">
+                <!-- Active lorebooks will be dynamically inserted here -->
+            </div>
+        </div>
+        <div class="nemo-world-info-list-header">
+            <input type="search" id="nemo-world-info-search" placeholder="Search lorebooks..." class="text_pole">
+            <div id="nemo-world-info-new-button" class="menu_button">New</div>
+            <div id="nemo-world-info-import-button" class="menu_button">Import</div>
+        </div>
+        <div id="nemo-world-info-list" class="nemo-world-info-list">
+            <!-- Lorebooks will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Right Column: Workspace (Entries and Settings) -->
+    <div class="nemo-world-info-right-column">
+        <div class="nemo-world-info-tabs">
+            <div id="nemo-world-info-entries-tab" class="nemo-world-info-tab active">Entries</div>
+            <div id="nemo-world-info-settings-tab" class="nemo-world-info-tab">Settings</div>
+        </div>
+        <div id="nemo-world-info-entries-panel" class="nemo-world-info-panel active">
+            <div class="nemo-world-info-entries-header">
+                <div id="world_popup_new" class="menu_button">New Entry</div>
+                <div id="world_popup_name_button" class="menu_button">Rename</div>
+                <div id="world_duplicate" class="menu_button">Duplicate</div>
+                <div id="world_popup_export" class="menu_button">Export</div>
+                <div id="world_popup_delete" class="menu_button delete_button">Delete</div>
+                <select id="nemo-world-info-buffer-size" class="text_pole">
+                    <option value="60">60 (Default)</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
+                </select>
+            </div>
+            <div id="world_info_pagination" class="pagination-container"></div>
+            <div id="world_popup_entries_list" class="list-group">
+                <!-- Entries will be dynamically inserted here -->
+            </div>
+        </div>
+        <div id="nemo-world-info-settings-panel" class="nemo-world-info-panel">
+            <!-- Global activation settings will be placed here -->
+        </div>
+    </div>
+</div>

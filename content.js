@@ -5,6 +5,7 @@ import { NemoCharacterManager } from './character-manager.js';
 import { initPresetNavigatorForApi } from './navigator.js';
 import { NemoSettingsUI } from './settings-ui.js';
 import { NemoGlobalUI } from './global-ui.js'; // Import NemoGlobalUI
+import { NemoWorldInfoUI } from './world-info-ui.js';
 
 // --- MAIN INITIALIZATION ---
 const MAIN_SELECTORS = {
@@ -24,6 +25,7 @@ waitForElement('#left-nav-panel', async () => {
         NemoCharacterManager.initialize();
         NemoSettingsUI.initialize();
         NemoGlobalUI.initialize();
+        NemoWorldInfoUI.initialize();
 
         const observer = new MutationObserver(() => {
             // Initialize Prompt Manager sections when the list appears
