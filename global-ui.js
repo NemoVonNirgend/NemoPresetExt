@@ -113,6 +113,46 @@ export const NemoGlobalUI = {
         convertTargets();
     },
 
+    groupNemoExtensions: function() {
+        const nemoExtensions = [
+            'NemoPresetExt',
+            'Prose Polisher (Regex + AI)',
+            'Mood Music Settings',
+            'Qvink Memory',
+            'LoreManager',
+            'Chat History Super Manager'
+        ];
+        const extensionsContainer = document.querySelector('#extensions_settings');
+        if (!extensionsContainer) return;
+
+        let nemoSuiteDrawer = document.getElementById('nemo-suite-drawer');
+        if (!nemoSuiteDrawer) {
+            nemoSuiteDrawer = document.createElement('div');
+            nemoSuiteDrawer.id = 'nemo-suite-drawer';
+            nemoSuiteDrawer.className = 'inline-drawer wide100p nemo-converted-drawer';
+            nemoSuiteDrawer.innerHTML = `
+                <div class="inline-drawer-toggle inline-drawer-header interactable" tabindex="0">
+                    <b>Nemo Suite</b>
+                    <div class="inline-drawer-icon fa-solid fa-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content" style="display: none;"></div>
+            `;
+            extensionsContainer.prepend(nemoSuiteDrawer);
+        }
+
+        const nemoSuiteContent = nemoSuiteDrawer.querySelector('.inline-drawer-content');
+        const allDrawers = Array.from(extensionsContainer.querySelectorAll('.inline-drawer'));
+
+        allDrawers.forEach(drawer => {
+            const titleElement = drawer.querySelector('.inline-drawer-header b');
+            if (titleElement && nemoExtensions.includes(titleElement.textContent.trim())) {
+                if (drawer.id !== 'nemo-suite-drawer') {
+                    nemoSuiteContent.appendChild(drawer);
+                }
+            }
+        });
+    },
+
     initializeStopButtonAnimation: function() {
         const stopButton = document.querySelector(SELECTORS.stopButton);
         if (!stopButton) return;
@@ -126,12 +166,22 @@ export const NemoGlobalUI = {
         const bodyObserver = new MutationObserver((mutations, obs) => {
             const leftNavPanel = document.querySelector(SELECTORS.leftNavPanel);
             if (leftNavPanel) {
-                obs.disconnect();
-                this.initializeStopButtonAnimation();
                 this.observeLeftPanelForDrawers(leftNavPanel);
-                console.log(`${LOG_PREFIX} Global UI module initialized.`);
+            }
+            // We can initialize the stop button animation at any time
+            if (!document.querySelector(SELECTORS.stopButton).dataset.nemoAnimated) {
+                this.initializeStopButtonAnimation();
+                document.querySelector(SELECTORS.stopButton).dataset.nemoAnimated = 'true';
+            }
+            // Group extensions once we know the list is likely complete
+            if (document.querySelector('#SillyTavernMoonlitEchoesTheme-drawer')) {
+                this.groupNemoExtensions();
+                // We can disconnect the observer now as all UI elements are ready
+                obs.disconnect();
+                console.log(`${LOG_PREFIX} Global UI module initialized and all elements are ready.`);
             }
         });
         bodyObserver.observe(document.body, { childList: true, subtree: true });
+        console.log(`${LOG_PREFIX} Global UI module initialized and observing.`);
     }
 };

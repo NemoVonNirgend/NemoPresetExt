@@ -104,7 +104,7 @@ export const NemoPresetManager = {
             const match = promptName.match(DIVIDER_PREFIX_REGEX);
             let cleanName = promptName.substring(match[0].length).trim();
             const suffixRegex = new RegExp(`\\s*(${escapeRegex(match[1])}|=+)\\s*$`);
-            cleanName = cleanName.replace(suffixRegex, '').trim();
+            cleanName = cleanName.replace(suffixRegex, '').replace(/===/g, ' ').replace(/\s\s+/g, ' ').trim();
             return { isDivider: true, name: cleanName || "Section", originalText: promptName };
         }
         return { isDivider: false };
@@ -161,8 +161,14 @@ export const NemoPresetManager = {
                 details.open = openSectionStates[dividerInfo.originalText] || false;
                 const summary = document.createElement('summary');
                 const nameSpan = item.querySelector('span.completion_prompt_manager_prompt_name');
-                if (nameSpan && !nameSpan.querySelector('.nemo-enabled-count')) {
-                    nameSpan.insertAdjacentHTML('beforeend', '<span class="nemo-enabled-count"></span>');
+                if (nameSpan) {
+                    const link = nameSpan.querySelector('a');
+                    if (link) {
+                        link.textContent = dividerInfo.name;
+                    }
+                    if (!nameSpan.querySelector('.nemo-enabled-count')) {
+                        nameSpan.insertAdjacentHTML('beforeend', '<span class="nemo-enabled-count"></span>');
+                    }
                 }
                 const wrapper = item.querySelector('.nemo-right-controls-wrapper');
                 if (wrapper && !wrapper.querySelector('.nemo-section-master-toggle')) {
@@ -180,8 +186,13 @@ export const NemoPresetManager = {
                 fragment.appendChild(details);
                 currentSectionContent = contentDiv;
             } else {
-                if (currentSectionContent) currentSectionContent.appendChild(item);
-                else fragment.appendChild(item);
+                // This is a regular prompt, not a divider
+                if (currentSectionContent) {
+                    currentSectionContent.appendChild(item);
+                } else {
+                    // If it's an orphan item (not under any section), just append it.
+                    fragment.appendChild(item);
+                }
             }
         }
         promptsContainer.innerHTML = '';

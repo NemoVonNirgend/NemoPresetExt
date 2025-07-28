@@ -126,7 +126,7 @@ export class PresetNavigator {
         }
         return Array.from(select.options)
             .map(opt => ({ name: opt.textContent, value: opt.value }))
-            .filter(item => item.name && item.value && item.value !== '---'); // Filter out separators
+            .filter(item => item.name && item.value && item.value !== '---' && !item.name.includes('===')); // Filter out separators and headers
     }
     
     render() {
