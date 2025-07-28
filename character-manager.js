@@ -49,17 +49,18 @@ export function updateMetadataTimestamp(metadata, id, type) {
 
 // --- INITIALIZATION & EVENT HANDLING ---
 function injectHeaderUI() {
-    const parent = document.querySelector(SELECTORS.parentBlock);
-    if (!parent || parent.querySelector(SELECTORS.nemoHeader)) return;
+    const searchForm = document.querySelector('#form_character_search_form');
+    if (!searchForm || document.querySelector('#nemo-char-browse-btn')) return;
 
-    const header = document.createElement('div');
-    header.className = 'nemo-character-navigator-header';
-    header.innerHTML = `<button id="nemo-char-browse-btn" class="menu_button" title="Browse Characters"><i class="fa-solid fa-folder-open"></i> Browse</button>`;
-    
-    const fixedTop = document.querySelector(SELECTORS.characterListFixedTop);
-    parent.insertBefore(header, fixedTop.nextSibling);
+    const browseButton = document.createElement('button');
+    browseButton.id = 'nemo-char-browse-btn';
+    browseButton.className = 'menu_button';
+    browseButton.title = 'Browse Characters';
+    browseButton.innerHTML = `<i class="fa-solid fa-folder-open"></i> Browse`;
 
-    header.querySelector('#nemo-char-browse-btn').addEventListener('click', () => {
+    searchForm.prepend(browseButton);
+
+    browseButton.addEventListener('click', () => {
         if (!characterManagerUIInstance) {
             characterManagerUIInstance = new CharacterManagerUI();
         }

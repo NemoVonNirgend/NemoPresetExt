@@ -17,7 +17,7 @@ export const NemoSettingsUI = {
                 container.insertAdjacentHTML('beforeend', await response.text());
 
                 // Regex Settings
-                const regexInput = document.getElementById('nemoDividerRegexPattern');
+                const regexInput = /** @type {HTMLInputElement} */ (document.getElementById('nemoDividerRegexPattern'));
                 const saveButton = document.getElementById('nemoSaveRegexSettings');
                 const statusDiv = document.getElementById('nemoRegexStatus');
 
@@ -40,6 +40,14 @@ export const NemoSettingsUI = {
                 });
 
                 // *** Character Folder Display Mode Settings (REMOVED) ***
+
+                // Lorebook Overhaul Setting
+                const lorebookToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableLorebookOverhaul'));
+                lorebookToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableLorebookOverhaul ?? true;
+                lorebookToggle.addEventListener('change', () => {
+                    extension_settings[NEMO_EXTENSION_NAME].enableLorebookOverhaul = lorebookToggle.checked;
+                    saveSettingsDebounced();
+                });
             }
         }, 500);
     }

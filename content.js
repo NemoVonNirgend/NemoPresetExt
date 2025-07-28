@@ -1,4 +1,5 @@
 import { eventSource, event_types } from '../../../../script.js';
+import { extension_settings } from '../../../extensions.js';
 import { LOG_PREFIX, ensureSettingsNamespace, waitForElement } from './utils.js';
 import { NemoPresetManager, loadAndSetDividerRegex } from './prompt-manager.js';
 import { NemoCharacterManager } from './character-manager.js';
@@ -25,11 +26,14 @@ waitForElement('#left-nav-panel', async () => {
         NemoCharacterManager.initialize();
         NemoSettingsUI.initialize();
         NemoGlobalUI.initialize();
-        NemoWorldInfoUI.initialize();
+        
+        if (extension_settings.NemoPresetExt?.enableLorebookOverhaul !== false) {
+            NemoWorldInfoUI.initialize();
+        }
 
         const observer = new MutationObserver(() => {
             // Initialize Prompt Manager sections when the list appears
-            const promptList = document.querySelector(MAIN_SELECTORS.promptsContainer);
+            const promptList = /** @type {HTMLElement} */ (document.querySelector(MAIN_SELECTORS.promptsContainer));
             if (promptList && !promptList.dataset.nemoPromptsInitialized) {
                 NemoPresetManager.initializeSearchAndSections(promptList);
             }
@@ -37,7 +41,7 @@ waitForElement('#left-nav-panel', async () => {
             // Patch API preset dropdowns with the "Browse..." button
             const apis = ['openai', 'novel', 'kobold', 'textgenerationwebui', 'anthropic', 'claude', 'google', 'scale', 'cohere', 'mistral', 'aix', 'openrouter'];
             apis.forEach(api => {
-                const select = document.querySelector(`select[data-preset-manager-for="${api}"]`);
+                const select = /** @type {HTMLElement} */ (document.querySelector(`select[data-preset-manager-for="${api}"]`));
                 if (select && !select.dataset.nemoPatched) {
                     initPresetNavigatorForApi(api);
                 }
