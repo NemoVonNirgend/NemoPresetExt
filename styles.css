@@ -150,9 +150,8 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     .nemo-preset-navigator-content-wrapper .modal-footer { flex-direction: column; align-items: stretch; gap: 10px; }
 }
 
-/* Allow header items to be grabbed for D&D in prompt list */
-.nemo-header-item { pointer-events: none; cursor: grab !important; }
-.nemo-header-item > * { pointer-events: auto; }
+/* Header items in the prompt list are not draggable */
+.nemo-header-item { cursor: default; }
 
 /* Drag and Drop for Prompt List */
 li.completion_prompt_manager_prompt[draggable="true"] { cursor: grab; }
@@ -258,6 +257,10 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
 .nemo-group-controls i { cursor: pointer; }
 .nemo-group-content { min-height: 20px; padding: 10px 5px 5px; }
 #nemo-add-group-button { margin-left: auto; }
+.nemo-hidden-by-script {
+    display: none !important;
+}
+
 /* === NEMO WORLD INFO UI === */
 .nemo-world-info-container {
     display: flex;
@@ -500,15 +503,19 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
     position: relative;
 }
 
-#world_info_pagination {
-    display: none !important;
-}
 
 .nemo-world-info-entries-header {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
     margin-bottom: 10px;
+}
+
+.pagination-container {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .nemo-world-info-entries-toolbar {
@@ -627,4 +634,91 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
     padding: 8px 12px;
     border-radius: 4px;
     margin-bottom: 5px;
+}
+
+/* === PAGINATION CONTROLS === */
+
+.nemo-pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid var(--nemo-border-color);
+    border-bottom: 1px solid var(--nemo-border-color);
+    margin: 10px 0;
+    background-color: var(--nemo-primary-bg);
+    border-radius: 4px;
+}
+
+.nemo-pagination-controls.hidden {
+    display: none;
+}
+
+.pagination-btn {
+    min-width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border: 1px solid var(--nemo-border-color);
+    background-color: var(--nemo-secondary-bg);
+    color: var(--nemo-text-color);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background-color: var(--nemo-item-hover-bg);
+    border-color: var(--nemo-primary-accent);
+    color: var(--nemo-primary-accent);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--nemo-primary-bg);
+}
+
+.pagination-info {
+    padding: 0 15px;
+    font-size: 14px;
+    color: var(--nemo-text-color);
+    white-space: nowrap;
+}
+
+.pagination-goto {
+    width: 80px !important;
+    height: 32px !important;
+    padding: 4px 8px !important;
+    text-align: center;
+    font-size: 14px;
+    border: 1px solid var(--nemo-border-color);
+    background-color: var(--nemo-secondary-bg);
+    color: var(--nemo-text-color);
+    border-radius: 4px;
+}
+
+.pagination-goto:focus {
+    border-color: var(--nemo-primary-accent);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--nemo-glow-color);
+}
+
+/* Infinite scroll toggle */
+#nemo-world-info-infinite-scroll {
+    margin-right: 5px;
+}
+
+/* Entries per page selector */
+#nemo-world-info-entries-per-page {
+    min-width: 60px;
+}
+
+/* Update buffer size select styling */
+#nemo-world-info-buffer-size {
+    min-width: 100px;
 }

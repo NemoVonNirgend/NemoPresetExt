@@ -1,8 +1,9 @@
 import { LOG_PREFIX } from './utils.js';
-import { debounce } from '../../../../scripts/utils.js';
+import { debounce, navigation_option } from '../../../../scripts/utils.js';
 import { Popup } from '../../../../scripts/popup.js';
 import { getFreeWorldName, createNewWorldInfo, loadWorldInfo, world_names, saveWorldInfo, createWorldInfoEntry, deleteWorldInfoEntry, deleteWIOriginalDataValue } from '../../../../scripts/world-info.js';
 import { eventSource, event_types } from '../../../../script.js';
+import { accountStorage } from '../../../../scripts/util/AccountStorage.js';
 
 /**
  * @typedef {object} WorldInfoEntry
@@ -57,101 +58,14 @@ export const NemoWorldInfoUI = {
     _selectionBook: null,
     _lastSelectedEntry: null,
     _clipboard: { items: new Set(), cut: false },
+    _uiInjected: false,
+    _isRefreshingUI: false,
     folderState: {},
     storageKey: 'nemo-wi-folder-state',
     _presets: {},
     _currentPreset: '',
     presetStorageKey: 'nemo-wi-presets',
     _activeEntries: [],
-
-    virtualScroller: {
-        allEntries: [],
-        container: null,
-        scrollContainer: null,
-        itemsContainer: null,
-        spacer: null,
-        entryHeight: 45, // A reasonable default estimate
-        buffer: 30,
-        lastRenderedRange: { start: -1, end: -1 },
-        onScroll: null,
-
-        init(name, data, allEntries) {
-            this.destroy(); // Clean up previous state
-
-            const bufferSize = Number(localStorage.getItem('nemo-wi-buffer-size')) || 60;
-            this.buffer = bufferSize / 2;
-
-            this.worldName = name;
-            this.worldData = data;
-            this.allEntries = allEntries;
-            this.container = document.getElementById('world_popup_entries_list');
-            this.scrollContainer = document.getElementById('nemo-world-info-entries-panel');
-
-            if (!this.container || !this.scrollContainer) return;
-
-            this.container.innerHTML = ''; // Clear list
-            this.spacer = document.createElement('div');
-            this.spacer.style.height = `${this.allEntries.length * this.entryHeight}px`;
-            this.itemsContainer = document.createElement('div');
-            this.itemsContainer.style.position = 'absolute';
-            this.itemsContainer.style.width = '100%';
-            this.itemsContainer.style.top = '0';
-
-
-            this.container.appendChild(this.spacer);
-            this.container.appendChild(this.itemsContainer);
-
-            this.onScroll = debounce(this.render.bind(this), 50);
-            this.scrollContainer.addEventListener('scroll', this.onScroll);
-
-            this.render(); // Initial render
-        },
-
-        async render() {
-            const scrollTop = this.scrollContainer.scrollTop;
-            const containerHeight = this.scrollContainer.clientHeight;
-
-            const startIndex = Math.max(0, Math.floor(scrollTop / this.entryHeight) - this.buffer);
-            const endIndex = Math.min(this.allEntries.length, Math.ceil((scrollTop + containerHeight) / this.entryHeight) + this.buffer);
-
-            if (startIndex === this.lastRenderedRange.start && endIndex === this.lastRenderedRange.end) {
-                return; // No change in visible range
-            }
-
-            this.lastRenderedRange = { start: startIndex, end: endIndex };
-
-            const fragment = document.createDocumentFragment();
-            const promises = [];
-
-            for (let i = startIndex; i < endIndex; i++) {
-                const entry = this.allEntries[i];
-                if (entry) {
-                    promises.push(window.getWorldEntry(this.worldName, this.worldData, entry));
-                }
-            }
-
-            const elements = await Promise.all(promises);
-            elements.forEach((el) => {
-                if (el) {
-                    fragment.appendChild(el[0]);
-                }
-            });
-
-            this.itemsContainer.innerHTML = '';
-            this.itemsContainer.appendChild(fragment);
-            this.itemsContainer.style.transform = `translateY(${startIndex * this.entryHeight}px)`;
-        },
-
-        destroy() {
-            if (this.scrollContainer && this.onScroll) {
-                this.scrollContainer.removeEventListener('scroll', this.onScroll);
-            }
-            this.allEntries = [];
-            if (this.container) this.container.innerHTML = '';
-            this.lastRenderedRange = { start: -1, end: -1 };
-            this.onScroll = null;
-        }
-    },
 
     injectUI: async function() {
         try {
@@ -249,8 +163,7 @@ export const NemoWorldInfoUI = {
             removeButton.textContent = '✖';
             removeButton.addEventListener('click', () => {
                 option.selected = false;
-                $(worldInfoSelect).trigger('change');
-                this.updateActiveLorebooksList();
+                this.refreshLorebookUI();
             });
 
             activeItem.appendChild(removeButton);
@@ -353,8 +266,7 @@ export const NemoWorldInfoUI = {
             const correspondingOption = Array.from(worldInfoSelect.options).find(opt => opt.text === option.text);
             if (correspondingOption) {
                 correspondingOption.selected = true;
-                $(worldInfoSelect).trigger('change');
-                this.updateActiveLorebooksList();
+                this.refreshLorebookUI();
             }
         });
 
@@ -485,7 +397,7 @@ export const NemoWorldInfoUI = {
         const lorebookList = document.getElementById('nemo-world-info-list');
 
         if (searchInput && lorebookList) {
-            searchInput.addEventListener('input', debounce(async (event) => {
+            (/** @type {HTMLInputElement} */ (searchInput)).addEventListener('input', /** @type {any} */ (debounce(async (event) => {
                 const searchTerm = (/** @type {HTMLInputElement} */ (event.target)).value.toLowerCase();
                 const matchedBooks = await this.performSearch(searchTerm);
 
@@ -515,7 +427,7 @@ export const NemoWorldInfoUI = {
                     allBooks.forEach(book => (/** @type {HTMLElement} */ (book)).style.display = '');
                     allFolders.forEach(folder => (/** @type {HTMLElement} */ (folder)).style.display = '');
                 }
-            }, 300));
+            }, 300)));
         }
     },
 
@@ -631,7 +543,7 @@ export const NemoWorldInfoUI = {
         if (folderName && !this.folderState[folderName]) {
             this.folderState[folderName] = [];
             this.saveFolderState();
-            this.populateLorebooksFromSelect(/** @type {HTMLSelectElement} */ (document.getElementById('world_info')));
+            this.refreshLorebookUI();
             
             const moveToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemo-world-info-move-toggle'));
             if (moveToggle && !moveToggle.checked) {
@@ -648,7 +560,7 @@ export const NemoWorldInfoUI = {
         if (confirmation) {
             delete this.folderState[folderName];
             this.saveFolderState();
-            this.populateLorebooksFromSelect(/** @type {HTMLSelectElement} */ (document.getElementById('world_info')));
+            this.refreshLorebookUI();
         }
     },
 
@@ -715,28 +627,11 @@ export const NemoWorldInfoUI = {
                 return entryEl;
             };
 
-            const originalPagination = $.fn.pagination;
-            /** @type {any} */
-            ($.fn.pagination) = function(options) {
-                if (this.attr('id') === 'world_info_pagination') {
-                    try {
-                        const allEntries = options.dataSource();
-                        self.virtualScroller.init(self._currentWorld.name, self._currentWorld.data, allEntries);
-                    } catch (err) {
-                        console.error(`${LOG_PREFIX} Error initializing virtual scroller:`, err);
-                    }
-                    return this;
-                }
-                return originalPagination.apply(this, /** @type {any} */ (arguments));
-            };
-
             const originalDisplay = window.displayWorldEntries;
             window.displayWorldEntries = async function(name, data, ...args) {
                 self._currentWorld.name = name;
                 self._currentWorld.data = data;
-                document.getElementById('world_info_pagination').style.display = 'none';
                 const result = await originalDisplay.apply(this, [name, data, ...args]);
-
 
                 const entriesList = document.getElementById('world_popup_entries_list');
                 entriesList.querySelectorAll('.world_entry').forEach(entryEl => {
@@ -832,7 +727,7 @@ export const NemoWorldInfoUI = {
         });
 
         this.saveFolderState();
-        this.populateLorebooksFromSelect(/** @type {HTMLSelectElement} */ (document.getElementById('world_info')));
+        this.refreshLorebookUI();
         this._selectedItems.clear(); // Deselect after move
     },
 
@@ -888,6 +783,7 @@ export const NemoWorldInfoUI = {
 
                 await saveWorldInfo(newName, fromBook, true);
             }
+            this.refreshLorebookUI();
             menu.remove();
         });
         menu.appendChild(duplicateItem);
@@ -967,8 +863,7 @@ export const NemoWorldInfoUI = {
             Array.from(worldInfoSelect.options).forEach(opt => {
                 opt.selected = this._presets[presetName].includes(opt.text);
             });
-            $(worldInfoSelect).trigger('change');
-            this.updateActiveLorebooksList();
+            this.refreshLorebookUI();
         }
     },
 
@@ -1073,6 +968,21 @@ export const NemoWorldInfoUI = {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    },
+
+    refreshLorebookUI: function() {
+        if (this._isRefreshingUI) return; // Re-entrancy guard
+
+        this._isRefreshingUI = true;
+        try {
+            const worldInfoSelect = document.getElementById('world_info');
+            if (worldInfoSelect) {
+                this.populateLorebooksFromSelect(worldInfoSelect);
+                this.updateActiveLorebooksList();
+            }
+        } finally {
+            this._isRefreshingUI = false;
+        }
     },
 
     loadPresets: function() {
@@ -1258,7 +1168,7 @@ export const NemoWorldInfoUI = {
     },
 initLoreSimulator: function() {
     const input = document.getElementById('nemo-lore-simulator-input');
-    input.addEventListener('input', debounce(() => this.runLoreSimulator(), 300));
+    (/** @type {HTMLTextAreaElement} */ (input)).addEventListener('input', /** @type {any} */ (debounce(() => this.runLoreSimulator(), 300)));
 },
 
 runLoreSimulator: async function() {
@@ -1321,6 +1231,7 @@ runLoreSimulator: async function() {
         resultsElement.innerHTML = '<div class="list-group-item">No entries activated.</div>';
     }
 },
+
 
 
     initEntryManagement: function() {

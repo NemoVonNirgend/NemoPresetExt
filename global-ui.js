@@ -58,61 +58,6 @@ export const NemoGlobalUI = {
         }
     },
 
-    observeLeftPanelForDrawers: function(leftNavPanel) {
-        const drawerTargetsConfig = [
-            { selector: '#max_context_block', title: 'Context Configuration', id: 'context_config' },
-            { selector: '#instruct_mode_block', title: 'Instruct Mode Settings', id: 'instruct_mode'},
-            { selector: '#response_configuration_block', title: 'AI Response Formatting', id: 'response_format' },
-            { selector: '#model_specific_block', title: 'Model Specific Behavior', id: 'model_behavior' },
-            { selector: '#openai_api-presets + #common-gen-settings-block', title: 'Common Generation Settings', id: 'common_gen_settings'},
-            { selector: '#openai_settings', title: 'Chat Completion Settings', id: 'openai_chat_settings'},
-            { selector: '#range_block_openai', title: 'OpenAI Sampling', id: 'openai_sampling_specific' },
-            { selector: '#range_block_novel', title: 'NovelAI Sampling', id: 'novel_sampling_specific' },
-            { selector: '#textgenerationwebui_api-settings > .flex-container:has(#temp_textgenerationwebui)', title: 'Text Completion Sampling', id: 'textgen_sampling_specific' },
-            { selector: '#kobold_api-settings > .flex-container:has(#temp)', title: 'KoboldAI Sampling', id: 'kobold_sampling_specific'},
-            { selector: '#anthropic_api_settings_block .settings_group:has(#anthropic_temp)', title: 'Anthropic Sampling', id: 'anthropic_sampling_specific'},
-        ];
-
-        const convertTargets = () => {
-            // Corrected logic: Detach the entire prompt manager and make it a standalone block.
-            const promptManager = document.querySelector('#completion_prompt_manager');
-            const openaiChatSettingsDrawer = document.getElementById('nemo-drawer-openai_chat_settings');
-
-            if (promptManager && openaiChatSettingsDrawer && !promptManager.dataset.nemoStandalone) {
-                // The prompt manager already has a header, so we just move the whole block.
-                // No need to create a new header, but we can add a class for styling if needed.
-                promptManager.classList.add('nemo-standalone-prompt-manager');
-
-                // Move the entire prompt manager block to be a sibling of the chat settings drawer
-                openaiChatSettingsDrawer.parentNode.insertBefore(promptManager, openaiChatSettingsDrawer.nextSibling);
-                
-                // Mark as processed
-                promptManager.dataset.nemoStandalone = 'true';
-            }
-
-            // Original drawer conversion logic for other sections
-            drawerTargetsConfig.forEach(config => {
-                const elementToConvert = document.querySelector(config.selector);
-                if (elementToConvert && elementToConvert.offsetParent !== null && !elementToConvert.closest('.inline-drawer')) {
-                    this.convertToInlineDrawer(config.selector, config.title, false, config.id);
-                }
-            });
-        };
-
-        const panelObserver = new MutationObserver((mutations) => {
-            for (const mutation of mutations) {
-                for (const node of mutation.addedNodes) {
-                    if (node.nodeType === Node.ELEMENT_NODE) {
-                        convertTargets();
-                        break;
-                    }
-                }
-            }
-        });
-        panelObserver.observe(leftNavPanel, { childList: true, subtree: true });
-        convertTargets();
-    },
-
     groupNemoExtensions: function() {
         const nemoExtensions = [
             'NemoPresetExt',
@@ -163,25 +108,71 @@ export const NemoGlobalUI = {
 
     initialize: function() {
         console.log(`${LOG_PREFIX} Initializing Global UI module...`);
+
+        const drawerTargetsConfig = [
+            { selector: '#max_context_block', title: 'Context Configuration', id: 'context_config' },
+            { selector: '#instruct_mode_block', title: 'Instruct Mode Settings', id: 'instruct_mode'},
+            { selector: '#response_configuration_block', title: 'AI Response Formatting', id: 'response_format' },
+            { selector: '#model_specific_block', title: 'Model Specific Behavior', id: 'model_behavior' },
+            { selector: '#openai_api-presets + #common-gen-settings-block', title: 'Common Generation Settings', id: 'common_gen_settings'},
+            { selector: '#openai_settings', title: 'Chat Completion Settings', id: 'openai_chat_settings'},
+            { selector: '#range_block_openai', title: 'OpenAI Sampling', id: 'openai_sampling_specific' },
+            { selector: '#range_block_novel', title: 'NovelAI Sampling', id: 'novel_sampling_specific' },
+            { selector: '#textgenerationwebui_api-settings > .flex-container:has(#temp_textgenerationwebui)', title: 'Text Completion Sampling', id: 'textgen_sampling_specific' },
+            { selector: '#kobold_api-settings > .flex-container:has(#temp)', title: 'KoboldAI Sampling', id: 'kobold_sampling_specific'},
+            { selector: '#anthropic_api_settings_block .settings_group:has(#anthropic_temp)', title: 'Anthropic Sampling', id: 'anthropic_sampling_specific'},
+        ];
+
+        const setupPanelObserver = (leftNavPanel) => {
+            const convertTargets = () => {
+                // Convert standard sections to drawers
+                drawerTargetsConfig.forEach(config => {
+                    const elementToConvert = document.querySelector(config.selector);
+                    if (elementToConvert && elementToConvert.offsetParent !== null && !elementToConvert.closest('.inline-drawer')) {
+                        this.convertToInlineDrawer(config.selector, config.title, false, config.id);
+                    }
+                });
+
+                // Move the prompt manager to be after the chat settings drawer
+                const promptManager = document.querySelector('#completion_prompt_manager');
+                const openaiChatSettingsDrawer = document.getElementById('nemo-drawer-openai_chat_settings');
+                if (promptManager && openaiChatSettingsDrawer && !promptManager.dataset.nemoStandalone) {
+                    openaiChatSettingsDrawer.parentNode.insertBefore(promptManager, openaiChatSettingsDrawer.nextSibling);
+                    promptManager.dataset.nemoStandalone = 'true';
+                }
+
+                // Group extensions if the container exists and hasn't been processed
+                const extensionsContainer = document.querySelector('#extensions_settings');
+                if (extensionsContainer && !extensionsContainer.dataset.nemoGrouped) {
+                    this.groupNemoExtensions();
+                    extensionsContainer.dataset.nemoGrouped = 'true';
+                }
+            };
+
+            const panelObserver = new MutationObserver(convertTargets);
+            panelObserver.observe(leftNavPanel, { childList: true, subtree: true });
+            convertTargets(); // Initial run
+        };
+
+        // This observer's only job is to find the left panel and then stop.
         const bodyObserver = new MutationObserver((mutations, obs) => {
             const leftNavPanel = document.querySelector(SELECTORS.leftNavPanel);
             if (leftNavPanel) {
-                this.observeLeftPanelForDrawers(leftNavPanel);
-            }
-            // We can initialize the stop button animation at any time
-            if (!document.querySelector(SELECTORS.stopButton).dataset.nemoAnimated) {
-                this.initializeStopButtonAnimation();
-                document.querySelector(SELECTORS.stopButton).dataset.nemoAnimated = 'true';
-            }
-            // Group extensions once we know the list is likely complete
-            if (document.querySelector('#SillyTavernMoonlitEchoesTheme-drawer')) {
-                this.groupNemoExtensions();
-                // We can disconnect the observer now as all UI elements are ready
-                obs.disconnect();
-                console.log(`${LOG_PREFIX} Global UI module initialized and all elements are ready.`);
+                obs.disconnect(); // Stop watching the body to prevent observer wars.
+
+                // Start the specific, targeted observer for the left panel.
+                setupPanelObserver(leftNavPanel);
+
+                // Initialize global elements that are not in the left panel.
+                const stopButton = document.querySelector(SELECTORS.stopButton);
+                if (stopButton && !stopButton.dataset.nemoAnimated) {
+                    this.initializeStopButtonAnimation();
+                    stopButton.dataset.nemoAnimated = 'true';
+                }
             }
         });
+
         bodyObserver.observe(document.body, { childList: true, subtree: true });
-        console.log(`${LOG_PREFIX} Global UI module initialized and observing.`);
+        console.log(`${LOG_PREFIX} Global UI module initialized and observing body for left panel.`);
     }
 };
