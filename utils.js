@@ -12,6 +12,7 @@ export const NEMO_SNAPSHOT_KEY = 'nemoPromptSnapshotData';
 export const NEMO_METADATA_KEY = 'nemoNavigatorMetadata';
 export const NEMO_SECTIONS_ENABLED_KEY = 'nemoSectionsEnabled';
 export const NEMO_CHAR_METADATA_KEY = 'nemoCharacterNavigatorMetadata';
+export const NEMO_FAVORITE_PRESETS_KEY = 'nemo-favorite-presets';
 
 
 export const PREDEFINED_COLORS = [

@@ -1,6 +1,6 @@
 import { saveSettingsDebounced, eventSource, event_types } from '../../../../script.js';
 import { extension_settings, getContext } from '../../../extensions.js';
-import { LOG_PREFIX, NEMO_EXTENSION_NAME, ensureSettingsNamespace, escapeRegex, delay, NEMO_SECTIONS_ENABLED_KEY, NEMO_SNAPSHOT_KEY } from './utils.js';
+import { LOG_PREFIX, NEMO_EXTENSION_NAME, ensureSettingsNamespace, escapeRegex, delay, NEMO_SECTIONS_ENABLED_KEY, NEMO_SNAPSHOT_KEY, NEMO_FAVORITE_PRESETS_KEY } from './utils.js';
 import { promptManager } from '../../../../scripts/openai.js';
 
 // 1. CONFIGURATION & STATE
@@ -118,8 +118,8 @@ export const NemoPresetManager = {
 
         if (match) {
             let cleanName = promptName.substring(match[0].length).trim();
-            const suffixRegex = new RegExp(`\\s*(${escapeRegex(match[1])}|=+)\\s*$`);
-            cleanName = cleanName.replace(suffixRegex, '').replace(/===/g, ' ').replace(/\s\s+/g, ' ').trim() || "Section";
+            const suffixRegex = new RegExp(`\\s*(${escapeRegex(match[1])})\\s*$`);
+            cleanName = cleanName.replace(suffixRegex, '').trim() || "Section";
             
             promptElement.dataset.nemoIsDivider = 'true';
             promptElement.dataset.nemoSectionName = cleanName;
@@ -151,6 +151,26 @@ export const NemoPresetManager = {
     processSingleItem: function(item, container) {
         const dividerInfo = this.getDividerInfo(item, true); // Force check on process
         item.draggable = true;
+
+        // Add favorite button
+        const controlsWrapper = item.querySelector('.completion_prompt_manager_prompt_controls');
+        if (controlsWrapper && !controlsWrapper.querySelector('.nemo-favorite-btn')) {
+            const favoriteBtn = document.createElement('div');
+            favoriteBtn.className = 'nemo-favorite-btn menu_button menu_button_icon fa-solid fa-star';
+            favoriteBtn.title = 'Favorite Preset';
+            controlsWrapper.prepend(favoriteBtn);
+
+            const presetId = item.dataset.pmIdentifier;
+            if (this.isFavorite(presetId)) {
+                favoriteBtn.classList.add('favorited');
+            }
+
+            favoriteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleFavorite(presetId);
+                favoriteBtn.classList.toggle('favorited');
+            });
+        }
 
         if (dividerInfo.isDivider) {
             item.classList.add('nemo-header-item');
@@ -200,22 +220,64 @@ export const NemoPresetManager = {
         }
     },
 
+    getFavorites: function() {
+        const favorites = localStorage.getItem(NEMO_FAVORITE_PRESETS_KEY);
+        return favorites ? JSON.parse(favorites) : [];
+    },
+
+    saveFavorites: function(favorites) {
+        localStorage.setItem(NEMO_FAVORITE_PRESETS_KEY, JSON.stringify(favorites));
+        eventSource.emit(event_types.NEMO_FAVORITES_UPDATED);
+    },
+
+    isFavorite: function(presetId) {
+        return this.getFavorites().includes(presetId);
+    },
+
+    toggleFavorite: function(presetId) {
+        let favorites = this.getFavorites();
+        if (favorites.includes(presetId)) {
+            favorites = favorites.filter(id => id !== presetId);
+        } else {
+            favorites.push(presetId);
+        }
+        this.saveFavorites(favorites);
+    },
+
     organizePrompts: async function(forceFullReorganization = false) {
         const promptsContainer = document.querySelector(SELECTORS.promptsContainer);
-        if (!promptsContainer || promptsContainer.dataset.nemoOrganizing === 'true') return;
+        if (!promptsContainer || (promptsContainer.dataset.nemoOrganizing === 'true' && !forceFullReorganization)) return;
         promptsContainer.dataset.nemoOrganizing = 'true';
 
         isSectionsFeatureEnabled = localStorage.getItem(NEMO_SECTIONS_ENABLED_KEY) !== 'false';
 
-        // Teardown logic
+        // First, always flatten the structure to start from a clean, predictable state.
+        const sections = Array.from(promptsContainer.querySelectorAll('details.nemo-engine-section'));
+        if (sections.length > 0) {
+            const allPromptsInOrder = [];
+            sections.forEach(section => {
+                const headerItem = section.querySelector('summary > li.completion_prompt_manager_prompt');
+                if (headerItem) {
+                    // Restore original text before putting it back
+                    const link = headerItem.querySelector(SELECTORS.promptNameLink);
+                    if (link && headerItem.dataset.nemoOriginalText) {
+                        link.textContent = headerItem.dataset.nemoOriginalText;
+                    }
+                    allPromptsInOrder.push(headerItem);
+                }
+                const contentItems = Array.from(section.querySelectorAll('.nemo-section-content > li.completion_prompt_manager_prompt'));
+                allPromptsInOrder.push(...contentItems);
+            });
+            // Append all prompts to a fragment, clear the container, then add them back.
+            const fragment = document.createDocumentFragment();
+            allPromptsInOrder.forEach(p => fragment.appendChild(p));
+            promptsContainer.innerHTML = '';
+            promptsContainer.appendChild(fragment);
+        }
+
+        // Clean up metadata from all prompts now that they are "unwrapped"
         const allItems = Array.from(promptsContainer.querySelectorAll('li.completion_prompt_manager_prompt'));
         allItems.forEach(item => {
-            const parent = item.parentElement;
-            if (parent.matches('summary')) {
-                const details = parent.closest('details.nemo-engine-section');
-                details.parentElement.insertBefore(item, details);
-                details.remove();
-            }
             delete item.dataset.nemoDividerChecked;
             delete item.dataset.nemoIsDivider;
             delete item.dataset.nemoSectionName;
@@ -224,20 +286,21 @@ export const NemoPresetManager = {
             item.draggable = true;
         });
 
+        // If the feature is disabled, we're done. The list is flat.
         if (!isSectionsFeatureEnabled) {
             delete promptsContainer.dataset.nemoOrganizing;
             return;
         }
 
-        // Reorganization
+        // If the feature is enabled, rebuild the sections.
         const fragment = document.createDocumentFragment();
         const itemsToProcess = Array.from(promptsContainer.children);
-        itemsToProcess.forEach(item => fragment.appendChild(item));
-        promptsContainer.innerHTML = '';
+        itemsToProcess.forEach(item => fragment.appendChild(item)); // Move all items to a fragment
+        promptsContainer.innerHTML = ''; // Clear the container
 
         itemsToProcess.forEach(item => {
             if (item.matches('li.completion_prompt_manager_prompt')) {
-                this.processSingleItem(item, promptsContainer);
+                this.processSingleItem(item, promptsContainer); // processSingleItem will append to promptsContainer
             }
         });
         

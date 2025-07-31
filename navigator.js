@@ -1,7 +1,7 @@
-import { getRequestHeaders } from '../../../../script.js';
+import { getRequestHeaders, eventSource, event_types } from '../../../../script.js';
 import { callGenericPopup, POPUP_TYPE } from '../../../popup.js';
-import { oai_settings, openai_setting_names } from '../../../../scripts/openai.js';
-import { LOG_PREFIX, generateUUID, showColorPickerPopup, NEMO_METADATA_KEY } from './utils.js';
+import { oai_settings, openai_setting_names, promptManager } from '../../../../scripts/openai.js';
+import { LOG_PREFIX, generateUUID, showColorPickerPopup, NEMO_METADATA_KEY, NEMO_FAVORITE_PRESETS_KEY } from './utils.js';
 
 export class PresetNavigator {
     constructor(apiType) {
@@ -660,6 +660,35 @@ export class PresetNavigator {
     }
 }
 
+function renderFavorites(apiType) {
+    const container = document.getElementById(`nemo-favorites-container-${apiType}`);
+    const select = document.querySelector(`select[data-preset-manager-for="${apiType}"]`);
+    if (!container || !select) return;
+
+    container.innerHTML = '';
+    const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_PRESETS_KEY) || '[]');
+    if (favorites.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'flex';
+
+    for (const presetId of favorites) {
+        const option = Array.from(select.options).find(opt => opt.value === presetId);
+        if (option) {
+            const button = document.createElement('div');
+            button.className = 'nemo-favorite-preset-button';
+            button.textContent = option.textContent;
+            button.title = `Load preset: ${option.textContent}`;
+            button.addEventListener('click', () => {
+                select.value = presetId;
+                select.dispatchEvent(new Event('change'));
+            });
+            container.appendChild(button);
+        }
+    }
+}
+
 export function initPresetNavigatorForApi(apiType) {
     const selector = `select[data-preset-manager-for="${apiType}"]`;
     const originalSelect = document.querySelector(selector);
@@ -677,4 +706,12 @@ export function initPresetNavigatorForApi(apiType) {
     originalSelect.parentElement.insertBefore(wrapper, originalSelect);
     wrapper.appendChild(originalSelect);
     wrapper.appendChild(browseButton);
+
+    const favoritesContainer = document.createElement('div');
+    favoritesContainer.id = `nemo-favorites-container-${apiType}`;
+    favoritesContainer.className = 'nemo-favorites-container';
+    wrapper.parentElement.insertBefore(favoritesContainer, wrapper.nextSibling);
+
+    renderFavorites(apiType);
+    eventSource.on(event_types.NEMO_FAVORITES_UPDATED, () => renderFavorites(apiType));
 }

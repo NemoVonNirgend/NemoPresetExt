@@ -722,3 +722,37 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
 #nemo-world-info-buffer-size {
     min-width: 100px;
 }
+/* Favorite Preset Button Styles */
+.nemo-favorite-btn {
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.nemo-favorite-btn:hover {
+    color: #ffeb3b;
+}
+
+.nemo-favorite-btn.favorited {
+    color: #ffeb3b;
+}
+
+.nemo-favorites-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.nemo-favorite-preset-button {
+    background-color: #444;
+    border: 1px solid #555;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.nemo-favorite-preset-button:hover {
+    background-color: #555;
+}

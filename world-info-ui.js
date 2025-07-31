@@ -163,6 +163,8 @@ export const NemoWorldInfoUI = {
             removeButton.textContent = '✖';
             removeButton.addEventListener('click', () => {
                 option.selected = false;
+                const worldInfoSelect = /** @type {HTMLSelectElement} */ (document.getElementById('world_info'));
+                $(worldInfoSelect).trigger('change');
                 this.refreshLorebookUI();
             });
 
@@ -266,6 +268,7 @@ export const NemoWorldInfoUI = {
             const correspondingOption = Array.from(worldInfoSelect.options).find(opt => opt.text === option.text);
             if (correspondingOption) {
                 correspondingOption.selected = true;
+                $(worldInfoSelect).trigger('change');
                 this.refreshLorebookUI();
             }
         });
@@ -459,7 +462,7 @@ export const NemoWorldInfoUI = {
 
     moveSettingsPanel: function() {
         const settingsPanel = document.getElementById('wiActivationSettings');
-        const newSettingsContainer = document.getElementById('nemo-world-info-settings-panel');
+        const newSettingsContainer = document.querySelector('#nemo-world-info-settings-panel .nemo-panel-content-wrapper');
 
         if (settingsPanel && newSettingsContainer) {
             newSettingsContainer.appendChild(settingsPanel);
@@ -631,10 +634,18 @@ export const NemoWorldInfoUI = {
             window.displayWorldEntries = async function(name, data, ...args) {
                 self._currentWorld.name = name;
                 self._currentWorld.data = data;
+
+                // Call the original display function and let it handle the rendering
                 const result = await originalDisplay.apply(this, [name, data, ...args]);
 
+                // The original function now handles populating the list,
+                // so we just need to add our custom event listeners to the entries.
                 const entriesList = document.getElementById('world_popup_entries_list');
                 entriesList.querySelectorAll('.world_entry').forEach(entryEl => {
+                    // Prevent re-adding listeners if they already exist
+                    if (entryEl.dataset.nemoListenersAdded) return;
+                    entryEl.dataset.nemoListenersAdded = 'true';
+
                     entryEl.setAttribute('draggable', 'true');
                     entryEl.addEventListener('dragstart', /** @param {DragEvent} event */(event) => {
                         if (self._selectedEntries.size > 0) {
@@ -646,7 +657,6 @@ export const NemoWorldInfoUI = {
                         if (!uid) return;
 
                         if (self._selectionBook && self._selectionBook !== name) {
-                            // Clear selection if book changes
                             self._selectedEntries.clear();
                             document.querySelectorAll('.world_entry.nemo-entry-selected').forEach(el => el.classList.remove('nemo-entry-selected'));
                         }
@@ -693,16 +703,17 @@ export const NemoWorldInfoUI = {
 
         const observer = new MutationObserver(async (mutations, obs) => {
             const worldInfoSelect = /** @type {HTMLSelectElement} */ (document.getElementById('world_info'));
-            const originalPanel = document.getElementById('WorldInfo');
+            const settingsPanel = document.getElementById('wiActivationSettings');
 
-            if (worldInfoSelect && originalPanel) {
+            if (worldInfoSelect && settingsPanel && !this._uiInjected) {
+                this._uiInjected = true; // Prevent re-injection
                 obs.disconnect();
                 await this.injectUI();
                 this.initUI(worldInfoSelect);
             }
         });
 
-        observer.observe(document.body, {
+        observer.observe(document.getElementById('WorldInfo'), {
             childList: true,
             subtree: true
         });
@@ -863,6 +874,7 @@ export const NemoWorldInfoUI = {
             Array.from(worldInfoSelect.options).forEach(opt => {
                 opt.selected = this._presets[presetName].includes(opt.text);
             });
+            $(worldInfoSelect).trigger('change');
             this.refreshLorebookUI();
         }
     },
