@@ -1,7 +1,7 @@
 {
     "display_name": "NemoPresetExt",
     "author": "@NemoVonNirgend",
-    "version": "3.3.0",
+    "version": "3.3.1",
     "description": "Transforms the prompt manager with collapsible sections, triggers, and a full Preset Navigator.",
     "requires": [],
     "optional": [],
