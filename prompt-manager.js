@@ -2,6 +2,7 @@ import { saveSettingsDebounced, eventSource, event_types } from '../../../../scr
 import { extension_settings, getContext } from '../../../extensions.js';
 import { LOG_PREFIX, NEMO_EXTENSION_NAME, ensureSettingsNamespace, escapeRegex, delay, NEMO_SECTIONS_ENABLED_KEY, NEMO_SNAPSHOT_KEY, NEMO_FAVORITE_PRESETS_KEY } from './utils.js';
 import { promptManager } from '../../../../scripts/openai.js';
+import './lib/Sortable.min.js'; // Import Sortable
 
 // 1. CONFIGURATION & STATE
 const NEMO_BUILT_IN_PATTERNS = ['=+', '⭐─+', '━+'];
@@ -21,9 +22,8 @@ const SELECTORS = {
 // State Variables
 let DIVIDER_PREFIX_REGEX;
 let openSectionStates = {};
-let organizeTimeout;
-let isSectionsFeatureEnabled = true;
-let dropIndicator;
+let isSectionsFeatureEnabled = localStorage.getItem(NEMO_SECTIONS_ENABLED_KEY) !== 'false';
+
 
 // 2. MODULE-SPECIFIC HELPERS
 export async function loadAndSetDividerRegex() {
@@ -46,6 +46,7 @@ export async function loadAndSetDividerRegex() {
 
 // 3. MAIN OBJECT
 export const NemoPresetManager = {
+    // UI Functions
     showStatusMessage: function(message, type = 'info', duration = 4000) {
         const statusDiv = document.getElementById('nemoSnapshotStatus');
         if (!statusDiv) return;
@@ -56,6 +57,43 @@ export const NemoPresetManager = {
         statusDiv.nemoTimeout = setTimeout(() => { statusDiv.classList.remove('visible'); }, duration);
     },
 
+    createSearchAndStatusUI: function(container) {
+        if (document.getElementById('nemoPresetSearchContainer')) return;
+
+        const searchAndStatusWrapper = document.createElement('div');
+        searchAndStatusWrapper.id = 'nemoSearchAndStatusWrapper';
+        searchAndStatusWrapper.innerHTML = `
+            <div id="nemoPresetSearchContainer">
+                <input type="text" id="nemoPresetSearchInput" placeholder="Search loaded prompts..." class="text_pole">
+                <div class="nemo-search-controls">
+                    <button id="nemoPresetSearchClear" title="Clear search" class="menu_button"><i class="fa-solid fa-times"></i></button>
+                    <div class="nemo-search-divider"></div>
+                    <button id="nemoToggleSectionsBtn" title="Toggle Collapsible Sections" class="menu_button"><i class="fa-solid fa-list-ul"></i></button>
+                    <button id="nemoTakeSnapshotBtn" title="Take a snapshot of the current prompt state" class="menu_button"><i class="fa-solid fa-camera"></i></button>
+                    <button id="nemoApplySnapshotBtn" title="Apply the last snapshot" class="menu_button" disabled><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                </div>
+            </div>
+            <div id="nemoSnapshotStatus" class="nemo-status-message"></div>`;
+        container.parentElement.insertBefore(searchAndStatusWrapper, container);
+    },
+
+    updateSectionCount: function(sectionElement) {
+        if (!sectionElement || !sectionElement.matches('details.nemo-engine-section')) return;
+        
+        const content = sectionElement.querySelector('.nemo-section-content');
+        if (!content) return;
+
+        const totalCount = content.children.length;
+        const enabledCount = content.querySelectorAll(`:scope > ${SELECTORS.promptItemRow} .${SELECTORS.enabledToggleClass}`).length;
+        
+        const countSpan = sectionElement.querySelector('summary .nemo-enabled-count');
+        if (countSpan) countSpan.textContent = ` (${enabledCount}/${totalCount})`;
+        
+        const masterToggle = sectionElement.querySelector('.nemo-section-master-toggle');
+        if (masterToggle) masterToggle.classList.toggle('nemo-active', enabledCount > 0);
+    },
+
+    // Core Logic
     takeSnapshot: async function() {
         if (!promptManager) return;
         const activeIdentifiers = new Set();
@@ -132,94 +170,7 @@ export const NemoPresetManager = {
         return { isDivider: false };
     },
 
-    updateSectionCount: function(sectionElement) {
-        if (!sectionElement || !sectionElement.matches('details.nemo-engine-section')) return;
-        
-        const content = sectionElement.querySelector('.nemo-section-content');
-        if (!content) return;
-
-        const totalCount = content.children.length;
-        const enabledCount = content.querySelectorAll(`:scope > ${SELECTORS.promptItemRow} .${SELECTORS.enabledToggleClass}`).length;
-        
-        const countSpan = sectionElement.querySelector('summary .nemo-enabled-count');
-        if (countSpan) countSpan.textContent = ` (${enabledCount}/${totalCount})`;
-        
-        const masterToggle = sectionElement.querySelector('.nemo-section-master-toggle');
-        if (masterToggle) masterToggle.classList.toggle('nemo-active', enabledCount > 0);
-    },
-
-    processSingleItem: function(item, container) {
-        const dividerInfo = this.getDividerInfo(item, true); // Force check on process
-        item.draggable = true;
-
-        // Add favorite button
-        const controlsWrapper = item.querySelector('.completion_prompt_manager_prompt_controls');
-        if (controlsWrapper && !controlsWrapper.querySelector('.nemo-favorite-btn')) {
-            const favoriteBtn = document.createElement('div');
-            favoriteBtn.className = 'nemo-favorite-btn menu_button menu_button_icon fa-solid fa-star';
-            favoriteBtn.title = 'Favorite Preset';
-            controlsWrapper.prepend(favoriteBtn);
-
-            const presetId = item.dataset.pmIdentifier;
-            if (this.isFavorite(presetId)) {
-                favoriteBtn.classList.add('favorited');
-            }
-
-            favoriteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.toggleFavorite(presetId);
-                favoriteBtn.classList.toggle('favorited');
-            });
-        }
-
-        if (dividerInfo.isDivider) {
-            item.classList.add('nemo-header-item');
-            item.draggable = false;
-            const details = document.createElement('details');
-            details.className = 'nemo-engine-section';
-            details.open = openSectionStates[dividerInfo.originalText] || false;
-            
-            const summary = document.createElement('summary');
-            const nameSpan = item.querySelector('span.completion_prompt_manager_prompt_name');
-            if (nameSpan) {
-                const link = nameSpan.querySelector('a');
-                if (link) link.textContent = dividerInfo.name;
-                if (!nameSpan.querySelector('.nemo-enabled-count')) {
-                    nameSpan.insertAdjacentHTML('beforeend', '<span class="nemo-enabled-count"></span>');
-                }
-            }
-
-            const wrapper = item.querySelector('.nemo-right-controls-wrapper');
-            if (wrapper && !wrapper.querySelector('.nemo-section-master-toggle')) {
-                const masterToggleButton = document.createElement('button');
-                masterToggleButton.className = 'menu_button nemo-section-master-toggle';
-                masterToggleButton.title = 'Toggle all in section';
-                masterToggleButton.innerHTML = '<i class="fa-solid fa-power-off"></i>';
-                wrapper.prepend(masterToggleButton);
-            }
-
-            summary.appendChild(item);
-            details.appendChild(summary);
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'nemo-section-content';
-            details.appendChild(contentDiv);
-            
-            container.appendChild(details);
-            this.updateSectionCount(details);
-            return details;
-        } else {
-            const lastSection = container.lastElementChild;
-            if (lastSection && lastSection.matches('details.nemo-engine-section')) {
-                const content = lastSection.querySelector('.nemo-section-content');
-                content.appendChild(item);
-                this.updateSectionCount(lastSection);
-            } else {
-                container.appendChild(item);
-            }
-            return item;
-        }
-    },
-
+    // Favorites Logic
     getFavorites: function() {
         const favorites = localStorage.getItem(NEMO_FAVORITE_PRESETS_KEY);
         return favorites ? JSON.parse(favorites) : [];
@@ -244,6 +195,7 @@ export const NemoPresetManager = {
         this.saveFavorites(favorites);
     },
 
+    // ** REFACTORED RENDER/ORGANIZATION LOGIC **
     organizePrompts: async function(forceFullReorganization = false) {
         const promptsContainer = document.querySelector(SELECTORS.promptsContainer);
         if (!promptsContainer || (promptsContainer.dataset.nemoOrganizing === 'true' && !forceFullReorganization)) return;
@@ -251,31 +203,28 @@ export const NemoPresetManager = {
 
         isSectionsFeatureEnabled = localStorage.getItem(NEMO_SECTIONS_ENABLED_KEY) !== 'false';
 
-        // First, always flatten the structure to start from a clean, predictable state.
-        const sections = Array.from(promptsContainer.querySelectorAll('details.nemo-engine-section'));
-        if (sections.length > 0) {
-            const allPromptsInOrder = [];
-            sections.forEach(section => {
-                const headerItem = section.querySelector('summary > li.completion_prompt_manager_prompt');
-                if (headerItem) {
-                    // Restore original text before putting it back
-                    const link = headerItem.querySelector(SELECTORS.promptNameLink);
-                    if (link && headerItem.dataset.nemoOriginalText) {
-                        link.textContent = headerItem.dataset.nemoOriginalText;
-                    }
-                    allPromptsInOrder.push(headerItem);
-                }
-                const contentItems = Array.from(section.querySelectorAll('.nemo-section-content > li.completion_prompt_manager_prompt'));
-                allPromptsInOrder.push(...contentItems);
-            });
-            // Append all prompts to a fragment, clear the container, then add them back.
-            const fragment = document.createDocumentFragment();
-            allPromptsInOrder.forEach(p => fragment.appendChild(p));
-            promptsContainer.innerHTML = '';
-            promptsContainer.appendChild(fragment);
-        }
+        // --- Start: Robust Flattening Logic ---
+        const allPromptsInOrder = [];
+        const allCurrentItems = Array.from(promptsContainer.querySelectorAll('li.completion_prompt_manager_prompt'));
 
-        // Clean up metadata from all prompts now that they are "unwrapped"
+        allCurrentItems.forEach(item => {
+            // Restore original text if it's a header
+            if (item.classList.contains('nemo-header-item')) {
+                const link = item.querySelector(SELECTORS.promptNameLink);
+                if (link && item.dataset.nemoOriginalText) {
+                    link.textContent = item.dataset.nemoOriginalText;
+                }
+            }
+            allPromptsInOrder.push(item);
+        });
+
+        const fragment = document.createDocumentFragment();
+        allPromptsInOrder.forEach(p => fragment.appendChild(p));
+        promptsContainer.innerHTML = '';
+        promptsContainer.appendChild(fragment);
+        // --- End: Robust Flattening Logic ---
+
+        // Clean up metadata
         const allItems = Array.from(promptsContainer.querySelectorAll('li.completion_prompt_manager_prompt'));
         allItems.forEach(item => {
             delete item.dataset.nemoDividerChecked;
@@ -286,25 +235,96 @@ export const NemoPresetManager = {
             item.draggable = true;
         });
 
-        // If the feature is disabled, we're done. The list is flat.
+        // Add favorite buttons and drag handles
+        allItems.forEach(item => {
+            // Add drag handle to non-header items if it doesn't exist
+            if (!item.classList.contains('nemo-header-item') && !item.querySelector('.drag-handle')) {
+                const dragHandle = document.createElement('span');
+                dragHandle.className = 'drag-handle';
+                dragHandle.innerHTML = '&#9776;'; // Hamburger icon
+                item.prepend(dragHandle);
+            }
+
+            const controlsWrapper = item.querySelector('.completion_prompt_manager_prompt_controls');
+            if (controlsWrapper && !controlsWrapper.querySelector('.nemo-favorite-btn')) {
+                const favoriteBtn = document.createElement('div');
+                favoriteBtn.className = 'nemo-favorite-btn menu_button menu_button_icon fa-solid fa-star';
+                favoriteBtn.title = 'Favorite Preset';
+                controlsWrapper.prepend(favoriteBtn);
+
+                const presetId = item.dataset.pmIdentifier;
+                if (this.isFavorite(presetId)) {
+                    favoriteBtn.classList.add('favorited');
+                }
+
+                favoriteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleFavorite(presetId);
+                    favoriteBtn.classList.toggle('favorited');
+                });
+            }
+        });
+
         if (!isSectionsFeatureEnabled) {
             delete promptsContainer.dataset.nemoOrganizing;
             return;
         }
 
-        // If the feature is enabled, rebuild the sections.
-        const fragment = document.createDocumentFragment();
+        // Rebuild sections
         const itemsToProcess = Array.from(promptsContainer.children);
-        itemsToProcess.forEach(item => fragment.appendChild(item)); // Move all items to a fragment
         promptsContainer.innerHTML = ''; // Clear the container
 
         itemsToProcess.forEach(item => {
             if (item.matches('li.completion_prompt_manager_prompt')) {
-                this.processSingleItem(item, promptsContainer); // processSingleItem will append to promptsContainer
+                this.processSingleItem(item, promptsContainer);
             }
         });
         
         delete promptsContainer.dataset.nemoOrganizing;
+        this.initializeDragAndDrop(promptsContainer);
+    },
+
+    processSingleItem: function(item, container) {
+        const dividerInfo = this.getDividerInfo(item, true);
+        
+        if (dividerInfo.isDivider) {
+            item.classList.add('nemo-header-item');
+            item.draggable = false;
+            
+            const details = document.createElement('details');
+            details.className = 'nemo-engine-section';
+            details.open = openSectionStates[dividerInfo.originalText] || false;
+            
+            const summary = document.createElement('summary');
+            const nameSpan = item.querySelector('span.completion_prompt_manager_prompt_name');
+            if (nameSpan) {
+                const link = nameSpan.querySelector('a');
+                if (link) link.textContent = dividerInfo.name;
+                if (!nameSpan.querySelector('.nemo-enabled-count')) {
+                    nameSpan.insertAdjacentHTML('beforeend', '<span class="nemo-enabled-count"></span>');
+                }
+            }
+
+            summary.appendChild(item);
+            details.appendChild(summary);
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'nemo-section-content';
+            details.appendChild(contentDiv);
+            
+            container.appendChild(details);
+            this.updateSectionCount(details);
+            return details;
+        } else {
+            const lastSection = container.lastElementChild;
+            if (lastSection && lastSection.matches('details.nemo-engine-section')) {
+                const content = lastSection.querySelector('.nemo-section-content');
+                content.appendChild(item);
+                this.updateSectionCount(lastSection);
+            } else {
+                container.appendChild(item);
+            }
+            return item;
+        }
     },
 
     handlePresetSearch: function() {
@@ -314,9 +334,10 @@ export const NemoPresetManager = {
         if (!promptsContainer) return;
 
         promptsContainer.querySelectorAll(`${SELECTORS.promptItemRow}, details.nemo-engine-section`).forEach(el => el.style.display = 'none');
+        
         if (searchTerm === '') {
             promptsContainer.querySelectorAll(`${SELECTORS.promptItemRow}, details.nemo-engine-section`).forEach(el => el.style.display = '');
-            if (localStorage.getItem(NEMO_SECTIONS_ENABLED_KEY) !== 'false') {
+            if (isSectionsFeatureEnabled) {
                 promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(section => {
                     const summaryLi = section.querySelector('summary > li');
                     if (summaryLi) {
@@ -327,165 +348,125 @@ export const NemoPresetManager = {
             }
             return;
         }
+
         promptsContainer.querySelectorAll(SELECTORS.promptItemRow).forEach(item => {
             const name = item.querySelector(SELECTORS.promptNameLink)?.textContent.trim().toLowerCase() || '';
             if (name.includes(searchTerm)) {
                 item.style.display = '';
                 const parentSection = item.closest('details.nemo-engine-section');
-                if (parentSection) { parentSection.style.display = ''; parentSection.open = true; }
+                if (parentSection) {
+                    parentSection.style.display = '';
+                    parentSection.open = true;
+                }
             }
         });
     },
 
-    initializeSearchAndSections: function(container) {
+    // Event Handling & Initialization
+    initialize: function(container) {
         if (container.dataset.nemoPromptsInitialized) return;
         container.dataset.nemoPromptsInitialized = 'true';
 
-        isSectionsFeatureEnabled = localStorage.getItem(NEMO_SECTIONS_ENABLED_KEY) !== 'false';
-
-        if (!document.getElementById('nemoPresetSearchContainer')) {
-            const searchAndStatusWrapper = document.createElement('div');
-            searchAndStatusWrapper.id = 'nemoSearchAndStatusWrapper';
-            searchAndStatusWrapper.innerHTML = `
-                <div id="nemoPresetSearchContainer">
-                    <input type="text" id="nemoPresetSearchInput" placeholder="Search loaded prompts..." class="text_pole">
-                    <div class="nemo-search-controls">
-                        <button id="nemoPresetSearchClear" title="Clear search" class="menu_button"><i class="fa-solid fa-times"></i></button>
-                        <div class="nemo-search-divider"></div>
-                        <button id="nemoToggleSectionsBtn" title="Toggle Collapsible Sections" class="menu_button"><i class="fa-solid fa-list-ul"></i></button>
-                        <button id="nemoTakeSnapshotBtn" title="Take a snapshot of the current prompt state" class="menu_button"><i class="fa-solid fa-camera"></i></button>
-                        <button id="nemoApplySnapshotBtn" title="Apply the last snapshot" class="menu_button" disabled><i class="fa-solid fa-wand-magic-sparkles"></i></button>
-                    </div>
-                </div>
-                <div id="nemoSnapshotStatus" class="nemo-status-message"></div>`;
-            container.parentElement.insertBefore(searchAndStatusWrapper, container);
-
-            if (localStorage.getItem(NEMO_SNAPSHOT_KEY)) {
-                document.getElementById('nemoApplySnapshotBtn').disabled = false;
-            }
-
-            document.getElementById('nemoPresetSearchInput').addEventListener('input', this.handlePresetSearch.bind(this));
-            document.getElementById('nemoPresetSearchClear').addEventListener('click', () => {
-                const input = document.getElementById('nemoPresetSearchInput'); input.value = ''; this.handlePresetSearch(); input.focus();
-            });
-            document.getElementById('nemoTakeSnapshotBtn').addEventListener('click', this.takeSnapshot.bind(this));
-            document.getElementById('nemoApplySnapshotBtn').addEventListener('click', this.applySnapshot.bind(this));
-            const toggleBtn = document.getElementById('nemoToggleSectionsBtn');
+        this.createSearchAndStatusUI(container);
+        
+        document.getElementById('nemoPresetSearchInput').addEventListener('input', this.handlePresetSearch.bind(this));
+        document.getElementById('nemoPresetSearchClear').addEventListener('click', () => {
+            const input = document.getElementById('nemoPresetSearchInput'); input.value = ''; this.handlePresetSearch(); input.focus();
+        });
+        document.getElementById('nemoTakeSnapshotBtn').addEventListener('click', this.takeSnapshot.bind(this));
+        document.getElementById('nemoApplySnapshotBtn').addEventListener('click', this.applySnapshot.bind(this));
+        
+        const toggleBtn = document.getElementById('nemoToggleSectionsBtn');
+        toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
+        toggleBtn.addEventListener('click', () => {
+            isSectionsFeatureEnabled = !isSectionsFeatureEnabled;
+            localStorage.setItem(NEMO_SECTIONS_ENABLED_KEY, isSectionsFeatureEnabled);
             toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
-            toggleBtn.addEventListener('click', () => {
-                isSectionsFeatureEnabled = !isSectionsFeatureEnabled;
-                localStorage.setItem(NEMO_SECTIONS_ENABLED_KEY, isSectionsFeatureEnabled);
-                toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
-                this.organizePrompts();
-            });
-        }
+            this.organizePrompts(true);
+        });
+
+        container.addEventListener('click', this.handleContainerClick.bind(this));
+        this.initializeObserver(container);
+        
         this.organizePrompts();
+    },
 
-        if (!document.getElementById('nemo-drop-indicator')) {
-            dropIndicator = document.createElement('div');
-            dropIndicator.id = 'nemo-drop-indicator';
-            document.body.appendChild(dropIndicator);
+    handleContainerClick: function(event) {
+        const { target } = event;
+        const toggleButton = target.closest(SELECTORS.toggleButton);
+        const masterToggle = target.closest('.nemo-section-master-toggle');
+        const summary = target.closest('summary');
+
+        if (toggleButton) {
+            setTimeout(() => {
+                const section = toggleButton.closest('details.nemo-engine-section');
+                if (section) this.updateSectionCount(section);
+            }, 100);
+        } else if (masterToggle) {
+            event.preventDefault();
+            event.stopPropagation();
+            const section = masterToggle.closest('details.nemo-engine-section');
+            if (section) {
+                const promptsInSection = section.querySelectorAll(`.nemo-section-content ${SELECTORS.toggleButton}`);
+                const shouldEnable = Array.from(promptsInSection).some(toggle => !toggle.classList.contains(SELECTORS.enabledToggleClass));
+                promptsInSection.forEach(toggle => {
+                    const isEnabled = toggle.classList.contains(SELECTORS.enabledToggleClass);
+                    if ((shouldEnable && !isEnabled) || (!shouldEnable && isEnabled)) {
+                        toggle.click();
+                    }
+                });
+            }
+        } else if (summary && !target.closest('a, button')) {
+            const details = summary.closest('details');
+            const li = details.querySelector('summary > li');
+            const dividerInfo = this.getDividerInfo(li);
+            setTimeout(() => {
+                openSectionStates[dividerInfo.originalText] = details.open;
+            }, 0);
         }
+    },
 
-        let draggedItem = null;
-        container.addEventListener('dragstart', (e) => {
-            const target = e.target.closest('li.completion_prompt_manager_prompt');
-            if (target && target.draggable) {
-                draggedItem = target;
-                setTimeout(() => target.classList.add('nemo-dragging'), 0);
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', target.dataset.pmIdentifier);
-            }
-        });
-        container.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            const target = e.target.closest('li.completion_prompt_manager_prompt');
-            if (target && target !== draggedItem) {
-                const rect = target.getBoundingClientRect();
-                const isAfter = e.clientY > rect.top + rect.height / 2;
-                const top = isAfter ? rect.bottom : rect.top;
-                dropIndicator.style.display = 'block';
-                dropIndicator.style.left = `${rect.left}px`;
-                dropIndicator.style.top = `${top - 1}px`;
-                dropIndicator.style.width = `${rect.width}px`;
-            }
-        });
-        container.addEventListener('dragleave', (e) => {
-            if (e.target === container) dropIndicator.style.display = 'none';
-        });
-        container.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            dropIndicator.style.display = 'none';
-            const targetItem = e.target.closest('li.completion_prompt_manager_prompt');
-            if (!targetItem || !draggedItem || targetItem === draggedItem) return;
+    initializeDragAndDrop: function(container) {
+        // Destroy existing Sortable instance to prevent conflicts
+        if (container.sortable) container.sortable.destroy();
 
-            const oldSection = draggedItem.closest('details.nemo-engine-section');
-            const targetParent = targetItem.parentElement;
-            const rect = targetItem.getBoundingClientRect();
-            const isAfter = e.clientY > rect.top + rect.height / 2;
-
-            if (targetParent.matches('.nemo-section-content')) {
-                 if (isAfter) targetParent.insertBefore(draggedItem, targetItem.nextSibling);
-                 else targetParent.insertBefore(draggedItem, targetItem);
-                 const newSection = targetParent.closest('details.nemo-engine-section');
-                 if (oldSection !== newSection) {
-                    this.updateSectionCount(oldSection);
-                    this.updateSectionCount(newSection);
-                 }
-            } else {
-                // Handle dropping outside of a section content area if necessary
-                // For now, we assume valid drop targets are within sections or at the top level
-            }
-        });
-        container.addEventListener('dragend', (e) => {
-            if (draggedItem) draggedItem.classList.remove('nemo-dragging');
-            draggedItem = null;
-            dropIndicator.style.display = 'none';
-        });
-
-        container.addEventListener('click', (event) => {
-            if (event.target.closest('summary') && !event.target.closest('a, button')) {
-                const details = event.target.closest('details'); const li = details.querySelector('summary > li');
-                const dividerInfo = this.getDividerInfo(li);
-                setTimeout(() => { openSectionStates[dividerInfo.originalText] = details.open; }, 0);
-            } else if (event.target.closest(SELECTORS.toggleButton)) {
-                setTimeout(() => {
-                    const section = event.target.closest('details.nemo-engine-section');
-                    if (section) this.updateSectionCount(section);
-                }, 100);
-            } else if (event.target.closest('.nemo-section-master-toggle')) {
-                event.preventDefault(); event.stopPropagation();
-                const section = event.target.closest('details.nemo-engine-section');
-                if (section) {
-                    const promptsInSection = section.querySelectorAll(`.nemo-section-content ${SELECTORS.toggleButton}`);
-                    const shouldEnable = Array.from(promptsInSection).some(toggle => !toggle.classList.contains(SELECTORS.enabledToggleClass));
-                    promptsInSection.forEach(toggle => {
-                        const isEnabled = toggle.classList.contains(SELECTORS.enabledToggleClass);
-                        if ((shouldEnable && !isEnabled) || (!shouldEnable && isEnabled)) toggle.click();
-                    });
+        // A single, powerful Sortable instance to manage everything
+        container.sortable = new window.Sortable(container, {
+            group: 'nemo-prompts',
+            animation: 150,
+            draggable: '.completion_prompt_manager_prompt, .nemo-engine-section',
+            handle: '.drag-handle, summary',
+            filter: '.nemo-header-item', // Only prevent the header item itself from being dragged
+            onEnd: (evt) => {
+                const fromSection = evt.from.closest('details.nemo-engine-section');
+                const toSection = evt.to.closest('details.nemo-engine-section');
+                if (evt.item.matches('.completion_prompt_manager_prompt')) {
+                    if (fromSection) this.updateSectionCount(fromSection);
+                    setTimeout(() => {
+                        if (toSection && fromSection !== toSection) {
+                            this.updateSectionCount(toSection);
+                        }
+                    }, 50);
                 }
             }
         });
+    },
+
+    initializeObserver: function(container) {
         const listObserver = new MutationObserver((mutations) => {
             if (container.dataset.nemoOrganizing === 'true') return;
+            listObserver.disconnect();
 
-            listObserver.disconnect(); // Disconnect to prevent observing our own changes
-
+            let needsReorg = false;
             for (const mutation of mutations) {
                 if (mutation.type === 'childList') {
-                    // Handle added nodes
                     mutation.addedNodes.forEach(node => {
-                        if (node.nodeType === Node.ELEMENT_NODE && node.matches('li.completion_prompt_manager_prompt')) {
-                            // Item was added, needs to be processed and placed correctly.
-                            node.remove();
-                            this.processSingleItem(node, container);
+                        if (node.nodeType === Node.ELEMENT_NODE && node.matches('li.completion_prompt_manager_prompt') && !node.closest('details.nemo-engine-section')) {
+                            needsReorg = true;
                         }
                     });
-
-                    // Handle removed nodes
                     mutation.removedNodes.forEach(node => {
-                        if (node.nodeType === Node.ELEMENT_NODE && node.matches('li.completion_prompt_manager_prompt')) {
-                            // If a prompt item is removed, we only need to update the count of its former parent section.
+                         if (node.nodeType === Node.ELEMENT_NODE && node.matches('li.completion_prompt_manager_prompt')) {
                             const oldParentDetails = mutation.target.closest('details.nemo-engine-section');
                             if (oldParentDetails) {
                                 this.updateSectionCount(oldParentDetails);
@@ -495,9 +476,12 @@ export const NemoPresetManager = {
                 }
             }
 
-            listObserver.observe(container, { childList: true, subtree: true }); // Reconnect
+            if (needsReorg) {
+                this.organizePrompts(true);
+            }
+
+            listObserver.observe(container, { childList: true, subtree: true });
         });
         listObserver.observe(container, { childList: true, subtree: true });
-    },
-
+    }
 };

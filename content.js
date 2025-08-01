@@ -35,7 +35,7 @@ waitForElement('#left-nav-panel', async () => {
             // Initialize Prompt Manager sections when the list appears
             const promptList = /** @type {HTMLElement} */ (document.querySelector(MAIN_SELECTORS.promptsContainer));
             if (promptList && !promptList.dataset.nemoPromptsInitialized) {
-                NemoPresetManager.initializeSearchAndSections(promptList);
+                NemoPresetManager.initialize(promptList);
             }
             
             // Patch API preset dropdowns with the "Browse..." button

@@ -154,7 +154,19 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 .nemo-header-item { cursor: default; }
 
 /* Drag and Drop for Prompt List */
-li.completion_prompt_manager_prompt[draggable="true"] { cursor: grab; }
+.drag-handle {
+    cursor: grab;
+    padding: 0 10px;
+    margin-left: -10px; /* Keep alignment neat */
+    font-size: 1.2em;
+    color: var(--nemo-text-muted);
+    position: relative; /* Ensure it's on top */
+    z-index: 1;
+}
+.drag-handle:hover {
+    color: var(--nemo-text-color);
+}
+li.completion_prompt_manager_prompt[draggable="true"] { cursor: default; } /* Remove grab cursor from the whole item */
 li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbing; }
 #nemo-drop-indicator { position: absolute; height: 2px; background-color: var(--nemo-primary-accent); width: 100%; pointer-events: none; z-index: 100; box-shadow: 0 0 5px var(--nemo-glow-color); display: none; }
 
