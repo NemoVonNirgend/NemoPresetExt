@@ -13,6 +13,7 @@ export const NEMO_METADATA_KEY = 'nemoNavigatorMetadata';
 export const NEMO_SECTIONS_ENABLED_KEY = 'nemoSectionsEnabled';
 export const NEMO_CHAR_METADATA_KEY = 'nemoCharacterNavigatorMetadata';
 export const NEMO_FAVORITE_PRESETS_KEY = 'nemo-favorite-presets';
+export const NEMO_FAVORITE_CHARACTERS_KEY = 'nemo-favorite-characters';
 
 
 export const PREDEFINED_COLORS = [

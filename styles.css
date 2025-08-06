@@ -40,9 +40,9 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 
 /* --- Search Bar & Snapshot Controls --- */
 #nemoSearchAndStatusWrapper { display: flex; flex-direction: column; margin-bottom: 10px; }
-#nemoPresetSearchContainer { display: flex; align-items: center; gap: 10px; }
-#nemoPresetSearchContainer .text_pole { flex-grow: 1; margin-right: 0; }
-.nemo-search-controls { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
+#nemoPresetSearchContainer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#nemoPresetSearchContainer .text_pole { flex-grow: 1; margin-right: 0; min-width: 200px; }
+.nemo-search-controls { display: flex; align-items: center; flex-shrink: 0; gap: 2px; flex-wrap: wrap; }
 .nemo-search-controls .menu_button { min-width: auto; padding: 5px 8px; font-size: 0.9em; }
 .nemo-search-divider { width: 1px; height: 20px; background-color: var(--nemo-border-color); margin: 0 5px; }
 .nemo-search-controls .menu_button.nemo-active { color: var(--nemo-primary-accent); border-color: var(--nemo-primary-accent); box-shadow: 0 0 5px var(--nemo-glow-color); }
@@ -57,6 +57,81 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 /* --- Contextual Triggers --- */
 .nemo-triggers-container { margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--nemo-border-color); }
 .nemo-triggers-settings { display: flex; gap: 15px; margin-top: 5px; flex-wrap: wrap; }
+
+/* --- Reasoning Section (now uses SillyTavern built-in styling) --- */
+/* Most styling is handled by SillyTavern's inline-drawer and range-block classes */
+/* Only add minimal custom styling where needed */
+
+#nemoReasoningSection {
+    /* Inherits from inline-drawer wide100p nemo-converted-drawer classes */
+}
+
+/* Ensure proper spacing for reasoning controls in mobile */
+#nemoReasoningSection .flex-container.alignItemsBaseline {
+    gap: 10px;
+}
+
+#nemoReasoningSection .flex1 {
+    flex: 1;
+}
+
+/* --- Start Reply With Block (in Chat Completion section) --- */
+.nemo-start-reply-block { 
+    margin-top: 15px; 
+    padding: 10px; 
+    background-color: var(--nemo-secondary-bg); 
+    border: 1px solid var(--nemo-border-color); 
+    border-radius: 4px; 
+}
+
+.nemo-start-reply-content { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px; 
+}
+
+.nemo-start-reply-header { 
+    color: var(--nemo-secondary-accent); 
+    font-weight: 500; 
+}
+
+.nemo-start-reply-textarea-container { 
+    flex-grow: 1; 
+}
+
+.nemo-start-reply-textarea-container textarea { 
+    width: 100%; 
+    resize: vertical; 
+    font-size: 14px; 
+    border: 1px solid var(--nemo-border-color); 
+    background-color: var(--nemo-primary-bg); 
+    color: var(--nemo-text-color); 
+    border-radius: 4px; 
+    padding: 8px; 
+}
+
+.nemo-start-reply-textarea-container textarea:focus { 
+    border-color: var(--nemo-primary-accent); 
+    outline: none; 
+    box-shadow: 0 0 0 2px var(--nemo-glow-color); 
+}
+
+.nemo-start-reply-checkbox { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    cursor: pointer; 
+    color: var(--nemo-text-color); 
+}
+
+.nemo-start-reply-checkbox input[type="checkbox"] { 
+    cursor: pointer; 
+}
+
+.nemo-start-reply-checkbox small { 
+    cursor: pointer; 
+    user-select: none; 
+}
 
 /* === PRESET NAVIGATOR (UNSTYLED - USES DEFAULT POPUP) === */
 /* The outer modal styling has been removed to use the default SillyTavern popup style. */
@@ -91,6 +166,112 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 
 /* Grid View Mode */
 .view-mode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; align-content: flex-start; }
+
+/* Prompt Navigator specific container and grid */
+.nemo-prompt-navigator-content-wrapper .navigator-main-panel { 
+    width: 100%; 
+    min-width: 0; 
+}
+
+.nemo-prompt-navigator-content-wrapper #prompt-navigator-grid-view {
+    padding: 10px;
+    overflow-y: auto;
+    flex-grow: 1;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.nemo-prompt-navigator-content-wrapper .view-mode-grid { 
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
+    gap: 12px; 
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.nemo-prompt-navigator-content-wrapper .grid-item { 
+    min-height: 140px; 
+    width: 100%;
+}
+
+.nemo-prompt-navigator-content-wrapper .grid-item .item-icon { 
+    height: 85px; 
+    font-size: 2.8em; 
+}
+
+.nemo-prompt-navigator-content-wrapper .grid-item .item-name { 
+    font-size: 0.85em; 
+    padding: 6px; 
+}
+
+/* Prompt Navigator responsive breakpoints - using auto-fit for better width utilization */
+@media (min-width: 1200px) {
+    .nemo-prompt-navigator-content-wrapper .view-mode-grid { 
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); 
+        gap: 10px; 
+    }
+}
+
+@media (min-width: 1400px) {
+    .nemo-prompt-navigator-content-wrapper .view-mode-grid { 
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+        gap: 10px; 
+    }
+}
+
+@media (min-width: 1600px) {
+    .nemo-prompt-navigator-content-wrapper .view-mode-grid { 
+        grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); 
+        gap: 8px; 
+    }
+}
+
+/* For very wide screens, ensure better utilization */
+@media (min-width: 1920px) {
+    .nemo-prompt-navigator-content-wrapper .view-mode-grid { 
+        grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); 
+        gap: 8px; 
+    }
+}
+
+/* Prompt Navigator Button Sizing */
+.nemo-prompt-navigator-content-wrapper .menu_button {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 1em;
+    min-width: 40px;
+}
+
+.nemo-prompt-navigator-content-wrapper .nemo-header-buttons {
+    gap: 8px;
+}
+
+.nemo-prompt-navigator-content-wrapper .nemo-header-buttons .menu_button {
+    min-height: 42px;
+    padding: 10px 14px;
+    font-size: 1.05em;
+}
+
+.nemo-prompt-navigator-content-wrapper #prompt-navigator-search-clear {
+    min-height: 36px;
+    min-width: 36px;
+    padding: 8px;
+    font-size: 1em;
+}
+
+.nemo-prompt-navigator-content-wrapper #prompt-navigator-load-btn {
+    min-height: 44px;
+    padding: 12px 20px;
+    font-size: 1.1em;
+    font-weight: 500;
+}
+
+.nemo-prompt-navigator-content-wrapper #prompt-navigator-search-input {
+    min-height: 38px;
+    padding: 8px 40px 8px 12px;
+    font-size: 1em;
+}
 .grid-item { min-height: 160px; background-color: var(--nemo-tertiary-bg); border-radius: 8px; border: 2px solid transparent; display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease-in-out; user-select: none; position: relative; overflow: hidden; }
 .grid-item:hover { transform: translateY(-4px); box-shadow: 0 6px 12px var(--nemo-shadow-color); border-color: var(--nemo-border-color); }
 @keyframes pulse-glow { 0% { box-shadow: 0 0 5px var(--nemo-glow-color), 0 0 10px var(--nemo-glow-color); } 50% { box-shadow: 0 0 10px var(--nemo-glow-color), 0 0 20px var(--nemo-glow-color); } 100% { box-shadow: 0 0 5px var(--nemo-glow-color), 0 0 10px var(--nemo-glow-color); } }
@@ -140,14 +321,403 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 .nemo-color-swatch.selected { border-color: var(--nemo-primary-accent); transform: scale(1.1); box-shadow: 0 0 8px var(--nemo-glow-color); }
 #nemo-clear-folder-color { display: block; margin: 10px auto 0; }
 
-/* Mobile Friendliness for Navigator Content */
+/* === MOBILE RESPONSIVENESS IMPROVEMENTS === */
+
+/* Large tablets and small desktops */
+@media (max-width: 1024px) {
+    .nemo-world-info-left-column { width: 250px; }
+    #navigator-search-input, #char-manager-search-input { width: 180px; }
+    .view-mode-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; }
+}
+
+/* Small tablets */
 @media (max-width: 768px) {
-    #navigator-grid-header { flex-direction: column; align-items: stretch; gap: 10px; }
-    .view-mode-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
-    .grid-item { min-height: 140px; }
-    .grid-item .item-icon { height: 80px; font-size: 3em; }
-    .grid-item .item-name { font-size: 0.8em; padding: 5px; }
-    .nemo-preset-navigator-content-wrapper .modal-footer { flex-direction: column; align-items: stretch; gap: 10px; }
+    /* Navigator and Grid Headers */
+    #navigator-grid-header, #char-manager-grid-header { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 10px; 
+    }
+    
+    /* Search controls */
+    #navigator-header-controls, #char-manager-header-controls { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 10px; 
+    }
+    
+    #navigator-search-controls, #char-manager-search-controls { 
+        order: -1; /* Move search to top */
+    }
+    
+    #navigator-search-input, #char-manager-search-input { 
+        width: 100%; 
+    }
+    
+    /* Button groups */
+    .nemo-header-buttons { 
+        justify-content: center; 
+        flex-wrap: wrap; 
+    }
+    
+    /* Grid layout improvements */
+    .view-mode-grid { 
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); 
+        gap: 10px; 
+    }
+    
+    .grid-item { 
+        min-height: 140px; 
+    }
+    
+    .grid-item .item-icon { 
+        height: 80px; 
+        font-size: 3em; 
+    }
+    
+    .grid-item .item-name { 
+        font-size: 0.8em; 
+        padding: 5px; 
+    }
+    
+    /* Modal footer */
+    .nemo-preset-navigator-content-wrapper .modal-footer,
+    .nemo-character-manager-content-wrapper .modal-footer { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 10px; 
+    }
+    
+    /* World Info specific improvements */
+    .nemo-world-info-container { 
+        flex-direction: column; 
+    }
+    
+    .nemo-world-info-left-column { 
+        width: 100%; 
+        max-height: 300px; 
+        border-right: none; 
+        border-bottom: 1px solid var(--nemo-border-color); 
+    }
+    
+    .nemo-world-info-list-header { 
+        flex-wrap: wrap; 
+        gap: 5px; 
+    }
+    
+    .nemo-world-info-list-header > input { 
+        flex-basis: 100%; 
+        margin-bottom: 5px; 
+    }
+    
+    /* Preset controls */
+    .nemo-world-info-preset-controls { 
+        flex-wrap: wrap; 
+    }
+    
+    .nemo-world-info-preset-controls > select { 
+        flex-basis: 100%; 
+        margin-bottom: 5px; 
+    }
+    
+    /* Entries header */
+    .nemo-world-info-entries-header { 
+        flex-wrap: wrap; 
+        gap: 3px; 
+    }
+    
+    .nemo-world-info-entries-header > input,
+    .nemo-world-info-entries-header > select { 
+        flex-basis: 100%; 
+        margin-bottom: 5px; 
+    }
+    
+    /* Pagination controls */
+    .nemo-pagination-controls { 
+        flex-wrap: wrap; 
+        gap: 5px; 
+    }
+    
+    .pagination-info { 
+        order: -1; 
+        flex-basis: 100%; 
+        text-align: center; 
+        padding: 5px 0; 
+    }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+    /* Even smaller grid items */
+    .view-mode-grid { 
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); 
+        gap: 8px; 
+    }
+    
+    .grid-item { 
+        min-height: 120px; 
+    }
+    
+    .grid-item .item-icon { 
+        height: 70px; 
+        font-size: 2.5em; 
+    }
+    
+    .grid-item .item-name { 
+        font-size: 0.75em; 
+        padding: 4px; 
+    }
+    
+    /* Stack all controls vertically */
+    .nemo-search-controls, 
+    .nemo-header-buttons { 
+        justify-content: stretch; 
+    }
+    
+    .nemo-search-controls .menu_button,
+    .nemo-header-buttons .menu_button { 
+        flex: 1; 
+        min-width: 44px; /* Touch target size */
+        min-height: 44px; 
+    }
+    
+    /* World Info specific mobile improvements */
+    .nemo-world-info-left-column { 
+        max-height: 250px; 
+    }
+    
+    .nemo-world-info-tabs { 
+        flex-wrap: wrap; 
+    }
+    
+    .nemo-world-info-tab { 
+        flex: 1; 
+        text-align: center; 
+        min-width: 80px; 
+        padding: 8px 5px; 
+        font-size: 0.9em; 
+    }
+    
+    /* Button sizing for touch */
+    .menu_button { 
+        min-height: 44px; 
+        padding: 8px 12px; 
+    }
+    
+    /* Improve touch targets */
+    .nemo-item-menu-btn { 
+        width: 44px; 
+        height: 44px; 
+        opacity: 1; /* Always visible on mobile */
+    }
+    
+    /* Pagination improvements */
+    .pagination-btn { 
+        min-width: 44px !important; 
+        height: 44px !important; 
+    }
+    
+    .pagination-goto { 
+        height: 44px !important; 
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    /* Preset search mobile improvements */
+    #nemoPresetSearchContainer { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 8px; 
+    }
+    
+    #nemoPresetSearchContainer .text_pole { 
+        min-width: unset; 
+        width: 100%; 
+    }
+    
+    .nemo-search-controls { 
+        justify-content: center; 
+    }
+    
+    /* Context menu mobile improvements */
+    .nemo-context-menu { 
+        min-width: 160px; 
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    .nemo-context-menu li { 
+        padding: 12px 16px; /* Larger touch targets */
+        min-height: 44px; 
+        display: flex !important; 
+        align-items: center; 
+    }
+    
+    /* Triggers settings mobile */
+    .nemo-triggers-settings { 
+        flex-direction: column; 
+        align-items: stretch; 
+    }
+    
+    /* Preset selector mobile */
+    .nemo-preset-selector-wrapper { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 8px; 
+    }
+    
+    /* Reasoning section mobile */
+    #nemoReasoningSection .flex-container.alignItemsBaseline { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 8px; 
+    }
+    
+    #nemoReasoningSection .oneline-dropdown { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 5px; 
+    }
+    
+    #nemoReasoningSection .oneline-dropdown label { 
+        min-width: unset; 
+    }
+    
+    #nemoReasoningSection select, 
+    #nemoReasoningSection input[type="number"], 
+    #nemoReasoningSection textarea { 
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    #nemoReasoningSection .inline-drawer .flex-container { 
+        flex-direction: column; 
+        gap: 8px; 
+    }
+    
+    /* Start Reply With mobile */
+    .nemo-start-reply-block { 
+        margin-top: 8px; 
+        padding: 8px; 
+    }
+    
+    .nemo-start-reply-content { 
+        gap: 6px; 
+    }
+    
+    .nemo-start-reply-textarea-container textarea { 
+        font-size: 16px; /* Prevent zoom on iOS */
+        min-height: 44px; 
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 320px) {
+    .view-mode-grid { 
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
+        gap: 5px; 
+    }
+    
+    .grid-item { 
+        min-height: 100px; 
+    }
+    
+    .grid-item .item-icon { 
+        height: 60px; 
+        font-size: 2em; 
+    }
+    
+    .nemo-world-info-tab { 
+        font-size: 0.8em; 
+        padding: 6px 3px; 
+    }
+    
+    /* Ultra-compact controls */
+    .nemo-search-controls .menu_button { 
+        padding: 4px 6px; 
+        font-size: 0.8em; 
+    }
+    
+    .nemo-search-divider { 
+        display: none; /* Hide dividers on very small screens */
+    }
+}
+
+/* Portrait orientation specific adjustments */
+@media (orientation: portrait) and (max-width: 768px) {
+    .nemo-world-info-left-column { 
+        max-height: 250px; 
+        overflow-y: auto; 
+    }
+    
+    .navigator-body { 
+        min-height: 70vh; 
+    }
+}
+
+/* Landscape orientation specific adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+    .nemo-world-info-container { 
+        flex-direction: row; 
+    }
+    
+    .nemo-world-info-left-column { 
+        width: 200px; 
+        max-height: none; 
+        border-right: 1px solid var(--nemo-border-color); 
+        border-bottom: none; 
+    }
+    
+    .navigator-body { 
+        min-height: 60vh; 
+    }
+}
+
+/* === GENERAL MOBILE TOUCH IMPROVEMENTS === */
+/* Apply to all mobile devices regardless of screen size */
+@media (pointer: coarse) {
+    /* Ensure all input fields have proper font size for iOS */
+    input[type="text"], 
+    input[type="search"], 
+    input[type="number"], 
+    textarea, 
+    select { 
+        font-size: 16px !important; 
+    }
+    
+    /* Improve tap targets for all interactive elements */
+    .menu_button, 
+    button, 
+    .inline-drawer-toggle, 
+    .completion_prompt_manager_prompt_controls > *, 
+    .nemo-section-master-toggle { 
+        min-height: 44px; 
+        min-width: 44px; 
+    }
+    
+    /* Improve checkbox and radio button tap targets */
+    input[type="checkbox"], 
+    input[type="radio"] { 
+        min-width: 20px; 
+        min-height: 20px; 
+        transform: scale(1.2); 
+    }
+    
+    /* Better touch scrolling */
+    .nemo-world-info-list, 
+    #navigator-grid-view, 
+    #char-manager-grid-view, 
+    .nemo-panel-content-wrapper { 
+        -webkit-overflow-scrolling: touch; 
+        overscroll-behavior: contain; 
+    }
+    
+    /* Improve drag handle visibility and size */
+    .drag-handle, 
+    .nemo-drag-handle { 
+        min-width: 44px; 
+        min-height: 44px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+    }
 }
 
 /* Header items in the prompt list are not draggable */
@@ -347,8 +917,9 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
 .nemo-folder-content {
     padding-left: 20px;
     /* Initially hidden, shown on toggle */
-    display: none;
+    display: none !important;
     min-height: 20px; /* Ensure a drop area even when empty */
+    flex-direction: column; /* Stack items vertically */
 }
 
 .nemo-folder.open > .nemo-folder-header > .nemo-folder-toggle {
@@ -356,7 +927,8 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
 }
 
 .nemo-folder.open > .nemo-folder-content {
-    display: block;
+    display: flex !important;
+    flex-direction: column;
 }
 
 
@@ -767,4 +1339,2798 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
 
 .nemo-favorite-preset-button:hover {
     background-color: #555;
+}
+
+/* === LOREBOOK MANAGEMENT STYLES === */
+
+/* Lorebook entry display */
+.nemo-active-lorebooks-list {
+    margin-top: 8px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 4px;
+    background-color: var(--nemo-secondary-bg);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.nemo-lorebook-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--nemo-border-color);
+    transition: background-color 0.2s ease;
+}
+
+.nemo-lorebook-entry:last-child {
+    border-bottom: none;
+}
+
+.nemo-lorebook-entry:hover {
+    background-color: var(--nemo-item-hover-bg);
+}
+
+.nemo-lorebook-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.nemo-lorebook-name {
+    font-weight: 500;
+    color: var(--nemo-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.nemo-lorebook-details {
+    font-size: 0.85em;
+    color: var(--nemo-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.nemo-remove-lorebook {
+    flex-shrink: 0;
+    background-color: var(--nemo-tertiary-bg);
+    border: 1px solid var(--nemo-border-color);
+    color: var(--nemo-text-color);
+    padding: 4px 8px;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+}
+
+.nemo-remove-lorebook:hover {
+    background-color: var(--SmartThemeQuoteColor);
+    border-color: var(--SmartThemeQuoteColor);
+    color: white;
+}
+
+.nemo-no-lorebooks {
+    padding: 16px;
+    text-align: center;
+    color: var(--nemo-text-muted);
+    font-style: italic;
+}
+
+/* Add lorebook controls */
+#nemo-add-lorebook-btn {
+    background-color: var(--nemo-primary-accent);
+    border-color: var(--nemo-primary-accent);
+    color: white;
+    transition: all 0.2s ease;
+}
+
+#nemo-add-lorebook-btn:hover {
+    background-color: var(--nemo-secondary-accent);
+    border-color: var(--nemo-secondary-accent);
+    box-shadow: 0 0 5px var(--nemo-glow-color);
+}
+
+#nemo-add-lorebook-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Mobile responsiveness for lorebook section */
+@media (max-width: 768px) {
+    .nemo-active-lorebooks-list {
+        max-height: 150px;
+    }
+    
+    .nemo-lorebook-entry {
+        padding: 12px;
+    }
+    
+    .nemo-lorebook-name {
+        font-size: 0.95em;
+    }
+    
+    .nemo-lorebook-details {
+        font-size: 0.8em;
+    }
+}
+
+@media (max-width: 480px) {
+    .nemo-active-lorebooks-list {
+        max-height: 120px;
+    }
+    
+    /* Mobile-friendly lorebook management */
+    .nemo-lorebook-entry {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .nemo-lorebook-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .nemo-remove-lorebook {
+        align-self: flex-end;
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* === MESSAGE THEMES === */
+
+/* --- Generic Message Styling --- */
+body[class*="theme-"] .mes_block {
+    font-family: var(--panel-font) !important;
+    border: 1px solid var(--panel-border) !important;
+    background-color: var(--panel-bg-primary) !important;
+    box-shadow: 0 2px 5px var(--panel-shadow) !important;
+    color: var(--text-primary) !important;
+    border-radius: 8px !important;
+    margin-bottom: 10px !important;
+    overflow: hidden !important;
+}
+
+body[class*="theme-"] .mes_block .ch_name {
+    background: var(--header-bg-primary) !important;
+    color: var(--header-text) !important;
+    border-bottom: 1px solid var(--panel-border) !important;
+    padding: 8px 12px !important;
+}
+
+/* Ensure name text has high contrast */
+body[class*="theme-"] .mes_block .ch_name .name_text {
+    color: var(--header-text) !important;
+    font-weight: 600 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Timestamp and other header elements */
+body[class*="theme-"] .mes_block .ch_name .timestamp,
+body[class*="theme-"] .mes_block .ch_name small {
+    color: var(--header-text) !important;
+    opacity: 0.8 !important;
+}
+
+/* Icons and other header elements */
+body[class*="theme-"] .mes_block .ch_name i,
+body[class*="theme-"] .mes_block .ch_name svg {
+    color: var(--header-text) !important;
+    fill: var(--header-text) !important;
+    opacity: 0.7 !important;
+}
+
+body[class*="theme-"] .mes_block .mes_text {
+    color: var(--text-primary) !important;
+    padding: 12px !important;
+    background-color: var(--panel-bg-primary) !important;
+    border-radius: 0 0 8px 8px !important;
+}
+
+/* Ensure all text elements within mes_text inherit the theme colors */
+body[class*="theme-"] .mes_block .mes_text p,
+body[class*="theme-"] .mes_block .mes_text div,
+body[class*="theme-"] .mes_block .mes_text span,
+body[class*="theme-"] .mes_block .mes_text q,
+body[class*="theme-"] .mes_block .mes_text em,
+body[class*="theme-"] .mes_block .mes_text strong {
+    color: var(--text-primary) !important;
+}
+
+/* Code blocks need high contrast for readability */
+body[class*="theme-"] .mes_block .mes_text code {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    color: #ffffff !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-weight: bold !important;
+}
+
+/* User message differentiation */
+body[class*="theme-"] .mes_block.is_user {
+    background-color: var(--panel-bg-secondary) !important;
+    border-color: var(--panel-border) !important;
+}
+
+body[class*="theme-"] .mes_block.is_user .ch_name {
+    background: var(--header-bg-primary) !important;
+    color: var(--header-text) !important;
+    opacity: 0.8 !important;
+}
+
+body[class*="theme-"] .mes_block.is_user .mes_text {
+    background-color: var(--panel-bg-secondary) !important;
+}
+
+/* Additional reasoning header elements */
+body[class*="theme-"] .mes_block .mes_reasoning_summary * {
+    color: var(--header-text, #333333) !important;
+}
+
+body[class*="theme-"] .mes_block .mes_reasoning_summary .mes_reasoning_arrow {
+    color: var(--header-text, #333333) !important;
+}
+
+body[class*="theme-"] .mes_block .mes_reasoning_summary svg {
+    fill: var(--header-text, #333333) !important;
+}
+
+/* Emergency contrast fix for reasoning title */
+body[class*="theme-"] .mes_block .mes_reasoning_summary {
+    background-color: var(--header-bg-primary) !important;
+    color: var(--header-text) !important;
+}
+
+/* Ensure reasoning content is readable */
+body[class*="theme-"] .mes_block .mes_reasoning p,
+body[class*="theme-"] .mes_block .mes_reasoning li,
+body[class*="theme-"] .mes_block .mes_reasoning span,
+body[class*="theme-"] .mes_block .mes_reasoning div,
+body[class*="theme-"] .mes_block .mes_reasoning ol,
+body[class*="theme-"] .mes_block .mes_reasoning ul {
+    color: var(--text-primary) !important;
+    background-color: transparent !important;
+}
+
+/* Main reasoning block container */
+body[class*="theme-"] .mes_block .mes_reasoning_details {
+    background-color: var(--panel-bg-secondary) !important;
+    border: 1px solid var(--panel-border) !important;
+    border-radius: 4px !important;
+    margin: 8px 0 !important;
+    opacity: 0.95 !important;
+}
+
+/* Reasoning content area */
+body[class*="theme-"] .mes_block .mes_reasoning {
+    color: var(--text-primary) !important;
+    background-color: var(--panel-bg-primary) !important;
+    padding: 12px !important;
+    font-size: 0.9em !important;
+}
+
+/* Fix for specific reasoning elements when expanded */
+body[class*="theme-"] .mes_block .mes_reasoning_details[open] .mes_reasoning {
+    background-color: var(--panel-bg-primary) !important;
+    border-top: 1px solid var(--panel-border) !important;
+}
+
+body[class*="theme-"] .main-container {
+    background-color: var(--panel-bg-secondary);
+}
+
+/* === DIALOGUE AND ITALICS STYLING FOR ALL THEMES === */
+
+/* Dialogue styling - text within quotes */
+body[class*="theme-"] .mes_block .mes_text q,
+body[class*="theme-"] .mes_block .mes_text q::before,
+body[class*="theme-"] .mes_block .mes_text q::after {
+    color: var(--dialogue-color, #0066cc) !important;
+    font-style: italic !important;
+    font-weight: 500 !important;
+}
+
+/* Italics styling */
+body[class*="theme-"] .mes_block .mes_text em,
+body[class*="theme-"] .mes_block .mes_text i {
+    color: var(--italics-color, #666666) !important;
+    font-style: italic !important;
+}
+
+/* Reasoning block dialogue and italics */
+body[class*="theme-"] .mes_block .mes_reasoning q {
+    color: var(--dialogue-color, #0066cc) !important;
+    font-style: italic !important;
+    font-weight: 500 !important;
+}
+
+body[class*="theme-"] .mes_block .mes_reasoning em,
+body[class*="theme-"] .mes_block .mes_reasoning i {
+    color: var(--italics-color, #666666) !important;
+    font-style: italic !important;
+}
+
+/* --- Theme Definitions --- */
+
+body.theme-cheerful {
+  --panel-font: 'Verdana', 'Geneva', sans-serif;
+  --panel-border: #FFC107;
+  --panel-bg-primary: #FFFDE7;
+  --panel-bg-secondary: #FFF8E1;
+  --panel-shadow: rgba(255,193,7,0.3);
+  --header-bg-primary: #FFF9C4;
+  --header-text: #424242;
+  --text-primary: #5D4037;
+  --dialogue-color: #2E7D32;
+  --italics-color: #E65100;
+}
+
+body.theme-divine {
+  --panel-font: 'Garamond', 'Palatino', serif;
+  --panel-border: #FFD700;
+  --panel-bg-primary: #FFFFFF;
+  --panel-bg-secondary: #F8F8FF;
+  --panel-shadow: rgba(255,215,0,0.3);
+  --header-bg-primary: #F0F8FF;
+  --header-text: #1a3a3a;
+  --text-primary: #2F4F4F;
+  --dialogue-color: #8B4513;
+  --italics-color: #4B0082;
+}
+
+body.theme-fantasy {
+  --panel-font: 'Georgia', 'Times New Roman', serif;
+  --panel-border: #8B4513;
+  --panel-bg-primary: #2F1B14;
+  --panel-bg-secondary: #3d2518;
+  --panel-shadow: rgba(0,0,0,0.7);
+  --header-bg-primary: #6b3e1a;
+  --header-text: #F4E4BC;
+  --text-primary: #E8DCC6;
+  --dialogue-color: #90EE90;
+  --italics-color: #DDA0DD;
+}
+
+body.theme-royal {
+  --panel-font: 'Garamond', 'Book Antiqua', serif;
+  --panel-border: #C0C0C0;
+  --panel-bg-primary: #4B0082;
+  --panel-bg-secondary: #6a1fb3;
+  --panel-shadow: rgba(0,0,0,0.5);
+  --header-bg-primary: #8B6914;
+  --header-text: #FFFFFF;
+  --text-primary: #F8F8FF;
+  --dialogue-color: #FFD700;
+  --italics-color: #FF69B4;
+}
+
+body.theme-steampunk {
+  --panel-font: 'Times New Roman', 'Baskerville', serif;
+  --panel-border: #B8860B;
+  --panel-bg-primary: #5D4037;
+  --panel-bg-secondary: #6d4c41;
+  --panel-shadow: rgba(0,0,0,0.6);
+  --header-bg-primary: #1a4480;
+  --header-text: #F5DEB3;
+  --text-primary: #F5DEB3;
+  --dialogue-color: #87CEEB;
+  --italics-color: #CD853F;
+}
+
+body.theme-solarpunk {
+  --panel-font: 'Nunito', 'Segoe UI', sans-serif;
+  --panel-border: #228B22;
+  --panel-bg-primary: #F0FFF0;
+  --panel-bg-secondary: #E8F5E8;
+  --panel-shadow: rgba(34,139,34,0.2);
+  --header-bg-primary: #FFF3CD;
+  --header-text: #2c5530;
+  --text-primary: #2c5530;
+  --dialogue-color: #FF6347;
+  --italics-color: #9932CC;
+}
+
+body.theme-goth {
+  --panel-font: 'Georgia', 'Times New Roman', serif;
+  --panel-border: #444444;
+  --panel-bg-primary: #1a1a1a;
+  --panel-bg-secondary: #2a2a2a;
+  --panel-shadow: rgba(0,0,0,0.8);
+  --header-bg-primary: #4a1a1a;
+  --header-text: #E0E0E0;
+  --text-primary: #CCCCCC;
+  --dialogue-color: #DC143C;
+  --italics-color: #8A2BE2;
+}
+
+body.theme-pastel {
+  --panel-font: 'Segoe UI', 'Candara', sans-serif;
+  --panel-border: #D1C4E9;
+  --panel-bg-primary: #FFFFFF;
+  --panel-bg-secondary: #F8F6FF;
+  --panel-shadow: rgba(0,0,0,0.1);
+  --header-bg-primary: #E1F5FE;
+  --header-text: #1a1a1a;
+  --text-primary: #2c3e50;
+  --dialogue-color: #FF69B4;
+  --italics-color: #9370DB;
+}
+
+body.theme-passionate {
+  --panel-font: 'Arial Black', 'Impact', sans-serif;
+  --panel-border: #B22222;
+  --panel-bg-primary: #1A1A1A;
+  --panel-bg-secondary: #2a2a2a;
+  --panel-shadow: rgba(178,34,34,0.5);
+  --header-bg-primary: #8B1538;
+  --header-text: #FFFFFF;
+  --text-primary: #F5F5F5;
+  --dialogue-color: #FF4500;
+  --italics-color: #FFA500;
+}
+
+body.theme-horror {
+  --panel-font: 'Georgia', 'Times New Roman', serif;
+  --panel-border: #4B0082;
+  --panel-bg-primary: #1A0B1A;
+  --panel-bg-secondary: #2a1a2a;
+  --panel-shadow: rgba(0,0,0,0.9);
+  --header-bg-primary: #3a1a5a;
+  --header-text: #D8BFD8;
+  --text-primary: #C8B8C8;
+  --dialogue-color: #FF6B6B;
+  --italics-color: #DDA0DD;
+}
+
+body.theme-melancholy {
+  --panel-font: 'Garamond', 'Palatino', serif;
+  --panel-border: #78909C;
+  --panel-bg-primary: #37474F;
+  --panel-bg-secondary: #455a64;
+  --panel-shadow: rgba(0,0,0,0.4);
+  --header-bg-primary: #546e7a;
+  --header-text: #ECEFF1;
+  --text-primary: #CFD8DC;
+  --dialogue-color: #81C784;
+  --italics-color: #BA68C8;
+}
+
+body.theme-romance {
+  --panel-font: 'Candara', 'Calibri', sans-serif;
+  --panel-border: #d8bfd8;
+  --panel-bg-primary: #4a3f56;
+  --panel-bg-secondary: #5a4f66;
+  --panel-shadow: rgba(0,0,0,0.3);
+  --header-bg-primary: #8B4B8B;
+  --header-text: #f0e8f8;
+  --text-primary: #f0e8f8;
+  --dialogue-color: #FFB6C1;
+  --italics-color: #DDA0DD;
+}
+
+body.theme-cyberpunk {
+  --panel-font: 'Courier New', 'Monaco', monospace;
+  --panel-border: #00FFFF;
+  --panel-bg-primary: #001122;
+  --panel-bg-secondary: #002233;
+  --panel-shadow: rgba(0,255,255,0.4);
+  --header-bg-primary: #004466;
+  --header-text: #E0FFFF;
+  --text-primary: #E0FFFF;
+  --dialogue-color: #FF00FF;
+  --italics-color: #00FF00;
+}
+
+body.theme-dyslexia {
+  --panel-font: 'OpenDyslexic', 'Verdana', 'Arial', sans-serif;
+  --panel-border: #8B7355;
+  --panel-bg-primary: #FFFEF7;
+  --panel-bg-secondary: #F8F5E8;
+  --panel-shadow: rgba(139,115,85,0.2);
+  --header-bg-primary: #F0E6C8;
+  --header-text: #2d2d2d;
+  --text-primary: #2d2d2d;
+  --dialogue-color: #CC0000;
+  --italics-color: #0066CC;
+}
+
+body.theme-dyslexia-dark {
+  --panel-font: 'OpenDyslexic', 'Verdana', 'Arial', sans-serif;
+  --panel-border: #8B7355;
+  --panel-bg-primary: #1a1a1a;
+  --panel-bg-secondary: #2a2a2a;
+  --panel-shadow: rgba(0,0,0,0.6);
+  --header-bg-primary: #3a3a3a;
+  --header-text: #f0f0f0;
+  --text-primary: #f0f0f0;
+  --dialogue-color: #87CEEB;
+  --italics-color: #FFA500;
+}
+
+/* === DYSLEXIA-FRIENDLY ENHANCEMENTS === */
+
+/* Enhanced text styling for dyslexia readability */
+body.theme-dyslexia .mes_block .mes_text {
+    line-height: 1.6 !important;
+    font-size: 20px !important;
+    letter-spacing: 0.05em !important;
+    word-spacing: 0.15em !important;
+}
+
+body.theme-dyslexia-dark .mes_block .mes_text {
+    line-height: 1.8 !important;
+    font-size: 20px !important;
+    letter-spacing: 0.08em !important;
+    word-spacing: 0.18em !important;
+}
+
+body.theme-dyslexia .mes_block .mes_text p {
+    margin-bottom: 1.2em !important;
+    text-align: left !important;
+    font-size: 20px !important;
+}
+
+body.theme-dyslexia-dark .mes_block .mes_text p {
+    margin-bottom: 1.4em !important;
+    text-align: left !important;
+    font-size: 20px !important;
+}
+
+/* Improved header readability */
+body.theme-dyslexia .mes_block .ch_name .name_text {
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+}
+
+body.theme-dyslexia-dark .mes_block .ch_name .name_text {
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.06em !important;
+}
+
+/* Timestamp and small elements */
+body.theme-dyslexia .mes_block .ch_name .timestamp,
+body.theme-dyslexia .mes_block .ch_name small,
+body.theme-dyslexia-dark .mes_block .ch_name .timestamp,
+body.theme-dyslexia-dark .mes_block .ch_name small {
+    font-size: 16px !important;
+}
+
+/* Enhanced reasoning block readability */
+body.theme-dyslexia .mes_block .mes_reasoning {
+    line-height: 1.7 !important;
+    font-size: 19px !important;
+    letter-spacing: 0.04em !important;
+}
+
+body.theme-dyslexia-dark .mes_block .mes_reasoning {
+    line-height: 1.9 !important;
+    font-size: 19px !important;
+    letter-spacing: 0.07em !important;
+}
+
+body.theme-dyslexia .mes_block .mes_reasoning p,
+body.theme-dyslexia .mes_block .mes_reasoning li {
+    margin-bottom: 1em !important;
+    font-size: 19px !important;
+}
+
+body.theme-dyslexia-dark .mes_block .mes_reasoning p,
+body.theme-dyslexia-dark .mes_block .mes_reasoning li {
+    margin-bottom: 1.3em !important;
+    font-size: 19px !important;
+}
+
+/* Reasoning header title */
+body.theme-dyslexia .mes_block .mes_reasoning_summary .mes_reasoning_header_title,
+body.theme-dyslexia-dark .mes_block .mes_reasoning_summary .mes_reasoning_header_title {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+}
+
+/* Dyslexia-friendly code blocks with higher contrast */
+body.theme-dyslexia .mes_block .mes_text code {
+    background-color: #2F2F2F !important;
+    color: #FDF6E3 !important;
+    font-family: 'OpenDyslexic Mono', 'Courier New', monospace !important;
+    font-size: 19px !important;
+    letter-spacing: 0.02em !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+}
+
+body.theme-dyslexia-dark .mes_block .mes_text code {
+    background-color: #404040 !important;
+    color: #E0E0E0 !important;
+    font-family: 'OpenDyslexic Mono', 'Courier New', monospace !important;
+    font-size: 19px !important;
+    letter-spacing: 0.02em !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+}
+
+/* Reduced visual clutter - simpler borders */
+body.theme-dyslexia .mes_block,
+body.theme-dyslexia-dark .mes_block {
+    border-width: 2px !important;
+    border-style: solid !important;
+}
+
+/* Enhanced focus indicators */
+body.theme-dyslexia .mes_block .mes_text *:focus,
+body.theme-dyslexia-dark .mes_block .mes_text *:focus {
+    outline: 3px solid #8B7355 !important;
+    outline-offset: 2px !important;
+}
+
+/* Additional contrast enhancements for dyslexia light theme */
+body.theme-dyslexia .mes_block .mes_text,
+body.theme-dyslexia .mes_block .mes_text p,
+body.theme-dyslexia .mes_block .mes_text div,
+body.theme-dyslexia .mes_block .mes_text span,
+body.theme-dyslexia .mes_block .mes_text q,
+body.theme-dyslexia .mes_block .mes_text em,
+body.theme-dyslexia .mes_block .mes_text strong {
+    color: #2d2d2d !important;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Additional contrast enhancements for dyslexia dark theme */
+body.theme-dyslexia-dark .mes_block .mes_text,
+body.theme-dyslexia-dark .mes_block .mes_text p,
+body.theme-dyslexia-dark .mes_block .mes_text div,
+body.theme-dyslexia-dark .mes_block .mes_text span,
+body.theme-dyslexia-dark .mes_block .mes_text q,
+body.theme-dyslexia-dark .mes_block .mes_text em,
+body.theme-dyslexia-dark .mes_block .mes_text strong {
+    color: #f0f0f0 !important;
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Enhanced header contrast - light theme */
+body.theme-dyslexia .mes_block .ch_name .name_text {
+    color: #1d1d1d !important;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Enhanced header contrast - dark theme */
+body.theme-dyslexia-dark .mes_block .ch_name .name_text {
+    color: #f0f0f0 !important;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Reasoning block text contrast - light theme */
+body.theme-dyslexia .mes_block .mes_reasoning,
+body.theme-dyslexia .mes_block .mes_reasoning p,
+body.theme-dyslexia .mes_block .mes_reasoning li,
+body.theme-dyslexia .mes_block .mes_reasoning span,
+body.theme-dyslexia .mes_block .mes_reasoning div {
+    color: #2d2d2d !important;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Reasoning block text contrast - dark theme */
+body.theme-dyslexia-dark .mes_block .mes_reasoning,
+body.theme-dyslexia-dark .mes_block .mes_reasoning p,
+body.theme-dyslexia-dark .mes_block .mes_reasoning li,
+body.theme-dyslexia-dark .mes_block .mes_reasoning span,
+body.theme-dyslexia-dark .mes_block .mes_reasoning div {
+    color: #f0f0f0 !important;
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* High contrast code blocks - light theme */
+body.theme-dyslexia .mes_block .mes_text code {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+    text-shadow: none !important;
+    border: 1px solid #333333 !important;
+}
+
+/* High contrast code blocks - dark theme */
+body.theme-dyslexia-dark .mes_block .mes_text code {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    text-shadow: none !important;
+    border: 1px solid #CCCCCC !important;
+}
+
+/* === USER SETTINGS TABBED INTERFACE === */
+
+/* Tab navigation styles */
+.nemo-user-settings-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--nemo-border-color);
+    margin-bottom: 20px;
+    background-color: var(--nemo-secondary-bg);
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+}
+
+.nemo-user-settings-tab {
+    flex: 1;
+    padding: 12px 20px;
+    background-color: var(--nemo-tertiary-bg);
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--nemo-text-color);
+    border-right: 1px solid var(--nemo-border-color);
+    transition: all 0.3s ease;
+    position: relative;
+    text-align: center;
+}
+
+.nemo-user-settings-tab:last-child {
+    border-right: none;
+}
+
+.nemo-user-settings-tab:hover {
+    background-color: var(--nemo-item-hover-bg);
+    color: var(--nemo-primary-accent);
+}
+
+.nemo-user-settings-tab.active {
+    background-color: var(--nemo-primary-bg);
+    color: var(--nemo-primary-accent);
+    border-bottom: 3px solid var(--nemo-primary-accent);
+}
+
+.nemo-user-settings-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--nemo-primary-bg);
+}
+
+/* Tab content styles */
+.nemo-user-settings-tab-content {
+    display: none;
+    padding: 20px 0;
+}
+
+.nemo-user-settings-tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Ensure proper layout within tabs */
+.nemo-user-settings-tab-content > div {
+    max-width: 100%;
+}
+
+/* UI Theme tab specific styling */
+#nemo-tab-ui-theme {
+    display: none;
+}
+
+#nemo-tab-ui-theme.active {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+/* Theme selector section - full width */
+#nemo-tab-ui-theme #UI-presets-block {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Main content area - two columns */
+.nemo-ui-theme-main-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-items: start;
+    width: 100%;
+    grid-template-rows: auto;
+}
+
+/* Force grid positioning - left column (theme elements) */
+.nemo-ui-theme-main-content > [name="themeElements"] {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+/* Force grid positioning - right column (Custom CSS) */
+.nemo-ui-theme-main-content > #CustomCSS-block {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+/* Left column: All theme elements except Custom CSS */
+#nemo-tab-ui-theme .nemo-ui-theme-main-content [name="themeElements"] {
+    width: 100%;
+    min-width: 0;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+/* Right column: Custom CSS block */
+#nemo-tab-ui-theme .nemo-ui-theme-main-content #CustomCSS-block {
+    width: 100%;
+    min-width: 0;
+    grid-column: 2;
+    grid-row: 1;
+}
+
+/* Make sure elements inside themeElements use full width */
+#nemo-tab-ui-theme [name="themeElements"] > * {
+    width: 100%;
+}
+
+/* Form elements should expand but buttons shouldn't stretch */
+#nemo-tab-ui-theme select,
+#nemo-tab-ui-theme input[type="range"],
+#nemo-tab-ui-theme input[type="number"],
+#nemo-tab-ui-theme textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Buttons should not stretch - keep natural size */
+#nemo-tab-ui-theme .menu_button {
+    width: auto;
+    flex-shrink: 0;
+}
+
+/* Flex containers should distribute space, not stretch content */
+#nemo-tab-ui-theme .flex-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#nemo-tab-ui-theme .flex-container.alignItemsBaseline {
+    align-items: baseline;
+}
+
+/* For select elements in flex containers, only the select should grow */
+#nemo-tab-ui-theme .flex-container select.flex1 {
+    flex: 1;
+}
+
+#nemo-tab-ui-theme .flex-container select:not(.flex1) {
+    width: auto;
+    flex-shrink: 0;
+}
+
+/* Fix specific theme elements */
+#nemo-tab-ui-theme [name="FontBlurChatWidthBlock"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    width: 100%;
+}
+
+#nemo-tab-ui-theme [name="FontBlurChatWidthBlock"] .flex-container {
+    flex: 1;
+    min-width: 200px;
+}
+
+#nemo-tab-ui-theme .neo-range-slider {
+    width: 100%;
+}
+
+/* Fix color picker block */
+#nemo-tab-ui-theme #color-picker-block .flex-container {
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+/* Ensure inline drawers expand */
+#nemo-tab-ui-theme .inline-drawer {
+    width: 100%;
+}
+
+/* Make Custom CSS textarea resizable */
+#nemo-tab-ui-theme #customCSS {
+    resize: both !important;
+    min-height: 200px !important;
+    max-height: 800px !important;
+    min-width: 200px !important;
+}
+
+/* Theme toggles multi-column layout */
+#nemo-tab-ui-theme [name="themeToggles"] {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px 20px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+#nemo-tab-ui-theme [name="themeToggles"] .checkbox_label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--nemo-tertiary-bg, rgba(255, 255, 255, 0.05));
+    border-radius: 6px;
+    border: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.1));
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#nemo-tab-ui-theme [name="themeToggles"] .checkbox_label:hover {
+    background-color: var(--nemo-item-hover-bg, rgba(255, 255, 255, 0.08));
+}
+
+#nemo-tab-ui-theme [name="themeToggles"] .checkbox_label input[type="checkbox"] {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+#nemo-tab-ui-theme [name="themeToggles"] .checkbox_label small {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+#nemo-tab-ui-theme [name="themeToggles"] .checkbox_label i {
+    margin-left: auto;
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+/* Responsive adjustment for theme toggles */
+@media (max-width: 768px) {
+    #nemo-tab-ui-theme [name="themeToggles"] {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    #nemo-tab-ui-theme [name="themeToggles"] .checkbox_label {
+        padding: 10px;
+    }
+}
+
+/* Chat Messages tab specific styling */
+#nemo-tab-chat-messages {
+    display: none;
+}
+
+#nemo-tab-chat-messages.active {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+#nemo-tab-chat-messages > div {
+    width: 100%;
+}
+
+#nemo-tab-chat-messages .menu_button {
+    width: auto;
+    flex-shrink: 0;
+}
+
+#nemo-tab-chat-messages select,
+#nemo-tab-chat-messages input[type="range"],
+#nemo-tab-chat-messages input[type="number"],
+#nemo-tab-chat-messages textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Character Handling tab specific styling */
+#nemo-tab-character-handling {
+    display: none;
+}
+
+
+/* Responsive design for mobile devices */
+@media (max-width: 768px) {
+    .nemo-ui-theme-main-content {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+    
+    .nemo-ui-theme-main-content > [name="themeElements"] {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+    }
+    
+    .nemo-ui-theme-main-content > #CustomCSS-block {
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+    }
+    
+    .nemo-user-settings-tab {
+        font-size: 12px;
+        padding: 10px 15px;
+    }
+}
+
+#nemo-tab-character-handling.active {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-items: start;
+    width: 100%;
+    align-content: start;
+}
+
+#nemo-tab-character-handling [name="CharacterHandlingToggles"] {
+    width: 100%;
+    min-width: 0;
+    grid-column: 1;
+}
+
+#nemo-tab-character-handling [name="MiscellaneousToggles"] {
+    width: 100%;
+    min-width: 0;
+    grid-column: 2;
+}
+
+/* Form elements should expand properly but buttons shouldn't stretch */
+#nemo-tab-character-handling select,
+#nemo-tab-character-handling input[type="range"],
+#nemo-tab-character-handling input[type="number"],
+#nemo-tab-character-handling textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#nemo-tab-character-handling .flex-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#nemo-tab-character-handling .flex-container.flexGap2 {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Buttons should maintain natural size */
+#nemo-tab-character-handling .menu_button {
+    width: auto;
+    flex-shrink: 0;
+}
+
+/* Miscellaneous section specific styling */
+#nemo-tab-character-handling [name="MiscellaneousToggles"] {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+#nemo-tab-character-handling [name="MiscellaneousToggles"] h4 {
+    margin-bottom: 10px;
+    margin-top: 0;
+}
+
+/* Organize miscellaneous checkboxes in a more compact layout */
+#nemo-tab-character-handling [name="MiscellaneousToggles"] .checkbox_label {
+    margin-bottom: 8px;
+    padding: 6px 0;
+}
+
+/* Make the button container more compact */
+#nemo-tab-character-handling [name="MiscellaneousToggles"] .flex-container.flexGap2 {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+/* Smooth streaming control styling */
+#nemo-tab-character-handling [name="MiscellaneousToggles"] #smooth_streaming_speed_control {
+    margin-top: 2px;
+    margin-left: 20px;
+    align-self: flex-start;
+}
+
+/* MovingUI section styling */
+#nemo-tab-character-handling [name="MiscellaneousToggles"] #MovingUI-presets-block {
+    margin-top: 8px;
+    margin-left: 20px;
+}
+
+/* Ensure streaming FPS and message load controls are aligned */
+#nemo-tab-character-handling .flex-container .flexFlowColumn {
+    align-items: flex-start;
+}
+
+#nemo-tab-character-handling .flex-container .flexFlowColumn small:first-child {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 20px;
+}
+
+/* Align the actual slider elements by targeting the neo-range-slider specifically */
+#nemo-tab-character-handling .flex-container .neo-range-slider {
+    margin-top: 0;
+    align-self: stretch;
+}
+
+/* Hide the "(0 = All)" text to fix alignment - multiple selectors for better targeting */
+#nemo-tab-character-handling small[data-i18n="(0 = All)"],
+small[data-i18n="(0 = All)"],
+.flexFlowColumn small[data-i18n="(0 = All)"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Also target it by content if data-i18n doesn't work */
+#nemo-tab-character-handling .flexFlowColumn small:last-child {
+    display: none !important;
+}
+
+/* Only allow flex growth for elements marked with flex1 */
+#nemo-tab-character-handling .flex1 {
+    flex: 1;
+}
+
+/* === SEARCH RESULTS STYLING === */
+
+.nemo-search-results-container {
+    padding: 20px 0;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.nemo-search-results-header {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--nemo-border-color);
+}
+
+.nemo-search-results-header h4 {
+    color: var(--nemo-primary-accent);
+    margin: 0;
+    font-size: 16px;
+}
+
+.nemo-search-result-item {
+    margin-bottom: 20px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 8px;
+    background-color: var(--nemo-tertiary-bg);
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nemo-search-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 15px;
+    background-color: var(--nemo-secondary-bg);
+    border-bottom: 1px solid var(--nemo-border-color);
+    font-size: 12px;
+}
+
+.nemo-search-result-tab {
+    font-weight: 600;
+    color: var(--nemo-primary-accent);
+    letter-spacing: 0.5px;
+}
+
+.nemo-search-result-relevance {
+    color: var(--nemo-text-color);
+    opacity: 0.7;
+}
+
+.nemo-search-result-item > *:not(.nemo-search-result-header) {
+    padding: 15px;
+}
+
+.nemo-search-result-item label,
+.nemo-search-result-item .flex-container {
+    margin-bottom: 0;
+}
+
+.nemo-no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--nemo-text-color);
+    opacity: 0.7;
+}
+
+.nemo-no-results i {
+    font-size: 24px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.nemo-no-results p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Search input styling */
+.nemo-user-settings-search {
+    margin-bottom: 15px;
+}
+
+#nemo-user-settings-search {
+    transition: all 0.2s ease;
+}
+
+#nemo-user-settings-search:focus {
+    outline: none;
+    border-color: var(--nemo-primary-accent) !important;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+}
+
+/* Responsive search results */
+@media (max-width: 768px) {
+    .nemo-search-results-container {
+        padding: 15px 0;
+        max-height: 60vh;
+    }
+    
+    .nemo-search-result-item > *:not(.nemo-search-result-header) {
+        padding: 12px;
+    }
+    
+    .nemo-search-result-header {
+        padding: 6px 12px;
+    }
+}
+
+/* === PROMPT CONTEXT MENU & DIALOG STYLING === */
+
+/* Context Menu */
+.nemo-context-menu {
+    position: absolute;
+    background-color: var(--nemo-secondary-bg);
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    min-width: 150px;
+    padding: 6px 0;
+}
+
+.nemo-context-menu-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--nemo-text-color);
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.nemo-context-menu-item:hover {
+    background-color: var(--nemo-item-hover-bg);
+}
+
+.nemo-context-menu-item i {
+    width: 14px;
+    text-align: center;
+    opacity: 0.7;
+}
+
+.nemo-context-menu-separator {
+    height: 1px;
+    background-color: var(--nemo-border-color);
+    margin: 6px 0;
+}
+
+/* Dialog Overlay */
+.nemo-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    padding: 20px;
+}
+
+.nemo-dialog {
+    background-color: var(--nemo-primary-bg);
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.nemo-dialog-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--nemo-border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--nemo-secondary-bg);
+}
+
+.nemo-dialog-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--nemo-text-color);
+}
+
+.nemo-dialog-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--nemo-text-color);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.nemo-dialog-close:hover {
+    background-color: var(--nemo-item-hover-bg);
+}
+
+.nemo-dialog-content {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.nemo-dialog-content p {
+    margin: 0 0 20px 0;
+    color: var(--nemo-text-color);
+    font-size: 14px;
+}
+
+.nemo-headers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.nemo-header-option {
+    padding: 16px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 8px;
+    background-color: var(--nemo-tertiary-bg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nemo-header-option:hover {
+    background-color: var(--nemo-item-hover-bg);
+    border-color: var(--nemo-primary-accent);
+}
+
+.nemo-header-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--nemo-primary-accent);
+    margin-bottom: 4px;
+}
+
+.nemo-header-preview {
+    font-size: 12px;
+    color: var(--nemo-text-color);
+    opacity: 0.8;
+}
+
+.nemo-dialog-actions {
+    padding: 20px 24px;
+    border-top: 1px solid var(--nemo-border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.nemo-btn-secondary {
+    padding: 8px 16px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 6px;
+    background-color: var(--nemo-tertiary-bg);
+    color: var(--nemo-text-color);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nemo-btn-secondary:hover {
+    background-color: var(--nemo-item-hover-bg);
+    border-color: var(--nemo-primary-accent);
+}
+
+/* Responsive dialog */
+@media (max-width: 768px) {
+    .nemo-dialog {
+        margin: 0;
+        border-radius: 0;
+        max-height: 100vh;
+        height: 100vh;
+    }
+    
+    .nemo-dialog-overlay {
+        padding: 0;
+    }
+    
+    .nemo-dialog-header,
+    .nemo-dialog-content,
+    .nemo-dialog-actions {
+        padding: 16px;
+    }
+}
+
+/* === PROMPT LIBRARY SYSTEM STYLING === */
+
+/* Dialog variations */
+.nemo-dialog-large {
+    max-width: 700px;
+    max-height: 85vh;
+}
+
+/* Form styling */
+.nemo-form-group {
+    margin-bottom: 20px;
+}
+
+.nemo-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--nemo-text-color);
+    font-size: 14px;
+}
+
+.nemo-form-group input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 6px;
+    background-color: var(--nemo-tertiary-bg);
+    color: var(--nemo-text-color);
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.nemo-form-group input[type="text"]:focus {
+    outline: none;
+    border-color: var(--nemo-primary-accent);
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+}
+
+.nemo-prompt-preview {
+    background-color: var(--nemo-secondary-bg);
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* Saved prompts list */
+.nemo-saved-prompts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.nemo-saved-prompt-item {
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 8px;
+    background-color: var(--nemo-tertiary-bg);
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+.nemo-saved-prompt-item:hover {
+    border-color: var(--nemo-primary-accent);
+    background-color: var(--nemo-item-hover-bg);
+}
+
+.nemo-saved-prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.nemo-saved-prompt-title {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--nemo-primary-accent);
+    flex: 1;
+}
+
+.nemo-saved-prompt-date {
+    font-size: 12px;
+    color: var(--nemo-text-color);
+    opacity: 0.7;
+    margin-left: 12px;
+}
+
+.nemo-prompt-tags {
+    margin-bottom: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.nemo-tag {
+    background-color: var(--nemo-primary-accent);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.nemo-saved-prompt-preview {
+    margin-bottom: 12px;
+    color: var(--nemo-text-color);
+    opacity: 0.8;
+    font-size: 12px;
+}
+
+.nemo-saved-prompt-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+/* Button variations */
+.nemo-btn-primary {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background-color: var(--nemo-primary-accent);
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nemo-btn-primary:hover {
+    background-color: color-mix(in srgb, var(--nemo-primary-accent) 85%, black);
+}
+
+.nemo-btn-small {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+.nemo-btn-danger {
+    border: 1px solid #dc3545;
+    background-color: transparent;
+    color: #dc3545;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nemo-btn-danger:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Scrollbar styling for prompts list */
+.nemo-saved-prompts-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nemo-saved-prompts-list::-webkit-scrollbar-track {
+    background: var(--nemo-tertiary-bg);
+    border-radius: 3px;
+}
+
+.nemo-saved-prompts-list::-webkit-scrollbar-thumb {
+    background: var(--nemo-border-color);
+    border-radius: 3px;
+}
+
+.nemo-saved-prompts-list::-webkit-scrollbar-thumb:hover {
+    background: var(--nemo-primary-accent);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .nemo-dialog-large {
+        max-width: 100vw;
+        max-height: 100vh;
+        margin: 0;
+        border-radius: 0;
+    }
+    
+    .nemo-saved-prompt-header {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .nemo-saved-prompt-date {
+        margin-left: 0;
+    }
+    
+    .nemo-saved-prompt-actions {
+        flex-direction: column;
+    }
+    
+    .nemo-saved-prompt-actions button {
+        width: 100%;
+    }
+}
+
+/* Chat Messages tab specific styling */
+#nemo-tab-chat-messages {
+    display: none;
+}
+
+#nemo-tab-chat-messages.active {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 30px;
+    align-items: start;
+    width: 100%;
+}
+
+/* Organize chat message sections - ensure they fill space properly */
+#nemo-tab-chat-messages > * {
+    width: 100%;
+    min-width: 0;
+}
+
+#nemo-tab-chat-messages [name="ChatMessageHandlingToggles"] {
+    width: 100%;
+    min-width: 0;
+}
+
+#nemo-tab-chat-messages [name="AutoCompleteToggle"] {
+    width: 100%;
+    min-width: 0;
+}
+
+#nemo-tab-chat-messages [name="STscriptToggles"] {
+    width: 100%;
+    min-width: 0;
+}
+
+/* Form elements should expand properly but buttons shouldn't stretch */
+#nemo-tab-chat-messages select,
+#nemo-tab-chat-messages input[type="range"],
+#nemo-tab-chat-messages input[type="number"],
+#nemo-tab-chat-messages textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#nemo-tab-chat-messages .flex-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Buttons should maintain natural size */
+#nemo-tab-chat-messages .menu_button {
+    width: auto;
+    flex-shrink: 0;
+}
+
+/* Only allow flex growth for elements marked with flex1 */
+#nemo-tab-chat-messages .flex1 {
+    flex: 1;
+}
+
+/* Fix the range sliders in chat messages */
+#nemo-tab-chat-messages .flex-container.flexBasis48p {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#nemo-tab-chat-messages .neo-range-slider {
+    width: 100%;
+}
+
+#nemo-tab-chat-messages .auto_swipe textarea {
+    width: 100%;
+    min-height: 80px;
+}
+
+/* Fix checkbox containers */
+#nemo-tab-chat-messages .checkbox_label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+}
+
+/* Enhanced section styling within tabs */
+.nemo-user-settings-tab-content h4 {
+    color: var(--nemo-primary-accent);
+    border-bottom: 2px solid var(--nemo-border-color);
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+    margin-top: 25px;
+}
+
+.nemo-user-settings-tab-content h4:first-child {
+    margin-top: 0;
+}
+
+/* Improve spacing for form elements in tabs */
+.nemo-user-settings-tab-content .flex-container {
+    margin-bottom: 12px;
+}
+
+.nemo-user-settings-tab-content .checkbox_label {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Better organization for inline drawers in tabs */
+.nemo-user-settings-tab-content .inline-drawer {
+    margin: 15px 0;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 6px;
+    background-color: var(--nemo-secondary-bg);
+}
+
+.nemo-user-settings-tab-content .inline-drawer-header {
+    background-color: var(--nemo-tertiary-bg);
+    border-radius: 6px 6px 0 0;
+}
+
+/* Improved button and control spacing */
+.nemo-user-settings-tab-content .menu_button {
+    margin: 2px;
+}
+
+/* Better range slider layout in tabs */
+.nemo-user-settings-tab-content .neo-range-slider,
+.nemo-user-settings-tab-content .neo-range-input {
+    margin: 5px 0;
+}
+
+/* Ensure all container elements expand to fill available space */
+.nemo-user-settings-tab-content > * {
+    width: 100%;
+}
+
+/* Specific width fixes for form elements */
+.nemo-user-settings-tab-content select,
+.nemo-user-settings-tab-content input[type="text"],
+.nemo-user-settings-tab-content input[type="number"],
+.nemo-user-settings-tab-content textarea {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Fix flex containers in tabs */
+.nemo-user-settings-tab-content .flex-container {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Ensure textarea in Custom CSS expands properly */
+#nemo-tab-ui-theme #customCSS {
+    width: 100%;
+    min-height: 200px;
+    resize: vertical;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile responsive tabs and layouts */
+@media (max-width: 768px) {
+    .nemo-user-settings-tabs {
+        flex-direction: column;
+    }
+    
+    .nemo-user-settings-tab {
+        border-right: none;
+        border-bottom: 1px solid var(--nemo-border-color);
+        padding: 10px 15px;
+    }
+    
+    .nemo-user-settings-tab:last-child {
+        border-bottom: none;
+    }
+    
+    /* Mobile: Single column layouts for all tabs */
+    #nemo-tab-ui-theme.active {
+        gap: 20px;
+    }
+    
+    .nemo-ui-theme-main-content {
+        grid-template-columns: 1fr !important;
+        gap: 20px;
+    }
+    
+    #nemo-tab-ui-theme [name="FontBlurChatWidthBlock"] {
+        flex-direction: column;
+    }
+    
+    #nemo-tab-ui-theme [name="FontBlurChatWidthBlock"] .flex-container {
+        min-width: unset;
+        width: 100%;
+    }
+    
+    #nemo-tab-character-handling.active {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    #nemo-tab-character-handling [name="CharacterHandlingToggles"] {
+        grid-column: 1;
+    }
+    
+    #nemo-tab-character-handling [name="MiscellaneousToggles"] {
+        grid-column: 1;
+    }
+    
+    #nemo-tab-chat-messages.active {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+/* Tablet responsive design */
+@media (min-width: 769px) and (max-width: 1024px) {
+    /* Tablet: Keep two columns but with smaller gaps */
+    #nemo-tab-ui-theme.active {
+        gap: 20px;
+    }
+    
+    .nemo-ui-theme-main-content {
+        gap: 20px;
+    }
+    
+    #nemo-tab-character-handling.active {
+        gap: 20px;
+    }
+    
+    #nemo-tab-chat-messages.active {
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+    }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1200px) {
+    /* Large screens: Allow more columns for chat messages */
+    #nemo-tab-chat-messages.active {
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 40px;
+    }
+    
+    #nemo-tab-ui-theme.active {
+        gap: 30px;
+    }
+    
+    .nemo-ui-theme-main-content {
+        gap: 40px;
+    }
+    
+    #nemo-tab-character-handling.active {
+        gap: 40px;
+    }
+}
+
+/* === ADDITIONAL THEME VARIATIONS === */
+
+/* --- Classic Theme --- */
+body.theme-classic .mes_block {
+    border-radius: 15px;
+    border: 1px solid var(--nemo-border-color);
+    background-color: var(--nemo-secondary-bg);
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px var(--nemo-shadow-color);
+}
+
+body.theme-classic .mes_block.is_user {
+    background-color: var(--nemo-tertiary-bg);
+}
+
+body.theme-classic .mes_block .ch_name {
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--nemo-border-color);
+    margin-bottom: 10px;
+}
+
+/* --- Terminal Theme --- */
+body.theme-terminal #chat {
+    background-color: #0a0a0a;
+    font-family: 'Courier New', Courier, monospace;
+    border: 2px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+body.theme-terminal .mes_block {
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 2px 5px;
+    margin-bottom: 0;
+    box-shadow: none;
+}
+
+body.theme-terminal .mes_block .ch_name .name_text {
+    color: #00ff00;
+}
+body.theme-terminal .mes_block .ch_name .name_text::after {
+    content: ':~#';
+    margin-left: 5px;
+}
+
+body.theme-terminal .mes_block.is_user .ch_name .name_text {
+    color: #00ffff;
+}
+
+body.theme-terminal .mes_block .mes_text {
+    color: #f0f0f0;
+}
+
+body.theme-terminal .mes_block .ch_name .timestamp {
+    color: #888;
+}
+
+body.theme-terminal .mes_block .avatar {
+    display: none;
+}
+
+/* === ARCHIVE NAVIGATOR STYLES === */
+
+/* Archive Navigator Dialog */
+.nemo-archive-overlay {
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 10001;
+}
+
+.nemo-archive-dialog {
+    background: var(--nemo-primary-bg);
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 8px;
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 1200px;
+    height: 800px;
+    margin: 5vh auto;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.nemo-archive-header {
+    background: var(--nemo-secondary-bg);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--nemo-border-color);
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nemo-archive-header h2 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--nemo-text-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nemo-archive-header h2 i {
+    color: var(--nemo-primary-accent);
+}
+
+.nemo-archive-stats {
+    font-size: 12px;
+    color: var(--nemo-text-muted);
+}
+
+.nemo-archive-toolbar {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--nemo-border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    background: var(--nemo-tertiary-bg);
+}
+
+.nemo-archive-toolbar-left,
+.nemo-archive-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nemo-archive-toolbar-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.nemo-archive-search {
+    width: 300px;
+    padding: 8px 12px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 4px;
+    background: var(--nemo-primary-bg);
+    color: var(--nemo-text-color);
+    font-size: 14px;
+}
+
+.nemo-archive-sort {
+    padding: 6px 10px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 4px;
+    background: var(--nemo-primary-bg);
+    color: var(--nemo-text-color);
+    font-size: 13px;
+}
+
+.nemo-archive-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.nemo-archive-sidebar {
+    width: 250px;
+    background: var(--nemo-secondary-bg);
+    border-right: 1px solid var(--nemo-border-color);
+    overflow-y: auto;
+    padding: 15px 0;
+}
+
+.nemo-archive-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: var(--nemo-primary-bg);
+}
+
+/* Folder Sidebar */
+.nemo-folder-list {
+    padding: 0 15px;
+}
+
+.nemo-folder-item {
+    padding: 10px 12px;
+    margin-bottom: 2px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.nemo-folder-item:hover {
+    background-color: var(--nemo-tertiary-bg);
+}
+
+.nemo-folder-item.active {
+    background-color: var(--nemo-primary-accent);
+    color: white;
+}
+
+.nemo-folder-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.nemo-folder-name {
+    font-size: 14px;
+    flex: 1;
+}
+
+.nemo-folder-count {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    min-width: 16px;
+    text-align: center;
+}
+
+.nemo-folder-item.active .nemo-folder-count {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.nemo-folder-star {
+    color: #ffd700;
+    font-size: 10px;
+}
+
+.nemo-folder-actions {
+    display: none;
+    gap: 4px;
+}
+
+.nemo-folder-item:hover .nemo-folder-actions {
+    display: flex;
+}
+
+.nemo-folder-action {
+    padding: 4px;
+    background: none;
+    border: none;
+    color: var(--nemo-text-muted);
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.nemo-folder-action:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.nemo-folder-divider {
+    height: 1px;
+    background: var(--nemo-border-color);
+    margin: 10px 0;
+}
+
+/* Prompt Grid */
+.nemo-prompt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 15px;
+}
+
+.nemo-prompt-card {
+    background: var(--nemo-secondary-bg);
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 8px;
+    padding: 15px;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    cursor: pointer;
+}
+
+.nemo-prompt-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    border-color: var(--nemo-primary-accent);
+}
+
+.nemo-prompt-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.nemo-prompt-card-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--nemo-text-color);
+    flex: 1;
+    line-height: 1.3;
+}
+
+.nemo-prompt-card-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: 10px;
+}
+
+.nemo-prompt-action {
+    padding: 6px;
+    background: none;
+    border: none;
+    color: var(--nemo-text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0.7;
+    transition: all 0.2s;
+}
+
+.nemo-prompt-action:hover {
+    opacity: 1;
+    background: var(--nemo-tertiary-bg);
+}
+
+.nemo-favorite-btn.active {
+    color: #ffd700;
+    opacity: 1;
+}
+
+.nemo-prompt-tags {
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.nemo-tag {
+    background: var(--nemo-tertiary-bg);
+    color: var(--nemo-text-color);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    border: 1px solid var(--nemo-border-color);
+}
+
+.nemo-prompt-card-preview {
+    color: var(--nemo-text-muted);
+    font-size: 12px;
+    line-height: 1.4;
+    margin-bottom: 10px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.nemo-prompt-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 10px;
+    color: var(--nemo-text-muted);
+    border-top: 1px solid var(--nemo-border-color);
+    padding-top: 8px;
+}
+
+.nemo-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--nemo-text-muted);
+}
+
+.nemo-empty-state i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    color: var(--nemo-primary-accent);
+}
+
+.nemo-empty-state h3 {
+    margin: 0 0 10px 0;
+    color: var(--nemo-text-color);
+}
+
+/* Dialog styles for forms */
+.nemo-form-group {
+    margin-bottom: 15px;
+}
+
+.nemo-form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: var(--nemo-text-color);
+}
+
+.nemo-dialog-note {
+    background: var(--nemo-tertiary-bg);
+    padding: 10px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--nemo-border-color);
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--nemo-text-muted);
+}
+
+.nemo-dialog-note code {
+    background: var(--nemo-secondary-bg);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 11px;
+}
+
+/* Button styles */
+.nemo-btn-small {
+    padding: 6px 12px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 4px;
+    background: var(--nemo-secondary-bg);
+    color: var(--nemo-text-color);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nemo-btn-small:hover {
+    background: var(--nemo-tertiary-bg);
+    border-color: var(--nemo-primary-accent);
+}
+
+.nemo-btn-primary {
+    background: var(--nemo-primary-accent);
+    color: white;
+    border-color: var(--nemo-primary-accent);
+}
+
+.nemo-btn-primary:hover {
+    background: var(--nemo-accent-hover);
+    border-color: var(--nemo-accent-hover);
+}
+
+.nemo-btn-secondary {
+    background: var(--nemo-secondary-bg);
+    border-color: var(--nemo-border-color);
+}
+
+#nemo-toggle-favorites.active {
+    background: var(--nemo-primary-accent);
+    color: white;
+    border-color: var(--nemo-primary-accent);
+}
+
+/* Mobile responsive archive navigator */
+@media (max-width: 768px) {
+    .nemo-archive-dialog {
+        width: 95vw;
+        height: 95vh;
+        margin: 2.5vh auto;
+    }
+
+    .nemo-archive-body {
+        flex-direction: column;
+    }
+
+    .nemo-archive-sidebar {
+        width: 100%;
+        max-height: 200px;
+        border-right: none;
+        border-bottom: 1px solid var(--nemo-border-color);
+    }
+
+    .nemo-folder-list {
+        display: flex;
+        overflow-x: auto;
+        padding: 10px 15px;
+        gap: 10px;
+    }
+
+    .nemo-folder-item {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    .nemo-archive-toolbar {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .nemo-archive-toolbar-left,
+    .nemo-archive-toolbar-center,
+    .nemo-archive-toolbar-right {
+        justify-content: center;
+    }
+
+    .nemo-archive-search {
+        width: 100%;
+    }
+
+    .nemo-prompt-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}
+
+/* === NAVIGATOR FAVORITES SIDEBAR === */
+
+.navigator-body {
+    display: flex;
+    flex: 1;
+}
+
+.navigator-sidebar {
+    width: 200px;
+    background: var(--nemo-secondary-bg);
+    border-right: 1px solid var(--nemo-border-color);
+    padding: 15px;
+    overflow-y: auto;
+}
+
+.navigator-favorites-section h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: var(--nemo-text-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.navigator-favorites-section h4 i {
+    color: #ffd700;
+}
+
+.navigator-favorites-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.navigator-favorite-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 14px;
+    position: relative;
+}
+
+.navigator-favorite-item:hover {
+    background: var(--nemo-tertiary-bg);
+}
+
+.favorite-item-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: var(--nemo-tertiary-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--nemo-text-muted);
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+}
+
+.favorite-item-name {
+    flex: 1;
+    color: var(--nemo-text-color);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    line-height: 1.3;
+    margin-right: 8px;
+}
+
+.no-favorites {
+    text-align: center;
+    color: var(--nemo-text-muted);
+    font-size: 11px;
+    padding: 20px 10px;
+    font-style: italic;
+}
+
+.favorite-remove-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--nemo-danger-bg, #dc2626);
+    color: white;
+    border: none;
+    border-radius: 3px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    opacity: 0;
+    transition: all 0.2s;
+}
+
+.navigator-favorite-item:hover .favorite-remove-btn {
+    opacity: 1;
+}
+
+.favorite-remove-btn:hover {
+    background: var(--nemo-danger-hover, #b91c1c);
+    transform: translateY(-50%) scale(1.1);
+}
+
+/* Favorite toggle buttons */
+.nemo-favorite-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7) !important;
+    border: none !important;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s;
+}
+
+.grid-item:hover .nemo-favorite-btn {
+    opacity: 1;
+}
+
+.nemo-favorite-btn .fa-star.favorite-active {
+    color: #ffd700;
+}
+
+.nemo-favorite-btn .fa-star {
+    color: #ccc;
+    font-size: 14px;
+}
+
+.nemo-favorite-btn:hover {
+    background: rgba(0, 0, 0, 0.9) !important;
+    transform: scale(1.1);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .navigator-sidebar {
+        width: 150px;
+        padding: 10px;
+    }
+    
+    .navigator-favorites-section h4 {
+        font-size: 12px;
+    }
+    
+    .navigator-favorite-item {
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+    
+    .favorite-remove-btn {
+        width: 18px;
+        height: 18px;
+        font-size: 9px;
+    }
+    
+    .favorite-item-icon {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+    }
+}
+
+/* === ADVANCED FORMATTING TABS === */
+
+/* Search container */
+.nemo-advanced-formatting-search {
+    margin-bottom: 10px;
+    padding: 10px;
+    background: var(--nemo-secondary-bg);
+    border-radius: 8px;
+    border: 1px solid var(--nemo-border-color);
+}
+
+/* Tab navigation */
+.nemo-advanced-formatting-tabs {
+    display: flex;
+    background: var(--nemo-primary-bg);
+    border-radius: 8px 8px 0 0;
+    border: 1px solid var(--nemo-border-color);
+    border-bottom: none;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    margin-bottom: 0;
+}
+
+.nemo-advanced-formatting-tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.nemo-advanced-formatting-tabs::-webkit-scrollbar-track {
+    background: var(--nemo-tertiary-bg);
+}
+
+.nemo-advanced-formatting-tabs::-webkit-scrollbar-thumb {
+    background: var(--nemo-border-color);
+    border-radius: 2px;
+}
+
+.nemo-advanced-formatting-tab {
+    flex: 1;
+    min-width: 150px;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    color: var(--nemo-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 3px solid transparent;
+    position: relative;
+}
+
+.nemo-advanced-formatting-tab:hover {
+    background: var(--nemo-item-hover-bg);
+    color: var(--nemo-text-color);
+}
+
+.nemo-advanced-formatting-tab.active {
+    color: var(--nemo-primary-accent);
+    border-bottom-color: var(--nemo-primary-accent);
+    background: var(--nemo-tertiary-bg);
+    font-weight: 500;
+}
+
+.nemo-advanced-formatting-tab i {
+    font-size: 16px;
+}
+
+/* Tab content */
+.nemo-advanced-formatting-tab-content {
+    display: none;
+    padding: 20px;
+    background: var(--nemo-tertiary-bg);
+    border: 1px solid var(--nemo-border-color);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    min-height: 200px;
+}
+
+.nemo-advanced-formatting-tab-content.active {
+    display: block;
+}
+
+/* Make tab content columns use full width */
+.nemo-advanced-formatting-tab-content > #ContextSettings,
+.nemo-advanced-formatting-tab-content > #InstructSettingsColumn,
+.nemo-advanced-formatting-tab-content > #SystemPromptColumn {
+    flex: 1;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Search results */
+.nemo-search-results-container {
+    display: none;
+    padding: 15px;
+    background: var(--nemo-tertiary-bg);
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 8px;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.nemo-search-results-header {
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--nemo-border-color);
+    margin-bottom: 15px;
+}
+
+.nemo-search-results-header h4 {
+    margin: 0;
+    color: var(--nemo-text-color);
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.nemo-search-result-item {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: var(--nemo-secondary-bg);
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 6px;
+    border-left: 4px solid var(--nemo-primary-accent);
+}
+
+.nemo-search-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--nemo-border-color);
+}
+
+.nemo-search-result-tab {
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--nemo-primary-accent);
+    letter-spacing: 0.5px;
+}
+
+.nemo-search-result-relevance {
+    font-size: 11px;
+    color: var(--nemo-text-muted);
+    background: var(--nemo-primary-bg);
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.nemo-no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--nemo-text-muted);
+}
+
+.nemo-no-results i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.nemo-no-results p {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* Mobile responsiveness for Advanced Formatting tabs */
+@media (max-width: 768px) {
+    .nemo-advanced-formatting-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .nemo-advanced-formatting-tab {
+        min-width: calc(50% - 1px);
+        font-size: 12px;
+        padding: 10px 12px;
+    }
+    
+    .nemo-advanced-formatting-tab i {
+        font-size: 14px;
+    }
+    
+    .nemo-advanced-formatting-tab-content {
+        padding: 15px;
+    }
+    
+    .nemo-search-result-item {
+        padding: 12px;
+    }
+    
+    .nemo-search-results-container {
+        padding: 12px;
+        max-height: 400px;
+    }
 }

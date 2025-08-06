@@ -7,6 +7,8 @@ import { initPresetNavigatorForApi } from './navigator.js';
 import { NemoSettingsUI } from './settings-ui.js';
 import { NemoGlobalUI } from './global-ui.js'; // Import NemoGlobalUI
 import { NemoWorldInfoUI } from './world-info-ui.js';
+import { UserSettingsTabs } from './user-settings-tabs.js';
+import { AdvancedFormattingTabs } from './advanced-formatting-tabs.js';
 
 // --- MAIN INITIALIZATION ---
 const MAIN_SELECTORS = {
@@ -27,6 +29,12 @@ waitForElement('#left-nav-panel', async () => {
         NemoSettingsUI.initialize();
         NemoGlobalUI.initialize();
         
+        // Initialize tab overhauls only if enabled
+        if (extension_settings.NemoPresetExt?.enableTabOverhauls !== false) {
+            UserSettingsTabs.initialize();
+            AdvancedFormattingTabs.initialize();
+        }
+        
         if (extension_settings.NemoPresetExt?.enableLorebookOverhaul !== false) {
             NemoWorldInfoUI.initialize();
         }
@@ -36,6 +44,13 @@ waitForElement('#left-nav-panel', async () => {
             const promptList = /** @type {HTMLElement} */ (document.querySelector(MAIN_SELECTORS.promptsContainer));
             if (promptList && !promptList.dataset.nemoPromptsInitialized) {
                 NemoPresetManager.initialize(promptList);
+            } else if (promptList && promptList.dataset.nemoPromptsInitialized) {
+                // Check if the UI needs refreshing (e.g., after preset changes)
+                const snapshotBtn = document.getElementById('nemoTakeSnapshotBtn');
+                if (!snapshotBtn) {
+                    console.log(`${LOG_PREFIX} Snapshot button missing, refreshing UI...`);
+                    NemoPresetManager.refreshUI();
+                }
             }
             
             // Patch API preset dropdowns with the "Browse..." button
@@ -46,6 +61,17 @@ waitForElement('#left-nav-panel', async () => {
                     initPresetNavigatorForApi(api);
                 }
             });
+        });
+
+        // Listen for events that might require UI refresh
+        eventSource.on(event_types.CHATCOMPLETION_SOURCE_CHANGED, () => {
+            console.log(`${LOG_PREFIX} Chat completion source changed, will refresh UI`);
+            setTimeout(() => {
+                const promptList = document.querySelector(MAIN_SELECTORS.promptsContainer);
+                if (promptList && promptList.dataset.nemoPromptsInitialized) {
+                    NemoPresetManager.refreshUI();
+                }
+            }, 500);
         });
 
         // Observe the body for dynamically added elements we need to patch

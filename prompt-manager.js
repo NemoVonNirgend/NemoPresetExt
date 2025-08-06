@@ -2,6 +2,7 @@ import { saveSettingsDebounced, eventSource, event_types } from '../../../../scr
 import { extension_settings, getContext } from '../../../extensions.js';
 import { LOG_PREFIX, NEMO_EXTENSION_NAME, ensureSettingsNamespace, escapeRegex, delay, NEMO_SECTIONS_ENABLED_KEY, NEMO_SNAPSHOT_KEY, NEMO_FAVORITE_PRESETS_KEY } from './utils.js';
 import { promptManager } from '../../../../scripts/openai.js';
+import { PromptNavigator } from './prompt-navigator.js';
 import './lib/Sortable.min.js'; // Import Sortable
 
 // 1. CONFIGURATION & STATE
@@ -58,23 +59,277 @@ export const NemoPresetManager = {
     },
 
     createSearchAndStatusUI: function(container) {
-        if (document.getElementById('nemoPresetSearchContainer')) return;
+        // Remove existing UI if it exists
+        const existing = document.getElementById('nemoSearchAndStatusWrapper');
+        if (existing) {
+            existing.remove();
+        }
 
         const searchAndStatusWrapper = document.createElement('div');
         searchAndStatusWrapper.id = 'nemoSearchAndStatusWrapper';
         searchAndStatusWrapper.innerHTML = `
             <div id="nemoPresetSearchContainer">
-                <input type="text" id="nemoPresetSearchInput" placeholder="Search loaded prompts..." class="text_pole">
+                <input type="text" id="nemoPresetSearchInput" placeholder="Search prompts (name & content)..." class="text_pole">
                 <div class="nemo-search-controls">
                     <button id="nemoPresetSearchClear" title="Clear search" class="menu_button"><i class="fa-solid fa-times"></i></button>
                     <div class="nemo-search-divider"></div>
                     <button id="nemoToggleSectionsBtn" title="Toggle Collapsible Sections" class="menu_button"><i class="fa-solid fa-list-ul"></i></button>
+                    <button id="nemoPromptNavigatorBtn" title="Browse Prompts with Folder Management" class="menu_button"><i class="fa-solid fa-folder-tree"></i></button>
+                    <button id="nemoArchiveNavigatorBtn" title="Open Prompt Archive Navigator" class="menu_button"><i class="fa-solid fa-archive"></i></button>
                     <button id="nemoTakeSnapshotBtn" title="Take a snapshot of the current prompt state" class="menu_button"><i class="fa-solid fa-camera"></i></button>
                     <button id="nemoApplySnapshotBtn" title="Apply the last snapshot" class="menu_button" disabled><i class="fa-solid fa-wand-magic-sparkles"></i></button>
                 </div>
             </div>
             <div id="nemoSnapshotStatus" class="nemo-status-message"></div>`;
         container.parentElement.insertBefore(searchAndStatusWrapper, container);
+        
+        console.log(`${LOG_PREFIX} Created search and status UI`);
+    },
+
+    createReasoningSection: function(container) {
+        // Remove existing Reasoning section if it exists
+        const existing = document.getElementById('nemoReasoningSection');
+        if (existing) {
+            existing.remove();
+        }
+
+        // Find the Chat Completion Settings drawer to insert after it
+        const chatCompletionDrawer = document.getElementById('nemo-drawer-openai_chat_settings');
+        if (!chatCompletionDrawer) {
+            console.warn(`${LOG_PREFIX} Chat Completion Settings drawer not found, cannot position Reasoning section`);
+            return;
+        }
+
+        const reasoningSection = document.createElement('div');
+        reasoningSection.id = 'nemoReasoningSection';
+        reasoningSection.className = 'inline-drawer wide100p nemo-converted-drawer';
+        reasoningSection.innerHTML = `
+            <div class="inline-drawer-toggle inline-drawer-header interactable" tabindex="0">
+                <b data-i18n="Reasoning">Reasoning</b>
+                <div class="inline-drawer-icon fa-solid fa-chevron-down interactable down" tabindex="0"></div>
+            </div>
+            <div class="inline-drawer-content" style="display: none;">
+                <!-- Start Reply With Section -->
+                <div class="range-block">
+                    <div class="wide100p">
+                        <div class="flex-container alignItemsCenter">
+                            <span data-i18n="Start Reply With">Start Reply With</span>
+                        </div>
+                        <textarea id="nemo-start-reply-with" class="text_pole textarea_compact autoSetHeight" 
+                                  placeholder="Enter start reply text..." 
+                                  style="font-family: Lexend, 'Noto Color Emoji', sans-serif;"></textarea>
+                        <label class="checkbox_label" for="nemo-chat-show-reply-prefix-checkbox">
+                            <input id="nemo-chat-show-reply-prefix-checkbox" type="checkbox">
+                            <small data-i18n="Show reply prefix in chat">Show reply prefix in chat</small>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Reasoning Controls Section -->
+                <div class="range-block">
+                    <div class="flex-container alignItemsBaseline">
+                        <label class="checkbox_label flex1" for="nemo-reasoning-auto-parse" title="Automatically parse reasoning blocks from main content between the reasoning prefix/suffix. Both fields must be defined and non-empty.">
+                            <input id="nemo-reasoning-auto-parse" type="checkbox">
+                            <small data-i18n="Auto-Parse">Auto-Parse</small>
+                        </label>
+                        <label class="checkbox_label flex1" for="nemo-reasoning-auto-expand" title="Automatically expand reasoning blocks.">
+                            <input id="nemo-reasoning-auto-expand" type="checkbox">
+                            <small data-i18n="Auto-Expand">Auto-Expand</small>
+                        </label>
+                        <label class="checkbox_label flex1" for="nemo-reasoning-show-hidden" title="Show reasoning time for models with hidden reasoning.">
+                            <input id="nemo-reasoning-show-hidden" type="checkbox">
+                            <small data-i18n="Show Hidden">Show Hidden</small>
+                        </label>
+                    </div>
+                    <div class="flex-container alignItemsBaseline">
+                        <label class="checkbox_label flex1" for="nemo-reasoning-add-to-prompts" title="Add existing reasoning blocks to prompts. To add a new reasoning block, use the message edit menu.">
+                            <input id="nemo-reasoning-add-to-prompts" type="checkbox">
+                            <small data-i18n="Add to Prompts">Add to Prompts</small>
+                        </label>
+                        <div class="flex1 flex-container alignItemsBaseline" title="Maximum number of reasoning blocks to be added per prompt, counting from the last message.">
+                            <input id="nemo-reasoning-max-additions" class="text_pole textarea_compact widthUnset" type="number" min="0" max="999" style="font-family: Lexend, 'Noto Color Emoji', sans-serif;">
+                            <small data-i18n="Max">Max</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Request Model Reasoning -->
+                <div class="range-block">
+                    <label for="nemo-openai-show-thoughts" class="checkbox_label widthFreeExpand">
+                        <input id="nemo-openai-show-thoughts" type="checkbox">
+                        <span data-i18n="Request model reasoning">Request model reasoning</span>
+                    </label>
+                    <div class="toggle-description justifyLeft marginBot5">
+                        <span data-i18n="Allows the model to return its thinking process.">Allows the model to return its thinking process.</span>
+                        <span data-i18n="This setting affects visibility only.">This setting affects visibility only.</span>
+                    </div>
+                </div>
+
+                <!-- Reasoning Effort -->
+                <div class="flex-container flexFlowColumn wide100p textAlignCenter marginTop10">
+                    <div class="flex-container oneline-dropdown" title="Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.">
+                        <label for="nemo-openai-reasoning-effort">
+                            <span data-i18n="Reasoning Effort">Reasoning Effort</span>
+                        </label>
+                        <select id="nemo-openai-reasoning-effort" style="font-family: Lexend, 'Noto Color Emoji', sans-serif;">
+                            <option data-i18n="openai_reasoning_effort_auto" value="auto">Auto</option>
+                            <option data-i18n="openai_reasoning_effort_minimum" value="min">Minimum</option>
+                            <option data-i18n="openai_reasoning_effort_low" value="low">Low</option>
+                            <option data-i18n="openai_reasoning_effort_medium" value="medium">Medium</option>
+                            <option data-i18n="openai_reasoning_effort_high" value="high">High</option>
+                            <option data-i18n="openai_reasoning_effort_maximum" value="max">Maximum</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Reasoning Formatting -->
+                <div class="inline-drawer wide100p">
+                    <div class="inline-drawer-toggle inline-drawer-header">
+                        <b data-i18n="Reasoning Formatting">Reasoning Formatting</b>
+                        <div class="fa-solid fa-circle-chevron-down inline-drawer-icon down interactable" tabindex="0"></div>
+                    </div>
+                    <div class="inline-drawer-content">
+                        <div class="flex-container" title="Select your current Reasoning Template">
+                            <select id="nemo-reasoning-select" class="flex1 text_pole" style="font-family: Lexend, 'Noto Color Emoji', sans-serif;">
+                                <option value="Blank">Blank</option>
+                                <option value="DeepSeek">DeepSeek</option>
+                                <option value="Gemini">Gemini</option>
+                            </select>
+                        </div>
+                        <div class="flex-container">
+                            <div class="flex1" title="Inserted before the reasoning content.">
+                                <small data-i18n="Prefix">Prefix</small>
+                                <textarea id="nemo-reasoning-prefix" class="text_pole textarea_compact autoSetHeight" style="font-family: Lexend, 'Noto Color Emoji', sans-serif;"></textarea>
+                            </div>
+                            <div class="flex1" title="Inserted after the reasoning content.">
+                                <small data-i18n="Suffix">Suffix</small>
+                                <textarea id="nemo-reasoning-suffix" class="text_pole textarea_compact autoSetHeight" style="font-family: Lexend, 'Noto Color Emoji', sans-serif;"></textarea>
+                            </div>
+                        </div>
+                        <div class="flex-container">
+                            <div class="flex1" title="Inserted between the reasoning and the message content.">
+                                <small data-i18n="Separator">Separator</small>
+                                <textarea id="nemo-reasoning-separator" class="text_pole textarea_compact autoSetHeight" style="font-family: Lexend, 'Noto Color Emoji', sans-serif;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        
+        // Insert after the Chat Completion Settings drawer
+        chatCompletionDrawer.parentNode.insertBefore(reasoningSection, chatCompletionDrawer.nextSibling);
+        
+        console.log(`${LOG_PREFIX} Created Reasoning section after Chat Completion Settings`);
+    },
+
+    createLorebookSection: function(container) {
+        // Remove existing Lorebook section if it exists
+        const existing = document.getElementById('nemoLorebookSection');
+        if (existing) {
+            existing.remove();
+        }
+
+        // Find the best position to insert the Lorebook section
+        const reasoningSection = document.getElementById('nemoReasoningSection');
+        const chatCompletionDrawer = document.getElementById('nemo-drawer-openai_chat_settings');
+        
+        let insertAfter = reasoningSection || chatCompletionDrawer;
+        if (!insertAfter) {
+            console.warn(`${LOG_PREFIX} No suitable position found for Lorebook section`);
+            return;
+        }
+
+        const lorebookSection = document.createElement('div');
+        lorebookSection.id = 'nemoLorebookSection';
+        lorebookSection.className = 'inline-drawer wide100p nemo-converted-drawer';
+        lorebookSection.innerHTML = `
+            <div class="inline-drawer-toggle inline-drawer-header interactable" tabindex="0">
+                <b data-i18n="Lorebook Management">Lorebook Management</b>
+                <div class="inline-drawer-icon fa-solid fa-chevron-down interactable down" tabindex="0"></div>
+            </div>
+            <div class="inline-drawer-content" style="display: none;">
+                <!-- Active Lorebooks Section -->
+                <div class="range-block">
+                    <div class="wide100p">
+                        <div class="flex-container alignItemsCenter">
+                            <span data-i18n="Active Lorebooks">Active Lorebooks</span>
+                        </div>
+                        <div id="nemo-active-lorebooks" class="nemo-active-lorebooks-list">
+                            <!-- Active lorebooks will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Lorebook Section -->
+                <div class="range-block">
+                    <div class="wide100p">
+                        <div class="flex-container alignItemsCenter">
+                            <span data-i18n="Add Lorebook">Add Lorebook</span>
+                        </div>
+                        <div class="flex-container">
+                            <select id="nemo-lorebook-select" class="flex1 text_pole" style="font-family: Lexend, 'Noto Color Emoji', sans-serif;">
+                                <option value="">Select a lorebook...</option>
+                                <!-- Available lorebooks will be populated here -->
+                            </select>
+                            <button id="nemo-add-lorebook-btn" class="menu_button" title="Add selected lorebook">
+                                <i class="fa-solid fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        
+        // Insert after the determined position
+        insertAfter.parentNode.insertBefore(lorebookSection, insertAfter.nextSibling);
+        
+        const positionName = reasoningSection ? 'Reasoning section' : 'Chat Completion Settings';
+        console.log(`${LOG_PREFIX} Created Lorebook Management section after ${positionName}`);
+    },
+
+    refreshActiveLorebooksDisplay: function() {
+        const activeLorebooksContainer = document.getElementById('nemo-active-lorebooks');
+        const worldInfoSelect = document.getElementById('world_info');
+        if (!activeLorebooksContainer || !worldInfoSelect) return;
+
+        activeLorebooksContainer.innerHTML = '';
+        const selectedOptions = Array.from(worldInfoSelect.selectedOptions);
+
+        if (selectedOptions.length === 0) {
+            activeLorebooksContainer.innerHTML = '<div class="nemo-no-lorebooks">No active lorebooks</div>';
+            return;
+        }
+
+        selectedOptions.forEach(option => {
+            const entryElement = document.createElement('div');
+            entryElement.className = 'nemo-lorebook-entry';
+            entryElement.innerHTML = `
+                <div class="nemo-lorebook-info">
+                    <span class="nemo-lorebook-name">${option.text}</span>
+                </div>
+                <button class="nemo-remove-lorebook menu_button menu_button_icon"
+                        data-book-name="${option.text}"
+                        title="Deactivate this lorebook">
+                    <i class="fa-solid fa-times"></i>
+                </button>`;
+            activeLorebooksContainer.appendChild(entryElement);
+        });
+    },
+
+    populateAvailableLorebooksDropdown: function() {
+        const lorebookSelect = document.getElementById('nemo-lorebook-select');
+        const worldInfoSelect = document.getElementById('world_info');
+        if (!lorebookSelect || !worldInfoSelect) return;
+
+        lorebookSelect.innerHTML = '<option value="">Select a lorebook...</option>';
+        
+        Array.from(worldInfoSelect.options).forEach(option => {
+            if (option.value && !option.selected) {
+                const newOption = document.createElement('option');
+                newOption.value = option.text;
+                newOption.textContent = option.text;
+                lorebookSelect.appendChild(newOption);
+            }
+        });
     },
 
     updateSectionCount: function(sectionElement) {
@@ -95,42 +350,160 @@ export const NemoPresetManager = {
 
     // Core Logic
     takeSnapshot: async function() {
-        if (!promptManager) return;
-        const activeIdentifiers = new Set();
-        document.querySelectorAll(`${SELECTORS.promptsContainer} ${SELECTORS.toggleButton}.${SELECTORS.enabledToggleClass}`).forEach(toggle => {
-            const promptLi = toggle.closest(SELECTORS.promptItemRow);
-            if (promptLi) activeIdentifiers.add(promptLi.dataset.pmIdentifier);
-        });
-        const snapshotArray = Array.from(activeIdentifiers);
-        localStorage.setItem(NEMO_SNAPSHOT_KEY, JSON.stringify(snapshotArray));
-        document.getElementById('nemoApplySnapshotBtn').disabled = false;
-        this.showStatusMessage(`Snapshot created with ${snapshotArray.length} active prompt(s).`, 'success');
+        try {
+            console.log(`${LOG_PREFIX} Starting snapshot capture...`);
+            
+            const promptsContainer = document.querySelector(SELECTORS.promptsContainer);
+            if (!promptsContainer) {
+                console.error(`${LOG_PREFIX} Prompts container not found`);
+                this.showStatusMessage('Error: Prompt manager not available.', 'error');
+                return;
+            }
+
+            const activeIdentifiers = new Set();
+            const enabledToggles = document.querySelectorAll(`${SELECTORS.promptsContainer} ${SELECTORS.toggleButton}.${SELECTORS.enabledToggleClass}`);
+            
+            console.log(`${LOG_PREFIX} Found ${enabledToggles.length} enabled toggles`);
+            
+            enabledToggles.forEach(toggle => {
+                const promptLi = toggle.closest(SELECTORS.promptItemRow);
+                if (promptLi && promptLi.dataset.pmIdentifier) {
+                    activeIdentifiers.add(promptLi.dataset.pmIdentifier);
+                    console.log(`${LOG_PREFIX} Added to snapshot:`, promptLi.dataset.pmIdentifier);
+                }
+            });
+
+            const snapshotArray = Array.from(activeIdentifiers);
+            console.log(`${LOG_PREFIX} Snapshot contains ${snapshotArray.length} prompts:`, snapshotArray);
+            
+            localStorage.setItem(NEMO_SNAPSHOT_KEY, JSON.stringify(snapshotArray));
+            
+            const applySnapshotBtn = document.getElementById('nemoApplySnapshotBtn');
+            if (applySnapshotBtn) {
+                applySnapshotBtn.disabled = false;
+            }
+            
+            this.showStatusMessage(`Snapshot created with ${snapshotArray.length} active prompt(s).`, 'success');
+            console.log(`${LOG_PREFIX} Snapshot saved successfully`);
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error taking snapshot:`, error);
+            this.showStatusMessage('Error creating snapshot.', 'error');
+        }
     },
 
     applySnapshot: async function() {
-        const snapshotJSON = localStorage.getItem(NEMO_SNAPSHOT_KEY);
-        if (!snapshotJSON) { this.showStatusMessage('No snapshot taken.', 'error'); return; }
-        const snapshotIdentifiers = new Set(JSON.parse(snapshotJSON));
-        const allPromptItems = document.querySelectorAll(`${SELECTORS.promptsContainer} ${SELECTORS.promptItemRow}`);
-        const togglesToClick = [];
-        allPromptItems.forEach(item => {
-            const identifier = item.dataset.pmIdentifier;
-            const toggleButton = item.querySelector(SELECTORS.toggleButton);
-            if (!identifier || !toggleButton) return;
-            const isCurrentlyEnabled = toggleButton.classList.contains(SELECTORS.enabledToggleClass);
-            const shouldBeEnabled = snapshotIdentifiers.has(identifier);
-            if (isCurrentlyEnabled !== shouldBeEnabled) togglesToClick.push(toggleButton);
-        });
-        if (togglesToClick.length > 0) {
-            this.showStatusMessage(`Applying snapshot... changing ${togglesToClick.length} prompts.`, 'info', 5000);
-            for (const button of togglesToClick) {
-                button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                await delay(50);
+        try {
+            console.log(`${LOG_PREFIX} Starting snapshot application...`);
+            
+            const snapshotJSON = localStorage.getItem(NEMO_SNAPSHOT_KEY);
+            if (!snapshotJSON) { 
+                console.log(`${LOG_PREFIX} No snapshot found in localStorage`);
+                this.showStatusMessage('No snapshot taken.', 'error'); 
+                return; 
             }
-            await delay(100);
-            this.showStatusMessage(`Snapshot applied. ${snapshotIdentifiers.size} prompt(s) are now active.`, 'success');
-        } else {
-            this.showStatusMessage('Current state already matches snapshot.', 'info');
+
+            const snapshotIdentifiers = new Set(JSON.parse(snapshotJSON));
+            console.log(`${LOG_PREFIX} Applying snapshot with ${snapshotIdentifiers.size} prompts:`, Array.from(snapshotIdentifiers));
+            
+            const allPromptItems = document.querySelectorAll(`${SELECTORS.promptsContainer} ${SELECTORS.promptItemRow}`);
+            console.log(`${LOG_PREFIX} Found ${allPromptItems.length} prompt items in DOM`);
+            
+            const togglesToClick = [];
+            let matchedPrompts = 0;
+            
+            allPromptItems.forEach(item => {
+                const identifier = item.dataset.pmIdentifier;
+                const toggleButton = item.querySelector(SELECTORS.toggleButton);
+                
+                if (!identifier || !toggleButton) {
+                    console.warn(`${LOG_PREFIX} Item missing identifier or toggle button:`, item);
+                    return;
+                }
+                
+                const isCurrentlyEnabled = toggleButton.classList.contains(SELECTORS.enabledToggleClass);
+                const shouldBeEnabled = snapshotIdentifiers.has(identifier);
+                
+                if (snapshotIdentifiers.has(identifier)) {
+                    matchedPrompts++;
+                }
+                
+                if (isCurrentlyEnabled !== shouldBeEnabled) {
+                    togglesToClick.push({
+                        button: toggleButton,
+                        identifier: identifier,
+                        shouldEnable: shouldBeEnabled
+                    });
+                    console.log(`${LOG_PREFIX} Will toggle ${identifier}: ${isCurrentlyEnabled} -> ${shouldBeEnabled}`);
+                }
+            });
+
+            console.log(`${LOG_PREFIX} Matched ${matchedPrompts} prompts from snapshot, ${togglesToClick.length} need toggling`);
+
+            if (togglesToClick.length > 0) {
+                this.showStatusMessage(`Applying snapshot... changing ${togglesToClick.length} prompts.`, 'info', 5000);
+                
+                for (const item of togglesToClick) {
+                    console.log(`${LOG_PREFIX} Toggling ${item.identifier}`);
+                    item.button.click();
+                    await delay(50);
+                }
+                
+                await delay(100);
+                this.showStatusMessage(`Snapshot applied. ${snapshotIdentifiers.size} prompt(s) are now active.`, 'success');
+                console.log(`${LOG_PREFIX} Snapshot application complete`);
+            } else {
+                this.showStatusMessage('Current state already matches snapshot.', 'info');
+                console.log(`${LOG_PREFIX} No changes needed - current state matches snapshot`);
+            }
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error applying snapshot:`, error);
+            this.showStatusMessage('Error applying snapshot.', 'error');
+        }
+    },
+
+    refreshUI: function() {
+        console.log(`${LOG_PREFIX} Refreshing UI...`);
+        const container = document.querySelector(SELECTORS.promptsContainer);
+        if (container) {
+            // Check if UI elements exist, if not recreate them
+            const searchContainer = document.getElementById('nemoPresetSearchContainer');
+            const reasoningSection = document.getElementById('nemoReasoningSection');
+            const lorebookSection = document.getElementById('nemoLorebookSection');
+            const chatCompletionDrawer = document.getElementById('nemo-drawer-openai_chat_settings');
+            
+            if (!searchContainer) {
+                console.log(`${LOG_PREFIX} Search UI missing, recreating...`);
+                this.createSearchAndStatusUI(container);
+            }
+            
+            // Check if reasoning section should be shown
+            const shouldShowReasoning = extension_settings[NEMO_EXTENSION_NAME]?.enableReasoningSection !== false;
+            if (shouldShowReasoning && !reasoningSection && chatCompletionDrawer) {
+                console.log(`${LOG_PREFIX} Reasoning section missing, recreating...`);
+                this.createReasoningSection(container);
+            } else if (!shouldShowReasoning && reasoningSection) {
+                console.log(`${LOG_PREFIX} Reasoning section disabled, removing...`);
+                reasoningSection.remove();
+            }
+            
+            // Check if lorebook management section should be shown
+            const shouldShowLorebook = extension_settings[NEMO_EXTENSION_NAME]?.enableLorebookManagement !== false;
+            const currentReasoningSection = document.getElementById('nemoReasoningSection');
+            if (shouldShowLorebook && !lorebookSection && (currentReasoningSection || chatCompletionDrawer)) {
+                console.log(`${LOG_PREFIX} Lorebook section missing, recreating...`);
+                this.createLorebookSection(container);
+            } else if (!shouldShowLorebook && lorebookSection) {
+                console.log(`${LOG_PREFIX} Lorebook section disabled, removing...`);
+                lorebookSection.remove();
+            }
+            
+            // Re-setup event listeners in case they were lost during preset changes
+            setTimeout(() => {
+                this.setupEventListeners();
+                this.checkExistingSnapshot();
+                // Re-sync values after UI refresh
+                this.syncStartReplyWithValues();
+            }, 100);
         }
     },
 
@@ -333,9 +706,11 @@ export const NemoPresetManager = {
         const promptsContainer = document.querySelector(SELECTORS.promptsContainer);
         if (!promptsContainer) return;
 
+        // Hide all items and sections initially
         promptsContainer.querySelectorAll(`${SELECTORS.promptItemRow}, details.nemo-engine-section`).forEach(el => el.style.display = 'none');
         
         if (searchTerm === '') {
+            // Show all items when search is empty
             promptsContainer.querySelectorAll(`${SELECTORS.promptItemRow}, details.nemo-engine-section`).forEach(el => el.style.display = '');
             if (isSectionsFeatureEnabled) {
                 promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(section => {
@@ -349,17 +724,58 @@ export const NemoPresetManager = {
             return;
         }
 
+        // Enhanced search: check both name and content
+        const matchingItems = new Set();
+        const sectionsWithMatches = new Set();
+
         promptsContainer.querySelectorAll(SELECTORS.promptItemRow).forEach(item => {
+            let isMatch = false;
+            
+            // Search in prompt name
             const name = item.querySelector(SELECTORS.promptNameLink)?.textContent.trim().toLowerCase() || '';
             if (name.includes(searchTerm)) {
+                isMatch = true;
+            }
+            
+            // Search in prompt content
+            if (!isMatch) {
+                const identifier = item.dataset.pmIdentifier;
+                if (identifier && promptManager?.serviceSettings?.prompts) {
+                    const promptData = promptManager.serviceSettings.prompts.find(p => p.identifier === identifier);
+                    if (promptData && promptData.content) {
+                        const content = promptData.content.toLowerCase();
+                        if (content.includes(searchTerm)) {
+                            isMatch = true;
+                        }
+                    }
+                }
+            }
+            
+            if (isMatch) {
+                matchingItems.add(item);
                 item.style.display = '';
+                
+                // Mark parent section as having matches
                 const parentSection = item.closest('details.nemo-engine-section');
                 if (parentSection) {
-                    parentSection.style.display = '';
-                    parentSection.open = true;
+                    sectionsWithMatches.add(parentSection);
                 }
             }
         });
+
+        // Show all sections that have matching items and ensure their headers are visible
+        sectionsWithMatches.forEach(section => {
+            section.style.display = '';
+            section.open = true;
+            
+            // Ensure the header (summary) is visible
+            const summaryLi = section.querySelector('summary > li');
+            if (summaryLi) {
+                summaryLi.style.display = '';
+            }
+        });
+
+        console.log(`${LOG_PREFIX} Search for "${searchTerm}" found ${matchingItems.size} matching prompts in ${sectionsWithMatches.size} sections`);
     },
 
     // Event Handling & Initialization
@@ -369,26 +785,491 @@ export const NemoPresetManager = {
 
         this.createSearchAndStatusUI(container);
         
-        document.getElementById('nemoPresetSearchInput').addEventListener('input', this.handlePresetSearch.bind(this));
-        document.getElementById('nemoPresetSearchClear').addEventListener('click', () => {
-            const input = document.getElementById('nemoPresetSearchInput'); input.value = ''; this.handlePresetSearch(); input.focus();
-        });
-        document.getElementById('nemoTakeSnapshotBtn').addEventListener('click', this.takeSnapshot.bind(this));
-        document.getElementById('nemoApplySnapshotBtn').addEventListener('click', this.applySnapshot.bind(this));
+        // Check settings before creating optional sections
+        if (extension_settings[NEMO_EXTENSION_NAME]?.enableReasoningSection !== false) {
+            this.createReasoningSection(container);
+        }
         
-        const toggleBtn = document.getElementById('nemoToggleSectionsBtn');
-        toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
-        toggleBtn.addEventListener('click', () => {
-            isSectionsFeatureEnabled = !isSectionsFeatureEnabled;
-            localStorage.setItem(NEMO_SECTIONS_ENABLED_KEY, isSectionsFeatureEnabled);
-            toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
-            this.organizePrompts(true);
-        });
-
+        if (extension_settings[NEMO_EXTENSION_NAME]?.enableLorebookManagement !== false) {
+            this.createLorebookSection(container);
+        }
+        
+        // Add event listeners with error handling
+        this.setupEventListeners();
+        
         container.addEventListener('click', this.handleContainerClick.bind(this));
+        container.addEventListener('contextmenu', this.handleContextMenu.bind(this));
         this.initializeObserver(container);
+        this.createContextMenu();
+        
+        // Check if there's already a snapshot to enable the apply button
+        this.checkExistingSnapshot();
         
         this.organizePrompts();
+    },
+
+    setupEventListeners: function() {
+        try {
+            const searchInput = document.getElementById('nemoPresetSearchInput');
+            const searchClear = document.getElementById('nemoPresetSearchClear');
+            const takeSnapshotBtn = document.getElementById('nemoTakeSnapshotBtn');
+            const applySnapshotBtn = document.getElementById('nemoApplySnapshotBtn');
+            const toggleBtn = document.getElementById('nemoToggleSectionsBtn');
+            const promptNavigatorBtn = document.getElementById('nemoPromptNavigatorBtn');
+            const archiveNavigatorBtn = document.getElementById('nemoArchiveNavigatorBtn');
+
+            if (searchInput) {
+                searchInput.addEventListener('input', this.handlePresetSearch.bind(this));
+            }
+
+            if (searchClear) {
+                searchClear.addEventListener('click', () => {
+                    const input = document.getElementById('nemoPresetSearchInput'); 
+                    if (input) {
+                        input.value = ''; 
+                        this.handlePresetSearch(); 
+                        input.focus();
+                    }
+                });
+            }
+
+            if (takeSnapshotBtn) {
+                takeSnapshotBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log(`${LOG_PREFIX} Taking snapshot...`);
+                    this.takeSnapshot();
+                });
+            }
+
+            if (applySnapshotBtn) {
+                applySnapshotBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log(`${LOG_PREFIX} Applying snapshot...`);
+                    this.applySnapshot();
+                });
+            }
+
+            if (toggleBtn) {
+                toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
+                toggleBtn.addEventListener('click', () => {
+                    isSectionsFeatureEnabled = !isSectionsFeatureEnabled;
+                    localStorage.setItem(NEMO_SECTIONS_ENABLED_KEY, isSectionsFeatureEnabled);
+                    toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
+                    this.organizePrompts(true);
+                });
+            }
+            
+            if (promptNavigatorBtn) {
+                promptNavigatorBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.showPromptNavigator();
+                });
+            }
+
+            if (archiveNavigatorBtn) {
+                archiveNavigatorBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.showArchiveNavigator();
+                });
+            }
+
+            // Setup Reasoning and Start Reply With synchronization
+            this.setupReasoningSync();
+            this.setupStartReplyWithSync();
+            this.setupLorebookEventListeners();
+
+            console.log(`${LOG_PREFIX} Event listeners attached successfully`);
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error setting up event listeners:`, error);
+        }
+    },
+
+    setupReasoningSync: function() {
+        try {
+            // Setup reasoning checkboxes
+            this.setupCheckboxSync('nemo-reasoning-auto-parse', 'reasoning_auto_parse');
+            this.setupCheckboxSync('nemo-reasoning-auto-expand', 'reasoning_auto_expand');
+            this.setupCheckboxSync('nemo-reasoning-show-hidden', 'reasoning_show_hidden');
+            this.setupCheckboxSync('nemo-reasoning-add-to-prompts', 'reasoning_add_to_prompts');
+            this.setupCheckboxSync('nemo-openai-show-thoughts', 'openai_show_thoughts');
+
+            // Setup number input
+            this.setupNumberInputSync('nemo-reasoning-max-additions', 'reasoning_max_additions');
+
+            // Setup select dropdowns
+            this.setupSelectSync('nemo-openai-reasoning-effort', 'openai_reasoning_effort');
+            this.setupSelectSync('nemo-reasoning-select', 'reasoning_select');
+
+            // Setup textareas
+            this.setupTextareaSync('nemo-reasoning-prefix', 'reasoning_prefix');
+            this.setupTextareaSync('nemo-reasoning-suffix', 'reasoning_suffix');
+            this.setupTextareaSync('nemo-reasoning-separator', 'reasoning_separator');
+
+            console.log(`${LOG_PREFIX} Reasoning sync setup complete`);
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error setting up Reasoning sync:`, error);
+        }
+    },
+
+    setupRangeSlider: function(sliderId, counterId, settingKey, originalInputId) {
+        try {
+            const slider = document.getElementById(sliderId);
+            const counter = document.getElementById(counterId);
+            const originalInput = document.getElementById(originalInputId);
+
+            if (!slider || !counter) {
+                console.warn(`${LOG_PREFIX} Range slider elements not found: ${sliderId}`);
+                return;
+            }
+
+            // Initialize value from original input if available
+            if (originalInput) {
+                slider.value = originalInput.value || slider.value;
+                counter.textContent = parseFloat(slider.value).toFixed(2);
+            }
+
+            // Update counter and sync with original
+            slider.addEventListener('input', () => {
+                const value = parseFloat(slider.value);
+                counter.textContent = value.toFixed(2);
+                
+                if (originalInput) {
+                    originalInput.value = value;
+                    originalInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+
+            // Listen for changes from original
+            if (originalInput) {
+                originalInput.addEventListener('input', () => {
+                    if (slider.value !== originalInput.value) {
+                        slider.value = originalInput.value;
+                        counter.textContent = parseFloat(originalInput.value).toFixed(2);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error setting up range slider ${sliderId}:`, error);
+        }
+    },
+
+    setupCheckboxSync: function(checkboxId, originalCheckboxId) {
+        try {
+            const checkbox = document.getElementById(checkboxId);
+            const originalCheckbox = document.getElementById(originalCheckboxId);
+
+            if (!checkbox) {
+                console.warn(`${LOG_PREFIX} Checkbox not found: ${checkboxId}`);
+                return;
+            }
+
+            // Initialize from original if available
+            if (originalCheckbox) {
+                checkbox.checked = originalCheckbox.checked;
+            }
+
+            // Sync to original
+            checkbox.addEventListener('change', () => {
+                if (originalCheckbox) {
+                    originalCheckbox.checked = checkbox.checked;
+                    originalCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+
+            // Listen for changes from original
+            if (originalCheckbox) {
+                originalCheckbox.addEventListener('change', () => {
+                    if (checkbox.checked !== originalCheckbox.checked) {
+                        checkbox.checked = originalCheckbox.checked;
+                    }
+                });
+            }
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error setting up checkbox sync ${checkboxId}:`, error);
+        }
+    },
+
+    setupNumberInputSync: function(inputId, originalInputId) {
+        try {
+            const input = document.getElementById(inputId);
+            const originalInput = document.getElementById(originalInputId);
+
+            if (!input) {
+                console.warn(`${LOG_PREFIX} Number input not found: ${inputId}`);
+                return;
+            }
+
+            // Initialize from original if available
+            if (originalInput) {
+                input.value = originalInput.value || '';
+            }
+
+            // Sync to original
+            input.addEventListener('input', () => {
+                if (originalInput) {
+                    originalInput.value = input.value;
+                    originalInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+
+            // Listen for changes from original
+            if (originalInput) {
+                originalInput.addEventListener('input', () => {
+                    if (input.value !== originalInput.value) {
+                        input.value = originalInput.value;
+                    }
+                });
+            }
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error setting up number input sync ${inputId}:`, error);
+        }
+    },
+
+    setupSelectSync: function(selectId, originalSelectId) {
+        try {
+            const select = document.getElementById(selectId);
+            const originalSelect = document.getElementById(originalSelectId);
+
+            if (!select) {
+                console.warn(`${LOG_PREFIX} Select not found: ${selectId}`);
+                return;
+            }
+
+            // Initialize from original if available
+            if (originalSelect) {
+                select.value = originalSelect.value || select.value;
+            }
+
+            // Sync to original
+            select.addEventListener('change', () => {
+                if (originalSelect) {
+                    originalSelect.value = select.value;
+                    originalSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+
+            // Listen for changes from original
+            if (originalSelect) {
+                originalSelect.addEventListener('change', () => {
+                    if (select.value !== originalSelect.value) {
+                        select.value = originalSelect.value;
+                    }
+                });
+            }
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error setting up select sync ${selectId}:`, error);
+        }
+    },
+
+    setupTextareaSync: function(textareaId, originalTextareaId) {
+        try {
+            const textarea = document.getElementById(textareaId);
+            const originalTextarea = document.getElementById(originalTextareaId);
+
+            if (!textarea) {
+                console.warn(`${LOG_PREFIX} Textarea not found: ${textareaId}`);
+                return;
+            }
+
+            // Initialize from original if available
+            if (originalTextarea) {
+                textarea.value = originalTextarea.value || '';
+            }
+
+            // Sync to original
+            textarea.addEventListener('input', () => {
+                if (originalTextarea) {
+                    originalTextarea.value = textarea.value;
+                    originalTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+
+            // Listen for changes from original
+            if (originalTextarea) {
+                originalTextarea.addEventListener('input', () => {
+                    if (textarea.value !== originalTextarea.value) {
+                        textarea.value = originalTextarea.value;
+                    }
+                });
+            }
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error setting up textarea sync ${textareaId}:`, error);
+        }
+    },
+
+    setupStartReplyWithSync: function() {
+        try {
+            const nemoTextarea = document.getElementById('nemo-start-reply-with');
+            const nemoCheckbox = document.getElementById('nemo-chat-show-reply-prefix-checkbox');
+            const originalTextarea = document.getElementById('start_reply_with');
+            const originalCheckbox = document.getElementById('chat-show-reply-prefix-checkbox');
+
+            if (!nemoTextarea || !nemoCheckbox) {
+                console.warn(`${LOG_PREFIX} Nemo Start Reply With elements not found`);
+                return;
+            }
+
+            // Initialize with current values from original elements
+            this.syncStartReplyWithValues();
+
+            // Add event listeners for bidirectional sync
+            if (nemoTextarea) {
+                nemoTextarea.addEventListener('input', () => {
+                    if (originalTextarea) {
+                        originalTextarea.value = nemoTextarea.value;
+                        // Trigger input event on original to ensure proper saving
+                        originalTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                });
+            }
+
+            if (nemoCheckbox) {
+                nemoCheckbox.addEventListener('change', () => {
+                    if (originalCheckbox) {
+                        originalCheckbox.checked = nemoCheckbox.checked;
+                        // Trigger change event on original to ensure proper saving
+                        originalCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+            }
+
+            // Listen for changes from the original elements
+            if (originalTextarea) {
+                originalTextarea.addEventListener('input', () => {
+                    if (nemoTextarea && nemoTextarea.value !== originalTextarea.value) {
+                        nemoTextarea.value = originalTextarea.value;
+                    }
+                });
+            }
+
+            if (originalCheckbox) {
+                originalCheckbox.addEventListener('change', () => {
+                    if (nemoCheckbox && nemoCheckbox.checked !== originalCheckbox.checked) {
+                        nemoCheckbox.checked = originalCheckbox.checked;
+                    }
+                });
+            }
+
+            console.log(`${LOG_PREFIX} Start Reply With sync setup complete`);
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error setting up Start Reply With sync:`, error);
+        }
+    },
+
+    syncStartReplyWithValues: function() {
+        try {
+            const nemoTextarea = document.getElementById('nemo-start-reply-with');
+            const nemoCheckbox = document.getElementById('nemo-chat-show-reply-prefix-checkbox');
+            const originalTextarea = document.getElementById('start_reply_with');
+            const originalCheckbox = document.getElementById('chat-show-reply-prefix-checkbox');
+
+            // Sync textarea values
+            if (nemoTextarea && originalTextarea) {
+                nemoTextarea.value = originalTextarea.value || '';
+                console.log(`${LOG_PREFIX} Synced start reply text: "${originalTextarea.value}"`);
+            }
+
+            // Sync checkbox values
+            if (nemoCheckbox && originalCheckbox) {
+                nemoCheckbox.checked = originalCheckbox.checked;
+                console.log(`${LOG_PREFIX} Synced show reply prefix: ${originalCheckbox.checked}`);
+            }
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error syncing Start Reply With values:`, error);
+        }
+    },
+
+    setupLorebookEventListeners: function() {
+        try {
+            const addLorebookBtn = document.getElementById('nemo-add-lorebook-btn');
+            const lorebookSelect = document.getElementById('nemo-lorebook-select');
+
+            if (addLorebookBtn) {
+                addLorebookBtn.addEventListener('click', () => {
+                    this.addSelectedLorebook();
+                });
+            }
+
+            // Handle remove lorebook clicks (delegated)
+            const activeLorebooksContainer = document.getElementById('nemo-active-lorebooks');
+            if (activeLorebooksContainer) {
+                activeLorebooksContainer.addEventListener('click', (e) => {
+                    const removeBtn = e.target.closest('.nemo-remove-lorebook');
+                    if (removeBtn) {
+                        const bookName = removeBtn.dataset.bookName;
+                        this.removeLorebook(bookName);
+                    }
+                });
+            }
+
+            // Initial population of the UI
+            this.populateAvailableLorebooksDropdown();
+            this.refreshActiveLorebooksDisplay();
+
+            // Listen for changes on the original world_info select to keep our UI in sync
+            const worldInfoSelect = document.getElementById('world_info');
+            if (worldInfoSelect) {
+                $(worldInfoSelect).on('change', () => {
+                    this.refreshActiveLorebooksDisplay();
+                    this.populateAvailableLorebooksDropdown();
+                });
+            }
+
+            console.log(`${LOG_PREFIX} Lorebook event listeners setup complete`);
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error setting up lorebook event listeners:`, error);
+        }
+    },
+
+    addSelectedLorebook: function() {
+        const lorebookSelect = document.getElementById('nemo-lorebook-select');
+        const worldInfoSelect = document.getElementById('world_info');
+        if (!lorebookSelect || !lorebookSelect.value || !worldInfoSelect) return;
+
+        const bookName = lorebookSelect.value;
+        const optionToSelect = Array.from(worldInfoSelect.options).find(opt => opt.text === bookName);
+
+        if (optionToSelect) {
+            optionToSelect.selected = true;
+            // SillyTavern uses jQuery for this select list, so we trigger the change event with it.
+            $(worldInfoSelect).trigger('change');
+            this.refreshActiveLorebooksDisplay();
+            this.populateAvailableLorebooksDropdown();
+        }
+    },
+
+    removeLorebook: function(bookName) {
+        const worldInfoSelect = document.getElementById('world_info');
+        if (!worldInfoSelect) return;
+
+        const optionToDeselect = Array.from(worldInfoSelect.options).find(opt => opt.text === bookName);
+
+        if (optionToDeselect) {
+            optionToDeselect.selected = false;
+            $(worldInfoSelect).trigger('change');
+            this.refreshActiveLorebooksDisplay();
+            this.populateAvailableLorebooksDropdown();
+        }
+    },
+
+    checkExistingSnapshot: function() {
+        try {
+            const snapshotJSON = localStorage.getItem(NEMO_SNAPSHOT_KEY);
+            const applySnapshotBtn = document.getElementById('nemoApplySnapshotBtn');
+            if (applySnapshotBtn) {
+                applySnapshotBtn.disabled = !snapshotJSON;
+                if (snapshotJSON) {
+                    const snapshot = JSON.parse(snapshotJSON);
+                    console.log(`${LOG_PREFIX} Existing snapshot found with ${snapshot.length} prompts`);
+                }
+            }
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error checking existing snapshot:`, error);
+        }
     },
 
     handleContainerClick: function(event) {
@@ -483,5 +1364,1557 @@ export const NemoPresetManager = {
             listObserver.observe(container, { childList: true, subtree: true });
         });
         listObserver.observe(container, { childList: true, subtree: true });
+    },
+
+    // Context Menu for Prompt Movement
+    createContextMenu: function() {
+        // Remove existing context menu if it exists
+        const existing = document.getElementById('nemo-prompt-context-menu');
+        if (existing) existing.remove();
+
+        const contextMenu = document.createElement('div');
+        contextMenu.id = 'nemo-prompt-context-menu';
+        contextMenu.className = 'nemo-context-menu';
+        contextMenu.innerHTML = `
+            <div class="nemo-context-menu-item" data-action="move-to-header">
+                <i class="fa-solid fa-arrows-up-down"></i>
+                Move to...
+            </div>
+            <div class="nemo-context-menu-separator"></div>
+            <div class="nemo-context-menu-item" data-action="save-prompt">
+                <i class="fa-solid fa-floppy-disk"></i>
+                Save Prompt
+            </div>
+            <div class="nemo-context-menu-item" data-action="load-prompt">
+                <i class="fa-solid fa-folder-open"></i>
+                Load Prompt...
+            </div>
+            <div class="nemo-context-menu-separator"></div>
+            <div class="nemo-context-menu-item" data-action="cancel">
+                <i class="fa-solid fa-xmark"></i>
+                Cancel
+            </div>
+        `;
+        contextMenu.style.display = 'none';
+        document.body.appendChild(contextMenu);
+
+        // Add click handlers
+        contextMenu.addEventListener('click', (e) => {
+            console.log(`${LOG_PREFIX} Context menu clicked:`, e.target);
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            console.log(`${LOG_PREFIX} Context menu action:`, action);
+            
+            if (action === 'move-to-header') {
+                console.log(`${LOG_PREFIX} Move to header action triggered`);
+                this.showHeaderSelectionDialog();
+            } else if (action === 'save-prompt') {
+                console.log(`${LOG_PREFIX} Save prompt action triggered`);
+                this.showSavePromptDialog();
+            } else if (action === 'load-prompt') {
+                console.log(`${LOG_PREFIX} Load prompt action triggered`);
+                this.showLoadPromptDialog();
+            }
+            this.hideContextMenu();
+        });
+
+        // Hide context menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!contextMenu.contains(e.target)) {
+                this.hideContextMenu();
+            }
+        });
+    },
+
+    handleContextMenu: function(e) {
+        console.log(`${LOG_PREFIX} Context menu triggered on:`, e.target);
+        
+        // Only handle right-click on prompt items (not headers/dividers)
+        const promptItem = e.target.closest('li.completion_prompt_manager_prompt');
+        console.log(`${LOG_PREFIX} Found prompt item:`, promptItem);
+        
+        if (!promptItem) {
+            console.log(`${LOG_PREFIX} No prompt item found - ignoring right-click`);
+            return;
+        }
+        
+        const dividerInfo = this.getDividerInfo(promptItem, true);
+        console.log(`${LOG_PREFIX} Divider info:`, dividerInfo);
+        
+        if (dividerInfo.isDivider) {
+            console.log(`${LOG_PREFIX} Item is a divider - ignoring right-click`);
+            return;
+        }
+
+        e.preventDefault();
+        this.selectedPromptItem = promptItem;
+        console.log(`${LOG_PREFIX} Selected prompt item for move:`, this.selectedPromptItem);
+        this.showContextMenu(e.pageX, e.pageY);
+    },
+
+    showContextMenu: function(x, y) {
+        const contextMenu = document.getElementById('nemo-prompt-context-menu');
+        if (!contextMenu) return;
+
+        contextMenu.style.display = 'block';
+        contextMenu.style.left = x + 'px';
+        contextMenu.style.top = y + 'px';
+
+        // Adjust position if menu goes off screen
+        const rect = contextMenu.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        if (rect.right > windowWidth) {
+            contextMenu.style.left = (x - rect.width) + 'px';
+        }
+        if (rect.bottom > windowHeight) {
+            contextMenu.style.top = (y - rect.height) + 'px';
+        }
+    },
+
+    hideContextMenu: function() {
+        const contextMenu = document.getElementById('nemo-prompt-context-menu');
+        if (contextMenu) {
+            contextMenu.style.display = 'none';
+        }
+        // Don't clear selectedPromptItem here - we need it for the dialog
+        // It will be cleared after the move operation completes
+    },
+
+    showHeaderSelectionDialog: function() {
+        if (!this.selectedPromptItem) return;
+
+        // Get all headers/sections - they might be in sections or flat list
+        const container = document.querySelector(SELECTORS.promptsContainer);
+        const headers = [];
+        
+        // Look for headers in sections (details.nemo-engine-section summary)
+        const sections = container.querySelectorAll('details.nemo-engine-section');
+        sections.forEach(section => {
+            const headerItem = section.querySelector('summary li.completion_prompt_manager_prompt.nemo-header-item');
+            if (headerItem) {
+                headers.push({
+                    element: headerItem,
+                    section: section,
+                    isInSection: true
+                });
+            }
+        });
+        
+        // Also look for any flat headers that haven't been processed yet
+        const flatHeaders = Array.from(container.querySelectorAll('li.completion_prompt_manager_prompt')).filter(item => 
+            this.getDividerInfo(item, true).isDivider && !item.closest('details.nemo-engine-section')
+        );
+        flatHeaders.forEach(header => {
+            headers.push({
+                element: header,
+                section: null,
+                isInSection: false
+            });
+        });
+
+        if (headers.length === 0) {
+            this.showStatusMessage('No headers found to move prompt under.', 'warning');
+            return;
+        }
+
+        // Create header selection dialog
+        const dialog = document.createElement('div');
+        dialog.id = 'nemo-header-selection-dialog';
+        dialog.className = 'nemo-dialog-overlay';
+        
+        const headersList = headers.map((headerData, index) => {
+            let headerName = 'Unidentified Header';
+            
+            // Try multiple ways to get the header name
+            const dividerInfo = this.getDividerInfo(headerData.element, true);
+            if (dividerInfo && dividerInfo.name) {
+                headerName = dividerInfo.name;
+            } else {
+                // Fallback: try to get name from prompt name span
+                const nameSpan = headerData.element.querySelector('.completion_prompt_manager_prompt_name');
+                if (nameSpan) {
+                    const link = nameSpan.querySelector('a');
+                    headerName = link ? link.textContent.trim() : nameSpan.textContent.trim();
+                    
+                    // Clean up the header name (remove divider prefix if present)
+                    if (DIVIDER_PREFIX_REGEX) {
+                        headerName = headerName.replace(DIVIDER_PREFIX_REGEX, '').trim();
+                    }
+                }
+            }
+            
+            const promptName = this.selectedPromptItem.querySelector('.completion_prompt_manager_prompt_name')?.textContent || 'Unknown Prompt';
+            console.log(`${LOG_PREFIX} Header ${index}: name="${headerName}", isInSection=${headerData.isInSection}`);
+            
+            return `
+                <div class="nemo-header-option" data-header-index="${index}">
+                    <div class="nemo-header-name">${headerName}</div>
+                    <div class="nemo-header-preview">Move "${promptName}" below this header</div>
+                </div>
+            `;
+        }).join('');
+
+        dialog.innerHTML = `
+            <div class="nemo-dialog">
+                <div class="nemo-dialog-header">
+                    <h3>Move Prompt</h3>
+                    <button class="nemo-dialog-close" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="nemo-dialog-content">
+                    <p>Select a header to move the prompt below:</p>
+                    <div class="nemo-headers-list">
+                        ${headersList}
+                    </div>
+                </div>
+                <div class="nemo-dialog-actions">
+                    <button class="nemo-btn-secondary" data-action="cancel">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        // Add event listeners (using arrow function to preserve 'this' context)
+        const dialogClickHandler = (e) => {
+            console.log(`${LOG_PREFIX} Dialog clicked:`, e.target);
+            
+            const headerOption = e.target.closest('.nemo-header-option');
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            const closeBtn = e.target.closest('.nemo-dialog-close');
+
+            console.log(`${LOG_PREFIX} Click analysis:`, {
+                headerOption,
+                action,
+                closeBtn,
+                targetElement: e.target
+            });
+
+            if (headerOption) {
+                const headerIndex = parseInt(headerOption.dataset.headerIndex);
+                console.log(`${LOG_PREFIX} Header option clicked, index:`, headerIndex);
+                console.log(`${LOG_PREFIX} Headers array:`, headers);
+                console.log(`${LOG_PREFIX} Selected header data:`, headers[headerIndex]);
+                console.log(`${LOG_PREFIX} About to call movePromptBelowHeader with:`, headers[headerIndex]);
+                console.log(`${LOG_PREFIX} 'this' context:`, this);
+                
+                this.movePromptBelowHeader(headers[headerIndex]);
+                dialog.remove();
+            } else if (action === 'cancel' || closeBtn || e.target === dialog) {
+                console.log(`${LOG_PREFIX} Dialog cancelled or closed`);
+                this.selectedPromptItem = null; // Clear selection when cancelled
+                dialog.remove();
+            } else {
+                console.log(`${LOG_PREFIX} Click ignored - no matching handler`);
+            }
+        };
+        
+        dialog.addEventListener('click', dialogClickHandler);
+
+        // Focus management
+        dialog.querySelector('.nemo-dialog-close').focus();
+    },
+
+    movePromptBelowHeader: function(headerData) {
+        console.log(`${LOG_PREFIX} movePromptBelowHeader called with:`, headerData);
+        console.log(`${LOG_PREFIX} this.selectedPromptItem:`, this.selectedPromptItem);
+        
+        if (!this.selectedPromptItem) {
+            console.error(`${LOG_PREFIX} No selected prompt item`);
+            return;
+        }
+        
+        if (!headerData) {
+            console.error(`${LOG_PREFIX} No header data provided`);
+            return;
+        }
+
+        const targetHeader = headerData.element;
+        const targetSection = headerData.section;
+        
+        console.log(`${LOG_PREFIX} Target header:`, targetHeader);
+        console.log(`${LOG_PREFIX} Target section:`, targetSection);
+
+        if (!targetHeader) {
+            console.error(`${LOG_PREFIX} Header element not found`);
+            this.showStatusMessage('Header not found.', 'error');
+            return;
+        }
+        
+        try {
+            // Get the current section the prompt is in (if any)
+            const fromSection = this.selectedPromptItem.closest('details.nemo-engine-section');
+
+        console.log(`${LOG_PREFIX} Moving prompt to header. Target section:`, targetSection);
+        console.log(`${LOG_PREFIX} Selected prompt item:`, this.selectedPromptItem);
+        
+        // Log current position before moving
+        const originalParent = this.selectedPromptItem.parentNode;
+        const originalNextSibling = this.selectedPromptItem.nextSibling;
+        console.log(`${LOG_PREFIX} Original position - Parent:`, originalParent, 'Next sibling:', originalNextSibling);
+        
+        if (targetSection) {
+            // Insert as first item in the target section
+            const firstPrompt = targetSection.querySelector('li.completion_prompt_manager_prompt:not(.nemo-header-item)');
+            
+            console.log(`${LOG_PREFIX} First prompt in target section:`, firstPrompt);
+            
+            if (firstPrompt) {
+                // Insert before the first existing prompt
+                firstPrompt.parentNode.insertBefore(this.selectedPromptItem, firstPrompt);
+                console.log(`${LOG_PREFIX} Inserted before first prompt`);
+            } else {
+                // No prompts in section yet, append directly to section
+                targetSection.appendChild(this.selectedPromptItem);
+                console.log(`${LOG_PREFIX} Appended to empty section`);
+            }
+        } else {
+            // Insert directly after header in flat list
+            const container = document.querySelector(SELECTORS.promptsContainer);
+            
+            // Find the next sibling after the header
+            let insertPosition = targetHeader.nextSibling;
+            while (insertPosition && insertPosition.nodeType !== Node.ELEMENT_NODE) {
+                insertPosition = insertPosition.nextSibling;
+            }
+            
+            if (insertPosition) {
+                container.insertBefore(this.selectedPromptItem, insertPosition);
+                console.log(`${LOG_PREFIX} Inserted after header in flat list`);
+            } else {
+                container.appendChild(this.selectedPromptItem);
+                console.log(`${LOG_PREFIX} Appended to end of container`);
+            }
+        }
+
+        // Log position after moving
+        const newParent = this.selectedPromptItem.parentNode;
+        const newNextSibling = this.selectedPromptItem.nextSibling;
+        console.log(`${LOG_PREFIX} New position - Parent:`, newParent, 'Next sibling:', newNextSibling);
+        
+        // Verify the move actually happened
+        if (newParent !== originalParent || newNextSibling !== originalNextSibling) {
+            console.log(`${LOG_PREFIX} DOM move successful!`);
+        } else {
+            console.warn(`${LOG_PREFIX} DOM move failed - element is still in same position`);
+        }
+
+        // Update section counts
+        if (fromSection) this.updateSectionCount(fromSection);
+        if (targetSection && targetSection !== fromSection) this.updateSectionCount(targetSection);
+
+        // Show success message
+        const promptName = this.selectedPromptItem.querySelector('.completion_prompt_manager_prompt_name')?.textContent || 'Prompt';
+        
+        // Get header name using the same logic as dialog
+        let headerName = 'Header';
+        const dividerInfo = this.getDividerInfo(targetHeader, true);
+        if (dividerInfo && dividerInfo.name) {
+            headerName = dividerInfo.name;
+        } else {
+            const nameSpan = targetHeader.querySelector('.completion_prompt_manager_prompt_name');
+            if (nameSpan) {
+                const link = nameSpan.querySelector('a');
+                headerName = link ? link.textContent.trim() : nameSpan.textContent.trim();
+                if (DIVIDER_PREFIX_REGEX) {
+                    headerName = headerName.replace(DIVIDER_PREFIX_REGEX, '').trim();
+                }
+            }
+        }
+        
+        console.log(`${LOG_PREFIX} Move completed: "${promptName}" -> "${headerName}"`);
+        this.showStatusMessage(`Moved "${promptName}" below "${headerName}"`, 'success', 3000);
+
+        // Trigger reorganization and save
+        console.log(`${LOG_PREFIX} Triggering reorganization after move...`);
+        
+        // Force reorganization to ensure proper structure
+        setTimeout(() => {
+            this.organizePrompts(true);
+            
+            // Then trigger save
+            const updateButton = document.getElementById('completion_prompt_manager_update_button');
+            if (updateButton) {
+                updateButton.click();
+                console.log(`${LOG_PREFIX} Save triggered after reorganization`);
+            } else {
+                console.warn(`${LOG_PREFIX} Update button not found`);
+            }
+        }, 150);
+
+        this.selectedPromptItem = null;
+        
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error in movePromptBelowHeader:`, error);
+            this.showStatusMessage('Error moving prompt: ' + error.message, 'error');
+            this.selectedPromptItem = null;
+        }
+    },
+
+    // === PROMPT LIBRARY SYSTEM ===
+
+    getPromptLibraryKey: function() {
+        return 'nemo-prompt-library';
+    },
+
+    getPromptLibrary: function() {
+        try {
+            const stored = localStorage.getItem(this.getPromptLibraryKey());
+            return stored ? JSON.parse(stored) : [];
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error loading prompt library:`, error);
+            return [];
+        }
+    },
+
+    saveToPromptLibrary: function(promptData) {
+        try {
+            const library = this.getPromptLibrary();
+            library.push({
+                id: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+                title: promptData.title,
+                content: promptData.content,
+                role: promptData.role || '',
+                identifier: promptData.identifier || '',
+                dateCreated: new Date().toISOString(),
+                dateModified: new Date().toISOString(),
+                tags: promptData.tags || [],
+                folder: promptData.folder || 'Default',
+                isFavorite: false
+            });
+            localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(library));
+            return true;
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error saving to prompt library:`, error);
+            return false;
+        }
+    },
+
+    deleteFromPromptLibrary: function(promptId) {
+        try {
+            const library = this.getPromptLibrary();
+            const filtered = library.filter(p => p.id !== promptId);
+            localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(filtered));
+            return true;
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error deleting from prompt library:`, error);
+            return false;
+        }
+    },
+
+    extractPromptData: function(promptElement) {
+        const nameElement = promptElement.querySelector('.completion_prompt_manager_prompt_name a');
+        const title = nameElement ? nameElement.textContent.trim() : 'Untitled Prompt';
+        const identifier = promptElement.dataset.pmIdentifier || '';
+        
+        // Get the actual prompt content from SillyTavern's prompt manager
+        let content = '';
+        let role = '';
+        
+        try {
+            // Try multiple ways to access prompt content from SillyTavern
+            if (identifier) {
+                // Method 1: Try the imported promptManager
+                if (promptManager && promptManager.serviceSettings && promptManager.serviceSettings.prompts) {
+                    const promptData = promptManager.serviceSettings.prompts.find(p => p.identifier === identifier);
+                    if (promptData) {
+                        content = promptData.content || '';
+                        role = promptData.role || '';
+                        console.log(`${LOG_PREFIX} Found prompt content (method 1):`, {
+                            identifier: identifier,
+                            title: title,
+                            contentLength: content.length,
+                            role: role
+                        });
+                    }
+                }
+                
+                // Method 2: Try accessing from window/global scope
+                if (!content && window.promptManager) {
+                    const promptData = window.promptManager.serviceSettings?.prompts?.find(p => p.identifier === identifier);
+                    if (promptData) {
+                        content = promptData.content || '';
+                        role = promptData.role || '';
+                        console.log(`${LOG_PREFIX} Found prompt content (method 2):`, {
+                            identifier: identifier,
+                            title: title,
+                            contentLength: content.length,
+                            role: role
+                        });
+                    }
+                }
+                
+                // Method 3: Try direct access to prompts array
+                if (!content && promptManager && promptManager.prompts) {
+                    const promptData = promptManager.prompts.find(p => p.identifier === identifier);
+                    if (promptData) {
+                        content = promptData.content || '';
+                        role = promptData.role || '';
+                        console.log(`${LOG_PREFIX} Found prompt content (method 3):`, {
+                            identifier: identifier,
+                            title: title,
+                            contentLength: content.length,
+                            role: role
+                        });
+                    }
+                }
+                
+                // Method 4: Debug what's available in promptManager
+                if (!content) {
+                    console.log(`${LOG_PREFIX} Debugging promptManager structure:`, {
+                        promptManager: !!promptManager,
+                        serviceSettings: !!promptManager?.serviceSettings,
+                        prompts: !!promptManager?.prompts,
+                        windowPromptManager: !!window.promptManager,
+                        identifier: identifier,
+                        availableKeys: promptManager ? Object.keys(promptManager) : 'N/A'
+                    });
+                }
+            } else {
+                console.warn(`${LOG_PREFIX} No identifier found in prompt element`);
+            }
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error extracting prompt content:`, error);
+        }
+        
+        return {
+            title: title,
+            content: content,
+            role: role,
+            identifier: identifier,
+            tags: []
+        };
+    },
+
+    showSavePromptDialog: function() {
+        if (!this.selectedPromptItem) return;
+
+        const promptData = this.extractPromptData(this.selectedPromptItem);
+        
+        const dialog = document.createElement('div');
+        dialog.id = 'nemo-save-prompt-dialog';
+        dialog.className = 'nemo-dialog-overlay';
+        
+        dialog.innerHTML = `
+            <div class="nemo-dialog">
+                <div class="nemo-dialog-header">
+                    <h3>Save Prompt to Library</h3>
+                    <button class="nemo-dialog-close" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="nemo-dialog-content">
+                    <div class="nemo-form-group">
+                        <label for="nemo-save-prompt-title">Prompt Title:</label>
+                        <input type="text" id="nemo-save-prompt-title" value="${promptData.title}" 
+                               placeholder="Enter a title for this prompt">
+                    </div>
+                    <div class="nemo-form-group">
+                        <label for="nemo-save-prompt-tags">Tags (comma-separated):</label>
+                        <input type="text" id="nemo-save-prompt-tags" 
+                               placeholder="e.g. character, system, helper">
+                    </div>
+                    <div class="nemo-form-group">
+                        <label>Preview:</label>
+                        <div class="nemo-prompt-preview">
+                            <strong>Title:</strong> ${promptData.title}<br>
+                            <strong>Identifier:</strong> ${promptData.identifier}<br>
+                            <small>Content will be saved with current prompt state</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="nemo-dialog-actions">
+                    <button class="nemo-btn-secondary" data-action="cancel">Cancel</button>
+                    <button class="nemo-btn-primary" data-action="save">Save to Library</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        dialog.addEventListener('click', (e) => {
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            const closeBtn = e.target.closest('.nemo-dialog-close');
+
+            if (action === 'save') {
+                const title = document.getElementById('nemo-save-prompt-title').value.trim();
+                const tagsInput = document.getElementById('nemo-save-prompt-tags').value.trim();
+                const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : [];
+
+                if (!title) {
+                    alert('Please enter a title for the prompt.');
+                    return;
+                }
+
+                const saveData = {
+                    ...promptData,
+                    title: title,
+                    tags: tags
+                };
+
+                if (this.saveToPromptLibrary(saveData)) {
+                    this.showStatusMessage(`Prompt "${title}" saved to library`, 'success', 3000);
+                } else {
+                    this.showStatusMessage('Failed to save prompt to library', 'error', 3000);
+                }
+                
+                dialog.remove();
+            } else if (action === 'cancel' || closeBtn || e.target === dialog) {
+                dialog.remove();
+            }
+        });
+
+        document.getElementById('nemo-save-prompt-title').focus();
+    },
+
+    showLoadPromptDialog: function() {
+        const library = this.getPromptLibrary();
+        
+        if (library.length === 0) {
+            this.showStatusMessage('No saved prompts found. Right-click on a prompt and select "Save Prompt" to build your library.', 'info', 4000);
+            return;
+        }
+
+        const dialog = document.createElement('div');
+        dialog.id = 'nemo-load-prompt-dialog';
+        dialog.className = 'nemo-dialog-overlay';
+        
+        const promptsList = library.map(prompt => {
+            const dateCreated = new Date(prompt.dateCreated).toLocaleDateString();
+            const tagsHtml = prompt.tags.length > 0 ? 
+                `<div class="nemo-prompt-tags">${prompt.tags.map(tag => `<span class="nemo-tag">${tag}</span>`).join('')}</div>` : '';
+            
+            return `
+                <div class="nemo-saved-prompt-item" data-prompt-id="${prompt.id}">
+                    <div class="nemo-saved-prompt-header">
+                        <div class="nemo-saved-prompt-title">${prompt.title}</div>
+                        <div class="nemo-saved-prompt-date">${dateCreated}</div>
+                    </div>
+                    ${tagsHtml}
+                    <div class="nemo-saved-prompt-preview">
+                        <small>ID: ${prompt.identifier || 'N/A'}</small>
+                    </div>
+                    <div class="nemo-saved-prompt-actions">
+                        <button class="nemo-btn-small nemo-btn-primary" data-action="insert" data-prompt-id="${prompt.id}">
+                            Insert Below Current
+                        </button>
+                        <button class="nemo-btn-small nemo-btn-danger" data-action="delete" data-prompt-id="${prompt.id}">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        dialog.innerHTML = `
+            <div class="nemo-dialog nemo-dialog-large">
+                <div class="nemo-dialog-header">
+                    <h3>Load Prompt from Library (${library.length} saved)</h3>
+                    <button class="nemo-dialog-close" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="nemo-dialog-content">
+                    <div class="nemo-saved-prompts-list">
+                        ${promptsList}
+                    </div>
+                </div>
+                <div class="nemo-dialog-actions">
+                    <button class="nemo-btn-secondary" data-action="cancel">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        dialog.addEventListener('click', (e) => {
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            const promptId = e.target.closest('[data-prompt-id]')?.dataset.promptId;
+            const closeBtn = e.target.closest('.nemo-dialog-close');
+
+            if (action === 'insert' && promptId) {
+                const prompt = library.find(p => p.id === promptId);
+                if (prompt) {
+                    this.insertPromptBelow(prompt);
+                    this.showStatusMessage(`Inserted prompt "${prompt.title}"`, 'success', 3000);
+                }
+                dialog.remove();
+            } else if (action === 'delete' && promptId) {
+                if (confirm('Are you sure you want to delete this saved prompt?')) {
+                    const prompt = library.find(p => p.id === promptId);
+                    if (this.deleteFromPromptLibrary(promptId)) {
+                        this.showStatusMessage(`Deleted prompt "${prompt?.title || 'Unknown'}"`, 'success', 3000);
+                        // Refresh the dialog
+                        dialog.remove();
+                        this.showLoadPromptDialog();
+                    }
+                }
+            } else if (action === 'cancel' || closeBtn || e.target === dialog) {
+                dialog.remove();
+            }
+        });
+
+        dialog.querySelector('.nemo-dialog-close').focus();
+    },
+
+    insertPromptBelow: function(promptData) {
+        // This is a placeholder for the actual insertion logic
+        // In the real implementation, we'd need to:
+        // 1. Create a new prompt element with the saved data
+        // 2. Insert it after the selected prompt
+        // 3. Update the prompt manager's internal state
+        
+        console.log(`${LOG_PREFIX} Inserting prompt:`, promptData);
+        this.showStatusMessage('Prompt insertion feature coming soon - this is a placeholder', 'info', 3000);
+        
+        // TODO: Implement actual prompt insertion
+        // This would require interfacing with SillyTavern's prompt manager system
+    },
+
+    // === PROMPT NAVIGATOR ===
+    
+    showPromptNavigator: async function() {
+        try {
+            const navigator = new PromptNavigator();
+            await navigator.open();
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error opening prompt navigator:`, error);
+            this.showStatusMessage('Error opening prompt navigator', 'error');
+        }
+    },
+
+    // === PROMPT ARCHIVE NAVIGATOR ===
+
+    showArchiveNavigator: function() {
+        const library = this.getPromptLibrary();
+        
+        // Organize by folders
+        const folders = this.organizePromptsByFolders(library);
+        const folderNames = Object.keys(folders).sort();
+        
+        const dialog = document.createElement('div');
+        dialog.id = 'nemo-archive-navigator';
+        dialog.className = 'nemo-dialog-overlay nemo-archive-overlay';
+        
+        const toolbarHtml = `
+            <div class="nemo-archive-toolbar">
+                <div class="nemo-archive-toolbar-left">
+                    <button class="nemo-btn-small nemo-btn-primary" id="nemo-create-folder-btn">
+                        <i class="fa-solid fa-folder-plus"></i> New Folder
+                    </button>
+                    <button class="nemo-btn-small nemo-btn-secondary" id="nemo-import-prompts-btn">
+                        <i class="fa-solid fa-file-import"></i> Import
+                    </button>
+                    <button class="nemo-btn-small nemo-btn-secondary" id="nemo-export-prompts-btn">
+                        <i class="fa-solid fa-file-export"></i> Export
+                    </button>
+                </div>
+                <div class="nemo-archive-toolbar-center">
+                    <input type="text" id="nemo-archive-search" placeholder="Search prompts..." class="nemo-archive-search">
+                </div>
+                <div class="nemo-archive-toolbar-right">
+                    <select id="nemo-archive-sort" class="nemo-archive-sort">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name">Name A-Z</option>
+                        <option value="modified">Recently Modified</option>
+                    </select>
+                    <button class="nemo-btn-small" id="nemo-toggle-favorites" title="Show only favorites">
+                        <i class="fa-solid fa-star"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        const sidebarHtml = this.buildFolderSidebar(folderNames, folders);
+        const mainContentHtml = this.buildPromptGrid(library, 'all');
+        
+        dialog.innerHTML = `
+            <div class="nemo-archive-dialog">
+                <div class="nemo-archive-header">
+                    <h2><i class="fa-solid fa-archive"></i> Prompt Archive Navigator</h2>
+                    <div class="nemo-archive-stats">
+                        ${library.length} prompts in ${folderNames.length} folders
+                    </div>
+                    <button class="nemo-dialog-close" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                ${toolbarHtml}
+                <div class="nemo-archive-body">
+                    <div class="nemo-archive-sidebar">
+                        ${sidebarHtml}
+                    </div>
+                    <div class="nemo-archive-main">
+                        ${mainContentHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+        
+        // Add event listeners
+        this.setupArchiveNavigatorEvents(dialog, library, folders);
+        
+        // Focus search input
+        dialog.querySelector('#nemo-archive-search').focus();
+    },
+
+    organizePromptsByFolders: function(library) {
+        const folders = {};
+        
+        library.forEach(prompt => {
+            const folderName = prompt.folder || 'Default';
+            if (!folders[folderName]) {
+                folders[folderName] = [];
+            }
+            folders[folderName].push(prompt);
+        });
+        
+        return folders;
+    },
+
+    buildFolderSidebar: function(folderNames, folders) {
+        const folderItems = folderNames.map(folderName => {
+            const prompts = folders[folderName];
+            const favoriteCount = prompts.filter(p => p.isFavorite).length;
+            const favoriteIcon = favoriteCount > 0 ? `<i class="fa-solid fa-star nemo-folder-star"></i>` : '';
+            
+            return `
+                <div class="nemo-folder-item ${folderName === 'Default' ? 'active' : ''}" data-folder="${folderName}">
+                    <div class="nemo-folder-content">
+                        <i class="fa-solid fa-folder"></i>
+                        <span class="nemo-folder-name">${folderName}</span>
+                        ${favoriteIcon}
+                        <span class="nemo-folder-count">${prompts.length}</span>
+                    </div>
+                    <div class="nemo-folder-actions">
+                        <button class="nemo-folder-action" data-action="rename" title="Rename folder">
+                            <i class="fa-solid fa-pencil"></i>
+                        </button>
+                        <button class="nemo-folder-action" data-action="delete" title="Delete folder">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="nemo-folder-list">
+                <div class="nemo-folder-item active" data-folder="all">
+                    <div class="nemo-folder-content">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span class="nemo-folder-name">All Prompts</span>
+                        <span class="nemo-folder-count">${Object.values(folders).flat().length}</span>
+                    </div>
+                </div>
+                <div class="nemo-folder-item" data-folder="favorites">
+                    <div class="nemo-folder-content">
+                        <i class="fa-solid fa-star"></i>
+                        <span class="nemo-folder-name">Favorites</span>
+                        <span class="nemo-folder-count">${Object.values(folders).flat().filter(p => p.isFavorite).length}</span>
+                    </div>
+                </div>
+                <div class="nemo-folder-divider"></div>
+                ${folderItems}
+            </div>
+        `;
+    },
+
+    buildPromptGrid: function(prompts, folder, sortBy = 'newest', searchTerm = '', favoritesOnly = false) {
+        let filteredPrompts = prompts;
+        
+        // Filter by folder
+        if (folder && folder !== 'all') {
+            if (folder === 'favorites') {
+                filteredPrompts = prompts.filter(p => p.isFavorite);
+            } else {
+                filteredPrompts = prompts.filter(p => (p.folder || 'Default') === folder);
+            }
+        }
+        
+        // Filter by favorites
+        if (favoritesOnly && folder !== 'favorites') {
+            filteredPrompts = filteredPrompts.filter(p => p.isFavorite);
+        }
+        
+        // Filter by search
+        if (searchTerm) {
+            filteredPrompts = filteredPrompts.filter(p => 
+                p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (p.content && p.content.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                p.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+            );
+        }
+        
+        // Sort prompts
+        this.sortPrompts(filteredPrompts, sortBy);
+        
+        if (filteredPrompts.length === 0) {
+            return `
+                <div class="nemo-empty-state">
+                    <i class="fa-solid fa-inbox"></i>
+                    <h3>No prompts found</h3>
+                    <p>No prompts match your current filters.</p>
+                </div>
+            `;
+        }
+        
+        const promptCards = filteredPrompts.map(prompt => this.buildPromptCard(prompt)).join('');
+        
+        return `
+            <div class="nemo-prompt-grid">
+                ${promptCards}
+            </div>
+        `;
+    },
+
+    buildPromptCard: function(prompt) {
+        const dateCreated = new Date(prompt.dateCreated).toLocaleDateString();
+        const dateModified = prompt.dateModified ? new Date(prompt.dateModified).toLocaleDateString() : dateCreated;
+        
+        const tagsHtml = prompt.tags.length > 0 ? 
+            `<div class="nemo-prompt-tags">${prompt.tags.map(tag => `<span class="nemo-tag">${tag}</span>`).join('')}</div>` : '';
+        
+        const favoriteClass = prompt.isFavorite ? 'active' : '';
+        
+        return `
+            <div class="nemo-prompt-card" data-prompt-id="${prompt.id}">
+                <div class="nemo-prompt-card-header">
+                    <div class="nemo-prompt-card-title">${prompt.title}</div>
+                    <div class="nemo-prompt-card-actions">
+                        <button class="nemo-prompt-action nemo-favorite-btn ${favoriteClass}" data-action="favorite" title="Toggle favorite">
+                            <i class="fa-solid fa-star"></i>
+                        </button>
+                        <button class="nemo-prompt-action" data-action="edit" title="Edit prompt">
+                            <i class="fa-solid fa-pencil"></i>
+                        </button>
+                        <button class="nemo-prompt-action" data-action="move" title="Move to folder">
+                            <i class="fa-solid fa-folder-open"></i>
+                        </button>
+                        <button class="nemo-prompt-action" data-action="delete" title="Delete prompt">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                ${tagsHtml}
+                <div class="nemo-prompt-card-preview">
+                    ${prompt.content ? prompt.content.substring(0, 100) + (prompt.content.length > 100 ? '...' : '') : 'No content preview'}
+                </div>
+                <div class="nemo-prompt-card-meta">
+                    <small>Created: ${dateCreated}</small>
+                    ${dateModified !== dateCreated ? `<small>Modified: ${dateModified}</small>` : ''}
+                    <small>Folder: ${prompt.folder || 'Default'}</small>
+                </div>
+            </div>
+        `;
+    },
+
+    sortPrompts: function(prompts, sortBy) {
+        switch (sortBy) {
+            case 'newest':
+                prompts.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
+                break;
+            case 'oldest':
+                prompts.sort((a, b) => new Date(a.dateCreated) - new Date(b.dateCreated));
+                break;
+            case 'name':
+                prompts.sort((a, b) => a.title.localeCompare(b.title));
+                break;
+            case 'modified':
+                prompts.sort((a, b) => new Date(b.dateModified || b.dateCreated) - new Date(a.dateModified || a.dateCreated));
+                break;
+        }
+    },
+
+    setupArchiveNavigatorEvents: function(dialog, library, folders) {
+        const currentState = {
+            selectedFolder: 'all',
+            sortBy: 'newest',
+            searchTerm: '',
+            favoritesOnly: false
+        };
+
+        // Close dialog
+        dialog.querySelector('.nemo-dialog-close').addEventListener('click', () => {
+            dialog.remove();
+        });
+
+        // Click outside to close
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) {
+                dialog.remove();
+            }
+        });
+
+        // Folder selection
+        dialog.addEventListener('click', (e) => {
+            const folderItem = e.target.closest('.nemo-folder-item');
+            if (folderItem && !e.target.closest('.nemo-folder-action')) {
+                // Update active folder
+                dialog.querySelectorAll('.nemo-folder-item').forEach(item => item.classList.remove('active'));
+                folderItem.classList.add('active');
+                
+                currentState.selectedFolder = folderItem.dataset.folder;
+                this.refreshArchiveMainContent(dialog, library, currentState);
+            }
+        });
+
+        // Prompt actions
+        dialog.addEventListener('click', (e) => {
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            const promptId = e.target.closest('[data-prompt-id]')?.dataset.promptId;
+            
+            if (action && promptId) {
+                this.handlePromptAction(action, promptId, dialog, library, currentState);
+            }
+        });
+
+        // Search
+        const searchInput = dialog.querySelector('#nemo-archive-search');
+        searchInput.addEventListener('input', (e) => {
+            currentState.searchTerm = e.target.value;
+            this.refreshArchiveMainContent(dialog, library, currentState);
+        });
+
+        // Sort change
+        dialog.querySelector('#nemo-archive-sort').addEventListener('change', (e) => {
+            currentState.sortBy = e.target.value;
+            this.refreshArchiveMainContent(dialog, library, currentState);
+        });
+
+        // Toggle favorites
+        dialog.querySelector('#nemo-toggle-favorites').addEventListener('click', (e) => {
+            currentState.favoritesOnly = !currentState.favoritesOnly;
+            e.target.classList.toggle('active', currentState.favoritesOnly);
+            this.refreshArchiveMainContent(dialog, library, currentState);
+        });
+
+        // New Folder button
+        dialog.querySelector('#nemo-create-folder-btn').addEventListener('click', () => {
+            this.showCreateFolderDialog(() => {
+                // Refresh the entire navigator to show the new folder
+                const updatedLibrary = this.getPromptLibrary();
+                const updatedFolders = this.organizePromptsByFolders(updatedLibrary);
+                this.refreshArchiveSidebar(dialog, updatedFolders);
+                this.refreshArchiveMainContent(dialog, updatedLibrary, currentState);
+            });
+        });
+
+        // Import button
+        dialog.querySelector('#nemo-import-prompts-btn').addEventListener('click', () => {
+            this.showImportPromptsDialog(() => {
+                const updatedLibrary = this.getPromptLibrary();
+                const updatedFolders = this.organizePromptsByFolders(updatedLibrary);
+                this.refreshArchiveSidebar(dialog, updatedFolders);
+                this.refreshArchiveMainContent(dialog, updatedLibrary, currentState);
+            });
+        });
+
+        // Export button
+        dialog.querySelector('#nemo-export-prompts-btn').addEventListener('click', () => {
+            this.exportPromptLibrary();
+        });
+    },
+
+    refreshArchiveMainContent: function(dialog, library, currentState) {
+        const mainContainer = dialog.querySelector('.nemo-archive-main');
+        const updatedLibrary = this.getPromptLibrary(); // Get fresh data
+        
+        const newContent = this.buildPromptGrid(
+            updatedLibrary,
+            currentState.selectedFolder,
+            currentState.sortBy,
+            currentState.searchTerm,
+            currentState.favoritesOnly
+        );
+        
+        mainContainer.innerHTML = newContent;
+    },
+
+    handlePromptAction: function(action, promptId, dialog, library, currentState) {
+        switch (action) {
+            case 'favorite':
+                this.togglePromptFavorite(promptId);
+                this.refreshArchiveMainContent(dialog, library, currentState);
+                break;
+            case 'edit':
+                this.showEditPromptDialog(promptId, () => {
+                    this.refreshArchiveMainContent(dialog, library, currentState);
+                });
+                break;
+            case 'move':
+                this.showMovePromptDialog(promptId, () => {
+                    this.refreshArchiveMainContent(dialog, library, currentState);
+                });
+                break;
+            case 'delete':
+                if (confirm('Are you sure you want to delete this prompt?')) {
+                    this.deleteFromPromptLibrary(promptId);
+                    this.refreshArchiveMainContent(dialog, library, currentState);
+                }
+                break;
+        }
+    },
+
+    togglePromptFavorite: function(promptId) {
+        try {
+            const library = this.getPromptLibrary();
+            const prompt = library.find(p => p.id === promptId);
+            if (prompt) {
+                prompt.isFavorite = !prompt.isFavorite;
+                localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(library));
+            }
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error toggling favorite:`, error);
+        }
+    },
+
+    showEditPromptDialog: function(promptId, callback) {
+        const library = this.getPromptLibrary();
+        const prompt = library.find(p => p.id === promptId);
+        if (!prompt) return;
+
+        console.log(`${LOG_PREFIX} Edit dialog for prompt:`, {
+            id: prompt.id,
+            title: prompt.title,
+            contentLength: prompt.content ? prompt.content.length : 0,
+            content: prompt.content ? prompt.content.substring(0, 100) + '...' : 'No content',
+            tags: prompt.tags,
+            folder: prompt.folder
+        });
+
+        // Escape HTML for safe insertion
+        const escapeHtml = (text) => {
+            if (!text) return '';
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        };
+
+        const dialog = document.createElement('div');
+        dialog.id = 'nemo-edit-prompt-dialog';
+        dialog.className = 'nemo-dialog-overlay';
+        
+        dialog.innerHTML = `
+            <div class="nemo-dialog">
+                <div class="nemo-dialog-header">
+                    <h3><i class="fa-solid fa-pencil"></i> Edit Prompt</h3>
+                    <button class="nemo-dialog-close" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="nemo-dialog-body">
+                    <div class="nemo-form-group">
+                        <label for="nemo-edit-title">Title:</label>
+                        <input type="text" id="nemo-edit-title" value="${escapeHtml(prompt.title)}" class="text_pole">
+                    </div>
+                    <div class="nemo-form-group">
+                        <label for="nemo-edit-content">Content:</label>
+                        <textarea id="nemo-edit-content" class="text_pole" rows="10"></textarea>
+                    </div>
+                    <div class="nemo-form-group">
+                        <label for="nemo-edit-tags">Tags (comma-separated):</label>
+                        <input type="text" id="nemo-edit-tags" value="${escapeHtml(prompt.tags.join(', '))}" class="text_pole" placeholder="tag1, tag2, tag3">
+                    </div>
+                    <div class="nemo-form-group">
+                        <label for="nemo-edit-folder">Folder:</label>
+                        <input type="text" id="nemo-edit-folder" value="${escapeHtml(prompt.folder || 'Default')}" class="text_pole">
+                    </div>
+                </div>
+                <div class="nemo-dialog-footer">
+                    <button class="nemo-btn-secondary" id="nemo-edit-cancel">Cancel</button>
+                    <button class="nemo-btn-primary" id="nemo-edit-save">Save Changes</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        // Set textarea content safely after DOM insertion
+        const contentTextarea = dialog.querySelector('#nemo-edit-content');
+        contentTextarea.value = prompt.content || '';
+
+        // Event handlers
+        dialog.querySelector('#nemo-edit-cancel').addEventListener('click', () => dialog.remove());
+        dialog.querySelector('.nemo-dialog-close').addEventListener('click', () => dialog.remove());
+        
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) dialog.remove();
+        });
+
+        dialog.querySelector('#nemo-edit-save').addEventListener('click', () => {
+            const title = dialog.querySelector('#nemo-edit-title').value.trim();
+            const content = dialog.querySelector('#nemo-edit-content').value.trim();
+            const tagsInput = dialog.querySelector('#nemo-edit-tags').value.trim();
+            const folder = dialog.querySelector('#nemo-edit-folder').value.trim() || 'Default';
+
+            if (!title) {
+                alert('Please enter a title for the prompt.');
+                return;
+            }
+
+            const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+
+            try {
+                const updatedLibrary = this.getPromptLibrary();
+                const promptToUpdate = updatedLibrary.find(p => p.id === promptId);
+                
+                if (promptToUpdate) {
+                    promptToUpdate.title = title;
+                    promptToUpdate.content = content;
+                    promptToUpdate.tags = tags;
+                    promptToUpdate.folder = folder;
+                    promptToUpdate.dateModified = new Date().toISOString();
+                    
+                    localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(updatedLibrary));
+                    this.showStatusMessage('Prompt updated successfully!', 'success');
+                    
+                    dialog.remove();
+                    if (callback) callback();
+                }
+            } catch (error) {
+                console.error(`${LOG_PREFIX} Error updating prompt:`, error);
+                alert('Failed to update prompt. Please try again.');
+            }
+        });
+    },
+
+    showMovePromptDialog: function(promptId, callback) {
+        const library = this.getPromptLibrary();
+        const prompt = library.find(p => p.id === promptId);
+        if (!prompt) return;
+
+        // Get all unique folders
+        const folders = [...new Set(library.map(p => p.folder || 'Default'))].sort();
+        const currentFolder = prompt.folder || 'Default';
+
+        const dialog = document.createElement('div');
+        dialog.id = 'nemo-move-prompt-dialog';
+        dialog.className = 'nemo-dialog-overlay';
+        
+        const folderOptions = folders.map(folder => 
+            `<option value="${folder}" ${folder === currentFolder ? 'selected' : ''}>${folder}</option>`
+        ).join('');
+
+        dialog.innerHTML = `
+            <div class="nemo-dialog">
+                <div class="nemo-dialog-header">
+                    <h3><i class="fa-solid fa-folder-open"></i> Move Prompt</h3>
+                    <button class="nemo-dialog-close" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="nemo-dialog-body">
+                    <p>Move "<strong>${prompt.title}</strong>" to folder:</p>
+                    <div class="nemo-form-group">
+                        <label for="nemo-move-folder-select">Select existing folder:</label>
+                        <select id="nemo-move-folder-select" class="text_pole">
+                            ${folderOptions}
+                        </select>
+                    </div>
+                    <div class="nemo-form-group">
+                        <label for="nemo-move-new-folder">Or create new folder:</label>
+                        <input type="text" id="nemo-move-new-folder" class="text_pole" placeholder="New folder name">
+                    </div>
+                </div>
+                <div class="nemo-dialog-footer">
+                    <button class="nemo-btn-secondary" id="nemo-move-cancel">Cancel</button>
+                    <button class="nemo-btn-primary" id="nemo-move-confirm">Move</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        // Event handlers
+        dialog.querySelector('#nemo-move-cancel').addEventListener('click', () => dialog.remove());
+        dialog.querySelector('.nemo-dialog-close').addEventListener('click', () => dialog.remove());
+        
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) dialog.remove();
+        });
+
+        // Auto-clear select when typing in new folder input
+        dialog.querySelector('#nemo-move-new-folder').addEventListener('input', (e) => {
+            if (e.target.value.trim()) {
+                dialog.querySelector('#nemo-move-folder-select').value = '';
+            }
+        });
+
+        dialog.querySelector('#nemo-move-confirm').addEventListener('click', () => {
+            const selectedFolder = dialog.querySelector('#nemo-move-folder-select').value;
+            const newFolder = dialog.querySelector('#nemo-move-new-folder').value.trim();
+            
+            const targetFolder = newFolder || selectedFolder || 'Default';
+
+            try {
+                const updatedLibrary = this.getPromptLibrary();
+                const promptToMove = updatedLibrary.find(p => p.id === promptId);
+                
+                if (promptToMove) {
+                    promptToMove.folder = targetFolder;
+                    promptToMove.dateModified = new Date().toISOString();
+                    
+                    localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(updatedLibrary));
+                    this.showStatusMessage(`Prompt moved to "${targetFolder}" folder!`, 'success');
+                    
+                    dialog.remove();
+                    if (callback) callback();
+                }
+            } catch (error) {
+                console.error(`${LOG_PREFIX} Error moving prompt:`, error);
+                alert('Failed to move prompt. Please try again.');
+            }
+        });
+    },
+
+    refreshArchiveSidebar: function(dialog, folders) {
+        const sidebarContainer = dialog.querySelector('.nemo-archive-sidebar');
+        const folderNames = Object.keys(folders).sort();
+        const newSidebarContent = this.buildFolderSidebar(folderNames, folders);
+        sidebarContainer.innerHTML = newSidebarContent;
+    },
+
+    showCreateFolderDialog: function(callback) {
+        const dialog = document.createElement('div');
+        dialog.id = 'nemo-create-folder-dialog';
+        dialog.className = 'nemo-dialog-overlay';
+        
+        dialog.innerHTML = `
+            <div class="nemo-dialog">
+                <div class="nemo-dialog-header">
+                    <h3><i class="fa-solid fa-folder-plus"></i> Create New Folder</h3>
+                    <button class="nemo-dialog-close" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="nemo-dialog-body">
+                    <div class="nemo-form-group">
+                        <label for="nemo-new-folder-name">Folder Name:</label>
+                        <input type="text" id="nemo-new-folder-name" class="text_pole" placeholder="Enter folder name" autofocus>
+                    </div>
+                    <p class="nemo-dialog-note">Note: The folder will be created when you move prompts into it.</p>
+                </div>
+                <div class="nemo-dialog-footer">
+                    <button class="nemo-btn-secondary" id="nemo-folder-cancel">Cancel</button>
+                    <button class="nemo-btn-primary" id="nemo-folder-create">Create Folder</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        // Event handlers
+        dialog.querySelector('#nemo-folder-cancel').addEventListener('click', () => dialog.remove());
+        dialog.querySelector('.nemo-dialog-close').addEventListener('click', () => dialog.remove());
+        
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) dialog.remove();
+        });
+
+        dialog.querySelector('#nemo-folder-create').addEventListener('click', () => {
+            const folderName = dialog.querySelector('#nemo-new-folder-name').value.trim();
+            
+            if (!folderName) {
+                alert('Please enter a folder name.');
+                return;
+            }
+
+            // Check if folder already exists
+            const library = this.getPromptLibrary();
+            const existingFolders = [...new Set(library.map(p => p.folder || 'Default'))];
+            
+            if (existingFolders.includes(folderName)) {
+                alert('A folder with this name already exists.');
+                return;
+            }
+
+            // Create a placeholder prompt in the new folder to ensure it shows up
+            const placeholderPrompt = {
+                id: 'folder-placeholder-' + Date.now(),
+                title: `${folderName} Folder`,
+                content: `This folder was created on ${new Date().toLocaleDateString()}. You can delete this placeholder prompt after adding your own prompts to this folder.`,
+                tags: ['folder-placeholder'],
+                folder: folderName,
+                dateCreated: new Date().toISOString(),
+                dateModified: new Date().toISOString(),
+                isFavorite: false
+            };
+
+            try {
+                library.push(placeholderPrompt);
+                localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(library));
+                this.showStatusMessage(`Folder "${folderName}" created successfully!`, 'success');
+                
+                dialog.remove();
+                if (callback) callback();
+            } catch (error) {
+                console.error(`${LOG_PREFIX} Error creating folder:`, error);
+                alert('Failed to create folder. Please try again.');
+            }
+        });
+
+        // Enter key support
+        dialog.querySelector('#nemo-new-folder-name').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                dialog.querySelector('#nemo-folder-create').click();
+            }
+        });
+    },
+
+    showImportPromptsDialog: function(callback) {
+        const dialog = document.createElement('div');
+        dialog.id = 'nemo-import-prompts-dialog';
+        dialog.className = 'nemo-dialog-overlay';
+        
+        dialog.innerHTML = `
+            <div class="nemo-dialog">
+                <div class="nemo-dialog-header">
+                    <h3><i class="fa-solid fa-file-import"></i> Import Prompts</h3>
+                    <button class="nemo-dialog-close" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="nemo-dialog-body">
+                    <div class="nemo-form-group">
+                        <label for="nemo-import-file">Select JSON file to import:</label>
+                        <input type="file" id="nemo-import-file" accept=".json" class="text_pole">
+                    </div>
+                    <div class="nemo-form-group">
+                        <label>
+                            <input type="checkbox" id="nemo-import-merge" checked> 
+                            Merge with existing prompts (uncheck to replace all prompts)
+                        </label>
+                    </div>
+                    <div class="nemo-dialog-note">
+                        <strong>Note:</strong> Import files should contain an array of prompt objects with the following structure:<br>
+                        <code>{"title": "Prompt Name", "content": "Prompt content", "tags": ["tag1"], "folder": "Folder Name"}</code>
+                    </div>
+                </div>
+                <div class="nemo-dialog-footer">
+                    <button class="nemo-btn-secondary" id="nemo-import-cancel">Cancel</button>
+                    <button class="nemo-btn-primary" id="nemo-import-confirm" disabled>Import</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        // Event handlers
+        dialog.querySelector('#nemo-import-cancel').addEventListener('click', () => dialog.remove());
+        dialog.querySelector('.nemo-dialog-close').addEventListener('click', () => dialog.remove());
+        
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) dialog.remove();
+        });
+
+        // File selection handler
+        dialog.querySelector('#nemo-import-file').addEventListener('change', (e) => {
+            const importButton = dialog.querySelector('#nemo-import-confirm');
+            importButton.disabled = !e.target.files.length;
+        });
+
+        dialog.querySelector('#nemo-import-confirm').addEventListener('click', () => {
+            const fileInput = dialog.querySelector('#nemo-import-file');
+            const mergeMode = dialog.querySelector('#nemo-import-merge').checked;
+            
+            if (!fileInput.files.length) return;
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (!Array.isArray(importedData)) {
+                        throw new Error('Import file must contain an array of prompts.');
+                    }
+
+                    let currentLibrary = mergeMode ? this.getPromptLibrary() : [];
+                    let importCount = 0;
+                    
+                    importedData.forEach((importPrompt, index) => {
+                        if (importPrompt.title && typeof importPrompt.title === 'string') {
+                            const prompt = {
+                                id: 'imported-' + Date.now() + '-' + index,
+                                title: importPrompt.title,
+                                content: importPrompt.content || '',
+                                tags: Array.isArray(importPrompt.tags) ? importPrompt.tags : [],
+                                folder: importPrompt.folder || 'Imported',
+                                dateCreated: importPrompt.dateCreated || new Date().toISOString(),
+                                dateModified: new Date().toISOString(),
+                                isFavorite: Boolean(importPrompt.isFavorite)
+                            };
+                            console.log(`${LOG_PREFIX} Importing prompt:`, {
+                                title: prompt.title,
+                                contentLength: prompt.content ? prompt.content.length : 0,
+                                content: prompt.content ? prompt.content.substring(0, 100) + '...' : 'No content'
+                            });
+                            currentLibrary.push(prompt);
+                            importCount++;
+                        }
+                    });
+
+                    localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(currentLibrary));
+                    this.showStatusMessage(`Successfully imported ${importCount} prompts!`, 'success');
+                    
+                    dialog.remove();
+                    if (callback) callback();
+                } catch (error) {
+                    console.error(`${LOG_PREFIX} Error importing prompts:`, error);
+                    alert('Failed to import prompts. Please check the file format and try again.\n\nError: ' + error.message);
+                }
+            };
+            
+            reader.readAsText(file);
+        });
+    },
+
+    exportPromptLibrary: function() {
+        try {
+            const library = this.getPromptLibrary();
+            
+            if (library.length === 0) {
+                alert('No prompts to export.');
+                return;
+            }
+
+            // Create export data
+            const exportData = library.map(prompt => ({
+                title: prompt.title,
+                content: prompt.content,
+                tags: prompt.tags,
+                folder: prompt.folder,
+                dateCreated: prompt.dateCreated,
+                dateModified: prompt.dateModified,
+                isFavorite: prompt.isFavorite
+            }));
+
+            // Create and trigger download
+            const dataBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nemo-prompts-export-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            this.showStatusMessage(`Exported ${library.length} prompts successfully!`, 'success');
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error exporting prompts:`, error);
+            alert('Failed to export prompts. Please try again.');
+        }
     }
 };

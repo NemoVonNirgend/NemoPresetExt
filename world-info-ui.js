@@ -281,12 +281,23 @@ export const NemoWorldInfoUI = {
         const folderElement = document.createElement('div');
         folderElement.className = 'nemo-folder';
         folderElement.dataset.folderName = folderName;
+        
+        console.log(`${LOG_PREFIX} Creating folder element:`, {
+            folderName: folderName,
+            className: folderElement.className,
+            hasOpenClass: folderElement.classList.contains('open')
+        });
 
         const header = document.createElement('div');
         header.className = 'nemo-folder-header';
         header.innerHTML = `<span class="nemo-folder-toggle">▶</span> ${folderName}`;
         header.addEventListener('click', () => {
             folderElement.classList.toggle('open');
+            console.log(`${LOG_PREFIX} Folder toggle clicked:`, {
+                folderName: folderName,
+                isOpen: folderElement.classList.contains('open'),
+                className: folderElement.className
+            });
         });
 
         const deleteButton = document.createElement('div');

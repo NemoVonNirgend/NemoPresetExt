@@ -48,7 +48,66 @@ export const NemoSettingsUI = {
                     extension_settings[NEMO_EXTENSION_NAME].enableLorebookOverhaul = lorebookToggle.checked;
                     saveSettingsDebounced();
                 });
+
+                // Reasoning Section Setting
+                const reasoningToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableReasoningSection'));
+                reasoningToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableReasoningSection ?? true;
+                reasoningToggle.addEventListener('change', () => {
+                    extension_settings[NEMO_EXTENSION_NAME].enableReasoningSection = reasoningToggle.checked;
+                    saveSettingsDebounced();
+                    // Refresh the UI to show/hide the reasoning section
+                    NemoPresetManager.refreshUI();
+                });
+
+                // Lorebook Management Setting
+                const lorebookManagementToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableLorebookManagement'));
+                lorebookManagementToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableLorebookManagement ?? true;
+                lorebookManagementToggle.addEventListener('change', () => {
+                    extension_settings[NEMO_EXTENSION_NAME].enableLorebookManagement = lorebookManagementToggle.checked;
+                    saveSettingsDebounced();
+                    // Refresh the UI to show/hide the lorebook management section
+                    NemoPresetManager.refreshUI();
+                });
+
+                // Tab Overhauls Setting
+                const tabOverhaulsToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableTabOverhauls'));
+                tabOverhaulsToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableTabOverhauls ?? true;
+                tabOverhaulsToggle.addEventListener('change', () => {
+                    extension_settings[NEMO_EXTENSION_NAME].enableTabOverhauls = tabOverhaulsToggle.checked;
+                    saveSettingsDebounced();
+                    
+                    // Show refresh notification
+                    const notification = document.createElement('div');
+                    notification.innerHTML = '<i class="fa-solid fa-refresh"></i> Page refresh required for changes to take effect.';
+                    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--SmartThemeQuoteColor); color: white; padding: 15px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.3);';
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 5000);
+                });
+                
+                // Message Theme Setting
+                const themeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('nemo-message-theme-select'));
+                if (themeSelect) {
+                    themeSelect.value = extension_settings[NEMO_EXTENSION_NAME]?.messageTheme || 'default';
+                    this.applyMessageTheme(themeSelect.value);
+
+                    themeSelect.addEventListener('change', () => {
+                        const selectedTheme = themeSelect.value;
+                        extension_settings[NEMO_EXTENSION_NAME].messageTheme = selectedTheme;
+                        saveSettingsDebounced();
+                        this.applyMessageTheme(selectedTheme);
+                    });
+                }
             }
         }, 500);
+    },
+
+    applyMessageTheme: function(themeName) {
+        document.body.className = document.body.className.replace(/\btheme-\w+/g, '').trim();
+        if (themeName && themeName !== 'default') {
+            document.body.classList.add(`theme-${themeName}`);
+        }
     }
 };

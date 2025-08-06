@@ -1,6 +1,6 @@
 import { callGenericPopup, POPUP_TYPE } from '../../../popup.js';
 import { getContext } from '../../../extensions.js';
-import { LOG_PREFIX, generateUUID, debounce } from './utils.js';
+import { LOG_PREFIX, generateUUID, debounce, NEMO_FAVORITE_CHARACTERS_KEY } from './utils.js';
 import { loadCharacterMetadata, saveCharacterMetadata, updateMetadataTimestamp } from './character-manager.js';
 import { selectCharacterById } from '../../../../script.js';
 
@@ -134,20 +134,31 @@ export class CharacterManagerUI {
 
         // Filtering
         items = items.filter(item => {
-            if (!searchTerm) return true; // No search term, show all
+            // Search term filtering
+            if (searchTerm) {
+                const nameMatch = item.name.toLowerCase().includes(searchTerm);
 
-            const nameMatch = item.name.toLowerCase().includes(searchTerm);
-
-            // If it's a character, also check tags
-            if (item.type === 'character') {
-                const tagMatch = item.data.tags && Array.isArray(item.data.tags)
-                    ? item.data.tags.some(tag => tag.toLowerCase().includes(searchTerm))
-                    : false;
-                return nameMatch || tagMatch;
+                // If it's a character, also check tags
+                if (item.type === 'character') {
+                    const tagMatch = item.data.tags && Array.isArray(item.data.tags)
+                        ? item.data.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+                        : false;
+                    if (!nameMatch && !tagMatch) return false;
+                } else {
+                    // For folders, only search by name
+                    if (!nameMatch) return false;
+                }
             }
 
-            // For folders, only search by name
-            return nameMatch;
+            // Category filtering
+            if (this.currentFilter === 'uncategorized' && item.type === 'character' && item.data.folderId) return false;
+            if (this.currentFilter === 'favorites') {
+                if (item.type === 'folder') return false; // Only show characters in favorites view
+                const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_CHARACTERS_KEY) || '[]');
+                return favorites.includes(item.data.filename || item.data.avatar);
+            }
+
+            return true;
         });
 
         // Sorting
@@ -179,6 +190,7 @@ export class CharacterManagerUI {
         
         this.mainView.innerHTML = '';
         this.mainView.appendChild(fragment);
+        this.renderFavoritesSidebar();
     }
 
     updateLoadButton() {
@@ -240,6 +252,24 @@ export class CharacterManagerUI {
         
         itemEl.appendChild(icon);
         itemEl.appendChild(nameEl);
+
+        // Add favorite toggle button for characters
+        if (type === 'character') {
+            const favoriteBtn = document.createElement('button');
+            favoriteBtn.className = 'menu_button nemo-favorite-btn';
+            favoriteBtn.title = 'Toggle favorite';
+            
+            const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_CHARACTERS_KEY) || '[]');
+            const isFavorite = favorites.includes(data.avatar);
+            favoriteBtn.innerHTML = `<i class="fa-solid fa-star ${isFavorite ? 'favorite-active' : ''}"></i>`;
+            
+            favoriteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleCharacterFavorite(data.avatar);
+            });
+            
+            itemEl.appendChild(favoriteBtn);
+        }
 
         return itemEl;
     }
@@ -320,8 +350,17 @@ export class CharacterManagerUI {
     }
 
     handleGridDoubleClick(e) {
-        const item = e.target.closest('.grid-item.character');
-        if (!item) return;
+        const item = e.target.closest('.grid-item');
+        if (!item || item.dataset.type !== 'character') return;
+        
+        // First select the character
+        const id = item.dataset.id;
+        this.mainView.querySelectorAll('.grid-item.selected').forEach(el => el.classList.remove('selected'));
+        item.classList.add('selected');
+        this.selectedCharacter = this.allCharacters.find(c => c.avatar === id);
+        this.updateLoadButton();
+        
+        // Then load it
         this.loadSelectedCharacter();
     }
 
@@ -339,7 +378,14 @@ export class CharacterManagerUI {
         if (type === 'folder') {
             itemsHTML = `<li data-action="rename_folder" data-id="${id}"><i class="fa-solid fa-i-cursor"></i><span>Rename</span></li><li data-action="delete_folder" data-id="${id}"><i class="fa-solid fa-trash-can"></i><span>Delete</span></li>`;
         } else if (type === 'character') {
-            itemsHTML = `<li data-action="add_to_folder" data-id="${id}"><i class="fa-solid fa-folder-plus"></i><span>Move to Folder...</span></li>`;
+            // Check if character is favorited
+            const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_CHARACTERS_KEY) || '[]');
+            const isFavorite = favorites.includes(id);
+            const favoriteAction = isFavorite ? 'unfavorite' : 'favorite';
+            const favoriteText = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
+            const favoriteIcon = isFavorite ? 'fa-star-half-stroke' : 'fa-star';
+            
+            itemsHTML = `<li data-action="${favoriteAction}" data-id="${id}"><i class="fa-solid ${favoriteIcon}"></i><span>${favoriteText}</span></li><li data-action="add_to_folder" data-id="${id}"><i class="fa-solid fa-folder-plus"></i><span>Move to Folder...</span></li>`;
         }
         menu.innerHTML = itemsHTML;
 
@@ -359,6 +405,14 @@ export class CharacterManagerUI {
 
     async runContextMenuAction(action, id) {
         switch (action) {
+            case 'favorite': {
+                this.toggleCharacterFavorite(id);
+                break;
+            }
+            case 'unfavorite': {
+                this.toggleCharacterFavorite(id);
+                break;
+            }
             case 'rename_folder': {
                 const folder = this.metadata.folders[id];
                 if (!folder) return;
@@ -413,7 +467,7 @@ export class CharacterManagerUI {
 
     showFilterMenu(e) {
         e.stopPropagation(); this.hideContextMenu();
-        const options = { 'all': 'All Items', 'uncategorized': 'Uncategorized' };
+        const options = { 'all': 'All Items', 'favorites': '⭐ Favorites', 'uncategorized': 'Uncategorized' };
         const menu = document.createElement('ul'); menu.className = 'nemo-context-menu';
         menu.innerHTML = Object.entries(options).map(([key, value]) => `<li data-action="filter" data-value="${key}" class="${this.currentFilter === key ? 'active' : ''}">${value}</li>`).join('');
         this.showMiniMenu(e.currentTarget, menu);
@@ -543,5 +597,73 @@ export class CharacterManagerUI {
         } else if (targetName) {
             callGenericPopup(`Folder "${targetName}" not found.`, 'error');
         }
+    }
+
+    toggleCharacterFavorite(avatar) {
+        const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_CHARACTERS_KEY) || '[]');
+        const index = favorites.indexOf(avatar);
+        
+        if (index === -1) {
+            favorites.push(avatar);
+        } else {
+            favorites.splice(index, 1);
+        }
+        
+        localStorage.setItem(NEMO_FAVORITE_CHARACTERS_KEY, JSON.stringify(favorites));
+        
+        // Re-render to update the star icons and favorites sidebar
+        this.render();
+        this.renderFavoritesSidebar();
+    }
+
+    renderFavoritesSidebar() {
+        const favoritesList = this.element.querySelector('#char-favorites-list');
+        if (!favoritesList) return;
+
+        const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_CHARACTERS_KEY) || '[]');
+        favoritesList.innerHTML = '';
+
+        if (favorites.length === 0) {
+            favoritesList.innerHTML = '<div class="no-favorites">No favorites yet</div>';
+            return;
+        }
+
+        favorites.forEach(avatar => {
+            const character = this.allCharacters.find(c => c.avatar === avatar);
+            if (character) {
+                const favoriteItem = document.createElement('div');
+                favoriteItem.className = 'navigator-favorite-item';
+                favoriteItem.innerHTML = `
+                    <div class="favorite-item-icon" style="background-image: url('/thumbnail?type=avatar&file=${encodeURIComponent(avatar)}')">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div class="favorite-item-name" title="${character.name}">${character.name}</div>
+                    <button class="favorite-remove-btn" title="Remove from favorites">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                `;
+                favoriteItem.addEventListener('click', () => {
+                    // Select this character
+                    this.selectedCharacter = character;
+                    this.render();
+                });
+                
+                favoriteItem.addEventListener('dblclick', () => {
+                    // Select and load this character
+                    this.selectedCharacter = character;
+                    this.updateLoadButton();
+                    this.loadSelectedCharacter();
+                });
+                
+                // Add remove button event listener
+                const removeBtn = favoriteItem.querySelector('.favorite-remove-btn');
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent triggering the item click
+                    this.toggleCharacterFavorite(avatar);
+                });
+                
+                favoritesList.appendChild(favoriteItem);
+            }
+        });
     }
 }

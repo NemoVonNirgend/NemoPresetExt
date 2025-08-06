@@ -16,7 +16,7 @@ export class PresetNavigator {
         this.metadata = { folders: {}, presets: {} };
         this.currentPath = [{ id: 'root', name: 'Home' }];
         this.allPresets = [];
-        this.selectedPreset = { value: null, filename: null };
+        this.selectedPreset = { value: null, name: null };
         this.bulkSelection = new Set();
         this.lastSelectedItem = null;
         this.viewMode = 'grid';
@@ -37,6 +37,12 @@ export class PresetNavigator {
         container.className = 'nemo-preset-navigator-content-wrapper'; // A class for the content itself
         container.innerHTML = `
             <div class="navigator-body">
+                <div class="navigator-sidebar">
+                    <div class="navigator-favorites-section">
+                        <h4><i class="fa-solid fa-star"></i> Quick Favorites</h4>
+                        <div id="navigator-favorites-list" class="navigator-favorites-list"></div>
+                    </div>
+                </div>
                 <div class="navigator-main-panel">
                     <div id="navigator-grid-header">
                         <div id="navigator-breadcrumbs"></div>
@@ -110,7 +116,7 @@ export class PresetNavigator {
 
     cleanup() {
         // This runs when the popup is closed.
-        this.selectedPreset = { value: null, filename: null };
+        this.selectedPreset = { value: null, name: null };
         this.mainView.innerHTML = '';
         this.currentPath = [{ id: 'root', name: 'Home' }];
         this.hideContextMenu();
@@ -191,6 +197,11 @@ export class PresetNavigator {
             if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return false;
             if (this.currentFilter === 'uncategorized' && item.type === 'preset' && item.data.folderId) return false;
             if (this.currentFilter === 'has-image' && item.type === 'preset' && !item.data.imageUrl) return false;
+            if (this.currentFilter === 'favorites') {
+                if (item.type === 'folder') return false; // Only show presets in favorites view
+                const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_PRESETS_KEY) || '[]');
+                return favorites.includes(item.data.name);
+            }
             return true;
         });
 
@@ -225,6 +236,7 @@ export class PresetNavigator {
             this.mainView.appendChild(itemEl);
         });
         this.updateBulkSelectionVisuals();
+        this.renderFavoritesSidebar();
     }
 
     createGridItem(item) {
@@ -252,13 +264,31 @@ export class PresetNavigator {
         itemEl.appendChild(icon);
         itemEl.appendChild(nameEl);
 
+        // Add favorite toggle button for presets
+        if (type === 'preset') {
+            const favoriteBtn = document.createElement('button');
+            favoriteBtn.className = 'menu_button nemo-favorite-btn';
+            favoriteBtn.title = 'Toggle favorite';
+            
+            const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_PRESETS_KEY) || '[]');
+            const isFavorite = favorites.includes(data.name);
+            favoriteBtn.innerHTML = `<i class="fa-solid fa-star ${isFavorite ? 'favorite-active' : ''}"></i>`;
+            
+            favoriteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.togglePresetFavorite(data.name);
+            });
+            
+            itemEl.appendChild(favoriteBtn);
+        }
+
         const menuBtn = document.createElement('button');
         menuBtn.className = 'menu_button nemo-item-menu-btn';
         menuBtn.title = 'More options';
         menuBtn.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
         itemEl.appendChild(menuBtn);
 
-        if (type === 'preset' && this.selectedPreset.filename === id) itemEl.classList.add('selected');
+        if (type === 'preset' && this.selectedPreset.name === id) itemEl.classList.add('selected');
         return itemEl;
     }
 
@@ -292,7 +322,7 @@ export class PresetNavigator {
         menuBtn.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
         itemEl.appendChild(menuBtn);
 
-        if (type === 'preset' && this.selectedPreset.filename === id) itemEl.classList.add('selected');
+        if (type === 'preset' && this.selectedPreset.name === id) itemEl.classList.add('selected');
         return itemEl;
     }
 
@@ -390,7 +420,7 @@ export class PresetNavigator {
             } else if (type === 'preset') {
                 this.mainView.querySelectorAll('.grid-item.selected').forEach(el => el.classList.remove('selected'));
                 item.classList.add('selected');
-                this.selectedPreset = { value, filename: id };
+                this.selectedPreset = { value, name: id };
                 this.lastSelectedItem = item;
             }
         }
@@ -414,7 +444,14 @@ export class PresetNavigator {
         } else if (type === 'folder') {
             itemsHTML = `<li data-action="rename_folder" data-id="${id}"><i class="fa-solid fa-i-cursor"></i><span>Rename</span></li><li data-action="set_folder_color" data-id="${id}"><i class="fa-solid fa-palette"></i><span>Set Color</span></li><li data-action="delete_folder" data-id="${id}"><i class="fa-solid fa-trash-can"></i><span>Delete</span></li>`;
         } else if (type === 'preset') {
-            itemsHTML = `<li data-action="set_image" data-id="${id}"><i class="fa-solid fa-image"></i><span>Set Image</span></li><li data-action="add_to_folder" data-id="${id}"><i class="fa-solid fa-folder-plus"></i><span>Move to Folder...</span></li><li data-action="remove_from_folder" data-id="${id}"><i class="fa-solid fa-folder-minus"></i><span>Remove from Folder</span></li>`;
+            // Check if preset is favorited
+            const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_PRESETS_KEY) || '[]');
+            const isFavorite = favorites.includes(id);
+            const favoriteAction = isFavorite ? 'unfavorite' : 'favorite';
+            const favoriteText = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
+            const favoriteIcon = isFavorite ? 'fa-star-half-stroke' : 'fa-star';
+            
+            itemsHTML = `<li data-action="${favoriteAction}" data-id="${id}"><i class="fa-solid ${favoriteIcon}"></i><span>${favoriteText}</span></li><li data-action="set_image" data-id="${id}"><i class="fa-solid fa-image"></i><span>Set Image</span></li><li data-action="add_to_folder" data-id="${id}"><i class="fa-solid fa-folder-plus"></i><span>Move to Folder...</span></li><li data-action="remove_from_folder" data-id="${id}"><i class="fa-solid fa-folder-minus"></i><span>Remove from Folder</span></li>`;
         }
         menu.innerHTML = itemsHTML;
 
@@ -441,6 +478,14 @@ export class PresetNavigator {
     
     async runContextMenuAction(action, id) {
         switch (action) {
+            case 'favorite': {
+                this.togglePresetFavorite(id);
+                break;
+            }
+            case 'unfavorite': {
+                this.togglePresetFavorite(id);
+                break;
+            }
             case 'rename_folder': {
                 const folder = this.metadata.folders[id];
                 if (!folder) return;
@@ -578,9 +623,9 @@ export class PresetNavigator {
     }
     updateBulkSelectionVisuals() { this.mainView.querySelectorAll('.grid-item').forEach(el => el.classList.toggle('bulk-selected', this.bulkSelection.has(el.dataset.id))); }
     handleKeyDown(e) {
-        if (e.key === ' ' && this.selectedPreset.filename && !e.target.matches('input, textarea')) {
+        if (e.key === ' ' && this.selectedPreset.name && !e.target.matches('input, textarea')) {
             e.preventDefault();
-            const presetData = this.allPresets.find(p => p.name === this.selectedPreset.filename);
+            const presetData = this.allPresets.find(p => p.name === this.selectedPreset.name);
             if (presetData) {
                 const presetContent = oai_settings[presetData.value];
                 const content = presetContent ? JSON.stringify(presetContent, null, 2) : 'Could not load preset content.';
@@ -608,7 +653,7 @@ export class PresetNavigator {
     }
     showFilterMenu(e) {
         e.stopPropagation(); this.hideContextMenu();
-        const options = { 'all': 'All Items', 'uncategorized': 'Uncategorized', 'has-image': 'With Images' };
+        const options = { 'all': 'All Items', 'favorites': '⭐ Favorites', 'uncategorized': 'Uncategorized', 'has-image': 'With Images' };
         const menu = document.createElement('ul'); menu.className = 'nemo-context-menu';
         menu.innerHTML = Object.entries(options).map(([key, value]) => `<li data-action="filter" data-value="${key}" class="${this.currentFilter === key ? 'active' : ''}">${value}</li>`).join('');
         this.showMiniMenu(e.currentTarget, menu);
@@ -657,6 +702,83 @@ export class PresetNavigator {
             finally { if (document.body.contains(input)) document.body.removeChild(input); }
         };
         document.body.appendChild(input); input.click();
+    }
+
+    togglePresetFavorite(presetName) {
+        const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_PRESETS_KEY) || '[]');
+        const index = favorites.indexOf(presetName);
+        
+        if (index === -1) {
+            favorites.push(presetName);
+        } else {
+            favorites.splice(index, 1);
+        }
+        
+        localStorage.setItem(NEMO_FAVORITE_PRESETS_KEY, JSON.stringify(favorites));
+        
+        // Trigger favorites update event
+        eventSource.emit(event_types.NEMO_FAVORITES_UPDATED);
+        
+        // Re-render to update the star icons and favorites sidebar
+        this.render();
+        this.renderFavoritesSidebar();
+    }
+
+    renderFavoritesSidebar() {
+        const favoritesList = this.navigatorElement.querySelector('#navigator-favorites-list');
+        if (!favoritesList) return;
+
+        const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_PRESETS_KEY) || '[]');
+        favoritesList.innerHTML = '';
+
+        if (favorites.length === 0) {
+            favoritesList.innerHTML = '<div class="no-favorites">No favorites yet</div>';
+            return;
+        }
+
+        favorites.forEach(presetName => {
+            const preset = this.allPresets.find(p => p.name === presetName);
+            console.log(`${LOG_PREFIX} Looking for preset:`, {
+                presetName: presetName,
+                found: !!preset,
+                allPresetsCount: this.allPresets.length,
+                samplePreset: this.allPresets[0]
+            });
+            if (preset) {
+                const favoriteItem = document.createElement('div');
+                favoriteItem.className = 'navigator-favorite-item';
+                favoriteItem.innerHTML = `
+                    <div class="favorite-item-icon">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </div>
+                    <div class="favorite-item-name" title="${preset.name}">${preset.name}</div>
+                    <button class="favorite-remove-btn" title="Remove from favorites">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                `;
+                favoriteItem.addEventListener('click', () => {
+                    // Select this preset
+                    this.selectedPreset = { value: preset.value, name: preset.name };
+                    this.render();
+                });
+                
+                favoriteItem.addEventListener('dblclick', () => {
+                    // Select and load this preset
+                    this.selectedPreset = { value: preset.value, name: preset.name };
+                    this.updateLoadButton();
+                    this.loadSelectedPreset();
+                });
+                
+                // Add remove button event listener
+                const removeBtn = favoriteItem.querySelector('.favorite-remove-btn');
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent triggering the item click
+                    this.togglePresetFavorite(preset.name);
+                });
+                
+                favoritesList.appendChild(favoriteItem);
+            }
+        });
     }
 }
 
