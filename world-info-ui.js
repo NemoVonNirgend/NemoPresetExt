@@ -517,6 +517,111 @@ export const NemoWorldInfoUI = {
         tabs.settings.addEventListener('click', () => setActiveTab('settings'));
     },
 
+    initLeftPanelToggle: function() {
+        const toggleButton = document.getElementById('nemo-world-info-toggle-left-panel');
+        const closeButton = document.getElementById('nemo-world-info-close-left-panel');
+        const container = document.querySelector('.nemo-world-info-container');
+        
+        if (!toggleButton || !container) return;
+
+        // Check if we're on mobile
+        const isMobile = () => window.innerWidth <= 768;
+        
+        // Load saved state from localStorage
+        const storageKey = 'nemo-wi-left-panel-state';
+        const savedState = localStorage.getItem(storageKey);
+        
+        let isHidden = false;
+        if (savedState !== null) {
+            isHidden = savedState === 'true';
+        } else if (isMobile()) {
+            // On mobile, hide by default
+            isHidden = true;
+        }
+
+        // Apply initial state
+        this.updateLeftPanelState(container, isHidden, isMobile());
+        
+        const togglePanel = () => {
+            isHidden = !isHidden;
+            this.updateLeftPanelState(container, isHidden, isMobile());
+            
+            // Save state to localStorage
+            localStorage.setItem(storageKey, isHidden.toString());
+            
+            console.log(`${LOG_PREFIX} Left panel toggled: ${isHidden ? 'hidden' : 'visible'}`);
+        };
+
+        const hidePanel = () => {
+            if (!isHidden) {
+                isHidden = true;
+                this.updateLeftPanelState(container, isHidden, isMobile());
+                
+                // Save state to localStorage
+                localStorage.setItem(storageKey, isHidden.toString());
+                
+                console.log(`${LOG_PREFIX} Left panel hidden`);
+            }
+        };
+        
+        toggleButton.addEventListener('click', togglePanel);
+        if (closeButton) {
+            closeButton.addEventListener('click', hidePanel);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', debounce(() => {
+            this.updateLeftPanelState(container, isHidden, isMobile());
+        }, 250));
+    },
+
+    updateLeftPanelState: function(container, isHidden, mobile) {
+        const toggleButton = document.getElementById('nemo-world-info-toggle-left-panel');
+        
+        if (mobile) {
+            // On mobile, use mobile-specific classes
+            container.classList.toggle('mobile-left-panel-visible', !isHidden);
+            container.classList.remove('left-panel-hidden');
+        } else {
+            // On desktop, use desktop-specific classes
+            container.classList.toggle('left-panel-hidden', isHidden);
+            container.classList.remove('mobile-left-panel-visible');
+        }
+        
+        // Update button icon and tooltip based on state
+        if (toggleButton) {
+            if (isHidden) {
+                toggleButton.className = 'menu_button menu_button_icon fa-solid fa-bars';
+                toggleButton.innerHTML = ''; 
+                toggleButton.title = 'Show Left Panel';
+                // Force visibility for debugging
+                toggleButton.style.cssText = `
+                    background: rgba(0, 0, 0, 0.5) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+                    color: white !important;
+                    position: fixed !important;
+                    top: 60px !important;
+                    left: 10px !important;
+                    z-index: 1001 !important;
+                    opacity: 0.9 !important;
+                    display: block !important;
+                    visibility: visible !important;
+                    min-width: 40px !important;
+                    min-height: 32px !important;
+                    border-radius: 4px !important;
+                    transition: all 0.2s ease !important;
+                    font-size: 16px !important;
+                `;
+            } else {
+                toggleButton.className = 'menu_button menu_button_icon fa-solid fa-times';
+                toggleButton.innerHTML = '';
+                toggleButton.title = 'Hide Left Panel';
+                // Reset to CSS-controlled styling when visible
+                toggleButton.style.cssText = '';
+            }
+        }
+    },
+
     loadFolderState: function() {
         try {
             const state = localStorage.getItem(this.storageKey);
@@ -582,6 +687,7 @@ export const NemoWorldInfoUI = {
         this.populateLorebooksFromSelect(worldInfoSelect);
         this.initSearch();
         this.initTabs();
+        this.initLeftPanelToggle();
         this.moveSettingsPanel();
         this.initManagementButtons();
         this.initPresetManagement();

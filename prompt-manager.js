@@ -2296,6 +2296,9 @@ export const NemoPresetManager = {
                         <button class="nemo-prompt-action" data-action="move" title="Move to folder">
                             <i class="fa-solid fa-folder-open"></i>
                         </button>
+                        <button class="nemo-prompt-action" data-action="add-to-preset" title="Add to current preset">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
                         <button class="nemo-prompt-action" data-action="delete" title="Delete prompt">
                             <i class="fa-solid fa-trash"></i>
                         </button>
@@ -2452,6 +2455,9 @@ export const NemoPresetManager = {
                     this.refreshArchiveMainContent(dialog, library, currentState);
                 });
                 break;
+            case 'add-to-preset':
+                this.addPromptToCurrentPreset(promptId);
+                break;
             case 'delete':
                 if (confirm('Are you sure you want to delete this prompt?')) {
                     this.deleteFromPromptLibrary(promptId);
@@ -2471,6 +2477,184 @@ export const NemoPresetManager = {
             }
         } catch (error) {
             console.error(`${LOG_PREFIX} Error toggling favorite:`, error);
+        }
+    },
+
+    addPromptToCurrentPreset: function(promptId) {
+        try {
+            const library = this.getPromptLibrary();
+            const archivedPrompt = library.find(p => p.id === promptId);
+            
+            if (!archivedPrompt) {
+                console.error(`${LOG_PREFIX} Archived prompt not found: ${promptId}`);
+                this.showStatusMessage('Error: Archived prompt not found', 'error');
+                return;
+            }
+
+            // Convert archive prompt to SillyTavern prompt format
+            const newPrompt = {
+                identifier: archivedPrompt.id || `archived_${Date.now()}`,
+                name: archivedPrompt.title,
+                system_prompt: false,
+                marker: false,
+                role: 'user',
+                content: archivedPrompt.content || '',
+                enabled: true
+            };
+
+            console.log(`${LOG_PREFIX} Attempting to add prompt: ${newPrompt.name} (${newPrompt.identifier})`);
+
+            // Method 1: Try using imported promptManager (same as other functions in this file)
+            if (promptManager && promptManager.serviceSettings && promptManager.serviceSettings.prompts) {
+                console.log(`${LOG_PREFIX} Using imported promptManager.serviceSettings`);
+                
+                // Check if prompt already exists
+                const existingPrompt = promptManager.serviceSettings.prompts.find(p => p.identifier === newPrompt.identifier);
+                if (existingPrompt) {
+                    this.showStatusMessage(`Prompt "${newPrompt.name}" already exists in current preset`, 'warning');
+                    return;
+                }
+
+                // Add prompt to the top of the prompts array
+                promptManager.serviceSettings.prompts.unshift(newPrompt);
+
+                // Add to prompt order if available
+                if (promptManager.serviceSettings.prompt_order) {
+                    // Find active character's prompt order or default
+                    let promptOrderEntry = null;
+                    
+                    // Try to find current character's order
+                    if (promptManager.activeCharacter && promptManager.activeCharacter.id) {
+                        promptOrderEntry = promptManager.serviceSettings.prompt_order.find(entry => 
+                            entry.character_id === promptManager.activeCharacter.id
+                        );
+                    }
+                    
+                    // If no character-specific order found, use default/global
+                    if (!promptOrderEntry) {
+                        promptOrderEntry = promptManager.serviceSettings.prompt_order.find(entry => 
+                            !entry.character_id || entry.character_id === 'default' || entry.character_id === null
+                        );
+                    }
+                    
+                    // If still no order found, create a default one
+                    if (!promptOrderEntry) {
+                        promptOrderEntry = {
+                            character_id: null,
+                            order: []
+                        };
+                        promptManager.serviceSettings.prompt_order.push(promptOrderEntry);
+                    }
+                    
+                    // Add prompt to the top of the order
+                    promptOrderEntry.order.unshift({
+                        identifier: newPrompt.identifier,
+                        enabled: true
+                    });
+                }
+
+                // Save settings
+                if (typeof promptManager.saveServiceSettings === 'function') {
+                    promptManager.saveServiceSettings();
+                } else if (typeof saveSettingsDebounced === 'function') {
+                    saveSettingsDebounced();
+                }
+
+            // Method 2: Try using window.promptManager if available
+            } else if (window.promptManager && typeof window.promptManager.addPrompt === 'function') {
+                console.log(`${LOG_PREFIX} Using window.promptManager.addPrompt`);
+                
+                // Check if prompt already exists
+                if (typeof window.promptManager.getPromptById === 'function') {
+                    const existingPrompt = window.promptManager.getPromptById(newPrompt.identifier);
+                    if (existingPrompt) {
+                        this.showStatusMessage(`Prompt "${newPrompt.name}" already exists in current preset`, 'warning');
+                        return;
+                    }
+                }
+
+                // Add prompt using PromptManager API
+                window.promptManager.addPrompt(newPrompt, newPrompt.identifier);
+
+                // Add to prompt order for current character
+                if (window.promptManager.activeCharacter && typeof window.promptManager.getPromptOrderForCharacter === 'function') {
+                    const promptOrder = window.promptManager.getPromptOrderForCharacter(window.promptManager.activeCharacter);
+                    if (promptOrder) {
+                        promptOrder.unshift({
+                            identifier: newPrompt.identifier,
+                            enabled: true
+                        });
+                    }
+                }
+
+                // Save and refresh
+                if (typeof window.promptManager.saveServiceSettings === 'function') {
+                    window.promptManager.saveServiceSettings();
+                }
+
+            // Method 3: Try using direct oai_settings access as fallback
+            } else if (window.oai_settings && window.oai_settings.prompts) {
+                console.log(`${LOG_PREFIX} Using direct oai_settings access`);
+                
+                // Check if prompt already exists
+                const existingPrompt = window.oai_settings.prompts.find(p => p.identifier === newPrompt.identifier);
+                if (existingPrompt) {
+                    this.showStatusMessage(`Prompt "${newPrompt.name}" already exists in current preset`, 'warning');
+                    return;
+                }
+
+                // Add prompt to the top of the prompts array
+                window.oai_settings.prompts.unshift(newPrompt);
+
+                // Try to add to prompt order if available
+                if (window.oai_settings.prompt_order) {
+                    // Find the right prompt order entry (this is complex, so we'll add to the default one)
+                    const defaultOrderEntry = window.oai_settings.prompt_order.find(entry => 
+                        entry.character_id === null || entry.character_id === undefined || entry.character_id === 'default'
+                    );
+                    
+                    if (defaultOrderEntry && defaultOrderEntry.order) {
+                        defaultOrderEntry.order.unshift({
+                            identifier: newPrompt.identifier,
+                            enabled: true
+                        });
+                    }
+                }
+
+                // Save settings
+                if (typeof saveSettingsDebounced === 'function') {
+                    saveSettingsDebounced();
+                }
+
+            } else {
+                console.error(`${LOG_PREFIX} No prompt system available. Available objects:`, {
+                    importedPromptManager: !!promptManager,
+                    windowPromptManager: !!window.promptManager,
+                    oaiSettings: !!window.oai_settings,
+                    promptManagerServiceSettings: !!(promptManager && promptManager.serviceSettings),
+                    promptManagerPrompts: !!(promptManager && promptManager.serviceSettings && promptManager.serviceSettings.prompts)
+                });
+                this.showStatusMessage('Error: Prompt system not available', 'error');
+                return;
+            }
+
+            // Try to refresh the UI
+            if (promptManager && typeof promptManager.render === 'function') {
+                promptManager.render();
+            } else if (window.promptManager && typeof window.promptManager.render === 'function') {
+                window.promptManager.render();
+            } else if (this.refreshUI) {
+                this.refreshUI();
+            } else if (this.render) {
+                this.render();
+            }
+
+            this.showStatusMessage(`✅ Added "${newPrompt.name}" to current preset!`, 'success', 3000);
+            console.log(`${LOG_PREFIX} Successfully added prompt to current preset: ${newPrompt.name}`);
+            
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error adding prompt to current preset:`, error);
+            this.showStatusMessage(`Error adding prompt: ${error.message}`, 'error');
         }
     },
 

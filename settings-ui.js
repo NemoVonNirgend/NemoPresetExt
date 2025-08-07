@@ -86,6 +86,50 @@ export const NemoSettingsUI = {
                         notification.remove();
                     }, 5000);
                 });
+
+                // Extensions Tab Overhaul Setting
+                const extensionsTabOverhaulToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableExtensionsTabOverhaul'));
+                extensionsTabOverhaulToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.nemoEnableExtensionsTabOverhaul ?? true;
+                extensionsTabOverhaulToggle.addEventListener('change', () => {
+                    console.log(`[NemoPresetExt] Toggle changed to: ${extensionsTabOverhaulToggle.checked}`);
+                    extension_settings[NEMO_EXTENSION_NAME].nemoEnableExtensionsTabOverhaul = extensionsTabOverhaulToggle.checked;
+                    saveSettingsDebounced();
+                    
+                    console.log(`[NemoPresetExt] Setting saved. ExtensionsTabOverhaul available:`, !!window.ExtensionsTabOverhaul);
+                    console.log(`[NemoPresetExt] ExtensionsTabOverhaul initialized:`, window.ExtensionsTabOverhaul?.initialized);
+                    
+                    // Immediately apply the changes without requiring page refresh
+                    if (extensionsTabOverhaulToggle.checked) {
+                        // Enable the extensions tab overhaul
+                        console.log(`[NemoPresetExt] Attempting to enable extensions tab overhaul...`);
+                        if (window.ExtensionsTabOverhaul && !window.ExtensionsTabOverhaul.initialized) {
+                            window.ExtensionsTabOverhaul.initialize();
+                        }
+                        
+                        // Show enable notification
+                        const enableNotification = document.createElement('div');
+                        enableNotification.innerHTML = '<i class="fa-solid fa-check"></i> Extensions Tab Overhaul enabled!';
+                        enableNotification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4CAF50; color: white; padding: 15px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.3);';
+                        document.body.appendChild(enableNotification);
+                        setTimeout(() => enableNotification.remove(), 3000);
+                    } else {
+                        // Disable the extensions tab overhaul
+                        console.log(`[NemoPresetExt] Attempting to disable extensions tab overhaul...`);
+                        if (window.ExtensionsTabOverhaul && window.ExtensionsTabOverhaul.initialized) {
+                            console.log(`[NemoPresetExt] Calling cleanup function...`);
+                            window.ExtensionsTabOverhaul.cleanup();
+                        } else {
+                            console.log(`[NemoPresetExt] ExtensionsTabOverhaul not available or not initialized`);
+                        }
+                        
+                        // Show disable notification
+                        const disableNotification = document.createElement('div');
+                        disableNotification.innerHTML = '<i class="fa-solid fa-times"></i> Extensions Tab Overhaul disabled!';
+                        disableNotification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ff9800; color: white; padding: 15px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.3);';
+                        document.body.appendChild(disableNotification);
+                        setTimeout(() => disableNotification.remove(), 3000);
+                    }
+                });
                 
                 // Message Theme Setting
                 const themeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('nemo-message-theme-select'));

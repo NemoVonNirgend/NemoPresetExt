@@ -9,6 +9,8 @@ import { NemoGlobalUI } from './global-ui.js'; // Import NemoGlobalUI
 import { NemoWorldInfoUI } from './world-info-ui.js';
 import { UserSettingsTabs } from './user-settings-tabs.js';
 import { AdvancedFormattingTabs } from './advanced-formatting-tabs.js';
+import { ExtensionsTabOverhaul } from './extensions-tab-overhaul.js';
+import { NemoPromptArchiveUI } from './prompt-archive-ui.js';
 
 // --- MAIN INITIALIZATION ---
 const MAIN_SELECTORS = {
@@ -28,6 +30,7 @@ waitForElement('#left-nav-panel', async () => {
         NemoCharacterManager.initialize();
         NemoSettingsUI.initialize();
         NemoGlobalUI.initialize();
+        NemoPromptArchiveUI.initialize();
         
         // Initialize tab overhauls only if enabled
         if (extension_settings.NemoPresetExt?.enableTabOverhauls !== false) {
@@ -37,6 +40,20 @@ waitForElement('#left-nav-panel', async () => {
         
         if (extension_settings.NemoPresetExt?.enableLorebookOverhaul !== false) {
             NemoWorldInfoUI.initialize();
+        }
+
+        // Make ExtensionsTabOverhaul available globally for the settings toggle
+        window.ExtensionsTabOverhaul = ExtensionsTabOverhaul;
+        
+        const isEnabled = extension_settings.NemoPresetExt?.nemoEnableExtensionsTabOverhaul !== false;
+        console.log(`${LOG_PREFIX} Extensions Tab Overhaul setting check:`, isEnabled);
+        console.log(`${LOG_PREFIX} Full setting value:`, extension_settings.NemoPresetExt?.nemoEnableExtensionsTabOverhaul);
+        
+        if (isEnabled) {
+            console.log(`${LOG_PREFIX} Initializing Extensions Tab Overhaul...`);
+            ExtensionsTabOverhaul.initialize();
+        } else {
+            console.log(`${LOG_PREFIX} Extensions Tab Overhaul is disabled, skipping initialization`);
         }
 
         const observer = new MutationObserver(() => {

@@ -1,5 +1,527 @@
 /* styles.css for NemoPresetExt */
 
+/* === EXTENSIONS TAB OVERHAUL === */
+.nemo-extensions-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    align-items: start;
+    width: 100%;
+    max-width: 100%;
+}
+
+.nemo-extensions-column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.nemo-extension-category-drawer {
+    break-inside: avoid;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.nemo-extensions-search {
+    grid-column: 1 / -1; /* Span both columns */
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+/* Ensure the extensions settings container uses full width */
+#extensions_settings {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+@media (max-width: 768px) {
+    .nemo-extensions-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* === TAB-CONTAINED EXTENSION VIEW === */
+.nemo-tab-extension-view {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    min-height: 500px;
+    background: transparent;
+    border-radius: 8px;
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    overflow: visible;
+}
+
+.nemo-tab-extension-view.active {
+    display: flex;
+}
+
+.nemo-extension-view-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--SmartThemeQuoteColor);
+    color: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    flex-shrink: 0;
+    border-radius: 8px 8px 0 0;
+}
+
+.nemo-back-button {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    margin-right: 20px;
+}
+
+.nemo-back-button:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateX(-2px);
+}
+
+.nemo-extension-title {
+    font-size: 18px;
+    font-weight: bold;
+    flex-grow: 1;
+}
+
+.nemo-extension-view-content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: var(--SmartThemeBlurTintColor);
+}
+
+/* Make the extensions tab container relative for positioning */
+#extensions_settings {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Style the extension content inside the view */
+.nemo-extension-view-content .inline-drawer-content {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.nemo-extension-view-content .form-group {
+    margin-bottom: 20px;
+}
+
+.nemo-extension-view-content label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: var(--SmartThemeBodyColor);
+}
+
+.nemo-extension-view-content input[type="text"],
+.nemo-extension-view-content input[type="number"],
+.nemo-extension-view-content input[type="email"],
+.nemo-extension-view-content input[type="password"],
+.nemo-extension-view-content input[type="url"],
+.nemo-extension-view-content select,
+.nemo-extension-view-content textarea {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Preserve original button styling - don't stretch buttons */
+.nemo-extension-view-content .menu_button,
+.nemo-extension-view-content button,
+.nemo-extension-view-content input[type="button"],
+.nemo-extension-view-content input[type="submit"] {
+    width: auto !important;
+    max-width: none !important;
+    margin: 10px 5px 10px 0;
+}
+
+/* Keep checkboxes and radios at normal size */
+.nemo-extension-view-content input[type="checkbox"],
+.nemo-extension-view-content input[type="radio"] {
+    width: auto !important;
+    max-width: none !important;
+}
+
+/* === PROMPT ARCHIVE STYLES === */
+#nemo-prompt-archive-section {
+    margin-bottom: 15px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 8px;
+    background: var(--nemo-primary-bg);
+}
+
+#nemo-prompt-archive-section > summary {
+    padding: 12px 15px;
+    background: var(--nemo-secondary-bg);
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+#nemo-prompt-archive-section[open] > summary {
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid var(--nemo-border-color);
+}
+
+.nemo-archive-item {
+    background: var(--nemo-secondary-bg);
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    padding: 15px;
+    transition: all 0.2s ease;
+}
+
+.nemo-archive-item:hover {
+    background: var(--nemo-tertiary-bg);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.nemo-archive-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.nemo-archive-title {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nemo-archive-title strong {
+    font-size: 1.1em;
+    color: var(--nemo-text-color);
+}
+
+.nemo-archive-date {
+    font-size: 0.85em;
+    color: var(--nemo-text-muted);
+    font-style: italic;
+}
+
+.nemo-archive-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.nemo-archive-actions .menu_button {
+    padding: 6px 10px;
+    font-size: 0.85em;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.nemo-archive-info {
+    padding-top: 10px;
+    border-top: 1px solid var(--nemo-border-color);
+}
+
+.nemo-archive-description {
+    margin-bottom: 8px;
+    color: var(--nemo-text-color);
+    font-style: italic;
+}
+
+.nemo-archive-stats {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.nemo-stat {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9em;
+    color: var(--nemo-text-muted);
+}
+
+.nemo-stat i {
+    color: var(--nemo-primary-accent);
+}
+
+/* Archive contents */
+.nemo-archive-contents {
+    padding: 15px 0 0 0;
+    border-top: 1px solid var(--nemo-border-color);
+    background: var(--nemo-primary-bg);
+}
+
+.nemo-prompts-section, .nemo-system-prompts-section {
+    margin-bottom: 20px;
+    padding: 0 15px;
+}
+
+.nemo-prompts-section h4, .nemo-system-prompts-section h4 {
+    color: var(--nemo-primary-accent);
+    margin: 15px 0 10px 0;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nemo-prompts-list, .nemo-system-prompts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nemo-prompt-item, .nemo-system-prompt-item {
+    padding: 12px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 6px;
+    background: var(--nemo-secondary-bg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.nemo-prompt-item:hover, .nemo-system-prompt-item:hover {
+    border-color: var(--nemo-primary-accent);
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+    transform: translateY(-1px);
+}
+
+.nemo-prompt-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.nemo-prompt-name {
+    font-weight: bold;
+    color: var(--nemo-text-color);
+}
+
+.nemo-prompt-role {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.nemo-prompt-item .nemo-prompt-role {
+    background: var(--nemo-primary-accent);
+    color: white;
+}
+
+.nemo-system-prompt-item .nemo-prompt-role {
+    background: #ff9800;
+    color: white;
+}
+
+.nemo-prompt-preview {
+    font-size: 0.9em;
+    color: var(--nemo-text-muted);
+    line-height: 1.4;
+    font-style: italic;
+}
+
+/* Context menu */
+.nemo-context-menu {
+    font-family: inherit;
+}
+
+.nemo-context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nemo-context-menu-item i {
+    width: 16px;
+    text-align: center;
+}
+
+/* Archive stats styling */
+#nemo-archive-stats {
+    background: var(--nemo-tertiary-bg);
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 6px;
+}
+
+#nemo-archive-stats-content {
+    color: var(--nemo-text-color);
+}
+
+#nemo-archive-stats-content small {
+    color: var(--nemo-text-muted);
+    font-size: 0.8em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .nemo-archive-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .nemo-archive-actions {
+        justify-content: flex-start;
+    }
+    
+    .nemo-archive-stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
+
+/* === EXTENSION CARDS === */
+.nemo-extension-card {
+    background: var(--SmartThemeBotMesBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.nemo-extension-card:hover {
+    background: var(--SmartThemeUserMesBlurTintColor);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+.nemo-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.nemo-card-title {
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--SmartThemeBodyColor);
+}
+
+.nemo-card-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.nemo-tag-button, .nemo-options-button {
+    background: var(--SmartThemeQuoteColor);
+    border: none;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.nemo-extension-card:hover .nemo-tag-button,
+.nemo-extension-card:hover .nemo-options-button {
+    opacity: 1;
+}
+
+.nemo-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.nemo-tag {
+    background: var(--SmartThemeQuoteColor);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.nemo-custom-tag {
+    background: var(--SmartThemeEmColor);
+}
+
+/* === FOLDER MANAGEMENT === */
+.nemo-folder-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: var(--SmartThemeBotMesBlurTintColor);
+    border-radius: 8px;
+}
+
+.nemo-add-folder-button {
+    background: var(--SmartThemeQuoteColor);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* === CONTEXT MENU === */
+.nemo-context-menu {
+    position: fixed;
+    background: var(--SmartThemeBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    padding: 8px 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10000;
+    min-width: 150px;
+    display: none;
+}
+
+.nemo-context-menu-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--SmartThemeBodyColor);
+}
+
+.nemo-context-menu-item:hover {
+    background: var(--SmartThemeQuoteColor);
+    color: white;
+}
+
+.nemo-context-menu-separator {
+    height: 1px;
+    background: var(--SmartThemeBorderColor);
+    margin: 4px 0;
+}
+
 /* --- CSS Variables --- */
 :root {
     --nemo-primary-accent: var(--SmartThemeQuoteColor);
@@ -846,10 +1368,13 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
 /* === NEMO WORLD INFO UI === */
 .nemo-world-info-container {
     display: flex;
-    height: 100%;
+    height: 100vh;
     width: 100%;
     background-color: var(--nemo-secondary-bg);
     color: var(--nemo-text-color);
+    position: relative;
+    overflow: hidden;
+    overscroll-behavior: contain;
 }
 
 .nemo-world-info-left-column {
@@ -857,6 +1382,35 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
     border-right: 1px solid var(--nemo-border-color);
     display: flex;
     flex-direction: column;
+    transition: width 0.3s ease, margin-left 0.3s ease;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Hidden left panel state */
+.nemo-world-info-container.left-panel-hidden .nemo-world-info-left-column {
+    width: 0;
+    min-width: 0;
+    margin-left: -300px;
+    overflow: hidden;
+}
+
+.nemo-world-info-container.left-panel-hidden .nemo-world-info-right-column {
+    left: 0;
+}
+
+/* Mobile header for close button */
+.nemo-world-info-mobile-header {
+    display: none;
+    justify-content: flex-end;
+    padding: 10px;
+    border-bottom: 1px solid var(--nemo-border-color);
+}
+
+#nemo-world-info-close-left-panel {
+    background: var(--SmartThemeBodyColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    color: var(--SmartThemeQuoteColor);
 }
 
 .nemo-world-info-list-header {
@@ -1037,15 +1591,83 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
 .nemo-world-info-list {
     flex-grow: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100vh - 200px);
+    scroll-behavior: smooth;
 }
 
 .nemo-world-info-right-column {
-    flex-grow: 1;
+    position: absolute;
+    top: 0;
+    left: 300px;
+    right: 0;
+    bottom: 0;
     display: flex;
     flex-direction: column;
-    height: 100%;
-    min-width: 0; /* Prevents flexbox from growing beyond its container */
-    width: 100%; /* Ensure it takes up available space */
+    transition: left 0.3s ease;
+    overflow: hidden;
+}
+
+/* Header controls no longer needed - button is now fixed positioned */
+
+#nemo-world-info-toggle-left-panel {
+    /* Fallback styles - always visible */
+    background: rgba(0, 0, 0, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: white !important;
+    transition: all 0.2s ease !important;
+    font-weight: bold !important;
+    min-width: 40px !important;
+    min-height: 32px !important;
+    border-radius: 4px !important;
+    position: fixed !important;
+    top: 60px !important;
+    left: 10px !important;
+    z-index: 1001 !important;
+    opacity: 0.9 !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+#nemo-world-info-toggle-left-panel:hover {
+    opacity: 1 !important;
+    color: var(--SmartThemeEmColor, #4CAF50) !important;
+}
+
+#nemo-world-info-toggle-left-panel:active {
+    transform: scale(0.95);
+}
+
+/* Visual state when panel is hidden - white eye with subtle background for theme compatibility */
+.nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel {
+    left: 10px;
+    color: white !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    opacity: 0.9;
+}
+
+.nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel:hover {
+    opacity: 1;
+    color: #ffffff !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* When panel is visible, position button on the panel edge and add glow */
+.nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel {
+    left: 260px !important;
+    opacity: 0.9 !important;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.3) !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.5) !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel:hover {
+    opacity: 1 !important;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.5) !important;
+    text-shadow: 0 0 6px rgba(255, 255, 255, 0.7) !important;
 }
 
 .nemo-world-info-tabs {
@@ -1077,6 +1699,9 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
     overflow: auto;
     box-sizing: border-box;
     position: relative; /* Ensure proper positioning for child elements */
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .nemo-world-info-panel.active {
@@ -1085,6 +1710,10 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
 
 #world_popup_entries_list {
     position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100vh - 200px);
+    scroll-behavior: smooth;
 }
 
 
@@ -1305,6 +1934,130 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
 /* Update buffer size select styling */
 #nemo-world-info-buffer-size {
     min-width: 100px;
+}
+
+/* === MOBILE-FRIENDLY WORLD INFO STYLES === */
+@media (max-width: 768px) {
+    .nemo-world-info-container {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .nemo-world-info-left-column {
+        width: 100% !important;
+        border-right: none;
+        border-bottom: 1px solid var(--nemo-border-color);
+        max-height: 300px;
+        order: 2; /* Move to bottom on mobile */
+    }
+    
+    .nemo-world-info-right-column {
+        position: relative;
+        left: 0 !important;
+        width: 100%;
+        height: auto;
+        order: 1; /* Move to top on mobile */
+    }
+    
+    /* Always show left panel toggle button on mobile */
+    #nemo-world-info-toggle-left-panel {
+        display: block !important;
+        top: 60px;
+        left: 10px !important;
+    }
+    
+    /* On mobile, hide left panel by default */
+    .nemo-world-info-container:not(.mobile-left-panel-visible) .nemo-world-info-left-column {
+        display: none;
+    }
+    
+    .nemo-world-info-container.mobile-left-panel-visible .nemo-world-info-left-column {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1000;
+        background: var(--nemo-secondary-bg);
+        max-height: none;
+        border-bottom: none;
+    }
+    
+    /* Show mobile header on mobile devices */
+    .nemo-world-info-mobile-header {
+        display: flex !important;
+    }
+    
+    /* Compact tabs for mobile */
+    .nemo-world-info-tabs {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .nemo-world-info-tab {
+        padding: 8px 12px;
+        font-size: 0.9em;
+        flex: 1;
+        text-align: center;
+        min-width: 80px;
+    }
+    
+    /* Compact entries header on mobile */
+    .nemo-world-info-entries-header {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .nemo-world-info-entries-header > input,
+    .nemo-world-info-entries-header > select {
+        min-width: 120px;
+        flex: 1;
+    }
+    
+    /* Compact preset controls */
+    .nemo-world-info-preset-controls {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .nemo-world-info-preset-controls > select {
+        width: 100%;
+    }
+    
+    /* Compact active lorebooks */
+    .nemo-active-lorebook-item {
+        font-size: 0.9em;
+        padding: 4px 8px;
+    }
+    
+    /* Stack folder controls vertically on mobile */
+    .nemo-world-info-list-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .nemo-world-info-list-header > input {
+        order: -1;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    .nemo-world-info-tab {
+        padding: 6px 8px;
+        font-size: 0.8em;
+        min-width: 60px;
+    }
+    
+    .nemo-world-info-header-controls {
+        margin-bottom: 5px;
+    }
+    
+    .nemo-world-info-entries-header > .menu_button {
+        padding: 6px;
+        font-size: 0.9em;
+    }
 }
 /* Favorite Preset Button Styles */
 .nemo-favorite-btn {
@@ -2688,6 +3441,8 @@ small[data-i18n="(0 = All)"],
     padding: 4px;
     border-radius: 4px;
     transition: background-color 0.2s ease;
+    position: relative;
+    z-index: 1000;
 }
 
 .nemo-dialog-close:hover {
@@ -3347,6 +4102,8 @@ body.theme-terminal .mes_block .avatar {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    position: relative;
+    z-index: 100;
 }
 
 .nemo-archive-header h2 {
@@ -3577,9 +4334,23 @@ body.theme-terminal .mes_block .avatar {
     background: var(--nemo-tertiary-bg);
 }
 
-.nemo-favorite-btn.active {
+.nemo-prompt-card .nemo-favorite-btn {
+    position: relative;
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+    z-index: 1;
+}
+
+.nemo-prompt-card .nemo-favorite-btn.active {
     color: #ffd700;
     opacity: 1;
+}
+
+.nemo-prompt-card .nemo-favorite-btn:hover {
+    color: #ffd700;
 }
 
 .nemo-prompt-tags {
@@ -3874,7 +4645,7 @@ body.theme-terminal .mes_block .avatar {
 }
 
 /* Favorite toggle buttons */
-.nemo-favorite-btn {
+.grid-item .nemo-favorite-btn {
     position: absolute;
     top: 8px;
     right: 8px;
@@ -3908,8 +4679,143 @@ body.theme-terminal .mes_block .avatar {
     transform: scale(1.1);
 }
 
+/* Folder Selection Dialog */
+.nemo-folder-selection-dialog .nemo-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.nemo-folder-selection-dialog .nemo-dialog-content {
+    background: var(--nemo-secondary-bg);
+    border-radius: 8px;
+    width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.nemo-folder-selection-dialog .nemo-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--nemo-border-color);
+}
+
+.nemo-folder-selection-dialog .nemo-dialog-header h3 {
+    margin: 0;
+    color: var(--nemo-text-color);
+}
+
+.nemo-folder-selection-dialog .nemo-dialog-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--nemo-text-color);
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nemo-folder-selection-dialog .nemo-dialog-body {
+    padding: 20px;
+}
+
+.nemo-folder-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 6px;
+}
+
+.nemo-folder-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid var(--nemo-border-color);
+}
+
+.nemo-folder-option:last-child {
+    border-bottom: none;
+}
+
+.nemo-folder-option:hover {
+    background: var(--nemo-item-hover-bg);
+}
+
+.nemo-folder-option.selected {
+    background: var(--nemo-primary-accent);
+    color: white;
+}
+
+.nemo-folder-option i:first-child {
+    width: 16px;
+    text-align: center;
+}
+
+.nemo-folder-option span {
+    flex: 1;
+}
+
+.nemo-custom-badge {
+    background: var(--nemo-primary-accent);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.75em;
+    font-weight: bold;
+}
+
+.nemo-folder-option .fa-check {
+    color: white;
+    margin-left: auto;
+}
+
+/* Update existing folder badge styles */
+.nemo-card-folder {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.nemo-folder-badge {
+    background: var(--nemo-tertiary-bg);
+    color: var(--nemo-text-color);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    border: 1px solid var(--nemo-border-color);
+}
+
+.nemo-folder-badge.nemo-custom-folder {
+    background: var(--nemo-primary-accent);
+    color: white;
+    border-color: var(--nemo-primary-accent);
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
+    .nemo-folder-selection-dialog .nemo-dialog-content {
+        width: 90%;
+        max-width: 350px;
+    }
+    
     .navigator-sidebar {
         width: 150px;
         padding: 10px;
@@ -3946,6 +4852,29 @@ body.theme-terminal .mes_block .avatar {
     background: var(--nemo-secondary-bg);
     border-radius: 8px;
     border: 1px solid var(--nemo-border-color);
+}
+
+/* Extensions Tab Overhaul */
+.nemo-extensions-search .text_pole {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 4px;
+    background: var(--nemo-tertiary-bg);
+    color: var(--nemo-text-color);
+    font-size: 14px;
+}
+
+.nemo-extension-category-drawer .inline-drawer-header {
+    background-color: var(--nemo-secondary-bg);
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.nemo-extension-category-drawer .inline-drawer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
 }
 
 /* Tab navigation */
@@ -4133,4 +5062,66 @@ body.theme-terminal .mes_block .avatar {
         padding: 12px;
         max-height: 400px;
     }
+}
+
+/* === CUSTOM FOLDER DELETE ICON === */
+.nemo-folder-delete {
+    transition: all 0.2s ease;
+    padding: 2px;
+    border-radius: 3px;
+}
+
+.nemo-folder-delete:hover {
+    opacity: 1 !important;
+    color: #ff4757 !important;
+    background-color: rgba(255, 71, 87, 0.1);
+    transform: scale(1.1);
+}
+
+/* === PRESET SEARCH CONTAINER STYLING === */
+#nemoPresetSearchContainer {
+    height: 80px !important;
+    justify-content: flex-end !important;
+}
+
+#openai_api-presets > div:nth-child(1) > div:nth-child(2) {
+    justify-content: flex-end !important;
+}
+
+#nemo-drawer-openai_sampling_specific > div:nth-child(1) {
+    margin: 5px 0px 0px 0px !important;
+}
+
+/* === FOLDER BUTTON STYLING === */
+.nemo-folder-button {
+    background: var(--SmartThemeBotMesBlurTintColor, #2a2a2a);
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    color: var(--SmartThemeBodyColor, #ffffff);
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+}
+
+.nemo-folder-button:hover {
+    background: var(--SmartThemeQuoteColor, #4a9eff);
+    border-color: var(--SmartThemeQuoteColor, #4a9eff);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.nemo-folder-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.nemo-folder-button i {
+    font-size: 14px;
 }
