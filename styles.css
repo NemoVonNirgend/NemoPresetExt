@@ -30,9 +30,9 @@
 }
 
 /* Ensure the extensions settings container uses full width */
-#extensions_settings {
-    width: 100% !important;
-    max-width: 100% !important;
+.nemo-extension #extensions_settings {
+    width: 100%;
+    max-width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -552,8 +552,8 @@ span.completion_prompt_manager_prompt_name { flex-grow: 1; flex-shrink: 1; min-w
 span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; max-width: 100%; }
 .nemo-right-controls-wrapper { display: flex; align-items: center; flex-shrink: 0; gap: 8px; }
 .nemo-enabled-count { font-weight: normal; font-size: 0.9em; color: var(--nemo-primary-accent); white-space: nowrap; line-height: 1; margin-left: 5px;}
-.prompt_manager_prompt_controls { display: flex !important; align-items: center !important; gap: 6px !important; line-height: 1 !important; }
-.nemo-section-master-toggle { font-size: 0.9em !important; padding: 2px 5px !important; min-width: auto !important; line-height: 1 !important; background-color: var(--nemo-tertiary-bg); border: 1px solid var(--nemo-border-color); }
+.nemo-extension .prompt_manager_prompt_controls { display: flex; align-items: center; gap: 6px; line-height: 1; }
+.nemo-extension .nemo-section-master-toggle { font-size: 0.9em; padding: 2px 5px; min-width: auto; line-height: 1; background-color: var(--nemo-tertiary-bg); border: 1px solid var(--nemo-border-color); }
 .nemo-section-master-toggle.nemo-active { background-color: var(--nemo-primary-accent); border-color: var(--nemo-primary-accent); }
 
 /* --- Preset Selector --- */
@@ -830,7 +830,7 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 
 /* Context Menu & Color Picker */
 .nemo-context-menu { display: none; position: absolute; background-color: var(--nemo-primary-bg); border: 1px solid var(--nemo-border-color); z-index: 10000; list-style: none; padding: 5px 0; margin: 0; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-.nemo-context-menu li { padding: 8px 12px; cursor: pointer; white-space: nowrap; display: flex !important; align-items: center; gap: 8px; }
+.nemo-extension .nemo-context-menu li { padding: 8px 12px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
 .nemo-context-menu li:hover { background-color: var(--nemo-item-hover-bg); }
 .nemo-context-menu li.active { background-color: var(--nemo-primary-accent); color: var(--nemo-text-color); }
 .nemo-context-menu i { width: 1em; text-align: center; }
@@ -1610,28 +1610,28 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
 
 /* Header controls no longer needed - button is now fixed positioned */
 
-#nemo-world-info-toggle-left-panel {
-    /* Fallback styles - always visible */
-    background: rgba(0, 0, 0, 0.5) !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    color: white !important;
-    transition: all 0.2s ease !important;
-    font-weight: bold !important;
-    min-width: 40px !important;
-    min-height: 32px !important;
-    border-radius: 4px !important;
-    position: fixed !important;
-    top: 60px !important;
-    left: 10px !important;
-    z-index: 1001 !important;
-    opacity: 0.9 !important;
-    display: block !important;
-    visibility: visible !important;
+/* Use higher specificity instead of !important */
+.nemo-extension #nemo-world-info-toggle-left-panel {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    transition: all 0.2s ease;
+    font-weight: bold;
+    min-width: 40px;
+    min-height: 32px;
+    border-radius: 4px;
+    position: fixed;
+    top: 60px;
+    left: 10px;
+    z-index: 1001;
+    opacity: 0.9;
+    display: block;
+    visibility: visible;
 }
 
-#nemo-world-info-toggle-left-panel:hover {
-    opacity: 1 !important;
-    color: var(--SmartThemeEmColor, #4CAF50) !important;
+.nemo-extension #nemo-world-info-toggle-left-panel:hover {
+    opacity: 1;
+    color: var(--SmartThemeEmColor, #4CAF50);
 }
 
 #nemo-world-info-toggle-left-panel:active {
@@ -1639,35 +1639,35 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
 }
 
 /* Visual state when panel is hidden - white eye with subtle background for theme compatibility */
-.nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel {
+.nemo-extension .nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel {
     left: 10px;
-    color: white !important;
-    background: rgba(0, 0, 0, 0.4) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: white;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     opacity: 0.9;
 }
 
-.nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel:hover {
+.nemo-extension .nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel:hover {
     opacity: 1;
-    color: #ffffff !important;
-    background: rgba(0, 0, 0, 0.6) !important;
-    border-color: rgba(255, 255, 255, 0.4) !important;
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.6);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* When panel is visible, position button on the panel edge and add glow */
-.nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel {
-    left: 260px !important;
-    opacity: 0.9 !important;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.3) !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 0.5) !important;
-    background: transparent !important;
-    border: none !important;
+.nemo-extension .nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel {
+    left: 260px;
+    opacity: 0.9;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+    background: transparent;
+    border: none;
 }
 
-.nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel:hover {
-    opacity: 1 !important;
-    box-shadow: 0 0 12px rgba(255, 255, 255, 0.5) !important;
-    text-shadow: 0 0 6px rgba(255, 255, 255, 0.7) !important;
+.nemo-extension .nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel:hover {
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+    text-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
 }
 
 .nemo-world-info-tabs {
@@ -1820,15 +1820,15 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
     white-space: normal; /* Ensure content wraps */
 }
 
-#nemo-world-info-settings-panel #wiActivationSettings {
-    display: block !important;
+.nemo-extension #nemo-world-info-settings-panel #wiActivationSettings {
+    display: block;
 }
 
-#nemo-world-info-settings-panel #wiSliders,
-#nemo-world-info-settings-panel #wiCheckboxes {
-    display: block !important;
-    width: 100% !important;
-    flex: none !important;
+.nemo-extension #nemo-world-info-settings-panel #wiSliders,
+.nemo-extension #nemo-world-info-settings-panel #wiCheckboxes {
+    display: block;
+    width: 100%;
+    flex: none;
 }
 
 #nemo-world-info-order-helper-panel .nemo-panel-content-wrapper {
@@ -1868,10 +1868,10 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
     display: none;
 }
 
-.pagination-btn {
-    min-width: 32px !important;
-    height: 32px !important;
-    padding: 0 !important;
+.nemo-extension .pagination-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1903,10 +1903,10 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
     white-space: nowrap;
 }
 
-.pagination-goto {
-    width: 80px !important;
-    height: 32px !important;
-    padding: 4px 8px !important;
+.nemo-extension .pagination-goto {
+    width: 80px;
+    height: 32px;
+    padding: 4px 8px;
     text-align: center;
     font-size: 14px;
     border: 1px solid var(--nemo-border-color);
@@ -1943,8 +1943,8 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
         height: auto;
     }
     
-    .nemo-world-info-left-column {
-        width: 100% !important;
+    .nemo-extension .nemo-world-info-left-column {
+        width: 100%;
         border-right: none;
         border-bottom: 1px solid var(--nemo-border-color);
         max-height: 300px;
@@ -1953,17 +1953,17 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
     
     .nemo-world-info-right-column {
         position: relative;
-        left: 0 !important;
+        left: 0;
         width: 100%;
         height: auto;
         order: 1; /* Move to top on mobile */
     }
     
     /* Always show left panel toggle button on mobile */
-    #nemo-world-info-toggle-left-panel {
-        display: block !important;
+    .nemo-extension #nemo-world-info-toggle-left-panel {
+        display: block;
         top: 60px;
-        left: 10px !important;
+        left: 10px;
     }
     
     /* On mobile, hide left panel by default */
@@ -1985,8 +1985,8 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
     }
     
     /* Show mobile header on mobile devices */
-    .nemo-world-info-mobile-header {
-        display: flex !important;
+    .nemo-extension .nemo-world-info-mobile-header {
+        display: flex;
     }
     
     /* Compact tabs for mobile */

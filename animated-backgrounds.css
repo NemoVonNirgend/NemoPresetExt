@@ -1,0 +1,348 @@
+/**
+ * Animated Backgrounds Extension Styles
+ * Enhanced background system styling
+ */
+
+/* Enhanced background container */
+#enhanced-background-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: -1 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Video background styling */
+#enhanced-background-container video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+}
+
+/* YouTube iframe styling */
+#enhanced-background-container iframe {
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    border: none !important;
+    pointer-events: none !important;
+    transform: scale(1.1) !important; /* Slight zoom to hide YouTube controls */
+}
+
+/* Animated image styling */
+#enhanced-background-container img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+}
+
+/* Settings panel styling */
+#animated-backgrounds-settings {
+    background: rgba(42, 42, 42, 0.95) !important;
+    border: 1px solid #555 !important;
+    border-radius: 8px !important;
+    padding: 15px !important;
+    margin: 10px 0 !important;
+}
+
+#animated-backgrounds-settings h3 {
+    color: #fff !important;
+    margin-bottom: 15px !important;
+    font-size: 16px !important;
+    text-align: center !important;
+}
+
+#animated-backgrounds-settings .range-block {
+    margin-bottom: 12px !important;
+}
+
+#animated-backgrounds-settings .checkbox_label {
+    display: flex !important;
+    align-items: center !important;
+    color: #ddd !important;
+    font-size: 14px !important;
+}
+
+#animated-backgrounds-settings .checkbox_label input[type="checkbox"] {
+    margin-right: 8px !important;
+}
+
+#animated-backgrounds-settings label[for="anim-bg-volume"] {
+    display: block !important;
+    color: #ddd !important;
+    margin-bottom: 5px !important;
+    font-size: 14px !important;
+}
+
+#animated-backgrounds-settings input[type="range"] {
+    width: 100% !important;
+    margin: 5px 0 !important;
+}
+
+#anim-bg-volume-value {
+    float: right !important;
+    font-weight: bold !important;
+    color: #4CAF50 !important;
+}
+
+/* Background type indicator */
+.bg_example[data-media-type="video"]::after,
+.bg_example[data-media-type="youtube"]::after,
+.bg_example[data-media-type="animated_image"]::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    z-index: 10;
+}
+
+.bg_example[data-media-type="video"]::after {
+    background: #f44336;
+    content: '🎥';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.bg_example[data-media-type="youtube"]::after {
+    background: #ff0000;
+    content: '📺';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.bg_example[data-media-type="animated_image"]::after {
+    background: #4CAF50;
+    content: '🎬';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+/* Enhanced upload button styling */
+#form_bg_download .add_bg_but {
+    position: relative;
+}
+
+/* Drag and drop styling */
+.drag-over {
+    border: 2px dashed #4CAF50 !important;
+    background: rgba(76, 175, 80, 0.1) !important;
+    border-radius: 8px !important;
+}
+
+/* Upload instructions */
+.upload-instructions {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 100;
+    min-width: 200px;
+}
+
+.add_bg_but:hover .upload-instructions {
+    opacity: 1;
+}
+
+.upload-hint strong {
+    color: #4CAF50;
+    font-size: 14px;
+}
+
+.upload-hint small {
+    display: block;
+    margin-top: 4px;
+    color: #ccc;
+    font-size: 11px;
+}
+
+/* URL input styling */
+#bg-url-input {
+    width: 100%;
+    padding: 8px;
+    margin: 10px 0;
+    border: 1px solid #555;
+    background: #333;
+    color: #ddd;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+#bg-url-input:focus {
+    border-color: #4CAF50;
+    outline: none;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+}
+
+#form_bg_download .add_bg_but::before {
+    content: 'Upload Video/GIF/Image\nOr paste YouTube URL';
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 5px;
+    border-radius: 4px;
+    font-size: 10px;
+    text-align: center;
+    white-space: pre-line;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 100;
+}
+
+#form_bg_download .add_bg_but:hover::before {
+    opacity: 1;
+}
+
+/* Background fitting controls enhancement */
+.background-fitting-controls {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+}
+
+.fitting-option {
+    padding: 5px 10px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #ddd;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.fitting-option:hover {
+    background: #444;
+    border-color: #777;
+}
+
+.fitting-option.active {
+    background: #4CAF50;
+    border-color: #4CAF50;
+    color: white;
+}
+
+/* Media controls overlay */
+.enhanced-bg-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.8);
+    border-radius: 8px;
+    padding: 10px;
+    display: none;
+    z-index: 1000;
+}
+
+.enhanced-bg-controls.visible {
+    display: flex;
+    gap: 10px;
+}
+
+.enhanced-bg-controls button {
+    background: transparent;
+    border: 1px solid #555;
+    color: #ddd;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.enhanced-bg-controls button:hover {
+    background: #555;
+    border-color: #777;
+}
+
+/* Loading indicator */
+.bg-loading {
+    position: relative;
+}
+
+.bg-loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top: 3px solid #4CAF50;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 10;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    #enhanced-background-container iframe {
+        transform: scale(1.2) !important;
+    }
+    
+    #animated-backgrounds-settings {
+        margin: 5px !important;
+        padding: 10px !important;
+    }
+    
+    .enhanced-bg-controls {
+        bottom: 10px;
+        right: 10px;
+        padding: 8px;
+    }
+    
+    .enhanced-bg-controls button {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    #animated-backgrounds-settings {
+        background: #000 !important;
+        border-color: #fff !important;
+    }
+    
+    #animated-backgrounds-settings h3,
+    #animated-backgrounds-settings .checkbox_label,
+    #animated-backgrounds-settings label {
+        color: #fff !important;
+    }
+}

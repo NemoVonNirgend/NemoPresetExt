@@ -1,6 +1,7 @@
 import { saveSettingsDebounced, eventSource, event_types } from '../../../../script.js';
 import { extension_settings, getContext } from '../../../extensions.js';
 import { LOG_PREFIX, NEMO_EXTENSION_NAME, ensureSettingsNamespace, escapeRegex, delay, NEMO_SECTIONS_ENABLED_KEY, NEMO_SNAPSHOT_KEY, NEMO_FAVORITE_PRESETS_KEY } from './utils.js';
+import logger from './logger.js';
 import { promptManager } from '../../../../scripts/openai.js';
 import { PromptNavigator } from './prompt-navigator.js';
 import './lib/Sortable.min.js'; // Import Sortable
@@ -40,7 +41,7 @@ export async function loadAndSetDividerRegex() {
     try {
         DIVIDER_PREFIX_REGEX = new RegExp(`^(${combinedPatternString})`);
     } catch (e) {
-        console.error(`${LOG_PREFIX} Invalid regex pattern. Using built-ins only.`, e);
+        logger.error('Invalid regex pattern. Using built-ins only', e);
         DIVIDER_PREFIX_REGEX = new RegExp(`^(${NEMO_BUILT_IN_PATTERNS.join('|')})`);
     }
 }
@@ -83,7 +84,7 @@ export const NemoPresetManager = {
             <div id="nemoSnapshotStatus" class="nemo-status-message"></div>`;
         container.parentElement.insertBefore(searchAndStatusWrapper, container);
         
-        console.log(`${LOG_PREFIX} Created search and status UI`);
+        logger.debug('Created search and status UI');
     },
 
     createReasoningSection: function(container) {
@@ -96,7 +97,7 @@ export const NemoPresetManager = {
         // Find the Chat Completion Settings drawer to insert after it
         const chatCompletionDrawer = document.getElementById('nemo-drawer-openai_chat_settings');
         if (!chatCompletionDrawer) {
-            console.warn(`${LOG_PREFIX} Chat Completion Settings drawer not found, cannot position Reasoning section`);
+            logger.warn('Chat Completion Settings drawer not found, cannot position Reasoning section');
             return;
         }
 
@@ -219,7 +220,7 @@ export const NemoPresetManager = {
         // Insert after the Chat Completion Settings drawer
         chatCompletionDrawer.parentNode.insertBefore(reasoningSection, chatCompletionDrawer.nextSibling);
         
-        console.log(`${LOG_PREFIX} Created Reasoning section after Chat Completion Settings`);
+        logger.debug('Created Reasoning section after Chat Completion Settings');
     },
 
     createLorebookSection: function(container) {
@@ -235,7 +236,7 @@ export const NemoPresetManager = {
         
         let insertAfter = reasoningSection || chatCompletionDrawer;
         if (!insertAfter) {
-            console.warn(`${LOG_PREFIX} No suitable position found for Lorebook section`);
+            logger.warn('No suitable position found for Lorebook section');
             return;
         }
 
@@ -283,7 +284,7 @@ export const NemoPresetManager = {
         insertAfter.parentNode.insertBefore(lorebookSection, insertAfter.nextSibling);
         
         const positionName = reasoningSection ? 'Reasoning section' : 'Chat Completion Settings';
-        console.log(`${LOG_PREFIX} Created Lorebook Management section after ${positionName}`);
+        logger.debug(`Created Lorebook Management section after ${positionName}`);
     },
 
     refreshActiveLorebooksDisplay: function() {
@@ -351,11 +352,11 @@ export const NemoPresetManager = {
     // Core Logic
     takeSnapshot: async function() {
         try {
-            console.log(`${LOG_PREFIX} Starting snapshot capture...`);
+            logger.info('Starting snapshot capture...');
             
             const promptsContainer = document.querySelector(SELECTORS.promptsContainer);
             if (!promptsContainer) {
-                console.error(`${LOG_PREFIX} Prompts container not found`);
+                logger.error('Prompts container not found');
                 this.showStatusMessage('Error: Prompt manager not available.', 'error');
                 return;
             }
@@ -363,13 +364,13 @@ export const NemoPresetManager = {
             const activeIdentifiers = new Set();
             const enabledToggles = document.querySelectorAll(`${SELECTORS.promptsContainer} ${SELECTORS.toggleButton}.${SELECTORS.enabledToggleClass}`);
             
-            console.log(`${LOG_PREFIX} Found ${enabledToggles.length} enabled toggles`);
+            logger.debug(`Found ${enabledToggles.length} enabled toggles`);
             
             enabledToggles.forEach(toggle => {
                 const promptLi = toggle.closest(SELECTORS.promptItemRow);
                 if (promptLi && promptLi.dataset.pmIdentifier) {
                     activeIdentifiers.add(promptLi.dataset.pmIdentifier);
-                    console.log(`${LOG_PREFIX} Added to snapshot:`, promptLi.dataset.pmIdentifier);
+                    logger.debug('Added to snapshot', { identifier: promptLi.dataset.pmIdentifier });
                 }
             });
 

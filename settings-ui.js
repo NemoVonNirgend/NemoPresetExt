@@ -4,6 +4,7 @@ import { saveSettingsDebounced } from '../../../../script.js';
 import { extension_settings } from '../../../extensions.js';
 import { LOG_PREFIX, NEMO_EXTENSION_NAME, ensureSettingsNamespace } from './utils.js';
 import { loadAndSetDividerRegex, NemoPresetManager } from './prompt-manager.js';
+import logger from './logger.js';
 
 export const NemoSettingsUI = {
     initialize: async function() {
@@ -13,7 +14,7 @@ export const NemoSettingsUI = {
                 clearInterval(pollForSettings);
                 ensureSettingsNamespace();
                 const response = await fetch(`scripts/extensions/third-party/${NEMO_EXTENSION_NAME}/settings.html`);
-                if (!response.ok) { console.error(`${LOG_PREFIX} Failed to fetch settings.html`); return; }
+                if (!response.ok) { logger.error('Failed to fetch settings.html'); return; }
                 container.insertAdjacentHTML('beforeend', await response.text());
 
                 // Regex Settings
@@ -91,17 +92,17 @@ export const NemoSettingsUI = {
                 const extensionsTabOverhaulToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableExtensionsTabOverhaul'));
                 extensionsTabOverhaulToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.nemoEnableExtensionsTabOverhaul ?? true;
                 extensionsTabOverhaulToggle.addEventListener('change', () => {
-                    console.log(`[NemoPresetExt] Toggle changed to: ${extensionsTabOverhaulToggle.checked}`);
+                    logger.debug(`Toggle changed to: ${extensionsTabOverhaulToggle.checked}`);
                     extension_settings[NEMO_EXTENSION_NAME].nemoEnableExtensionsTabOverhaul = extensionsTabOverhaulToggle.checked;
                     saveSettingsDebounced();
                     
-                    console.log(`[NemoPresetExt] Setting saved. ExtensionsTabOverhaul available:`, !!window.ExtensionsTabOverhaul);
-                    console.log(`[NemoPresetExt] ExtensionsTabOverhaul initialized:`, window.ExtensionsTabOverhaul?.initialized);
+                    logger.debug('Setting saved. ExtensionsTabOverhaul available', { available: !!window.ExtensionsTabOverhaul });
+                    logger.debug('ExtensionsTabOverhaul initialized', { initialized: window.ExtensionsTabOverhaul?.initialized });
                     
                     // Immediately apply the changes without requiring page refresh
                     if (extensionsTabOverhaulToggle.checked) {
                         // Enable the extensions tab overhaul
-                        console.log(`[NemoPresetExt] Attempting to enable extensions tab overhaul...`);
+                        logger.info('Attempting to enable extensions tab overhaul...');
                         if (window.ExtensionsTabOverhaul && !window.ExtensionsTabOverhaul.initialized) {
                             window.ExtensionsTabOverhaul.initialize();
                         }

@@ -1,4 +1,5 @@
 import { LOG_PREFIX } from './utils.js';
+import logger from './logger.js';
 import { debounce, navigation_option } from '../../../../scripts/utils.js';
 import { Popup } from '../../../../scripts/popup.js';
 import { getFreeWorldName, createNewWorldInfo, loadWorldInfo, world_names, saveWorldInfo, createWorldInfoEntry, deleteWorldInfoEntry, deleteWIOriginalDataValue } from '../../../../scripts/world-info.js';
@@ -129,7 +130,7 @@ export const NemoWorldInfoUI = {
                 originalPanel.innerHTML = html;
             }
         } catch (error) {
-            console.error(`${LOG_PREFIX} Error injecting UI:`, error);
+            logger.error('Error injecting UI', error);
         }
     },
 
@@ -282,7 +283,7 @@ export const NemoWorldInfoUI = {
         folderElement.className = 'nemo-folder';
         folderElement.dataset.folderName = folderName;
         
-        console.log(`${LOG_PREFIX} Creating folder element:`, {
+        logger.debug('Creating folder element', {
             folderName: folderName,
             className: folderElement.className,
             hasOpenClass: folderElement.classList.contains('open')
@@ -293,7 +294,7 @@ export const NemoWorldInfoUI = {
         header.innerHTML = `<span class="nemo-folder-toggle">▶</span> ${folderName}`;
         header.addEventListener('click', () => {
             folderElement.classList.toggle('open');
-            console.log(`${LOG_PREFIX} Folder toggle clicked:`, {
+            logger.debug('Folder toggle clicked', {
                 folderName: folderName,
                 isOpen: folderElement.classList.contains('open'),
                 className: folderElement.className
@@ -342,7 +343,7 @@ export const NemoWorldInfoUI = {
 
     initSortable: function() {
         if (typeof Sortable === 'undefined') {
-            console.warn(`${LOG_PREFIX} Sortable.js not found. Drag-and-drop functionality will be disabled.`);
+            logger.warn('Sortable.js not found. Drag-and-drop functionality will be disabled.');
             return;
         }
 
@@ -549,7 +550,7 @@ export const NemoWorldInfoUI = {
             // Save state to localStorage
             localStorage.setItem(storageKey, isHidden.toString());
             
-            console.log(`${LOG_PREFIX} Left panel toggled: ${isHidden ? 'hidden' : 'visible'}`);
+            logger.info(`Left panel toggled: ${isHidden ? 'hidden' : 'visible'}`);
         };
 
         const hidePanel = () => {
@@ -560,7 +561,7 @@ export const NemoWorldInfoUI = {
                 // Save state to localStorage
                 localStorage.setItem(storageKey, isHidden.toString());
                 
-                console.log(`${LOG_PREFIX} Left panel hidden`);
+                logger.debug('Left panel hidden');
             }
         };
         
@@ -627,7 +628,7 @@ export const NemoWorldInfoUI = {
             const state = localStorage.getItem(this.storageKey);
             this.folderState = state ? JSON.parse(state) : {};
         } catch (e) {
-            console.error(`${LOG_PREFIX} Error loading folder state:`, e);
+            logger.error('Error loading folder state', e);
             this.folderState = {};
         }
     },
@@ -636,7 +637,7 @@ export const NemoWorldInfoUI = {
         try {
             localStorage.setItem(this.storageKey, JSON.stringify(this.folderState));
         } catch (e) {
-            console.error(`${LOG_PREFIX} Error saving folder state:`, e);
+            logger.error('Error saving folder state', e);
         }
     },
 
@@ -735,7 +736,7 @@ export const NemoWorldInfoUI = {
     },
 
     initialize: function() {
-        console.log(`${LOG_PREFIX} Initializing World Info UI Redesign...`);
+        logger.info('Initializing World Info UI Redesign...');
         this.loadFolderState();
         this.loadPresets();
         const self = this;
@@ -1073,7 +1074,7 @@ export const NemoWorldInfoUI = {
                     this.populatePresetSelect();
                     Popup.show.alert('Presets imported successfully.');
                 } catch (e) {
-                    console.error(`${LOG_PREFIX} Error importing presets:`, e);
+                    logger.error('Error importing presets', e);
                     Popup.show.alert('Failed to import presets. Check the file format and console for errors.');
                 }
             }

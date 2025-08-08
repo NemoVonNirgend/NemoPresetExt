@@ -1,0 +1,655 @@
+<div class="inline-drawer-content" style="display: block;">
+                                <div class="">
+                                    <div class="inline-drawer wide100p flexFlowColumn">
+                                        <div class="inline-drawer-toggle inline-drawer-header">
+                                            <div class="flex-container alignItemsCenter">
+                                                <b data-i18n="Character Names Behavior">Character Names Behavior</b>
+                                                <span title="Helps the model to associate messages with characters." data-i18n="[title]Helps the model to associate messages with characters." class="opacity50p fa-solid fa-circle-info"></span>
+                                                <small class="flexBasis100p">(<span id="character_names_display">Default</span>)</small>
+                                            </div>
+                                            <div class="fa-solid fa-circle-chevron-down inline-drawer-icon down interactable" tabindex="0"></div>
+                                        </div>
+                                        <div class="inline-drawer-content">
+                                            <label class="checkbox_label flexWrap alignItemsCenter" for="character_names_none">
+                                                <input type="radio" id="character_names_none" name="character_names" value="-1">
+                                                <span data-i18n="None">None</span>
+                                                <small class="flexBasis100p" data-i18n="character_names_none">
+                                                    Never add character name prefixes. May behave poorly in groups, choose with caution.
+                                                </small>
+                                            </label>
+                                            <label class="checkbox_label flexWrap alignItemsCenter" for="character_names_default">
+                                                <input type="radio" id="character_names_default" name="character_names" value="0">
+                                                <span data-i18n="Default">Default</span>
+                                                <small class="flexBasis100p" data-i18n="character_names_default">
+                                                    Add prefixes for groups and past personas. Otherwise, make sure you provide names in the prompt.
+                                                </small>
+                                            </label>
+                                            <label class="checkbox_label flexWrap alignItemsCenter" for="character_names_completion">
+                                                <input type="radio" id="character_names_completion" name="character_names" value="1">
+                                                <span data-i18n="Completion Object">Completion Object</span>
+                                                <small class="flexBasis100p" data-i18n="character_names_completion">
+                                                    Add character names to completion objects. Restrictions apply: only Latin alphanumerics and underscores.
+                                                </small>
+                                            </label>
+                                            <label class="checkbox_label flexWrap alignItemsCenter" for="character_names_content">
+                                                <input type="radio" id="character_names_content" name="character_names" value="2">
+                                                <span data-i18n="Message Content">Message Content</span>
+                                                <small class="flexBasis100p" data-i18n="Prepend character names to message contents.">
+                                                    Prepend character names to message contents.
+                                                </small>
+                                            </label>
+                                            <!-- Hidden input for loading radio buttons from presets. Don't remove! -->
+                                            <input type="hidden" id="names_behavior" class="displayNone" value="0">
+                                        </div>
+                                    </div>
+                                    <div class="inline-drawer wide100p flexFlowColumn marginBot10">
+                                        <div class="inline-drawer-toggle inline-drawer-header">
+                                            <div class="flex-container alignItemsCenter">
+                                                <b data-i18n="Continue Postfix">Continue Postfix</b>
+                                                <span data-i18n="[title]The next chunk of the continued message will be appended using this as a separator." title="The next chunk of the continued message will be appended using this as a separator." class="opacity50p fa-solid fa-circle-info"></span>
+                                                <small class="flexBasis100p">(<span id="continue_postfix_display">None</span>)</small>
+                                            </div>
+                                            <div class="fa-solid fa-circle-chevron-down inline-drawer-icon down interactable" tabindex="0"></div>
+                                        </div>
+                                        <div class="inline-drawer-content">
+                                            <label class="checkbox_label flexWrap alignItemsCenter" for="continue_postfix_none">
+                                                <input type="radio" id="continue_postfix_none" name="continue_postfix" value="0">
+                                                <span data-i18n="None">None</span>
+                                            </label>
+                                            <label class="checkbox_label flexWrap alignItemsCenter" for="continue_postfix_space">
+                                                <input type="radio" id="continue_postfix_space" name="continue_postfix" value="1">
+                                                <span data-i18n="Space">Space</span>
+                                            </label>
+                                            <label class="checkbox_label flexWrap alignItemsCenter" for="continue_postfix_newline">
+                                                <input type="radio" id="continue_postfix_newline" name="continue_postfix" value="2">
+                                                <span data-i18n="Newline">Newline</span>
+                                            </label>
+                                            <label class="checkbox_label flexWrap alignItemsCenter" for="continue_postfix_double_newline">
+                                                <input type="radio" id="continue_postfix_double_newline" name="continue_postfix" value="3">
+                                                <span data-i18n="Double Newline">Double Newline</span>
+                                            </label>
+                                            <!-- Hidden input for loading radio buttons from presets. Don't remove! -->
+                                            <input type="hidden" id="continue_postfix" class="displayNone" value=" ">
+                                        </div>
+                                    </div>
+                                    <div class="range-block">
+                                        <label for="wrap_in_quotes" title="Wrap user messages in quotes before sending" data-i18n="[title]Wrap user messages in quotes before sending" class="checkbox_label widthFreeExpand">
+                                            <input id="wrap_in_quotes" type="checkbox"><span data-i18n="Wrap in Quotes">
+                                                Wrap in Quotes</span>
+                                        </label>
+                                        <div class="toggle-description justifyLeft">
+                                            <span data-i18n="Wrap entire user message in quotes before sending.">Wrap
+                                                entire user message in quotes before sending.</span><br>
+                                            <span data-i18n="Leave off if you use quotes manually for speech.">Leave off
+                                                if you use quotes manually for speech.</span>
+                                        </div>
+                                    </div>
+                                    <div class="range-block">
+                                        <label for="continue_prefill" class="checkbox_label widthFreeExpand">
+                                            <input id="continue_prefill" type="checkbox">
+                                            <span data-i18n="Continue prefill">Continue prefill</span>
+                                        </label>
+                                        <div class="toggle-description justifyLeft">
+                                            <span data-i18n="Continue sends the last message as assistant role instead of system message with instruction.">
+                                                Continue sends the last message as assistant role instead of system message with instruction.
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="range-block">
+                                        <label for="squash_system_messages" title="Squash system messages" data-i18n="[title]Squash system messages" class="checkbox_label widthFreeExpand">
+                                            <input id="squash_system_messages" type="checkbox">
+                                            <span data-i18n="Squash system messages">
+                                                Squash system messages
+                                            </span>
+                                        </label>
+                                        <div class="toggle-description justifyLeft">
+                                            <span data-i18n="Combines consecutive system messages into one (excluding example dialogues). May improve coherence for some models.">
+                                                Combines consecutive system messages into one (excluding example dialogues). May improve coherence for some models.
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="range-block" data-source="makersuite,vertexai,aimlapi,openrouter,claude,xai">
+                                        <label for="openai_enable_web_search" class="checkbox_label flexWrap widthFreeExpand">
+                                            <input id="openai_enable_web_search" type="checkbox">
+                                            <span data-i18n="Enable web search">Enable web search</span>
+                                        </label>
+                                        <div class="flexBasis100p toggle-description justifyLeft">
+                                            <span data-i18n="Use search capabilities provided by the backend.">
+                                                Use search capabilities provided by the backend.
+                                            </span>
+                                            <b data-source="openrouter" data-i18n="openrouter_web_search_fee" style="display: none;">
+                                                Not free, adds a $0.02 fee to each prompt.
+                                            </b>
+                                        </div>
+                                    </div>
+                                    <div class="range-block" data-source="openai,cohere,mistralai,custom,claude,aimlapi,openrouter,groq,deepseek,makersuite,vertexai,ai21,xai,pollinations">
+                                        <label for="openai_function_calling" class="checkbox_label flexWrap widthFreeExpand">
+                                            <input id="openai_function_calling" type="checkbox">
+                                            <span data-i18n="Enable function calling">Enable function calling</span>
+                                        </label>
+                                        <div class="flexBasis100p toggle-description justifyLeft">
+                                            <span data-i18n="enable_functions_desc_1">Allows using </span><a href="https://platform.openai.com/docs/guides/function-calling" target="_blank" data-i18n="enable_functions_desc_2">function tools</a>.
+                                            <span data-i18n="enable_functions_desc_3">Can be utilized by various extensions to provide additional functionality.</span>
+                                            <strong data-i18n="enable_functions_desc_4">Not supported when Prompt Post-Processing with "no tools" is used!</strong>
+                                        </div>
+                                    </div>
+                                    <div class="range-block" data-source="openai,aimlapi,openrouter,mistralai,makersuite,vertexai,claude,custom,01ai,xai,pollinations">
+                                        <label for="openai_image_inlining" class="checkbox_label flexWrap widthFreeExpand">
+                                            <input id="openai_image_inlining" type="checkbox">
+                                            <span data-i18n="Send inline images">Send inline images</span>
+                                        </label>
+                                        <div id="image_inlining_hint" class="flexBasis100p toggle-description justifyLeft">
+                                            <span data-i18n="image_inlining_hint_1">Sends images in prompts if the model supports it. Use the</span>
+                                            <code><i class="fa-solid fa-paperclip"></i></code>
+                                            <span data-i18n="image_inlining_hint_2">action on any message or the</span>
+                                            <code><i class="fa-solid fa-wand-magic-sparkles"></i></code>
+                                            <span data-i18n="image_inlining_hint_3">menu to attach an image file to the chat.</span>
+                                        </div>
+                                        <div class="flex-container flexFlowColumn wide100p textAlignCenter marginTop10" data-source="openai,custom,xai,pollinations" style="display: none;">
+                                            <div class="flex-container oneline-dropdown">
+                                                <label for="openai_inline_image_quality" data-i18n="Inline Image Quality">
+                                                    Inline Image Quality
+                                                </label>
+                                                <select id="openai_inline_image_quality" style="font-family: Lexend, &quot;Noto Color Emoji&quot;, sans-serif;">
+                                                    <option data-i18n="openai_inline_image_quality_auto" value="auto">Auto</option>
+                                                    <option data-i18n="openai_inline_image_quality_low" value="low">Low</option>
+                                                    <option data-i18n="openai_inline_image_quality_high" value="high">High</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="range-block" data-source="makersuite,vertexai" style="">
+                                        <label for="openai_video_inlining" class="checkbox_label flexWrap widthFreeExpand">
+                                            <input id="openai_video_inlining" type="checkbox">
+                                            <span data-i18n="Send inline videos">Send inline videos</span>
+                                        </label>
+                                        <div id="video_inlining_hint" class="flexBasis100p toggle-description justifyLeft">
+                                            <span data-i18n="video_inlining_hint_1">Sends videos in prompts if the model supports it. Use the</span>
+                                            <code><i class="fa-solid fa-paperclip"></i></code>
+                                            <span data-i18n="video_inlining_hint_2">action on any message or the</span>
+                                            <code><i class="fa-solid fa-wand-magic-sparkles"></i></code>
+                                            <span data-i18n="video_inlining_hint_3">menu to attach a video file to the chat.</span>
+                                            <strong data-i18n="video_inlining_hint_4">Videos must be less than 20 MB and under 1 minute long</strong>
+                                        </div>
+                                    </div>
+                                    <div class="range-block" data-source="makersuite,vertexai" style="">
+                                        <label for="openai_request_images" class="checkbox_label widthFreeExpand">
+                                            <input id="openai_request_images" type="checkbox">
+                                            <span>
+                                                <span data-i18n="Request inline images">Request inline images</span>
+                                                <i class="opacity50p fa-solid fa-circle-info" title="Gemini 2.0 Flash Experimental"></i>
+                                            </span>
+                                        </label>
+                                        <div class="toggle-description justifyLeft marginBot5">
+                                            <span data-i18n="Allows the model to return image attachments.">
+                                                Allows the model to return image attachments.
+                                            </span>
+                                            <em data-source="makersuite,vertexai" data-i18n="Request inline images_desc_2" style="">
+                                                Incompatible with the following features: function calling, web search, system prompt.
+                                            </em>
+                                        </div>
+                                    </div>
+                                    <div class="range-block" data-source="makersuite,vertexai" style="">
+                                        <label for="use_makersuite_sysprompt" class="checkbox_label widthFreeExpand">
+                                            <input id="use_makersuite_sysprompt" type="checkbox">
+                                            <span>
+                                                <span data-i18n="Use system prompt">Use system prompt</span>
+                                                <i class="opacity50p fa-solid fa-circle-info" title="Gemini 1.5+, LearnLM"></i>
+                                            </span>
+                                        </label>
+                                        <div class="toggle-description justifyLeft marginBot5">
+                                            <span data-i18n="Merges_all_system_messages_desc_1">
+                                                Merges all system messages up until the first message with a non-system role, and sends them in a</span> <code>system_instruction</code> <span data-i18n="Merges_all_system_messages_desc_2">field.
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="range-block" data-source="deepseek,aimlapi,openrouter,custom,claude,xai,makersuite,vertexai">
+                                        <label for="openai_show_thoughts" class="checkbox_label widthFreeExpand">
+                                            <input id="openai_show_thoughts" type="checkbox">
+                                            <span data-i18n="Request model reasoning">Request model reasoning</span>
+                                        </label>
+                                        <div class="toggle-description justifyLeft marginBot5">
+                                            <span data-i18n="Allows the model to return its thinking process.">
+                                                Allows the model to return its thinking process.
+                                            </span>
+                                            <span data-i18n="This setting affects visibility only.">
+                                                This setting affects visibility only.
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="flex-container flexFlowColumn wide100p textAlignCenter marginTop10" data-source="openai,custom,claude,xai,makersuite,vertexai,aimlapi,openrouter,pollinations">
+                                        <div class="flex-container oneline-dropdown" title="Constrains effort on reasoning for reasoning models.
+Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response." data-i18n="[title]Constrains effort on reasoning for reasoning models.">
+                                            <label for="openai_reasoning_effort">
+                                                <span data-i18n="Reasoning Effort">Reasoning Effort</span>
+                                                <a href="https://docs.sillytavern.app/usage/prompts/reasoning/#reasoning-effort" target="_blank" class="opacity50p fa-solid fa-circle-question"></a>
+                                            </label>
+                                            <select id="openai_reasoning_effort" style="font-family: Lexend, &quot;Noto Color Emoji&quot;, sans-serif;">
+                                                <option data-i18n="openai_reasoning_effort_auto" value="auto">Auto</option>
+                                                <option data-i18n="openai_reasoning_effort_minimum" value="min">Minimum</option>
+                                                <option data-i18n="openai_reasoning_effort_low" value="low">Low</option>
+                                                <option data-i18n="openai_reasoning_effort_medium" value="medium">Medium</option>
+                                                <option data-i18n="openai_reasoning_effort_high" value="high">High</option>
+                                                <option data-i18n="openai_reasoning_effort_maximum" value="max">Maximum</option>
+                                            </select>
+                                            <div class="toggle-description justifyLeft marginBot5" data-source="openai,custom,xai,aimlapi,openrouter" data-i18n="OpenAI-style options: low, medium, high. Minimum and maximum are aliased to low and high. Auto does not send an effort level." style="display: none;">
+                                                OpenAI-style options: low, medium, high. Minimum and maximum are aliased to low and high. Auto does not send an effort level.
+                                            </div>
+                                            <div class="toggle-description justifyLeft marginBot5" data-source="claude" data-i18n="Allocates a portion of the response length for thinking (min: 1024 tokens, low: 10%, medium: 25%, high: 50%, max: 95%), but minimum 1024 tokens. Auto does not request thinking." style="display: none;">
+                                                Allocates a portion of the response length for thinking (min: 1024 tokens, low: 10%, medium: 25%, high: 50%, max: 95%), but minimum 1024 tokens. Auto does not request thinking.
+                                            </div>
+                                            <div class="toggle-description justifyLeft marginBot5" data-source="makersuite,vertexai" data-i18n="Allocates a portion of the response length for thinking (Flash 2.5/Pro 2.5) (min: 0/128 tokens, low: 10%, medium: 25%, high: 50%, max: 24576/32768 tokens). Auto lets the model decide." style="">
+                                                Allocates a portion of the response length for thinking (Flash 2.5/Pro 2.5) (min: 0/128 tokens, low: 10%, medium: 25%, high: 50%, max: 24576/32768 tokens). Auto lets the model decide.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="range-block" data-source="claude" style="display: none;">
+                                        <div class="wide100p">
+                                            <div class="flex-container alignItemsCenter">
+                                                <span id="claude_assistant_prefill_text" data-i18n="Assistant Prefill">Assistant Prefill</span>
+                                                <i class="editor_maximize fa-solid fa-maximize right_menu_button interactable" data-for="claude_assistant_prefill" title="Expand the editor" data-i18n="[title]Expand the editor" tabindex="0"></i>
+                                            </div>
+                                            <textarea id="claude_assistant_prefill" class="text_pole textarea_compact autoSetHeight" name="assistant_prefill" rows="2" data-i18n="[placeholder]Start Claude's answer with..." placeholder="Start Claude's answer with..." style="font-family: Lexend, &quot;Noto Color Emoji&quot;, sans-serif;"></textarea>
+                                            <div class="flex-container alignItemsCenter">
+                                                <span id="claude_assistant_impersonation_text" data-i18n="Assistant Impersonation Prefill">Assistant Impersonation Prefill</span>
+                                                <i class="editor_maximize fa-solid fa-maximize right_menu_button interactable" data-for="claude_assistant_impersonation" title="Expand the editor" data-i18n="[title]Expand the editor" tabindex="0"></i>
+                                            </div>
+                                            <textarea id="claude_assistant_impersonation" class="text_pole textarea_compact autoSetHeight" name="assistant_impersonation" rows="2" data-i18n="[placeholder]Start Claude's answer with..." placeholder="Start Claude's answer with..." style="font-family: Lexend, &quot;Noto Color Emoji&quot;, sans-serif;"></textarea>
+                                        </div>
+                                        <div id="claude_function_prefill_warning">
+                                            <i class="fa-solid fa-circle-info"></i>
+                                            <span>Prefills won't work when function calling is enabled and any tools are registered.</span>
+                                        </div>
+                                        <label for="claude_use_sysprompt" class="checkbox_label widthFreeExpand">
+                                            <input id="claude_use_sysprompt" type="checkbox">
+                                            <span data-i18n="Use system prompt">Use system prompt</span>
+                                        </label>
+                                        <div class="toggle-description justifyLeft marginBot5">
+                                            <span data-i18n="Send the system prompt for supported models. If disabled, the user message is added to the beginning of the prompt.">
+                                                Send the system prompt for supported models. If disabled, the user message is added to the beginning of the prompt.
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="range-block m-t-1" data-source="openai,aimlapi,openrouter,scale,custom" style="display: none;">
+                                    <div id="logit_bias_openai" class="range-block-title openai_restorable" data-i18n="Logit Bias">
+                                        Logit Bias
+                                    </div>
+                                    <div class="toggle-description justifyLeft">
+                                        <span data-i18n="Helps to ban or reenforce the usage of certain words">Helps to ban or reinforce the usage of certain tokens.</span>
+                                        <span data-i18n="Confirm token parsing with">Confirm token parsing with</span>
+                                        <a target="_blank" href="https://platform.openai.com/tokenizer/" data-i18n="Tokenizer">Tokenizer</a>.
+                                    </div>
+                                    <div class="openai_logit_bias_preset_form">
+                                        <select id="openai_logit_bias_preset" style="font-family: Lexend, &quot;Noto Color Emoji&quot;, sans-serif;"><option value="Default (none)">Default (none)</option><option value="Anti-bond">Anti-bond</option><option value="dsurgh">dsurgh</option><option value="nhpkje">nhpkje</option><option value="8q77tl">8q77tl</option></select>
+                                        <i title="New preset" id="openai_logit_bias_new_preset" class="menu_button fa-solid fa-plus interactable" data-i18n="[title]New preset" tabindex="0"></i>
+                                        <i title="Import preset" id="openai_logit_bias_import_preset" class="menu_button fa-solid fa-file-import interactable" data-i18n="[title]Import preset" tabindex="0"></i>
+                                        <i title="Export preset" id="openai_logit_bias_export_preset" class="menu_button fa-solid fa-file-export interactable" data-i18n="[title]Export preset" tabindex="0"></i>
+                                        <i title="Delete preset" id="openai_logit_bias_delete_preset" class="menu_button fa-solid fa-trash-can interactable" data-i18n="[title]Delete preset" tabindex="0"></i>
+                                        <input id="openai_logit_bias_import_file" type="file" accept=".json" hidden="">
+                                    </div>
+                                    <div class="inline-drawer wide100p">
+                                        <div class="inline-drawer-toggle inline-drawer-header">
+                                            <b data-i18n="View / Edit bias preset">View / Edit bias preset</b>
+                                            <div class="fa-solid fa-circle-chevron-down inline-drawer-icon down interactable" tabindex="0"></div>
+                                        </div>
+                                        <div class="inline-drawer-content">
+                                            <div id="openai_logit_bias_new_entry" class="menu_button wide100p flex-container justifyCenter interactable" data-i18n="Add bias entry" tabindex="0">
+                                                Add bias entry
+                                            </div>
+                                            <div class="openai_logit_bias_list ui-sortable" no_items_text="No items" data-i18n="[no_items_text]openai_logit_bias_no_items"></div>
+                                            <div class="m-t-1">
+                                                <small>
+                                                    <i class="fa-solid fa-lightbulb"></i>
+                                                    &nbsp;
+                                                    <span data-i18n="Most tokens have a leading space.">
+                                                        Most tokens have a leading space.
+                                                    </span>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="range-block m-b-1">
+                                    <div id="completion_prompt_manager"><div class="range-block">
+    <div class="completion_prompt_manager_header">
+        <div class="completion_prompt_manager_header_advanced">
+            <span data-i18n="Prompts">Prompts</span>
+        </div>
+        <div><span data-i18n="Total Tokens:">Total Tokens:</span> 6726 </div>
+    </div><div class="completion_prompt_manager_footer">
+    <select id="completion_prompt_manager_footer_append_prompt" class="text_pole" name="append-prompt">
+        
+    </select>
+    <a class="menu_button fa-chain fa-solid fa-fw interactable" title="Insert prompt" data-i18n="[title]Insert prompt" target="_blank" rel="noopener" tabindex="0"></a>
+    <a class="caution menu_button fa-x fa-solid fa-fw interactable" title="Delete prompt" data-i18n="[title]Delete prompt" target="_blank" rel="noopener" tabindex="0"></a>
+    <a class="menu_button fa-file-import fa-solid fa-fw interactable" id="prompt-manager-import" title="Import a prompt list" data-i18n="[title]Import a prompt list" target="_blank" rel="noopener" tabindex="0"></a>
+    <a class="menu_button fa-file-export fa-solid fa-fw interactable" id="prompt-manager-export" title="Export this prompt list" data-i18n="[title]Export this prompt list" target="_blank" rel="noopener" tabindex="0"></a>
+    <a class="menu_button fa-undo fa-solid fa-fw interactable" id="prompt-manager-reset-character" title="Reset current character" data-i18n="[title]Reset current character" target="_blank" rel="noopener" tabindex="0"></a>
+    <a class="menu_button fa-plus-square fa-solid fa-fw interactable" title="New prompt" data-i18n="[title]New prompt" target="_blank" rel="noopener" tabindex="0"></a>
+</div>
+
+    <div id="nemoSearchAndStatusWrapper">
+                <div id="nemoPresetSearchContainer">
+                    <input type="text" id="nemoPresetSearchInput" placeholder="Search loaded prompts..." class="text_pole">
+                    <div class="nemo-search-controls">
+                        <button id="nemoPresetSearchClear" title="Clear search" class="menu_button interactable" tabindex="0"><i class="fa-solid fa-times"></i></button>
+                        <div class="nemo-search-divider"></div>
+                        <button id="nemoToggleSectionsBtn" title="Toggle Collapsible Sections" class="menu_button nemo-active interactable" tabindex="0"><i class="fa-solid fa-list-ul"></i></button>
+                        <button id="nemoTakeSnapshotBtn" title="Take a snapshot of the current prompt state" class="menu_button interactable" tabindex="0"><i class="fa-solid fa-camera"></i></button>
+                        <button id="nemoApplySnapshotBtn" title="Apply the last snapshot" class="menu_button interactable" disabled="" tabindex="0"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                    </div>
+                </div>
+                <div id="nemoSnapshotStatus" class="nemo-status-message"></div></div><ul id="completion_prompt_manager_list" class="text_pole ui-sortable" data-nemo-prompts-initialized="true"><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable completion_prompt_manager_prompt_disabled ui-sortable-handle" data-pm-identifier="main" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="Main Prompt">
+                        
+                        <span class="fa-fw fa-solid fa-square-poll-horizontal" title="Global Prompt"></span>
+                        
+                        
+                        
+                        <a title="Main Prompt" class="prompt-manager-inspect-action">Main Prompt</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                
+                    <span title="edit" class="prompt-manager-edit-action fa-solid fa-pencil fa-xs"></span>
+                
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-off"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="-"><span class="" title=""> </span>-</span>
+                </li><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable completion_prompt_manager_marker ui-sortable-handle" data-pm-identifier="worldInfoBefore" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="World Info (before)">
+                        <span class="fa-fw fa-solid fa-thumb-tack" title="Marker"></span>
+                        
+                        
+                        
+                        
+                        <a title="World Info (before)" class="prompt-manager-inspect-action">World Info (before)</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                
+                    <span title="edit" class="prompt-manager-edit-action fa-solid fa-pencil fa-xs"></span>
+                
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-on"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="-"><span class="" title=""> </span>-</span>
+                </li><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable completion_prompt_manager_marker ui-sortable-handle" data-pm-identifier="personaDescription" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="Persona Description">
+                        <span class="fa-fw fa-solid fa-thumb-tack" title="Marker"></span>
+                        
+                        
+                        
+                        
+                        <a title="Persona Description" class="prompt-manager-inspect-action">Persona Description</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                
+                    <span title="edit" class="prompt-manager-edit-action fa-solid fa-pencil fa-xs"></span>
+                
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-on"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="455"><span class="" title=""> </span>455</span>
+                </li><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable completion_prompt_manager_marker ui-sortable-handle" data-pm-identifier="charDescription" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="Char Description">
+                        <span class="fa-fw fa-solid fa-thumb-tack" title="Marker"></span>
+                        
+                        
+                        
+                        
+                        <a title="Char Description" class="prompt-manager-inspect-action">Char Description</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                
+                    <span title="edit" class="prompt-manager-edit-action fa-solid fa-pencil fa-xs"></span>
+                
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-on"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="1025"><span class="" title=""> </span>1025</span>
+                </li><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable completion_prompt_manager_marker ui-sortable-handle" data-pm-identifier="charPersonality" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="Char Personality">
+                        <span class="fa-fw fa-solid fa-thumb-tack" title="Marker"></span>
+                        
+                        
+                        
+                        
+                        <a title="Char Personality" class="prompt-manager-inspect-action">Char Personality</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                
+                    <span title="edit" class="prompt-manager-edit-action fa-solid fa-pencil fa-xs"></span>
+                
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-on"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="-"><span class="" title=""> </span>-</span>
+                </li><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable completion_prompt_manager_marker ui-sortable-handle" data-pm-identifier="scenario" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="Scenario">
+                        <span class="fa-fw fa-solid fa-thumb-tack" title="Marker"></span>
+                        
+                        
+                        
+                        
+                        <a title="Scenario" class="prompt-manager-inspect-action">Scenario</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                
+                    <span title="edit" class="prompt-manager-edit-action fa-solid fa-pencil fa-xs"></span>
+                
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-on"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="-"><span class="" title=""> </span>-</span>
+                </li><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable completion_prompt_manager_prompt_disabled ui-sortable-handle" data-pm-identifier="enhanceDefinitions" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="Enhance Definitions">
+                        
+                        <span class="fa-fw fa-solid fa-square-poll-horizontal" title="Global Prompt"></span>
+                        
+                        
+                        
+                        <a title="Enhance Definitions" class="prompt-manager-inspect-action">Enhance Definitions</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                
+                    <span title="edit" class="prompt-manager-edit-action fa-solid fa-pencil fa-xs"></span>
+                
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-off"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="-"><span class="" title=""> </span>-</span>
+                </li><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable ui-sortable-handle" data-pm-identifier="nsfw" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="Auxiliary Prompt">
+                        
+                        <span class="fa-fw fa-solid fa-square-poll-horizontal" title="Global Prompt"></span>
+                        
+                        
+                        
+                        <a title="Auxiliary Prompt" class="prompt-manager-inspect-action">Auxiliary Prompt</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                
+                    <span title="edit" class="prompt-manager-edit-action fa-solid fa-pencil fa-xs"></span>
+                
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-on"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="-"><span class="" title=""> </span>-</span>
+                </li><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable completion_prompt_manager_marker ui-sortable-handle" data-pm-identifier="worldInfoAfter" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="World Info (after)">
+                        <span class="fa-fw fa-solid fa-thumb-tack" title="Marker"></span>
+                        
+                        
+                        
+                        
+                        <a title="World Info (after)" class="prompt-manager-inspect-action">World Info (after)</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                
+                    <span title="edit" class="prompt-manager-edit-action fa-solid fa-pencil fa-xs"></span>
+                
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-on"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="-"><span class="" title=""> </span>-</span>
+                </li><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable completion_prompt_manager_marker ui-sortable-handle" data-pm-identifier="dialogueExamples" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="Chat Examples">
+                        <span class="fa-fw fa-solid fa-thumb-tack" title="Marker"></span>
+                        
+                        
+                        
+                        
+                        <a title="Chat Examples" class="prompt-manager-inspect-action">Chat Examples</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                <span class="fa-solid"></span>
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-on"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="-"><span class="" title=""> </span>-</span>
+                </li><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable completion_prompt_manager_marker ui-sortable-handle" data-pm-identifier="chatHistory" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="Chat History">
+                        <span class="fa-fw fa-solid fa-thumb-tack" title="Marker"></span>
+                        
+                        
+                        
+                        
+                        <a title="Chat History" class="prompt-manager-inspect-action">Chat History</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                <span class="fa-solid"></span>
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-on"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="5246"><span class="" title=""> </span>5246</span>
+                </li><li class="completion_prompt_manager_prompt completion_prompt_manager_prompt_draggable ui-sortable-handle" data-pm-identifier="jailbreak" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <span class="completion_prompt_manager_prompt_name" data-pm-name="Post-History Instructions">
+                        
+                        <span class="fa-fw fa-solid fa-square-poll-horizontal" title="Global Prompt"></span>
+                        
+                        
+                        
+                        <a title="Post-History Instructions" class="prompt-manager-inspect-action">Post-History Instructions</a>
+                        
+                        
+                        
+                    </span>
+                    <span>
+                            <span class="prompt_manager_prompt_controls">
+                                <span class="fa-solid"></span>
+                                
+                    <span title="edit" class="prompt-manager-edit-action fa-solid fa-pencil fa-xs"></span>
+                
+                                
+                    <span class="prompt-manager-toggle-action fa-solid fa-toggle-on"></span>
+                
+                            </span>
+                    </span>
+
+                    <span class="prompt_manager_prompt_tokens" data-pm-tokens="-"><span class="" title=""> </span>-</span>
+                </li></ul>
+</div>
+</div>
+                                </div>
+                            </div>
