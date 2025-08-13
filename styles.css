@@ -783,7 +783,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 }
 
 .nemo-prompt-navigator-content-wrapper #prompt-navigator-load-btn {
-    min-height: 44px;
     padding: 12px 20px;
     font-size: 1.1em;
     font-weight: 500;
@@ -970,6 +969,24 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 
 /* Mobile phones */
 @media (max-width: 480px) {
+    /* Ensure very small interactive elements remain touchable */
+    .nemo-item-menu-btn { 
+        width: 32px; 
+        height: 32px; 
+    }
+    
+    .favorite-remove-btn,
+    .nemo-folder-action { 
+        min-width: 32px; 
+        min-height: 32px; 
+        padding: 6px; 
+    }
+    
+    /* Small search control buttons get slightly more padding */
+    .nemo-search-controls .menu_button { 
+        padding: 6px 8px; 
+        min-height: 36px;
+    }
     /* Even smaller grid items */
     .view-mode-grid { 
         grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); 
@@ -999,8 +1016,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     .nemo-search-controls .menu_button,
     .nemo-header-buttons .menu_button { 
         flex: 1; 
-        min-width: 44px; /* Touch target size */
-        min-height: 44px; 
     }
     
     /* World Info specific mobile improvements */
@@ -1022,25 +1037,19 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     
     /* Button sizing for touch */
     .menu_button { 
-        min-height: 44px; 
         padding: 8px 12px; 
     }
     
     /* Improve touch targets */
     .nemo-item-menu-btn { 
-        width: 44px; 
-        height: 44px; 
         opacity: 1; /* Always visible on mobile */
     }
     
     /* Pagination improvements */
     .pagination-btn { 
-        min-width: 44px !important; 
-        height: 44px !important; 
     }
     
     .pagination-goto { 
-        height: 44px !important; 
         font-size: 16px; /* Prevent zoom on iOS */
     }
     
@@ -1068,7 +1077,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     
     .nemo-context-menu li { 
         padding: 12px 16px; /* Larger touch targets */
-        min-height: 44px; 
         display: flex !important; 
         align-items: center; 
     }
@@ -1126,7 +1134,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     
     .nemo-start-reply-textarea-container textarea { 
         font-size: 16px; /* Prevent zoom on iOS */
-        min-height: 44px; 
     }
 }
 
@@ -1210,8 +1217,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     .inline-drawer-toggle, 
     .completion_prompt_manager_prompt_controls > *, 
     .nemo-section-master-toggle { 
-        min-height: 44px; 
-        min-width: 44px; 
     }
     
     /* Improve checkbox and radio button tap targets */
@@ -1234,8 +1239,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     /* Improve drag handle visibility and size */
     .drag-handle, 
     .nemo-drag-handle { 
-        min-width: 44px; 
-        min-height: 44px; 
         display: flex; 
         align-items: center; 
         justify-content: center; 
@@ -2229,8 +2232,6 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
     
     .nemo-remove-lorebook {
         align-self: flex-end;
-        min-height: 44px;
-        min-width: 44px;
     }
 }
 
