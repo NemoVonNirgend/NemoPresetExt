@@ -776,8 +776,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 }
 
 .nemo-prompt-navigator-content-wrapper #prompt-navigator-search-clear {
-    min-height: 36px;
-    min-width: 36px;
     padding: 8px;
     font-size: 1em;
 }
@@ -789,7 +787,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 }
 
 .nemo-prompt-navigator-content-wrapper #prompt-navigator-search-input {
-    min-height: 38px;
     padding: 8px 40px 8px 12px;
     font-size: 1em;
 }
@@ -985,7 +982,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     /* Small search control buttons get slightly more padding */
     .nemo-search-controls .menu_button { 
         padding: 6px 8px; 
-        min-height: 36px;
     }
     /* Even smaller grid items */
     .view-mode-grid { 
@@ -2204,9 +2200,6 @@ li.completion_prompt_manager_prompt.nemo-dragging { opacity: 0.5; cursor: grabbi
         padding: 12px;
     }
     
-    .nemo-lorebook-name {
-        font-size: 0.95em;
-    }
     
     .nemo-lorebook-details {
         font-size: 0.8em;

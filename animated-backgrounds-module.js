@@ -458,6 +458,9 @@ export class AnimatedBackgroundsModule {
                     // Store reference for controls
                     this.currentVideoElement = event.target; // Store player instance
                     
+                    // Automatically switch to transparent background for YouTube videos
+                    this.switchToTransparentBackground();
+                    
                     // Show YouTube controls
                     this.showYouTubeControls(event.target);
                 },
@@ -532,12 +535,32 @@ export class AnimatedBackgroundsModule {
     }
 
     /**
+     * Switch to SillyTavern's transparent background for YouTube videos
+     */
+    switchToTransparentBackground() {
+        if (this.originalSetBackground && typeof this.originalSetBackground === 'function') {
+            try {
+                // Call SillyTavern's setBackground with __transparent
+                this.originalSetBackground('__transparent', '', 'image');
+                logger.info(`${LOG_PREFIX} Switched to transparent background for YouTube video`);
+            } catch (error) {
+                logger.warn(`${LOG_PREFIX} Failed to switch to transparent background:`, error);
+            }
+        } else {
+            logger.warn(`${LOG_PREFIX} Original setBackground function not available`);
+        }
+    }
+
+    /**
      * Hook into SillyTavern's background system
      */
     hookIntoBackgroundSystem() {
         // Store original functions
         const originalSetBackground = window.setBackground;
         const originalGetMediaType = window.getMediaType;
+        
+        // Store original setBackground for later use
+        this.originalSetBackground = originalSetBackground;
         
         // Override getMediaType if it exists
         if (originalGetMediaType) {
@@ -928,20 +951,20 @@ export class AnimatedBackgroundsModule {
      * Play specific playlist item by index
      */
     playPlaylistItem(index) {
-        if (this.playlist.length === 0 || index < 0 || index >= this.playlist.length) {
+        if (this.playlist.items.length === 0 || index < 0 || index >= this.playlist.items.length) {
             return false;
         }
 
-        const item = this.playlist[index];
-        this.currentPlaylistIndex = index;
+        const item = this.playlist.items[index];
+        this.playlist.currentIndex = index;
         
         // Save current playlist state
         this.savePlaylist();
 
-        logger.debug(`${LOG_PREFIX} Playing playlist item ${index}:`, item.title || item.url);
+        logger.debug(`${LOG_PREFIX} Playing playlist item ${index}:`, item.title || item.source);
 
         // Set the background to the selected item
-        this.setAnimatedBackground(item.url, item.type);
+        this.setAnimatedBackground(item.source, item.mediaType);
 
         // Update controls if visible
         this.updatePlaylistControls();
@@ -964,19 +987,19 @@ export class AnimatedBackgroundsModule {
         const nextButton = controls.querySelector('#youtube-next, #video-next');
 
         if (playlistButton) {
-            playlistButton.setAttribute('title', `Playlist (${this.playlist.length})`);
+            playlistButton.setAttribute('title', `Playlist (${this.playlist.items.length})`);
         }
 
         if (playlistCount) {
-            playlistCount.textContent = this.playlist.length;
+            playlistCount.textContent = this.playlist.items.length;
         }
 
         if (previousButton) {
-            previousButton.disabled = this.playlist.length <= 1;
+            previousButton.disabled = this.playlist.items.length <= 1;
         }
 
         if (nextButton) {
-            nextButton.disabled = this.playlist.length <= 1;
+            nextButton.disabled = this.playlist.items.length <= 1;
         }
     }
 
@@ -1160,13 +1183,13 @@ export class AnimatedBackgroundsModule {
             <div class="drag-handle" title="Drag to move"></div>
             <div class="resize-handle" title="Resize controls"></div>
             <div class="video-control-group">
-                <button id="video-previous" title="Previous Track" ${this.playlist.length <= 1 ? 'disabled' : ''}>
+                <button id="video-previous" title="Previous Track" ${this.playlist.items.length <= 1 ? 'disabled' : ''}>
                     <i class="fa-solid fa-backward-step"></i>
                 </button>
                 <button id="video-play-pause" title="Play/Pause">
                     <i class="fa-solid ${video.paused ? 'fa-play' : 'fa-pause'}"></i>
                 </button>
-                <button id="video-next" title="Next Track" ${this.playlist.length <= 1 ? 'disabled' : ''}>
+                <button id="video-next" title="Next Track" ${this.playlist.items.length <= 1 ? 'disabled' : ''}>
                     <i class="fa-solid fa-forward-step"></i>
                 </button>
             </div>
@@ -1181,9 +1204,9 @@ export class AnimatedBackgroundsModule {
                 <button id="video-favorite" title="Add to Favorites">
                     <i class="fa-solid fa-heart"></i>
                 </button>
-                <button id="video-playlist" title="Show Playlist (${this.playlist.length} items)">
+                <button id="video-playlist" title="Show Playlist (${this.playlist.items.length} items)">
                     <i class="fa-solid fa-list"></i>
-                    <span class="playlist-count">${this.playlist.length}</span>
+                    <span class="playlist-count">${this.playlist.items.length}</span>
                 </button>
                 <button id="video-restart" title="Restart">
                     <i class="fa-solid fa-rotate-left"></i>
@@ -1643,6 +1666,21 @@ export class AnimatedBackgroundsModule {
             }
         });
 
+        // Playlist button
+        $('#video-playlist').on('click', () => {
+            this.showPlaylistWindow();
+        });
+        
+        // Previous button
+        $('#video-previous').on('click', () => {
+            this.playPrevious();
+        });
+        
+        // Next button
+        $('#video-next').on('click', () => {
+            this.playNext();
+        });
+
         // Favorite button
         $('#video-favorite').on('click', () => {
             if (this.isCurrentVideoFavorited()) {
@@ -1932,13 +1970,13 @@ export class AnimatedBackgroundsModule {
             <div class="drag-handle" title="Drag to move"></div>
             <div class="resize-handle" title="Resize controls"></div>
             <div class="video-control-group">
-                <button id="youtube-previous" title="Previous" ${this.playlist.length <= 1 ? 'disabled' : ''}>
+                <button id="youtube-previous" title="Previous" ${this.playlist.items.length <= 1 ? 'disabled' : ''}>
                     <i class="fa-solid fa-step-backward"></i>
                 </button>
                 <button id="youtube-play-pause" title="Play/Pause">
                     <i class="fa-solid fa-pause"></i>
                 </button>
-                <button id="youtube-next" title="Next" ${this.playlist.length <= 1 ? 'disabled' : ''}>
+                <button id="youtube-next" title="Next" ${this.playlist.items.length <= 1 ? 'disabled' : ''}>
                     <i class="fa-solid fa-step-forward"></i>
                 </button>
                 <button id="youtube-mute-unmute" title="Mute/Unmute">
@@ -1956,9 +1994,9 @@ export class AnimatedBackgroundsModule {
                 <button id="youtube-restart" title="Restart">
                     <i class="fa-solid fa-rotate-left"></i>
                 </button>
-                <button id="youtube-playlist" title="Playlist (${this.playlist.length})">
+                <button id="youtube-playlist" title="Playlist (${this.playlist.items.length})">
                     <i class="fa-solid fa-list"></i>
-                    <span class="playlist-count">${this.playlist.length}</span>
+                    <span class="playlist-count">${this.playlist.items.length}</span>
                 </button>
                 <button id="youtube-close-controls" title="Hide Controls">
                     <i class="fa-solid fa-times"></i>
@@ -2085,7 +2123,7 @@ export class AnimatedBackgroundsModule {
         // Remove existing playlist window
         $('#playlist-window').remove();
 
-        if (this.playlist.length === 0) {
+        if (this.playlist.items.length === 0) {
             toastr.info('Playlist is empty');
             return;
         }
@@ -2096,7 +2134,7 @@ export class AnimatedBackgroundsModule {
         
         let playlistHtml = `
             <div class="playlist-header">
-                <h3><i class="fa-solid fa-list"></i> Playlist (${this.playlist.length})</h3>
+                <h3><i class="fa-solid fa-list"></i> Playlist (${this.playlist.items.length})</h3>
                 <div class="playlist-controls">
                     <button id="clear-playlist" title="Clear Playlist">
                         <i class="fa-solid fa-trash"></i>
@@ -2109,16 +2147,18 @@ export class AnimatedBackgroundsModule {
             <div class="playlist-content">
         `;
 
-        this.playlist.forEach((item, index) => {
-            const isActive = this.currentPlaylistIndex === index;
-            const thumbnail = item.thumbnail || 'https://img.youtube.com/vi/' + this.getYouTubeVideoId(item.url) + '/default.jpg';
+        this.playlist.items.forEach((item, index) => {
+            const isActive = this.playlist.currentIndex === index;
+            const thumbnail = item.thumbnail || (this.isYouTubeUrl(item.source) ? 
+                'https://img.youtube.com/vi/' + this.getYouTubeVideoId(item.source) + '/default.jpg' : 
+                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkwIiB2aWV3Qm94PSIwIDAgMTIwIDkwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iOTAiIGZpbGw9IiMzMzMiLz48dGV4dCB4PSI2MCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+VmlkZW88L3RleHQ+PC9zdmc+');
             
             playlistHtml += `
                 <div class="playlist-item ${isActive ? 'active' : ''}" data-index="${index}">
                     <img src="${thumbnail}" alt="Video thumbnail" class="playlist-thumbnail" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkwIiB2aWV3Qm94PSIwIDAgMTIwIDkwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iOTAiIGZpbGw9IiMzMzMiLz48dGV4dCB4PSI2MCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+'">
                     <div class="playlist-item-info">
-                        <div class="playlist-item-title">${item.title || item.url.split('/').pop() || 'Untitled'}</div>
-                        <div class="playlist-item-type">${item.type}</div>
+                        <div class="playlist-item-title">${item.title || item.source.split('/').pop() || 'Untitled'}</div>
+                        <div class="playlist-item-type">${item.mediaType}</div>
                     </div>
                     <div class="playlist-item-actions">
                         <button class="play-item" data-index="${index}" title="Play">
@@ -2127,7 +2167,7 @@ export class AnimatedBackgroundsModule {
                         <button class="move-up" data-index="${index}" title="Move Up" ${index === 0 ? 'disabled' : ''}>
                             <i class="fa-solid fa-chevron-up"></i>
                         </button>
-                        <button class="move-down" data-index="${index}" title="Move Down" ${index === this.playlist.length - 1 ? 'disabled' : ''}>
+                        <button class="move-down" data-index="${index}" title="Move Down" ${index === this.playlist.items.length - 1 ? 'disabled' : ''}>
                             <i class="fa-solid fa-chevron-down"></i>
                         </button>
                         <button class="remove-item" data-index="${index}" title="Remove">
@@ -2163,9 +2203,7 @@ export class AnimatedBackgroundsModule {
         // Clear playlist
         $('#clear-playlist').on('click', () => {
             if (confirm('Are you sure you want to clear the entire playlist?')) {
-                this.playlist = [];
-                this.currentPlaylistIndex = -1;
-                this.savePlaylist();
+                this.clearPlaylist();
                 $('#playlist-window').remove();
                 toastr.success('Playlist cleared');
                 
@@ -2173,9 +2211,12 @@ export class AnimatedBackgroundsModule {
                 const controls = document.getElementById('video-background-controls');
                 if (controls) {
                     controls.querySelector('.playlist-count').textContent = '0';
-                    controls.querySelector('#youtube-previous').disabled = true;
-                    controls.querySelector('#youtube-next').disabled = true;
-                    controls.querySelector('#youtube-playlist').setAttribute('title', 'Playlist (0)');
+                    const prevBtn = controls.querySelector('#youtube-previous, #video-previous');
+                    const nextBtn = controls.querySelector('#youtube-next, #video-next');
+                    const playlistBtn = controls.querySelector('#youtube-playlist, #video-playlist');
+                    if (prevBtn) prevBtn.disabled = true;
+                    if (nextBtn) nextBtn.disabled = true;
+                    if (playlistBtn) playlistBtn.setAttribute('title', 'Playlist (0)');
                 }
             }
         });
@@ -2190,7 +2231,10 @@ export class AnimatedBackgroundsModule {
         // Remove item
         $('.remove-item').on('click', (e) => {
             const index = parseInt(e.currentTarget.getAttribute('data-index'));
-            this.removeFromPlaylist(index);
+            const item = this.playlist.items[index];
+            if (item) {
+                this.removeFromPlaylist(item.id);
+            }
             
             // Refresh playlist window
             this.showPlaylistWindow();
@@ -2201,15 +2245,15 @@ export class AnimatedBackgroundsModule {
             const index = parseInt(e.currentTarget.getAttribute('data-index'));
             if (index > 0) {
                 // Swap items
-                const temp = this.playlist[index];
-                this.playlist[index] = this.playlist[index - 1];
-                this.playlist[index - 1] = temp;
+                const temp = this.playlist.items[index];
+                this.playlist.items[index] = this.playlist.items[index - 1];
+                this.playlist.items[index - 1] = temp;
 
                 // Update current index if needed
-                if (this.currentPlaylistIndex === index) {
-                    this.currentPlaylistIndex = index - 1;
-                } else if (this.currentPlaylistIndex === index - 1) {
-                    this.currentPlaylistIndex = index;
+                if (this.playlist.currentIndex === index) {
+                    this.playlist.currentIndex = index - 1;
+                } else if (this.playlist.currentIndex === index - 1) {
+                    this.playlist.currentIndex = index;
                 }
 
                 this.savePlaylist();
@@ -2220,17 +2264,17 @@ export class AnimatedBackgroundsModule {
         // Move item down
         $('.move-down').on('click', (e) => {
             const index = parseInt(e.currentTarget.getAttribute('data-index'));
-            if (index < this.playlist.length - 1) {
+            if (index < this.playlist.items.length - 1) {
                 // Swap items
-                const temp = this.playlist[index];
-                this.playlist[index] = this.playlist[index + 1];
-                this.playlist[index + 1] = temp;
+                const temp = this.playlist.items[index];
+                this.playlist.items[index] = this.playlist.items[index + 1];
+                this.playlist.items[index + 1] = temp;
 
                 // Update current index if needed
-                if (this.currentPlaylistIndex === index) {
-                    this.currentPlaylistIndex = index + 1;
-                } else if (this.currentPlaylistIndex === index + 1) {
-                    this.currentPlaylistIndex = index;
+                if (this.playlist.currentIndex === index) {
+                    this.playlist.currentIndex = index + 1;
+                } else if (this.playlist.currentIndex === index + 1) {
+                    this.playlist.currentIndex = index;
                 }
 
                 this.savePlaylist();
