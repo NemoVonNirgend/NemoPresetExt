@@ -966,23 +966,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 
 /* Mobile phones */
 @media (max-width: 480px) {
-    /* Ensure very small interactive elements remain touchable */
-    .nemo-item-menu-btn { 
-        width: 32px; 
-        height: 32px; 
-    }
-    
-    .favorite-remove-btn,
-    .nemo-folder-action { 
-        min-width: 32px; 
-        min-height: 32px; 
-        padding: 6px; 
-    }
-    
-    /* Small search control buttons get slightly more padding */
-    .nemo-search-controls .menu_button { 
-        padding: 6px 8px; 
-    }
     /* Even smaller grid items */
     .view-mode-grid { 
         grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); 
@@ -1004,14 +987,9 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     }
     
     /* Stack all controls vertically */
-    .nemo-search-controls, 
-    .nemo-header-buttons { 
-        justify-content: stretch; 
-    }
-    
-    .nemo-search-controls .menu_button,
-    .nemo-header-buttons .menu_button { 
-        flex: 1; 
+    .nemo-search-controls,
+    .nemo-header-buttons {
+        justify-content: center;
     }
     
     /* World Info specific mobile improvements */

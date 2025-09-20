@@ -165,9 +165,14 @@ export class AnimatedBackgroundsModule {
         script.async = true;
         
         // Set up API ready callback
+        const existingCallback = window.onYouTubeIframeAPIReady;
         window.onYouTubeIframeAPIReady = () => {
             this.youtubeApiReady = true;
             logger.info(`${LOG_PREFIX} YouTube API loaded successfully`);
+            // Call existing callback if it exists
+            if (existingCallback && typeof existingCallback === 'function') {
+                existingCallback();
+            }
         };
 
         document.head.appendChild(script);
@@ -221,14 +226,14 @@ export class AnimatedBackgroundsModule {
      * Check if URL is a YouTube URL
      */
     isYouTubeUrl(url) {
-        return /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i.test(url);
+        return /(?:youtube(?:-nocookie)?\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|.*\/shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/i.test(url);
     }
 
     /**
      * Extract YouTube video ID from URL
      */
     getYouTubeVideoId(url) {
-        const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+        const match = url.match(/(?:youtube(?:-nocookie)?\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|.*\/shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/i);
         return match ? match[1] : null;
     }
 
@@ -465,8 +470,19 @@ export class AnimatedBackgroundsModule {
                     this.showYouTubeControls(event.target);
                 },
                 onStateChange: (event) => {
-                    if (event.data === window.YT.PlayerState.ENDED && settings.enableLoop) {
-                        event.target.playVideo();
+                    if (event.data === window.YT.PlayerState.ENDED) {
+                        if (settings.enableLoop) {
+                            // If loop is enabled and we have a playlist, play next item
+                            if (this.playlist.items.length > 1) {
+                                this.playNext();
+                            } else {
+                                // Single video loop
+                                event.target.playVideo();
+                            }
+                        } else if (this.playlist.items.length > 1) {
+                            // Auto-advance to next video in playlist
+                            this.playNext();
+                        }
                     }
                 },
                 onError: (event) => {
@@ -888,7 +904,11 @@ export class AnimatedBackgroundsModule {
             this.playlist.isPlaying = true;
             this.savePlaylist();
             
+            // Update controls if visible
+            this.updatePlaylistControls();
+            
             logger.info(`${LOG_PREFIX} Playing playlist item:`, item.title);
+            toastr.success(`Playing: ${item.title || 'Untitled'}`);
             return true;
         }
         
@@ -947,32 +967,6 @@ export class AnimatedBackgroundsModule {
         return this.playPlaylistItem(prevIndex);
     }
 
-    /**
-     * Play specific playlist item by index
-     */
-    playPlaylistItem(index) {
-        if (this.playlist.items.length === 0 || index < 0 || index >= this.playlist.items.length) {
-            return false;
-        }
-
-        const item = this.playlist.items[index];
-        this.playlist.currentIndex = index;
-        
-        // Save current playlist state
-        this.savePlaylist();
-
-        logger.debug(`${LOG_PREFIX} Playing playlist item ${index}:`, item.title || item.source);
-
-        // Set the background to the selected item
-        this.setAnimatedBackground(item.source, item.mediaType);
-
-        // Update controls if visible
-        this.updatePlaylistControls();
-
-        toastr.success(`Playing: ${item.title || 'Untitled'}`);
-        
-        return true;
-    }
 
     /**
      * Update playlist controls UI
@@ -2311,8 +2305,8 @@ export class AnimatedBackgroundsModule {
         const playlistItem = this.addToPlaylist(url, this.MEDIA_TYPES.YOUTUBE, videoInfo);
         
         // Only play immediately if playlist was empty or no current video
-        if (this.playlist.length === 1 || !this.hasCurrentVideo()) {
-            this.currentPlaylistIndex = this.playlist.length - 1;
+        if (this.playlist.items.length === 1 || !this.hasCurrentVideo()) {
+            this.playlist.currentIndex = this.playlist.items.length - 1;
             this.setAnimatedBackground(url, this.MEDIA_TYPES.YOUTUBE);
         } else {
             // Update controls to show new playlist count
