@@ -1009,10 +1009,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
         font-size: 0.9em; 
     }
     
-    /* Button sizing for touch */
-    .menu_button { 
-        padding: 8px 12px; 
-    }
     
     /* Improve touch targets */
     .nemo-item-menu-btn { 
@@ -1132,11 +1128,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
         padding: 6px 3px; 
     }
     
-    /* Ultra-compact controls */
-    .nemo-search-controls .menu_button { 
-        padding: 4px 6px; 
-        font-size: 0.8em; 
-    }
     
     .nemo-search-divider { 
         display: none; /* Hide dividers on very small screens */
