@@ -1028,10 +1028,10 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
     }
     
     /* Preset search mobile improvements */
-    #nemoPresetSearchContainer { 
-        flex-direction: column; 
-        align-items: stretch; 
-        gap: 8px; 
+    #nemoPresetSearchContainer {
+        flex-direction: row !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
     
     #nemoPresetSearchContainer .text_pole { 
