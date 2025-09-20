@@ -3711,9 +3711,6 @@ small[data-i18n="(0 = All)"],
         flex-direction: column;
     }
     
-    .nemo-saved-prompt-actions button {
-        width: 100%;
-    }
 }
 
 /* Chat Messages tab specific styling */
