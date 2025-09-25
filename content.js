@@ -1,9 +1,9 @@
-import { eventSource, event_types } from '../../../../script.js';
+import { eventSource, event_types, saveSettingsDebounced } from '../../../../script.js';
 import { extension_settings } from '../../../extensions.js';
 import { LOG_PREFIX, ensureSettingsNamespace, waitForElement } from './utils.js';
 import { NemoPresetManager, loadAndSetDividerRegex } from './prompt-manager.js';
 import { NemoCharacterManager } from './character-manager.js';
-import { initPresetNavigatorForApi } from './navigator.js';
+import { initPresetNavigatorForApi, PresetNavigator } from './navigator.js';
 import { NemoSettingsUI } from './settings-ui.js';
 import { NemoGlobalUI } from './global-ui.js';
 import { NemoWorldInfoUI } from './world-info-ui.js';
@@ -16,6 +16,9 @@ import { backgroundUIEnhancements } from './background-ui-enhancements.js';
 import { CONSTANTS } from './constants.js';
 import logger from './logger.js';
 import domCache, { DOMUtils } from './dom-cache.js';
+
+// Extension name constant for legacy code compatibility
+const NEMO_EXTENSION_NAME = 'NemoPresetExt';
 
 // --- MAIN INITIALIZATION ---
 const MAIN_SELECTORS = {
@@ -36,6 +39,9 @@ waitForElement('#left-nav-panel', async () => {
         NemoSettingsUI.initialize();
         NemoGlobalUI.initialize();
         NemoPromptArchiveUI.initialize();
+
+        // Initialize legacy settings UI for backward compatibility
+        await initializeNemoSettingsUI();
         
         // Initialize tab overhauls only if enabled
         if (extension_settings.NemoPresetExt?.enableTabOverhauls !== false) {
@@ -118,7 +124,7 @@ waitForElement('#left-nav-panel', async () => {
                 const select = document.querySelector(`select[data-preset-manager-for="${api}"]`);
                 if (select && !select.dataset.nemoPatched) {
                     try {
-                        initPresetNavigatorForApi(api);
+                        initPresetNavigatorForApiEnhanced(api);
                     } catch (error) {
                         logger.error(`Failed to initialize preset navigator for ${api}`, error);
                     }
@@ -157,12 +163,75 @@ waitForElement('#left-nav-panel', async () => {
             eventCleanupFunctions.forEach(cleanup => cleanup());
             eventCleanupFunctions.length = 0;
         };
-
-        // Make ExtensionsTabOverhaul globally available for settings toggle
-        window.ExtensionsTabOverhaul = ExtensionsTabOverhaul;
         
         logger.info('Initialization complete and observers are running');
     } catch (error) {
         logger.error('Critical failure during initialization', error);
     }
 });
+
+// Enhanced preset navigator initialization that works with both new and legacy code
+function initPresetNavigatorForApiEnhanced(apiType) {
+    const selector = `select[data-preset-manager-for="${apiType}"]`;
+    const originalSelect = document.querySelector(selector);
+    if (!originalSelect || originalSelect.dataset.nemoPatched) return;
+
+    originalSelect.dataset.nemoPatched = 'true';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'nemo-preset-selector-wrapper';
+
+    const browseButton = document.createElement('button');
+    browseButton.textContent = 'Browse...';
+    browseButton.className = 'menu_button interactable';
+
+    browseButton.addEventListener('click', (event) => {
+        const navigator = new PresetNavigator(apiType);
+        navigator.open();
+    });
+
+    originalSelect.parentElement.insertBefore(wrapper, originalSelect);
+    wrapper.appendChild(originalSelect);
+    wrapper.appendChild(browseButton);
+}
+
+async function initializeNemoSettingsUI() {
+    const pollForSettings = setInterval(async () => {
+        const container = document.getElementById('extensions_settings');
+        if (container && !document.querySelector('.nemo-preset-enhancer-settings')) {
+            clearInterval(pollForSettings);
+            ensureSettingsNamespace();
+            const response = await fetch(`scripts/extensions/third-party/${NEMO_EXTENSION_NAME}/settings.html`);
+            if (!response.ok) { console.error(`${LOG_PREFIX} Failed to fetch settings.html`); return; }
+            container.insertAdjacentHTML('beforeend', await response.text());
+
+            const regexInput = document.getElementById('nemoDividerRegexPattern');
+            const saveButton = document.getElementById('nemoSaveRegexSettings');
+            const statusDiv = document.getElementById('nemoRegexStatus');
+
+            regexInput.value = extension_settings[NEMO_EXTENSION_NAME]?.dividerRegexPattern || '';
+
+            saveButton.addEventListener('click', async () => {
+                const customPatternString = regexInput.value.trim();
+
+                try {
+                    if (customPatternString) {
+                        const testPatterns = customPatternString.split(',').map(p => p.trim()).filter(Boolean);
+                        testPatterns.forEach(p => new RegExp(p));
+                    }
+
+                    extension_settings[NEMO_EXTENSION_NAME].dividerRegexPattern = customPatternString;
+                    saveSettingsDebounced();
+
+                    await loadAndSetDividerRegex();
+                    await NemoPresetManager.organizePrompts();
+
+                    statusDiv.textContent = 'Pattern saved!'; statusDiv.style.color = 'lightgreen';
+                } catch(e) {
+                    statusDiv.textContent = `Invalid Regex part: ${e.message}`; statusDiv.style.color = 'red';
+                }
+                setTimeout(() => statusDiv.textContent = '', 4000);
+            });
+        }
+    }, 500);
+}

@@ -556,8 +556,8 @@ export class AnimatedBackgroundsModule {
     switchToTransparentBackground() {
         if (this.originalSetBackground && typeof this.originalSetBackground === 'function') {
             try {
-                // Call SillyTavern's setBackground with __transparent
-                this.originalSetBackground('__transparent', '', 'image');
+                // Call SillyTavern's setBackground with _transparent
+                this.originalSetBackground('_transparent', '', 'image');
                 logger.info(`${LOG_PREFIX} Switched to transparent background for YouTube video`);
             } catch (error) {
                 logger.warn(`${LOG_PREFIX} Failed to switch to transparent background:`, error);

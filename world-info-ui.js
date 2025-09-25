@@ -78,6 +78,12 @@ export const NemoWorldInfoUI = {
             
             const originalPanel = document.getElementById('WorldInfo');
             if (originalPanel) {
+                // Create a hidden container for preserved elements FIRST
+                const elementsContainer = document.createElement('div');
+                elementsContainer.id = 'nemo-world-info-hidden-elements';
+                elementsContainer.style.display = 'none';
+                document.body.appendChild(elementsContainer);
+
                 // Preserve the elements the original script needs
                 const settingsPanel = document.getElementById('wiActivationSettings');
                 const editorSelect = document.getElementById('world_editor_select');
@@ -86,28 +92,29 @@ export const NemoWorldInfoUI = {
                 const importFileInput = document.getElementById('world_import_file');
                 const worldInfoSelect = document.getElementById('world_info');
 
+                // Move elements directly to the hidden container (not to document.body)
                 if (worldInfoSelect) {
-                    document.body.appendChild(worldInfoSelect);
+                    elementsContainer.appendChild(worldInfoSelect);
                     worldInfoSelect.style.display = 'none';
                 }
                 if (settingsPanel) {
-                    document.body.appendChild(settingsPanel);
+                    elementsContainer.appendChild(settingsPanel);
                     settingsPanel.style.display = 'none';
                 }
                 if (editorSelect) {
-                    document.body.appendChild(editorSelect);
+                    elementsContainer.appendChild(editorSelect);
                     editorSelect.style.display = 'none';
                 }
                 if (createButton) {
-                    document.body.appendChild(createButton);
+                    elementsContainer.appendChild(createButton);
                     createButton.style.display = 'none';
                 }
                 if (importButton) {
-                    document.body.appendChild(importButton);
+                    elementsContainer.appendChild(importButton);
                     importButton.style.display = 'none';
                 }
                 if (importFileInput) {
-                    document.body.appendChild(importFileInput);
+                    elementsContainer.appendChild(importFileInput);
                     importFileInput.style.display = 'none';
                 }
 
@@ -118,11 +125,11 @@ export const NemoWorldInfoUI = {
                     'world_duplicate', 'world_popup_delete', 'world_info_search', 'world_info_sort_order',
                     'world_refresh'
                 ];
-        
+
                 idsToPreserve.forEach(id => {
                     const el = document.getElementById(id);
                     if (el) {
-                        document.body.appendChild(el);
+                        elementsContainer.appendChild(el);
                         el.style.display = 'none';
                     }
                 });

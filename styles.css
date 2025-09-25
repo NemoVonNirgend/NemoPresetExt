@@ -1,5 +1,28 @@
 /* styles.css for NemoPresetExt */
 
+/* === FIX FOR OPENROUTER DROPDOWN ISSUE === */
+/* Prevent world_editor_select from affecting other select2 dropdowns when moved to hidden container */
+/* Override SillyTavern core CSS rule: #world_editor_select ~ .select2-container { overflow: hidden; } */
+
+/* Ensure all select2 dropdowns work properly when world info overhaul is enabled */
+.select2-container {
+    overflow: visible !important;
+}
+
+/* More specific fixes for API connection dropdowns that were being broken */
+#api_connection_profile_block .select2-container,
+#completion_source_block .select2-container,
+#openrouter_model_block .select2-container,
+#model_openrouter_select.select2-container,
+.select2-container--default {
+    overflow: visible !important;
+}
+
+/* Ensure dropdown appears above other elements */
+.select2-dropdown {
+    z-index: 9999 !important;
+}
+
 /* === EXTENSIONS TAB OVERHAUL === */
 .nemo-extensions-layout {
     display: grid;
