@@ -1,0 +1,139 @@
+#nemovrm-canvas{
+    background:transparent;
+    display: flex;
+    height: 100dvh;
+    width: 100dvw;
+    z-index: 4;
+    position: fixed;
+    top: 0;
+    padding: 0;
+    margin: 0;
+}
+
+#bg_custom {
+    z-index: 1;
+}
+
+#bg1 {
+    z-index: 0;
+}
+
+#visual-novel-wrapper {
+    z-index: 2;
+}
+
+#expression-wrapper {
+    z-index: 3;
+}
+
+#nemovrm_reload_button {
+    margin-left: 0.2em;
+    margin-right: 0.2em;
+    padding: 0.35em;
+}
+
+.nemovrm-color-div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin: 1em;
+}
+
+.nemovrm-color-div input {
+    margin-right: 1em;
+}
+
+.nemovrm-slider-reset-div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin: 1em;
+}
+
+.nemovrm-slider-reset-div input {
+    margin: 1em;
+}
+
+.nemovrm-character-select-div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin: 1em;
+}
+
+#nemovrm_character_select {
+    margin-bottom: 0;
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.nemovrm-parameter {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+}
+
+.nemovrm-parameter-title {
+    width: 40%;
+    box-sizing: border-box;
+    padding: 1em;
+    margin: 0;
+    margin-right: 0px;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+}
+
+.nemovrm-model-select-div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin: 1em;
+}
+
+#nemovrm_model_div {
+    display: none;
+}
+
+#nemovrm_model_select {
+    margin-bottom: 0;
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+#nemovrm_model_loading {
+    display: none;
+}
+
+#nemovrm_model_settings {
+    display: none;
+}
+
+.nemovrm-select-div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.nemovrm-select-div select {
+    margin: 0;
+    margin-right: 1em;
+}
+
+.nemovrm-select-div i {
+    padding: 0.2em;
+}
+
+.nemovrm-select-div .menu_button {
+    margin-right: 0.2em;
+}
+
+.nemovrm-hidden {
+    visibility: hidden;
+}

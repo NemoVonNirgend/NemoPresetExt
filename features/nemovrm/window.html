@@ -1,0 +1,370 @@
+<div id="nemovrm_container">
+<div id="vrm_settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>Nemo-VRM</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div>
+                <div>
+                    <div>
+                        <h4>Global Settings</h4>
+                    </div>
+                    <label class="checkbox_label" for="nemovrm_enabled_checkbox">
+                        <input type="checkbox" id="nemovrm_enabled_checkbox" name="nemovrm_enabled_checkbox">
+                        <small>Enabled</small>
+                    </label>
+                    <label class="checkbox_label" for="vrm_follow_camera_checkbox">
+                        <input type="checkbox" id="vrm_follow_camera_checkbox" name="vrm_follow_camera_checkbox">
+                        <small>Look at camera</small>
+                    </label>
+                    <label class="checkbox_label" for="vrm_blink_checkbox">
+                        <input type="checkbox" id="vrm_blink_checkbox" name="vrm_blink_checkbox">
+                        <small>Blink</small>
+                    </label>
+                    <label class="checkbox_label" for="vrm_tts_lips_sync_checkbox">
+                        <input type="checkbox" id="vrm_tts_lips_sync_checkbox" name="vrm_tts_lips_sync_checkbox">
+                        <small>TTS lips sync</small>
+                    </label>
+                    <label class="checkbox_label" for="vrm_auto_send_hitbox_message_checkbox">
+                        <input type="checkbox" id="vrm_auto_send_hitbox_message_checkbox" name="vrm_auto_send_hitbox_message_checkbox">
+                        <small>Auto-send interaction</small>
+                    </label>
+                    <label class="checkbox_label" for="vrm_lock_models_checkbox">
+                        <input type="checkbox" id="vrm_lock_models_checkbox" name="vrm_lock_models_checkbox">
+                        <small>Lock models position/rotation/scale</small>
+                    </label>
+                    <div>
+                        <h4>Performances Settings</h4>
+                    </div>
+                    <label class="checkbox_label" for="vrm_hitboxes_checkbox">
+                        <input type="checkbox" id="vrm_hitboxes_checkbox" name="vrm_hitboxes_checkbox">
+                        <small>Body hitboxes</small>
+                    </label>
+                    <label class="checkbox_label" for="vrm_models_cache_checkbox">
+                        <input type="checkbox" id="vrm_models_cache_checkbox" name="vrm_models_cache_checkbox">
+                        <small>Use model cache</small>
+                    </label>
+                    <label class="checkbox_label" for="vrm_animations_cache_checkbox">
+                        <input type="checkbox" id="vrm_animations_cache_checkbox" name="vrm_animations_cache_checkbox">
+                        <small>Use animation cache</small>
+                    </label>
+                    <div>
+                        <h4>Debug Settings</h4>
+                    </div>
+                    <label class="checkbox_label" for="vrm_show_grid_checkbox">
+                        <input type="checkbox" id="vrm_show_grid_checkbox" name="vrm_show_grid_checkbox">
+                        <small>Show grid</small>
+                    </label>
+                    <label class="checkbox_label" for="nemovrm_reload_button">
+                        <div id="nemovrm_reload_button" class="menu_button">
+                            <i class="fa fa-refresh" aria-hidden="true"></i>
+                            <!-- Reset button -->
+                        </div>
+                        <small>Click to reload all Nemo-VRM models (debug)</small>
+                    </label>
+                    <div>
+                        <h4>Scene Settings</h4>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_light_color">
+                                Light color
+                            </label>
+                        </div>
+                        <div class="vrm-slider-div">
+                            <div class="vrm-color-div">
+                                <input type="color" id="vrm_light_color" value="#ffffff" />
+                                <div id="vrm_light_color_reset_button" class="menu_button">
+                                    <i class="fa-solid fa-recycle" title="Restore default settings"></i>
+                                    <!-- Refresh -->
+                                </div>
+                            </div>
+                            <small>
+                                Neutral value is white.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_light_intensity">
+                                Light intensity <br>(<span id="vrm_light_intensity_value"></span>%)
+                            </label>
+                        </div>
+                        <div class="vrm-slider-div">
+                            <div class="vrm-slider-reset-div">
+                                <input id="vrm_light_intensity" type="range" min="0" max="200" step="1" value="50" />
+                                <div id="vrm_light_intensity_reset_button" class="menu_button">
+                                    <i class="fa-solid fa-recycle" title="Restore default settings"></i>
+                                    <!-- Refresh -->
+                                </div>
+                            </div>
+                            <small>
+                                Neutral value is 100%.
+                            </small>
+                        </div>
+                    </div>
+                    <!-- LLM Configuration Section -->
+                    <div>
+                        <h4>Gemini Behavior Settings</h4>
+                    </div>
+                    <label class="checkbox_label" for="vrm_llm_enabled_checkbox">
+                        <input type="checkbox" id="vrm_llm_enabled_checkbox" name="vrm_llm_enabled_checkbox">
+                        <small>Enable Gemini-driven behaviors</small>
+                    </label>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_llm_api_key">
+                                Gemini API Key
+                            </label>
+                        </div>
+                        <div>
+                            <input id="vrm_llm_api_key" type="password" class="text_pole" placeholder="Enter your Gemini API key" />
+                            <small>
+                                API key for Google Gemini API.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div>
+                        <h4>Environment Settings</h4>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_environment_asset">
+                                Environment Asset
+                            </label>
+                        </div>
+                        <div>
+                            <input id="vrm_environment_asset" type="text" class="text_pole" placeholder="/assets/vrm/environment/room.gltf" />
+                            <small>
+                                Path to 3D environment asset (FBX or GLTF/GLB).
+                            </small>
+                        </div>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_asset_scale">
+                                Asset Scale <br>(<span id="vrm_asset_scale_value"></span>x)
+                            </label>
+                        </div>
+                        <div class="vrm-slider-div">
+                            <input id="vrm_asset_scale" type="range" min="0.1" max="5.0" step="0.1" value="1.0" />
+                            <small>
+                                Scale of the environment asset.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_asset_position_x">
+                                Asset X Position <br>(<span id="vrm_asset_position_x_value"></span>)
+                            </label>
+                        </div>
+                        <div class="vrm-slider-div">
+                            <input id="vrm_asset_position_x" type="range" min="-5" max="5" step="0.1" value="0" />
+                            <small>
+                                X coordinate of the asset.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_asset_position_y">
+                                Asset Y Position <br>(<span id="vrm_asset_position_y_value"></span>)
+                            </label>
+                        </div>
+                        <div class="vrm-slider-div">
+                            <input id="vrm_asset_position_y" type="range" min="-5" max="5" step="0.1" value="0" />
+                            <small>
+                                Y coordinate of the asset.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_asset_position_z">
+                                Asset Z Position <br>(<span id="vrm_asset_position_z_value"></span>)
+                            </label>
+                        </div>
+                        <div class="vrm-slider-div">
+                            <input id="vrm_asset_position_z" type="range" min="-5" max="5" step="0.1" value="0" />
+                            <small>
+                                Z coordinate of the asset.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div id="vrm_load_asset_button" class="menu_button">
+                            <i class="fa fa-upload" aria-hidden="true"></i>
+                            Load Environment Asset
+                        </div>
+                        <small>
+                            Load the specified environment asset into the scene.
+                        </small>
+                    </div>
+                </div>
+                <div>
+                    <div>
+                        <h4>Model Mapping</h4>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_character_select">Character:</label>
+                        </div>
+                        <div>
+                            <div class="vrm-character-select-div">
+                                <div id="vrm_character_refresh_button" class="menu_button">
+                                    <i class="fa-solid fa-refresh"></i>
+                                    <!-- Refresh -->
+                                </div>
+                                <select id="vrm_character_select">
+                                    <!-- Populated by JS -->
+                                </select>
+                                <div id="vrm_character_remove_button" class="menu_button">
+                                    Remove
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="vrm_model_div" class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_model_select">VRM Model:</label>
+                        </div>
+                        <div>
+                            <div class="vrm-model-select-div">
+                                <div id="vrm_model_refresh_button" class="menu_button">
+                                    <i class="fa-solid fa-refresh" title="Refresh model list"></i>
+                                    <!-- Refresh -->
+                                </div>
+                                <select id="vrm_model_select">
+                                    <!-- Populated by JS -->
+                                </select>
+                                <div id="vrm_model_reset_button" class="menu_button">
+                                    <i class="fa-solid fa-recycle" title="Restore default settings"></i>
+                                    <!-- Refresh -->
+                                </div>
+                            </div>
+                            <small>
+                                Click refresh button to reload models list and unload current model.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div id="vrm_model_loading">
+                    <p>Model is loading please wait (<span id="vrm_model_loading_percent"></span>%)</p>
+                </div>
+                <div id="vrm_model_settings">
+                    <div>
+                        <h4>Model Settings</h4>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_model_scale">
+                                Model scale <br/>(<span id="vrm_model_scale_value"></span>x)
+                            </label>
+                        </div>
+                        <div class="vrm-slider-div">
+                            <input id="vrm_model_scale" type="range" min="0.2" max="30" step="0.2" value="2.0" />
+                            <small>
+                                Scale of the Nemo-VRM model.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_model_position_x">
+                                Model center X offset <br/>(<span id="vrm_model_position_x_value"></span>)
+                            </label>
+                        </div>
+                        <div class="vrm-slider-div">
+                            <input id="vrm_model_position_x" type="range" min="-10" max="10" step="0.1" value="0" />
+                            <small>
+                                Set the model x coordinate (Same as mouse left click/drag).
+                            </small>
+                        </div>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_model_position_y">
+                                Model center Y offset <br/>(<span id="vrm_model_position_y_value"></span>)
+                            </label>
+                        </div>
+                        <div class="vrm-slider-div">
+                            <input id="vrm_model_position_y" type="range" min="-10" max="10" step="0.1" value="0" />
+                            <small>
+                                Set the model y coordinate (Same as mouse left click/drag).
+                            </small>
+                        </div>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_model_rotation_x">
+                                Model X rotation <br/>(<span id="vrm_model_rotation_x_value"></span>)
+                            </label>
+                        </div>
+                        <div class="vrm-slider-div">
+                            <input id="vrm_model_rotation_x" type="range" min="-10.0" max="10.0" step="0.1" value="0" />
+                            <small>
+                                Set the model x rotation (Same as middle mouse/drag).
+                            </small>
+                        </div>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            <label for="vrm_model_rotation_y">
+                                Model Y rotation <br/>(<span id="vrm_model_rotation_y_value"></span>)
+                            </label>
+                        </div>
+                        <div class="vrm-slider-div">
+                            <input id="vrm_model_rotation_y" type="range" min="-10.0" max="10.0" step="0.1" value="0"  />
+                            <small>
+                                Set the model y rotation (Same as middle mouse/drag).
+                            </small>
+                        </div>
+                    </div>
+                    <div>
+                        <h4>Hit areas mapping</h4>
+                    </div>
+                    <div id="vrm_hitboxes_mapping">
+                    </div>
+                    <div>
+                        <h4>Model Animations</h4>
+                    </div>
+                    <div class="vrm-parameter">
+                        <div class="vrm-parameter-title">
+                            Default Animations
+                        </div>
+                        <div class="vrm_expression_select_div" class="vrm-select-div">
+                            <div class="vrm-select-div">
+                                <select id="vrm_default_expression_select">
+                                </select>
+                                <div id="vrm_default_expression_replay" class="vrm_replay_button menu_button">
+                                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                                </div>
+                            </div>
+                            <div class="vrm-select-div">
+                                <select id="vrm_default_motion_select">
+                                </select>
+                                <div id="vrm_default_motion_replay" class="vrm_replay_button menu_button">
+                                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                                </div>
+                            </div>
+                            <small>
+                                Played when classified expression has no mapping set.
+                            </small>
+                        </div>
+                    </div>
+                    <div>
+                        <h4>Classified expressions mapping</h4>
+                    </div>
+                    <div id="vrm_expression_mapping">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>

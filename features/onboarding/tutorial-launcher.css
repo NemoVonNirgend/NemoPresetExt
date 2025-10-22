@@ -1,0 +1,417 @@
+/* ===================================
+   NEMO TUTORIAL LAUNCHER
+   Tutorial menu and card selection UI
+   =================================== */
+
+/* Menu overlay */
+.nemo-tutorial-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: nemo-vn-fade-in 0.3s ease-out;
+}
+
+/* Menu container */
+.nemo-tutorial-menu {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(100, 150, 255, 0.3);
+    max-width: 900px;
+    width: 90%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: nemo-vn-slide-up 0.4s ease-out;
+}
+
+/* Header */
+.nemo-tutorial-menu-header {
+    position: relative;
+    padding: 30px;
+    background: linear-gradient(135deg, rgba(110, 181, 255, 0.1) 0%, rgba(74, 159, 255, 0.05) 100%);
+    border-bottom: 2px solid rgba(110, 181, 255, 0.3);
+}
+
+.nemo-tutorial-menu-header h2 {
+    margin: 0 0 10px 0;
+    color: #6eb5ff;
+    font-size: 28px;
+    text-shadow: 0 2px 10px rgba(110, 181, 255, 0.5);
+}
+
+.nemo-tutorial-menu-header p {
+    margin: 0;
+    color: #aaa;
+    font-size: 14px;
+}
+
+.nemo-tutorial-menu-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 32px;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.nemo-tutorial-menu-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Tabs */
+.nemo-tutorial-menu-tabs {
+    display: flex;
+    gap: 5px;
+    padding: 0 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 2px solid rgba(110, 181, 255, 0.2);
+}
+
+.nemo-tutorial-menu-tab {
+    padding: 15px 25px;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.nemo-tutorial-menu-tab:hover {
+    color: #6eb5ff;
+    background: rgba(110, 181, 255, 0.05);
+}
+
+.nemo-tutorial-menu-tab.active {
+    color: #6eb5ff;
+    border-bottom-color: #6eb5ff;
+    background: rgba(110, 181, 255, 0.1);
+}
+
+/* Content area */
+.nemo-tutorial-menu-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+/* Custom scrollbar for content */
+.nemo-tutorial-menu-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.nemo-tutorial-menu-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.nemo-tutorial-menu-content::-webkit-scrollbar-thumb {
+    background: rgba(110, 181, 255, 0.5);
+    border-radius: 5px;
+}
+
+.nemo-tutorial-menu-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(110, 181, 255, 0.7);
+}
+
+/* Category sections */
+.nemo-tutorial-category {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 20px;
+}
+
+/* Tutorial cards */
+.nemo-tutorial-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(110, 181, 255, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.nemo-tutorial-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(110, 181, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.nemo-tutorial-card.completed {
+    border-color: rgba(74, 222, 128, 0.5);
+    background: rgba(74, 222, 128, 0.05);
+}
+
+.nemo-tutorial-card.dismissed {
+    border-color: rgba(255, 128, 128, 0.3);
+    background: rgba(255, 128, 128, 0.03);
+    opacity: 0.7;
+}
+
+/* Card header */
+.nemo-tutorial-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.nemo-tutorial-card h3 {
+    margin: 0;
+    color: #6eb5ff;
+    font-size: 18px;
+    flex: 1;
+}
+
+.nemo-tutorial-card-status {
+    display: flex;
+    gap: 5px;
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.completed {
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.status-badge.dismissed {
+    background: rgba(255, 128, 128, 0.2);
+    color: #ff8080;
+    border: 1px solid rgba(255, 128, 128, 0.3);
+}
+
+/* Card description */
+.nemo-tutorial-card-description {
+    color: #ccc;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 10px 0;
+}
+
+/* Card footer */
+.nemo-tutorial-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(110, 181, 255, 0.2);
+}
+
+.nemo-tutorial-card-steps {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.nemo-tutorial-card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.nemo-tutorial-card-start,
+.nemo-tutorial-card-reset {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nemo-tutorial-card-start {
+    background: linear-gradient(135deg, #6eb5ff 0%, #4a9fff 100%);
+    color: white;
+}
+
+.nemo-tutorial-card-start:hover {
+    background: linear-gradient(135deg, #4a9fff 0%, #6eb5ff 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(110, 181, 255, 0.4);
+}
+
+.nemo-tutorial-card-reset {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+    font-size: 11px;
+}
+
+.nemo-tutorial-card-reset:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+/* Footer */
+.nemo-tutorial-menu-footer {
+    padding: 20px 30px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 2px solid rgba(110, 181, 255, 0.2);
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.nemo-tutorial-reset-all {
+    background: rgba(255, 80, 80, 0.2);
+    color: #ff8080;
+    border: 1px solid rgba(255, 80, 80, 0.3);
+}
+
+.nemo-tutorial-reset-all:hover {
+    background: rgba(255, 80, 80, 0.3);
+    color: #ffaaaa;
+}
+
+.nemo-tutorial-menu-close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+}
+
+.nemo-tutorial-menu-close-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .nemo-tutorial-menu {
+        width: 95%;
+        max-height: 95vh;
+    }
+
+    .nemo-tutorial-menu-header {
+        padding: 20px;
+    }
+
+    .nemo-tutorial-menu-header h2 {
+        font-size: 24px;
+    }
+
+    .nemo-tutorial-menu-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+
+    .nemo-tutorial-menu-tab {
+        padding: 12px 20px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .nemo-tutorial-category {
+        grid-template-columns: 1fr;
+    }
+
+    .nemo-tutorial-menu-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .nemo-tutorial-menu-footer button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .nemo-tutorial-card {
+        padding: 15px;
+    }
+
+    .nemo-tutorial-card-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .nemo-tutorial-card-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .nemo-tutorial-card-actions {
+        width: 100%;
+    }
+
+    .nemo-tutorial-card-start,
+    .nemo-tutorial-card-reset {
+        flex: 1;
+    }
+}
+
+/* Settings section styling */
+.nemo-settings-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(110, 181, 255, 0.2);
+}
+
+.nemo-settings-section h3 {
+    color: #6eb5ff;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 20px;
+}
+
+.nemo-settings-section p {
+    color: #ccc;
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+.nemo-tutorials-button {
+    background: linear-gradient(135deg, #6eb5ff 0%, #4a9fff 100%);
+    color: white;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.nemo-tutorials-button:hover {
+    background: linear-gradient(135deg, #4a9fff 0%, #6eb5ff 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(110, 181, 255, 0.4);
+}

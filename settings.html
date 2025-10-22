@@ -1,101 +1,731 @@
-<div class="nemo-preset-enhancer-settings"> 
+<div class="nemo-preset-enhancer-settings">
     <div class="inline-drawer">
         <div class="inline-drawer-toggle inline-drawer-header">
-            <b>NemoPreset UI</b> 
+            <b>NemoPreset UI Extensions</b>
             <div class="inline-drawer-icon fa-solid fa-chevron-down down"></div>
         </div>
-        <div class="inline-drawer-content">
-            <div class="form-group">
-                <label for="nemoDividerRegexPattern">Custom Divider Patterns</label>
-                <input type="text" id="nemoDividerRegexPattern" class="text_pole"> 
-                <small>
-                    Add custom divider patterns, separated by commas (e.g., <code>###+</code>, <code>//--</code>).
-                    Built-in patterns like <code>=+</code>, <code>⭐─+</code>, <code>━+</code> are always active.
-                </small>
-            </div>
-            <button id="nemoSaveRegexSettings" class="menu_button">
-                <i class="fa-solid fa-save"></i> Save Custom Patterns
-            </button>
-            <div id="nemoRegexStatus" style="margin-top: 10px; font-style: italic;"></div>
+        <div class="inline-drawer-content" style="display: block;">
 
-            <hr> <!-- A separator for clarity -->
-
-            <div class="form-group">
-                <label for="nemoEnableLorebookOverhaul">Enable Lorebook UI Overhaul</label>
-                <input type="checkbox" id="nemoEnableLorebookOverhaul">
-                <small>
-                    Replaces the default Lorebook UI with an enhanced version.
-                    Requires a page refresh to take effect.
-                </small>
+            <!-- INTRODUCTION SECTION -->
+            <div class="nemo-intro-section">
+                <p class="nemo-description">
+                    Enhances SillyTavern's UI with better organization, visual improvements, and quality-of-life features for power users.
+                    <span class="nemo-feature-highlight">Customize your experience below.</span>
+                </p>
             </div>
 
-            <hr> <!-- Separator for clarity -->
+            <!-- FEATURE TOGGLES SECTION -->
+            <div class="nemo-settings-card">
+                <div class="nemo-card-header nemo-card-header-full">
+                    <i class="fa-solid fa-toggle-on"></i>
+                    <h3>Feature Toggles</h3>
+                    <span class="nemo-card-badge">Core</span>
+                </div>
+                <div class="nemo-card-content">
+                    <p class="nemo-section-description">Enable or disable individual features. Most require a page refresh.</p>
 
-            <div class="form-group">
-                <label for="nemoEnableReasoningSection">Enable Reasoning Section</label>
-                <input type="checkbox" id="nemoEnableReasoningSection">
-                <small>
-                    Shows a unified Reasoning dropdown in the preset manager with Start Reply With
-                    and all reasoning controls from Advanced Formatting.
-                </small>
+                    <div class="nemo-features-grid">
+                        <!-- Core Features -->
+                        <div class="nemo-feature-group">
+                            <h4 class="nemo-group-title">Core Features</h4>
+
+                            <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnablePromptManager" checked>
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Prompt Manager Enhancements</div>
+                                <div class="nemo-setting-description">
+                                    Collapsible sections, drag-and-drop reordering, and visual improvements
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnablePresetNavigator" checked>
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Preset Navigator</div>
+                                <div class="nemo-setting-description">
+                                    Browse, search, and manage API presets with the "Browse..." button
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableDirectives" checked>
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Prompt Directive System</div>
+                                <div class="nemo-setting-description">
+                                    Allows preset makers to embed rules and dependencies in prompts
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableCardEmporium" checked>
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Card & Lorebook Emporium</div>
+                                <div class="nemo-setting-description">
+                                    Browse and import character cards and lorebooks
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- Optional UI Features -->
+                        <div class="nemo-feature-group">
+                            <h4 class="nemo-group-title">Optional UI Features</h4>
+
+                            <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableEmber">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Ember 2.0</div>
+                                <div class="nemo-setting-description">
+                                    Universal HTML/JS renderer with asset pack system for interactive content
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                            <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableNemoLore">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">NemoLore</div>
+                                <div class="nemo-setting-description">
+                                    Advanced lorebook automation, chat summarization, and memory management
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                            <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableAnimatedBackgrounds">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Animated Backgrounds</div>
+                                <div class="nemo-setting-description">
+                                    Support for video backgrounds (webm, mp4) and YouTube URLs with controls
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableTabOverhauls">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Settings Tab Overhauls</div>
+                                <div class="nemo-setting-description">
+                                    Tabbed interface for User Settings and Advanced Formatting
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableExtensionsTabOverhaul">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Extensions Tab Overhaul</div>
+                                <div class="nemo-setting-description">
+                                    Organized categories with search for extensions
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableLorebookOverhaul">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Lorebook UI Overhaul</div>
+                                <div class="nemo-setting-description">
+                                    Enhanced Lorebook interface with improved organization
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableReasoningSection">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Unified Reasoning Section</div>
+                                <div class="nemo-setting-description">
+                                    Consolidated reasoning controls in the prompt manager
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableLorebookManagement">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Quick Lorebook Access</div>
+                                <div class="nemo-setting-description">
+                                    Manage active lorebooks directly from the prompt manager
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="nemoEnableLorebookManagement">Enable Quick Lorebook Access</label>
-                <input type="checkbox" id="nemoEnableLorebookManagement">
-                <small>
-                    Shows a Lorebook Management section in the preset manager for quickly
-                    adding/removing active lorebooks.
-                </small>
+            <!-- NEMO-SUITE SECTION -->
+            <div class="inline-drawer">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <b><i class="fa-solid fa-puzzle-piece"></i> Nemo-Suite Advanced Features</b>
+                    <div class="inline-drawer-icon fa-solid fa-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content">
+                    <div class="nemo-settings-card">
+                        <div class="nemo-card-content">
+                            <p class="nemo-section-description">
+                                Advanced settings for Nemo-Suite features. Each feature has its own detailed configuration panel below.
+                            </p>
+                            <div id="nemo-suite-settings-container">
+                                <!-- ProsePolisher, Ember, NemoLore, MoodMusic, and NEMO-VRM settings will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <hr> <!-- Separator for clarity -->
+            <!-- CUSTOMIZATION SECTION -->
+            <div class="inline-drawer">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <b><i class="fa-solid fa-paint-brush"></i> Customization Options</b>
+                    <div class="inline-drawer-icon fa-solid fa-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content">
+                    <div class="nemo-settings-card">
+                        <div class="nemo-card-content">
+                            <p class="nemo-section-description">
+                                Personalize the appearance and behavior of the extension.
+                            </p>
 
-            <div class="form-group">
-                <label for="nemoEnableTabOverhauls">Enable Tab Overhauls</label>
-                <input type="checkbox" id="nemoEnableTabOverhauls">
-                <small>
-                    Enables tabbed interfaces for User Settings and Advanced Formatting sections.
-                    Provides better organization and search functionality. Requires a page refresh to take effect.
-                </small>
+                            <div class="nemo-control-group">
+                                <label for="nemo-message-theme-select" class="nemo-control-label">
+                                    <span>Message Theme</span>
+                                    <i class="fa-solid fa-info-circle nemo-tooltip" title="Visual theme for chat messages"></i>
+                                </label>
+                                <select id="nemo-message-theme-select" class="nemo-select">
+                                    <option value="default">Default</option>
+                                    <option value="cheerful">Cheerful</option>
+                                    <option value="divine">Divine</option>
+                                    <option value="fantasy">Fantasy</option>
+                                    <option value="royal">Royal</option>
+                                    <option value="steampunk">Steampunk</option>
+                                    <option value="solarpunk">Solarpunk</option>
+                                    <option value="goth">Goth</option>
+                                    <option value="pastel">Pastel</option>
+                                    <option value="passionate">Passionate</option>
+                                    <option value="horror">Horror</option>
+                                    <option value="melancholy">Melancholy</option>
+                                    <option value="romance">Romance</option>
+                                    <option value="cyberpunk">Cyberpunk</option>
+                                    <option value="dyslexia">Dyslexia-Friendly</option>
+                                    <option value="dyslexia-dark">Dyslexia-Friendly Dark</option>
+                                </select>
+                                <small class="nemo-help-text">Choose a visual theme for your chat messages</small>
+                            </div>
+
+                            <div class="nemo-control-group">
+                                <label for="nemoDividerRegexPattern" class="nemo-control-label">
+                                    <span>Custom Divider Patterns</span>
+                                    <i class="fa-solid fa-info-circle nemo-tooltip" title="Add custom patterns (comma-separated) to recognize section dividers in prompts"></i>
+                                </label>
+                                <input type="text" id="nemoDividerRegexPattern" class="nemo-input" placeholder="e.g., ###+, //--">
+                                <small class="nemo-help-text">
+                                    Built-in patterns: <code>=+</code>, <code>⭐─+</code>, <code>━+</code>
+                                </small>
+                                <button id="nemoSaveRegexSettings" class="nemo-action-button nemo-primary">
+                                    <i class="fa-solid fa-save"></i>
+                                    <span>Save Patterns</span>
+                                </button>
+                                <div id="nemoRegexStatus" class="nemo-status-message"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="nemoEnableExtensionsTabOverhaul">Enable Extensions Tab Overhaul</label>
-                <input type="checkbox" id="nemoEnableExtensionsTabOverhaul">
-                <small>
-                    Groups extensions into logical, collapsible categories with a search bar for easier navigation.
-                    Requires a page refresh to take effect.
-                </small>
-            </div>
-
-            <hr> <!-- Separator for clarity -->
-
-            <div class="form-group">
-                <label for="nemo-message-theme-select">Message Theme</label>
-                <select id="nemo-message-theme-select" class="text_pole">
-                    <option value="default">Default</option>
-                    <option value="cheerful">Cheerful</option>
-                    <option value="divine">Divine</option>
-                    <option value="fantasy">Fantasy</option>
-                    <option value="royal">Royal</option>
-                    <option value="steampunk">Steampunk</option>
-                    <option value="solarpunk">Solarpunk</option>
-                    <option value="goth">Goth</option>
-                    <option value="pastel">Pastel</option>
-                    <option value="passionate">Passionate</option>
-                    <option value="horror">Horror</option>
-                    <option value="melancholy">Melancholy</option>
-                    <option value="romance">Romance</option>
-                    <option value="cyberpunk">Cyberpunk</option>
-                    <option value="dyslexia">Dyslexia-Friendly</option>
-                    <option value="dyslexia-dark">Dyslexia-Friendly Dark</option>
-                </select>
-                <small>
-                    Select a visual theme for chat messages.
-                </small>
+            <!-- ABOUT SECTION -->
+            <div class="inline-drawer">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <b><i class="fa-solid fa-info-circle"></i> About NemoPresetExt</b>
+                    <div class="inline-drawer-icon fa-solid fa-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content">
+                    <div class="nemo-settings-card">
+                        <div class="nemo-card-content">
+                            <div class="nemo-about-box">
+                                <p class="nemo-about-text">
+                                    <strong>NemoPresetExt</strong> is a comprehensive UI enhancement suite for SillyTavern that provides better organization, visual improvements, and quality-of-life features for power users.
+                                </p>
+                                <div class="nemo-about-details">
+                                    <div class="nemo-about-item">
+                                        <i class="fa-solid fa-code-branch"></i>
+                                        <span><strong>Version:</strong> 4.6.3</span>
+                                    </div>
+                                    <div class="nemo-about-item">
+                                        <i class="fa-solid fa-user"></i>
+                                        <span><strong>Author:</strong> @NemoVonNirgend</span>
+                                    </div>
+                                    <div class="nemo-about-item">
+                                        <i class="fa-brands fa-github"></i>
+                                        <a href="https://github.com/NemoVonNirgend/NemoPresetExt" target="_blank">GitHub Repository</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </div>
     </div>
 </div>
+
+<style>
+/* NemoPresetExt Settings Styling - Inspired by Prose Polisher */
+.nemo-preset-enhancer-settings {
+    margin-bottom: 20px;
+}
+
+/* Force styles to work in extension view */
+#nemo-extension-view-content .nemo-preset-enhancer-settings .nemo-card-header-full,
+.nemo-extension-view-content .nemo-preset-enhancer-settings .nemo-card-header-full,
+.nemo-preset-enhancer-settings .nemo-card-header-full {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.25) 100%) !important;
+    border-left: 4px solid var(--SmartThemeQuoteColor) !important;
+    padding: 15px 20px !important;
+}
+
+#nemo-extension-view-content .nemo-preset-enhancer-settings .nemo-features-grid,
+.nemo-extension-view-content .nemo-preset-enhancer-settings .nemo-features-grid,
+.nemo-preset-enhancer-settings .nemo-features-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px !important;
+    margin: 0 !important;
+}
+
+/* Introduction Section */
+.nemo-intro-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: var(--black30a);
+    border-radius: 8px;
+    border-left: 4px solid var(--SmartThemeQuoteColor);
+}
+
+.nemo-description {
+    margin: 0;
+    line-height: 1.6;
+    color: var(--SmartThemeBodyColor);
+}
+
+.nemo-feature-highlight {
+    display: block;
+    margin-top: 8px;
+    color: var(--SmartThemeQuoteColor);
+    font-weight: 500;
+}
+
+/* Settings Cards */
+.nemo-settings-card {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.nemo-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid var(--SmartThemeBorderColor);
+}
+
+.nemo-preset-enhancer-settings .nemo-card-header-full {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.25) 100%) !important;
+    border-left: 4px solid var(--SmartThemeQuoteColor) !important;
+    padding: 15px 20px !important;
+}
+
+.nemo-card-header i {
+    font-size: 1.1em;
+    color: var(--SmartThemeQuoteColor);
+    flex-shrink: 0;
+}
+
+.nemo-card-header h3 {
+    margin: 0;
+    flex: 1;
+    font-size: 1em;
+    color: var(--SmartThemeBodyColor);
+    font-weight: 600;
+}
+
+.nemo-card-badge {
+    padding: 4px 12px;
+    background: var(--SmartThemeQuoteColor);
+    color: white;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nemo-card-content {
+    padding: 15px;
+}
+
+.nemo-section-description {
+    margin: 0 0 20px 0;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.9;
+    line-height: 1.5;
+}
+
+/* Features Grid Layout */
+.nemo-preset-enhancer-settings .nemo-features-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px !important;
+    margin: 0 !important;
+}
+
+@media (max-width: 1024px) {
+    .nemo-preset-enhancer-settings .nemo-features-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Feature Groups */
+.nemo-feature-group {
+    margin-bottom: 0;
+}
+
+.nemo-group-title {
+    margin: 0 0 12px 0;
+    font-size: 0.85em;
+    color: var(--SmartThemeQuoteColor);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    opacity: 0.9;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--SmartThemeQuoteColor);
+}
+
+/* Setting Rows */
+.nemo-setting-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.nemo-setting-row:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: var(--SmartThemeBorderColor);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.nemo-setting-control {
+    flex-shrink: 0;
+    padding-top: 2px;
+}
+
+.nemo-setting-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.nemo-setting-title {
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor);
+    margin-bottom: 5px;
+    font-size: 1em;
+}
+
+.nemo-setting-description {
+    font-size: 0.9em;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.75;
+    line-height: 1.4;
+}
+
+.nemo-refresh-note {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: var(--SmartThemeBlurTintColor);
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-style: italic;
+}
+
+/* Toggle Switches */
+.nemo-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.nemo-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.nemo-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--black70a);
+    transition: 0.3s;
+    border-radius: 26px;
+}
+
+.nemo-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+input:checked + .nemo-toggle-slider {
+    background-color: var(--SmartThemeQuoteColor);
+}
+
+input:checked + .nemo-toggle-slider:before {
+    transform: translateX(24px);
+}
+
+input:disabled + .nemo-toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Control Groups */
+.nemo-control-group {
+    margin-bottom: 20px;
+}
+
+.nemo-control-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor);
+}
+
+.nemo-tooltip {
+    cursor: help;
+    opacity: 0.7;
+    font-size: 0.9em;
+}
+
+.nemo-select,
+.nemo-input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--black50a);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    color: var(--SmartThemeBodyColor);
+    font-size: 0.95em;
+}
+
+.nemo-select:focus,
+.nemo-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeQuoteColor);
+    box-shadow: 0 0 0 2px rgba(var(--SmartThemeQuoteColor), 0.2);
+}
+
+.nemo-help-text {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.85em;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.7;
+    line-height: 1.4;
+}
+
+.nemo-help-text code {
+    background: var(--black70a);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+/* Action Buttons */
+.nemo-action-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: var(--SmartThemeBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    color: var(--SmartThemeBodyColor);
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 10px;
+}
+
+.nemo-action-button:hover {
+    background: var(--SmartThemeQuoteColor);
+    border-color: var(--SmartThemeQuoteColor);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.nemo-action-button.nemo-primary {
+    background: var(--SmartThemeQuoteColor);
+    color: white;
+}
+
+.nemo-action-button.nemo-primary:hover {
+    opacity: 0.9;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Status Messages */
+.nemo-status-message {
+    margin-top: 10px;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+
+.nemo-status-message:empty {
+    display: none;
+}
+
+/* About Section */
+.nemo-about-box {
+    padding: 15px;
+    background: var(--black30a);
+    border-radius: 6px;
+}
+
+.nemo-about-text {
+    margin: 0 0 20px 0;
+    line-height: 1.6;
+    color: var(--SmartThemeBodyColor);
+}
+
+.nemo-about-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.nemo-about-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: var(--black50a);
+    border-radius: 6px;
+}
+
+.nemo-about-item i {
+    color: var(--SmartThemeQuoteColor);
+    width: 20px;
+    text-align: center;
+}
+
+.nemo-about-item a {
+    color: var(--SmartThemeQuoteColor);
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+.nemo-about-item a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+</style>

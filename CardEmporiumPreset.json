@@ -1,0 +1,9 @@
+{
+  "name": "Card Emporium Default Preset",
+  "version": "1.0.0",
+  "description": "Default preset for Card Emporium - customize as needed",
+  "settings": {
+    "autoLoad": false,
+    "defaultView": "grid"
+  }
+}

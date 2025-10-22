@@ -1,0 +1,15 @@
+
+{
+    "preset_name": "NemoLorePreset",
+    "parameters": {
+        "temperature": 0.4,
+        "top_p": 1,
+        "top_k": 40,
+        "typical_p": 1,
+        "rep_pen": 1.1,
+        "rep_pen_range": 2048,
+        "rep_pen_slope": 0.9,
+        "sampler_order": [6, 0, 1, 2, 3, 4, 5]
+    },
+    "prompts": []
+}

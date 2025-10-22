@@ -1,0 +1,1353 @@
+/* --- PROSE POLISHER ENHANCED UI STYLES --- */
+:root {
+    --pp-primary-color: var(--nemo-primary-accent, #6a3d9a);
+    --pp-secondary-color: var(--nemo-secondary-accent, #b592e0);
+    --pp-success-color: #28a745;
+    --pp-warning-color: #ffc107;
+    --pp-danger-color: var(--nemo-dangerous-color, #e74c3c);
+    --pp-info-color: #17a2b8;
+    --pp-accent-color: #ff6b6b;
+    --pp-premium-color: #ffd700;
+
+    --pp-card-bg: var(--nemo-primary-bg-sub, #1e1e1e);
+    --pp-card-border: var(--nemo-border-color, #444);
+    --pp-text-primary: var(--text_color, #ffffff);
+    --pp-text-secondary: var(--text_color_dim, #aaaaaa);
+    --pp-surface-0: var(--nemo-primary-bg, #141414);
+    --pp-surface-1: var(--nemo-secondary-bg, #1e1e1e);
+    --pp-surface-2: var(--nemo-tertiary-bg, #2a2a2a);
+
+    --pp-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --pp-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --pp-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+    --pp-transition: all 0.2s ease;
+}
+
+/* Main Settings Layout */
+.prose-polisher-settings {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    line-height: 1.5;
+}
+
+/* Main Extension Header */
+.prose-polisher-settings > .inline-drawer > .inline-drawer-toggle.inline-drawer-header {
+    background: linear-gradient(135deg, var(--pp-primary-color), var(--pp-secondary-color));
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--pp-shadow-lg);
+    transition: var(--pp-transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.prose-polisher-settings > .inline-drawer > .inline-drawer-toggle.inline-drawer-header:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(106, 61, 154, 0.3);
+}
+
+.prose-polisher-settings > .inline-drawer > .inline-drawer-toggle.inline-drawer-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+    transform: translateX(-100%);
+    transition: transform 0.6s;
+}
+
+.prose-polisher-settings > .inline-drawer > .inline-drawer-toggle.inline-drawer-header:hover::before {
+    transform: translateX(100%);
+}
+
+.prose-polisher-settings > .inline-drawer > .inline-drawer-toggle.inline-drawer-header b {
+    font-size: 1.3em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+}
+
+.prose-polisher-settings > .inline-drawer > .inline-drawer-toggle.inline-drawer-header b::before {
+    content: '✨';
+    font-size: 1.2em;
+}
+
+/* Introduction Section */
+.pp-intro-section {
+    margin-bottom: 24px;
+}
+
+.pp-description {
+    font-size: 1.05em;
+    line-height: 1.6;
+    color: var(--pp-text-secondary);
+    margin: 0;
+}
+
+.pp-feature-highlight {
+    color: var(--pp-secondary-color);
+    font-weight: 600;
+    font-style: italic;
+}
+
+/* Settings Cards */
+.pp-settings-card {
+    background: var(--pp-card-bg);
+    border: 1px solid var(--pp-card-border);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: var(--pp-shadow-sm);
+    transition: var(--pp-transition);
+    overflow: hidden;
+}
+
+.pp-settings-card:hover {
+    box-shadow: var(--pp-shadow-md);
+    border-color: var(--pp-primary-color);
+}
+
+.pp-card-header {
+    background: linear-gradient(90deg, var(--pp-surface-2), var(--pp-surface-1));
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--pp-card-border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pp-card-header i {
+    font-size: 1.2em;
+    color: var(--pp-primary-color);
+}
+
+.pp-card-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--pp-text-primary);
+    flex-grow: 1;
+}
+
+.pp-card-badge {
+    background: var(--pp-primary-color);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pp-badge-premium {
+    background: var(--pp-premium-color);
+    color: #000;
+}
+
+.pp-card-content {
+    padding: 20px;
+}
+
+/* Setting Rows */
+.pp-setting-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pp-setting-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.pp-setting-control {
+    flex-shrink: 0;
+}
+
+.pp-setting-info {
+    flex-grow: 1;
+}
+
+.pp-setting-title {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--pp-text-primary);
+    margin-bottom: 4px;
+}
+
+.pp-setting-description {
+    font-size: 0.9em;
+    color: var(--pp-text-secondary);
+    line-height: 1.5;
+}
+
+.pp-recommendation {
+    color: var(--pp-success-color);
+    font-weight: 600;
+    font-size: 0.85em;
+}
+
+.pp-help-text {
+    font-size: 0.8em;
+    color: var(--pp-text-secondary);
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* Modern Toggle Switches */
+.pp-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+}
+
+.pp-toggle-switch.pp-large {
+    width: 64px;
+    height: 34px;
+}
+
+.pp-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.pp-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #444;
+    transition: var(--pp-transition);
+    border-radius: 34px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.pp-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: var(--pp-transition);
+    border-radius: 50%;
+    box-shadow: var(--pp-shadow-sm);
+}
+
+.pp-toggle-switch.pp-large .pp-toggle-slider:before {
+    height: 26px;
+    width: 26px;
+}
+
+input:checked + .pp-toggle-slider {
+    background: linear-gradient(135deg, var(--pp-primary-color), var(--pp-secondary-color));
+}
+
+input:focus + .pp-toggle-slider {
+    box-shadow: 0 0 0 3px rgba(106, 61, 154, 0.3);
+}
+
+input:checked + .pp-toggle-slider:before {
+    transform: translateX(24px);
+}
+
+.pp-toggle-switch.pp-large input:checked + .pp-toggle-slider:before {
+    transform: translateX(30px);
+}
+
+/* Number Input Groups */
+.pp-number-input-group {
+    display: flex;
+    align-items: center;
+    background: var(--pp-surface-2);
+    border: 1px solid var(--pp-card-border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: var(--pp-transition);
+}
+
+.pp-number-input-group:focus-within {
+    border-color: var(--pp-primary-color);
+    box-shadow: 0 0 0 3px rgba(106, 61, 154, 0.2);
+}
+
+.pp-number-input {
+    background: transparent;
+    border: none;
+    padding: 10px 12px;
+    color: var(--pp-text-primary);
+    font-size: 0.95em;
+    width: 80px;
+    text-align: center;
+}
+
+.pp-number-input:focus {
+    outline: none;
+}
+
+.pp-input-suffix {
+    padding: 10px 12px;
+    background: var(--pp-surface-1);
+    color: var(--pp-text-secondary);
+    font-size: 0.85em;
+    font-weight: 500;
+    border-left: 1px solid var(--pp-card-border);
+}
+
+/* Button Grid */
+.pp-button-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+
+/* Action Buttons */
+.pp-action-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--pp-transition);
+    text-decoration: none;
+    min-height: 44px;
+    justify-content: center;
+    box-shadow: var(--pp-shadow-sm);
+}
+
+.pp-action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--pp-shadow-md);
+}
+
+.pp-action-button i {
+    font-size: 1.1em;
+}
+
+.pp-action-button.pp-primary {
+    background: var(--pp-primary-color);
+    color: white;
+}
+
+.pp-action-button.pp-secondary {
+    background: var(--pp-surface-2);
+    color: var(--pp-text-primary);
+    border: 1px solid var(--pp-card-border);
+}
+
+.pp-action-button.pp-accent {
+    background: var(--pp-accent-color);
+    color: white;
+}
+
+.pp-action-button.pp-info {
+    background: var(--pp-info-color);
+    color: white;
+}
+
+.pp-action-button.pp-warning {
+    background: var(--pp-warning-color);
+    color: #000;
+}
+
+.pp-action-button.pp-danger {
+    background: var(--pp-danger-color);
+    color: white;
+}
+
+/* AI Tools Layout */
+.pp-ai-tools-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.pp-ai-tool-main {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.pp-ai-tool-config {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    padding: 16px;
+    background: var(--pp-surface-1);
+    border-radius: 8px;
+    border: 1px solid var(--pp-card-border);
+}
+
+.pp-config-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pp-config-label {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--pp-text-primary);
+    margin-bottom: 4px;
+}
+
+.pp-select {
+    background: var(--pp-surface-2);
+    border: 1px solid var(--pp-card-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--pp-text-primary);
+    font-size: 0.9em;
+    transition: var(--pp-transition);
+}
+
+.pp-select:focus {
+    outline: none;
+    border-color: var(--pp-primary-color);
+    box-shadow: 0 0 0 3px rgba(106, 61, 154, 0.2);
+}
+
+/* Subsection Headers */
+.prose-polisher-settings .inline-drawer-content > .inline-drawer > .inline-drawer-toggle.inline-drawer-header {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 16px 0;
+    margin-top: 32px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--pp-primary-color);
+    justify-content: flex-start;
+    transition: var(--pp-transition);
+}
+
+.prose-polisher-settings .inline-drawer-content > .inline-drawer > .inline-drawer-toggle.inline-drawer-header:hover {
+    border-bottom-color: var(--pp-secondary-color);
+    background: none;
+}
+
+.prose-polisher-settings .inline-drawer-content > .inline-drawer > .inline-drawer-toggle.inline-drawer-header b {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--pp-primary-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Revert Controls */
+.pp-revert-controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--pp-surface-1);
+    border-radius: 8px;
+    border: 1px solid var(--pp-card-border);
+}
+
+/* Navigator Modal Styles */
+#pp-preset-navigator-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#pp-preset-navigator-modal .modal-content {
+    background: var(--pp-surface-0);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 800px;
+    height: 80vh;
+    min-height: 500px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--pp-shadow-lg);
+    border: 1px solid var(--pp-card-border);
+    overflow: hidden;
+}
+
+#pp-preset-navigator-modal .modal-header {
+    background: var(--pp-primary-color);
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--pp-card-border);
+}
+
+#pp-preset-navigator-modal .modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+#pp-preset-navigator-modal .close-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: var(--pp-transition);
+}
+
+#pp-preset-navigator-modal .close-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#pp-preset-navigator-modal .navigator-body {
+    flex: 1;
+    padding: 20px;
+    overflow: auto;
+    background: var(--pp-surface-1);
+}
+
+#pp-preset-navigator-modal .navigator-main-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#pp-navigator-grid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+#pp-navigator-breadcrumbs {
+    flex: 1;
+    color: var(--pp-text-secondary);
+    font-size: 0.9rem;
+}
+
+#pp-navigator-header-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+#pp-navigator-search-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+#pp-navigator-search-input {
+    min-width: 200px;
+}
+
+#pp-navigator-grid-view {
+    flex: 1;
+    min-height: 300px;
+    background: var(--pp-surface-2);
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid var(--pp-card-border);
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    align-content: start;
+}
+
+/* Grid Items */
+.grid-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    background: var(--pp-surface-1);
+    border: 1px solid var(--pp-card-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--pp-transition);
+    text-align: center;
+    min-height: 80px;
+}
+
+.grid-item:hover {
+    background: var(--pp-surface-0);
+    border-color: var(--pp-primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--pp-shadow-sm);
+}
+
+.grid-item.selected {
+    background: var(--pp-primary-color);
+    color: white;
+    border-color: var(--pp-primary-color);
+}
+
+.grid-item .item-icon {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+    color: var(--pp-primary-color);
+}
+
+.grid-item.selected .item-icon {
+    color: white;
+}
+
+.grid-item .item-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+#pp-preset-navigator-modal .modal-footer {
+    padding: 16px 20px;
+    background: var(--pp-surface-0);
+    border-top: 1px solid var(--pp-card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nemo-header-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+/* Regex Rule Navigator Styles */
+.prose-polisher-navigator-content {
+    display: flex;
+    flex-direction: column;
+    height: 85vh;
+    min-height: 600px;
+    max-height: 92vh;
+    width: 100%;
+    background: var(--pp-surface-0);
+    color: var(--pp-text-primary);
+}
+
+.prose-polisher-navigator-content .modal-header {
+    background: var(--pp-primary-color);
+    color: white;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--pp-card-border);
+    flex-shrink: 0;
+}
+
+.prose-polisher-navigator-content .modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.prose-polisher-navigator-content .navigator-body {
+    flex: 1;
+    padding: 20px;
+    overflow: hidden;
+    background: var(--pp-surface-1);
+    display: flex;
+    flex-direction: column;
+}
+
+.prose-polisher-navigator-content .navigator-main-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#regex-navigator-list-view {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    background: var(--pp-surface-2);
+    border-radius: 8px;
+    border: 1px solid var(--pp-card-border);
+}
+
+.regex-navigator-item {
+    background: var(--pp-surface-1);
+    border: 1px solid var(--pp-card-border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 16px;
+    transition: var(--pp-transition);
+    cursor: pointer;
+}
+
+.regex-navigator-item:hover {
+    background: var(--pp-surface-0);
+    border-color: var(--pp-primary-color);
+    box-shadow: var(--pp-shadow-sm);
+}
+
+.regex-navigator-item.is-disabled {
+    opacity: 0.6;
+    background: var(--pp-surface-2);
+}
+
+.regex-navigator-item.is-newly-added {
+    border-color: var(--pp-success-color);
+    background: linear-gradient(135deg, var(--pp-surface-1), rgba(40, 167, 69, 0.1));
+}
+
+.regex-navigator-item.is-dynamic {
+    border-left: 4px solid var(--pp-accent-color);
+}
+
+.regex-navigator-item .rule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.regex-navigator-item .rule-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--pp-text-primary);
+    flex: 1;
+    min-width: 200px;
+}
+
+.regex-navigator-item .rule-badges {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.regex-navigator-item .rule-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.regex-navigator-item .rule-badge.static {
+    background: var(--pp-info-color);
+    color: white;
+}
+
+.regex-navigator-item .rule-badge.dynamic {
+    background: var(--pp-accent-color);
+    color: white;
+}
+
+.regex-navigator-item .rule-badge.disabled {
+    background: var(--pp-text-secondary);
+    color: white;
+}
+
+.regex-navigator-item .rule-content {
+    margin-bottom: 12px;
+}
+
+.regex-navigator-item .rule-regex {
+    background: var(--pp-surface-0);
+    border: 1px solid var(--pp-card-border);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: var(--pp-text-primary);
+    word-break: break-all;
+    margin-bottom: 8px;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.regex-navigator-item .rule-description {
+    font-size: 0.9rem;
+    color: var(--pp-text-secondary);
+    line-height: 1.4;
+}
+
+.regex-navigator-item .rule-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.regex-navigator-item .rule-action-btn {
+    padding: 4px 8px;
+    border: 1px solid var(--pp-card-border);
+    background: var(--pp-surface-0);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: var(--pp-transition);
+}
+
+.regex-navigator-item .rule-action-btn:hover {
+    background: var(--pp-primary-color);
+    color: white;
+    border-color: var(--pp-primary-color);
+}
+
+.prose-polisher-navigator-content .modal-footer {
+    padding: 16px 20px;
+    background: var(--pp-surface-0);
+    border-top: 1px solid var(--pp-card-border);
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Advanced Controls */
+.pp-advanced-controls {
+    display: grid;
+    gap: 20px;
+}
+
+.pp-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    background: var(--pp-surface-1);
+    border-radius: 8px;
+    border: 1px solid var(--pp-card-border);
+    transition: var(--pp-transition);
+}
+
+.pp-control-group:hover {
+    border-color: var(--pp-primary-color);
+}
+
+.pp-control-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--pp-text-primary);
+    margin-bottom: 8px;
+}
+
+.pp-tooltip {
+    color: var(--pp-text-secondary);
+    cursor: help;
+    transition: var(--pp-transition);
+}
+
+.pp-tooltip:hover {
+    color: var(--pp-primary-color);
+}
+
+.pp-section-description {
+    color: var(--pp-text-secondary);
+    font-size: 0.95em;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+/* Pipeline Styles */
+.pp-pipeline-intro {
+    margin-bottom: 24px;
+}
+
+.pp-warning-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid var(--pp-warning-color);
+    border-radius: 8px;
+    color: var(--pp-warning-color);
+    font-size: 0.9em;
+    margin-top: 12px;
+}
+
+.pp-pipeline-master-control {
+    margin-bottom: 24px;
+    padding: 20px;
+    background: var(--pp-surface-1);
+    border-radius: 12px;
+    border: 2px solid var(--pp-primary-color);
+}
+
+.pp-pipeline-roles {
+    display: grid;
+    gap: 16px;
+}
+
+/* Role Cards */
+.pp-role-card {
+    background: var(--pp-surface-1);
+    border: 1px solid var(--pp-card-border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: var(--pp-transition);
+}
+
+.pp-role-card:hover {
+    border-color: var(--pp-primary-color);
+    box-shadow: var(--pp-shadow-md);
+}
+
+.pp-role-card.pp-essential {
+    border-color: var(--pp-success-color);
+    background: linear-gradient(135deg, var(--pp-surface-1), rgba(40, 167, 69, 0.05));
+}
+
+.pp-role-card.pp-special {
+    border-color: var(--pp-accent-color);
+    background: linear-gradient(135deg, var(--pp-surface-1), rgba(255, 107, 107, 0.05));
+}
+
+.pp-role-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.pp-role-icon {
+    font-size: 2em;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--pp-surface-2);
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.pp-role-info {
+    flex-grow: 1;
+}
+
+.pp-role-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.pp-role-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--pp-text-primary);
+    cursor: pointer;
+}
+
+.pp-role-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+.pp-role-subtitle {
+    font-size: 0.85em;
+    color: var(--pp-text-secondary);
+    font-weight: 500;
+}
+
+.pp-role-status {
+    margin-top: 8px;
+}
+
+.pp-api-display {
+    font-size: 0.8em;
+    color: var(--pp-secondary-color);
+    font-weight: 500;
+}
+
+.pp-role-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.pp-control-button {
+    padding: 8px 12px;
+    background: var(--pp-surface-2);
+    border: 1px solid var(--pp-card-border);
+    border-radius: 6px;
+    color: var(--pp-text-primary);
+    cursor: pointer;
+    transition: var(--pp-transition);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85em;
+}
+
+.pp-control-button:hover {
+    background: var(--pp-primary-color);
+    border-color: var(--pp-primary-color);
+    color: white;
+}
+
+.pp-role-controls select {
+    flex-grow: 1;
+    min-width: 160px;
+}
+
+.pp-twins-config {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--pp-surface-2);
+    border-radius: 8px;
+    border: 1px solid var(--pp-card-border);
+}
+
+.pp-role-description {
+    font-size: 0.9em;
+    color: var(--pp-text-secondary);
+    line-height: 1.4;
+    font-style: italic;
+}
+
+/* Legacy Compatibility */
+.prose-polisher-settings .inline-drawer-content small {
+    display: block;
+    margin-top: 2px;
+    color: var(--text_color_dim);
+}
+
+.prose-polisher-settings .menu_button {
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    transition: var(--pp-transition);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.prose-polisher-settings .menu_button:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--pp-shadow-sm);
+}
+
+.prose-polisher-settings .menu_button i {
+    font-size: 1em;
+}
+
+/* Frequency Table */
+.prose-polisher-frequency-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 0.9em;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--pp-shadow-sm);
+}
+
+.prose-polisher-frequency-table th,
+.prose-polisher-frequency-table td {
+    border: 1px solid var(--pp-card-border);
+    padding: 12px;
+    text-align: left;
+}
+
+.prose-polisher-frequency-table th {
+    background: var(--pp-primary-color);
+    font-weight: 600;
+    color: white;
+}
+
+.prose-polisher-frequency-table tr:nth-child(even) {
+    background: var(--pp-surface-1);
+}
+
+.prose-polisher-frequency-table tr:hover {
+    background: var(--pp-surface-2);
+}
+
+.prose-polisher-frequency-table td:first-child {
+    word-break: break-word;
+}
+
+.prose-polisher-frequency-table .is-pattern td:first-child {
+    font-weight: bold;
+    color: var(--pp-secondary-color);
+}
+
+/* Whitelist/Blacklist Managers */
+.prose-polisher-whitelist-manager .list-container,
+.prose-polisher-blacklist-manager .list-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--pp-card-border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: var(--pp-surface-1);
+}
+
+.prose-polisher-whitelist-manager .list-container ul,
+.prose-polisher-blacklist-manager .list-container ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.prose-polisher-whitelist-manager .list-container li,
+.prose-polisher-blacklist-manager .list-container li {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--pp-card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: var(--pp-transition);
+}
+
+.prose-polisher-whitelist-manager .list-container li:hover,
+.prose-polisher-blacklist-manager .list-container li:hover {
+    background: var(--pp-surface-2);
+}
+
+.prose-polisher-whitelist-manager .list-container li:last-child,
+.prose-polisher-blacklist-manager .list-container li:last-child {
+    border-bottom: none;
+}
+
+.prose-polisher-whitelist-manager .list-container li span,
+.prose-polisher-blacklist-manager .list-container li span {
+    flex-grow: 1;
+    word-break: break-word;
+}
+
+.prose-polisher-whitelist-manager .list-container li .delete-btn,
+.prose-polisher-blacklist-manager .list-container li .delete-btn {
+    margin-left: 10px;
+    color: var(--pp-danger-color);
+    cursor: pointer;
+    transition: var(--pp-transition);
+}
+
+.prose-polisher-whitelist-manager .list-container li .delete-btn:hover,
+.prose-polisher-blacklist-manager .list-container li .delete-btn:hover {
+    color: #ff4444;
+    transform: scale(1.1);
+}
+
+.prose-polisher-whitelist-manager .add-controls,
+.prose-polisher-blacklist-manager .add-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.prose-polisher-whitelist-manager .add-controls .text_pole,
+.prose-polisher-blacklist-manager .add-controls .text_pole {
+    flex-grow: 1;
+    background: var(--pp-surface-2);
+    border: 1px solid var(--pp-card-border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--pp-text-primary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .pp-button-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pp-ai-tool-config {
+        grid-template-columns: 1fr;
+    }
+
+    .pp-setting-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .pp-role-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .pp-role-controls {
+        flex-direction: column;
+    }
+
+    .pp-ai-tool-main {
+        flex-direction: column;
+    }
+}
+
+/* Animation for smooth interactions */
+@keyframes pp-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pp-settings-card,
+.pp-role-card {
+    animation: pp-fade-in 0.3s ease-out;
+}
+
+/* Focus indicators for accessibility */
+.pp-action-button:focus,
+.pp-control-button:focus,
+.pp-select:focus,
+.pp-number-input:focus {
+    outline: 2px solid var(--pp-primary-color);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --pp-card-border: #666;
+    }
+
+    .pp-settings-card {
+        border-width: 2px;
+    }
+}
+
+/* Comprehensive Regex Rule Editor Styles */
+.prose-polisher-rule-editor-popup {
+    padding: 20px;
+    min-width: 700px;
+    max-width: 900px;
+    background: var(--pp-background-color);
+    color: var(--pp-text-color);
+}
+
+.prose-polisher-rule-editor-popup label {
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    font-weight: bold;
+    color: var(--pp-text-color);
+}
+
+.prose-polisher-rule-editor-popup input,
+.prose-polisher-rule-editor-popup textarea,
+.prose-polisher-rule-editor-popup select {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 8px;
+    border: 1px solid var(--pp-border-color);
+    border-radius: 4px;
+    background-color: var(--pp-background-color);
+    color: var(--pp-text-color);
+    font-family: inherit;
+}
+
+.prose-polisher-rule-editor-popup .flex-container {
+    display: flex;
+    gap: 15px;
+}
+
+.prose-polisher-rule-editor-popup .flex1 {
+    flex: 1;
+}
+
+.prose-polisher-rule-editor-popup .flexFlowColumn {
+    flex-direction: column;
+}
+
+.prose-polisher-rule-editor-popup .marginTop10 {
+    margin-top: 15px;
+}
+
+.prose-polisher-rule-editor-popup .checkbox {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: normal;
+}
+
+.prose-polisher-rule-editor-popup .checkbox input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.prose-polisher-rule-editor-popup .checkbox span {
+    cursor: pointer;
+    user-select: none;
+}
+
+.prose-polisher-rule-editor-popup .title_restorable {
+    font-weight: bold;
+    color: var(--pp-accent-color);
+    border-bottom: 1px solid var(--pp-border-color);
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.prose-polisher-rule-editor-popup .title_restorable small {
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.prose-polisher-rule-editor-popup .editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--pp-border-color);
+}
+
+/* Responsive adjustments for regex editor */
+@media (max-width: 768px) {
+    .prose-polisher-rule-editor-popup {
+        min-width: auto;
+        max-width: 95vw;
+        padding: 15px;
+    }
+
+    .prose-polisher-rule-editor-popup .flex-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+}

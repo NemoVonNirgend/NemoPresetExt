@@ -1,0 +1,11 @@
+{
+    "display_name": "Nemo-VRM",
+    "loading_order": 15,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "Tony-sama, Nitral, Deffcolony, Alexveebee",
+    "version": "0.2.0",
+    "homePage": "https://github.com/SillyTavern/SillyTavern"
+}

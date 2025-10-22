@@ -1,0 +1,82 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nemo's Cards and Lorebook Emporium</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              parchment: '#fdf6e3',
+              'parchment-dark': '#f5e5c4',
+              sepia: {
+                light: '#a9927d',
+                DEFAULT: '#5e503f',
+                dark: '#4a4033',
+              },
+              leather: '#6f452c',
+            },
+            fontFamily: {
+              'heading': ['Rye', 'serif'],
+              'body': ['Merriweather', 'serif'],
+            },
+          }
+        }
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rye&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+      body {
+        overflow-x: hidden;
+        color: #4a4033; /* sepia-dark */
+
+        /* New background styles */
+        background-image: url('https://files.catbox.moe/e681pi.png');
+        background-size: cover;
+        background-position: center center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-color: #3a2f26; /* Dark wood fallback color */
+      }
+      /* Custom Scrollbar for Showcase */
+      .scrollbar-thin {
+        scrollbar-width: thin;
+        scrollbar-color: #a9927d #f5e5c4; /* sepia-light parchment-dark */
+      }
+      .scrollbar-thin::-webkit-scrollbar {
+        height: 8px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-track {
+        background: #f5e5c4; /* parchment-dark */
+        border-radius: 10px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: #a9927d; /* sepia-light */
+        border-radius: 10px;
+        border: 2px solid #f5e5c4; /* parchment-dark */
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.21.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

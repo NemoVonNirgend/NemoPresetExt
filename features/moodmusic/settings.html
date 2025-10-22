@@ -1,0 +1,40 @@
+<div class="moodmusic-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>Mood Music Settings</b>
+            <div class="inline-drawer-icon fa-solid fa-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <!-- Spotify Credentials Configuration -->
+            <div class="moodmusic-creds-config">
+                <b>Spotify Credentials:</b> <span id="moodmusic-creds-status">Checking...</span>
+                <div>
+                    <label for="moodmusic-client-id" style="display: block; margin-top: 5px;">Client ID:</label>
+                    <input type="text" id="moodmusic-client-id" class="text_pole" placeholder="Spotify Client ID">
+                </div>
+                <div>
+                    <label for="moodmusic-client-secret" style="display: block; margin-top: 5px;">Client Secret:</label>
+                    <input type="password" id="moodmusic-client-secret" class="text_pole" placeholder="Spotify Client Secret">
+                </div>
+                <button id="moodmusic-save-creds-button" class="menu_button" style="margin-top: 8px; margin-bottom: 10px;">
+                    <i class="fa-solid fa-save"></i> Save Credentials
+                </button>
+            </div>
+            <hr style="margin: 10px 0;">
+            <!-- Authentication and Controls -->
+            <div class="moodmusic-auth-status">
+                <span>Auth Status: </span><span id="moodmusic-status">Checking...</span>
+            </div>
+            <button id="moodmusic-login-button" class="menu_button" style="margin-right: 5px;">
+                <i class="fa-brands fa-spotify"></i> Login to Spotify
+            </button>
+            <button id="moodmusic-toggle-button" class="menu_button" style="margin-right: 5px;">
+                <i class="fa-solid fa-pause"></i> Pause Music
+            </button>
+            <button id="moodmusic-logout-button" class="menu_button danger_button" style="display: none;">
+                <i class="fa-solid fa-sign-out-alt"></i> Logout (Not Implemented)
+            </button>
+            <p style="margin-top: 5px;"><small>Plays Spotify music based on chat mood. Use the Pause/Resume button to temporarily disable automatic suggestions.</small></p>
+		</div>
+	</div>
+</div>
