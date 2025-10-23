@@ -1,0 +1,12 @@
+{
+    "display_name": "NemoLore",
+    "author": "Nemo",
+    "version": "1.0.1",
+    "description": "Memory management and automated lorebook creation toolkit with intelligent noun detection and highlighting",
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "homePage": "https://github.com/nemo/NemoLore",
+    "loading_order": 250
+}

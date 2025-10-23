@@ -1,0 +1,545 @@
+<div class="prose-polisher-settings">
+    <!-- INTRODUCTION SECTION -->
+            <div class="pp-intro-section">
+                <p class="pp-description">
+                    Automatically detects and fixes repetitive phrases and echoes in AI writing to improve quality and readability.
+                    <span class="pp-feature-highlight">Powered by advanced pattern detection and multi-AI collaboration.</span>
+                </p>
+            </div>
+
+            <!-- MASTER ENABLE TOGGLE -->
+            <div class="pp-settings-card">
+                <div class="pp-card-header">
+                    <i class="fa-solid fa-power-off"></i>
+                    <h3>Master Control</h3>
+                    <span class="pp-card-badge">Essential</span>
+                </div>
+                <div class="pp-card-content">
+                    <div class="pp-setting-row">
+                        <div class="pp-setting-control">
+                            <label class="pp-toggle-switch pp-large">
+                                <input type="checkbox" id="prose_polisher_enabled">
+                                <span class="pp-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="pp-setting-info">
+                            <div class="pp-setting-title">Enable ProsePolisher</div>
+                            <div class="pp-setting-description">
+                                Master toggle to enable or disable all ProsePolisher functionality. When disabled, no processing will occur.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUICK SETTINGS SECTION -->
+            <div class="pp-settings-card">
+                <div class="pp-card-header">
+                    <i class="fa-solid fa-bolt"></i>
+                    <h3>Quick Settings</h3>
+                    <span class="pp-card-badge">Essential</span>
+                </div>
+                <div class="pp-card-content">
+                    <div class="pp-setting-row">
+                        <div class="pp-setting-control">
+                            <label class="pp-toggle-switch">
+                                <input type="checkbox" id="prose_polisher_enable_static">
+                                <span class="pp-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="pp-setting-info">
+                            <div class="pp-setting-title">Quick Fixes</div>
+                            <div class="pp-setting-description">
+                                Instantly corrects common repetitive phrases using pre-built rules
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pp-setting-row">
+                        <div class="pp-setting-control">
+                            <label class="pp-toggle-switch">
+                                <input type="checkbox" id="prose_polisher_enable_dynamic">
+                                <span class="pp-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="pp-setting-info">
+                            <div class="pp-setting-title">Smart Learning</div>
+                            <div class="pp-setting-description">
+                                Automatically learns and creates new fixes for repetitive patterns as you chat
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pp-setting-row">
+                        <div class="pp-setting-control">
+                            <label class="pp-toggle-switch">
+                                <input type="checkbox" id="prose_polisher_enable_global_regex">
+                                <span class="pp-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="pp-setting-info">
+                            <div class="pp-setting-title">System Integration</div>
+                            <div class="pp-setting-description">
+                                Apply active rules to SillyTavern's main text processing
+                                <span class="pp-recommendation">(Recommended: ON)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pp-setting-row">
+                        <div class="pp-setting-control">
+                            <div class="pp-number-input-group">
+                                <input type="number" id="prose_polisher_dynamic_trigger" class="pp-number-input" min="5" value="25">
+                                <span class="pp-input-suffix">messages</span>
+                            </div>
+                        </div>
+                        <div class="pp-setting-info">
+                            <div class="pp-setting-title">Auto-Fix Delay</div>
+                            <div class="pp-setting-description">
+                                How many messages to wait before creating automatic fixes for repetitive phrases
+                                <div class="pp-help-text">Higher values process more patterns at once</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MANAGEMENT TOOLS SECTION -->
+            <div class="pp-settings-card">
+                <div class="pp-card-header">
+                    <i class="fa-solid fa-tools"></i>
+                    <h3>Management Tools</h3>
+                </div>
+                <div class="pp-card-content">
+                    <div class="pp-button-grid">
+                        <button id="prose_polisher_open_navigator_button" class="pp-action-button pp-primary">
+                            <i class="fa-solid fa-gears"></i>
+                            <span>Manage Text Rules</span>
+                        </button>
+
+                        <button id="prose_polisher_analyze_chat_button" class="pp-action-button pp-secondary" title="Scan current chat to find repetitive phrases">
+                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                            <span>Scan Chat History</span>
+                        </button>
+
+                        <button id="prose_polisher_view_frequency_button" class="pp-action-button pp-secondary" title="See which phrases are being flagged as repetitive">
+                            <i class="fa-solid fa-list-ol"></i>
+                            <span>View Report</span>
+                        </button>
+
+                        <button id="prose_polisher_manage_whitelist_button" class="pp-action-button pp-info" title="Words that should never be flagged as repetitive">
+                            <i class="fa-solid fa-check-square"></i>
+                            <span>Allowed Words</span>
+                        </button>
+
+                        <button id="prose_polisher_manage_blacklist_button" class="pp-action-button pp-warning" title="Words that should be flagged as problematic">
+                            <i class="fa-solid fa-ban"></i>
+                            <span>Problem Words</span>
+                        </button>
+
+                        <button id="prose_polisher_clear_frequency_button" class="pp-action-button pp-danger">
+                            <i class="fa-solid fa-eraser"></i>
+                            <span>Reset Learning</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI-POWERED TOOLS SECTION -->
+            <div class="pp-settings-card">
+                <div class="pp-card-header">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <h3>AI-Powered Tools</h3>
+                    <span class="pp-card-badge pp-badge-premium">AI</span>
+                </div>
+                <div class="pp-card-content">
+                    <div class="pp-ai-tools-layout">
+                        <div class="pp-ai-tool-main">
+                            <button id="prose_polisher_generate_rules_button" class="pp-action-button pp-accent" title="Use AI to create fixes for detected repetitive phrases">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                <span>Create Smart Fixes</span>
+                            </button>
+                            <button id="prose_polisher_edit_regex_gen_prompt_button" class="pp-action-button pp-secondary" title="Customize how the AI creates text fixes">
+                                <i class="fa-solid fa-file-pen"></i>
+                                <span>Edit AI Instructions</span>
+                            </button>
+                        </div>
+
+                        <div class="pp-ai-tool-config">
+                            <div class="pp-config-group">
+                                <label for="pp_regex_gen_method_selector" class="pp-config-label">Creation Method</label>
+                                <select id="pp_regex_gen_method_selector" class="pp-select" title="Choose how the AI creates text fixes">
+                                    <option value="current">Use Current Connection</option>
+                                    <option value="single">Single AI Model</option>
+                                    <option value="twins">Multi-Pass Review</option>
+                                </select>
+                            </div>
+
+                            <div id="pp_regex_gen_single_gremlin_controls" class="pp-config-group">
+                                <label for="pp_regex_gen_ai_selector" class="pp-config-label">AI Model</label>
+                                <select id="pp_regex_gen_ai_selector" class="pp-select" title="Select which AI model to use for creating fixes">
+                                    <option value="writer">Writer Model</option>
+                                    <option value="mama">Supervisor Model</option>
+                                    <option value="papa">Architect Model</option>
+                                    <option value="auditor">Editor Model</option>
+                                </select>
+                            </div>
+
+                            <div id="pp_regex_gen_iterative_twins_controls" class="pp-config-group" style="display: none;">
+                                <label for="pp_regex_twins_cycles_selector" class="pp-config-label">Review Cycles</label>
+                                <select id="pp_regex_twins_cycles_selector" class="pp-select" title="How many review rounds to perform">
+                                    <option value="1">1 Review Round (2 calls)</option>
+                                    <option value="2">2 Review Rounds (4 calls)</option>
+                                    <option value="3">3 Review Rounds (6 calls)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pp-setting-row">
+                        <div class="pp-setting-control">
+                            <label class="pp-toggle-switch">
+                                <input type="checkbox" id="pp_skip_triage_check">
+                                <span class="pp-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="pp-setting-info">
+                            <div class="pp-setting-title">Skip Quality Review</div>
+                            <div class="pp-setting-description">
+                                Create fixes directly without additional AI review
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SMART LEARNING SETTINGS SECTION -->
+            <div class="inline-drawer">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <b><i class="fa-solid fa-brain"></i> Smart Learning Settings</b>
+                    <div class="inline-drawer-icon fa-solid fa-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content">
+                    <div class="pp-settings-card">
+                        <div class="pp-card-content">
+                            <p class="pp-section-description">
+                                Adjust how sensitive the tool is to detecting repetitive patterns. Lower values are more sensitive.
+                            </p>
+
+                            <div class="pp-revert-controls">
+                                <button id="prose_polisher_revert_defaults_button" class="pp-action-button pp-info" title="Reset all Smart Learning settings to optimized defaults">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                    <span>Revert to Defaults</span>
+                                </button>
+                            </div>
+
+                            <div class="pp-advanced-controls">
+                                <div class="pp-control-group">
+                                    <label for="prose_polisher_slop_threshold" class="pp-control-label">
+                                        <span>Repetition Sensitivity</span>
+                                        <i class="fa-solid fa-info-circle pp-tooltip" title="How repetitive a phrase must be before it's flagged. Lower numbers are more sensitive. Default: 3.0 (optimized for AI slop detection)"></i>
+                                    </label>
+                                    <div class="pp-number-input-group">
+                                        <input type="number" id="prose_polisher_slop_threshold" class="pp-number-input" min="1" step="0.1">
+                                        <span class="pp-input-suffix">threshold</span>
+                                    </div>
+                                    <small class="pp-help-text">Lower values flag phrases as repetitive more quickly. Optimized at 3.0 for better AI slop detection</small>
+                                </div>
+
+                                <div class="pp-control-group">
+                                    <label for="prose_polisher_leaderboard_update_cycle" class="pp-control-label">
+                                        <span>Analysis Frequency</span>
+                                        <i class="fa-solid fa-info-circle pp-tooltip" title="How often to analyze collected data for patterns. Default: 8 messages (optimized for responsiveness)"></i>
+                                    </label>
+                                    <div class="pp-number-input-group">
+                                        <input type="number" id="prose_polisher_leaderboard_update_cycle" class="pp-number-input" min="1">
+                                        <span class="pp-input-suffix">messages</span>
+                                    </div>
+                                    <small class="pp-help-text">Lower values provide faster pattern detection. Optimized at 8 for balanced performance</small>
+                                </div>
+
+                                <div class="pp-control-group">
+                                    <label for="prose_polisher_pruning_cycle" class="pp-control-label">
+                                        <span>Memory Cleanup</span>
+                                        <i class="fa-solid fa-info-circle pp-tooltip" title="When to forget old, unused phrases to save memory. Default: 30 messages (optimized for learning retention)"></i>
+                                    </label>
+                                    <div class="pp-number-input-group">
+                                        <input type="number" id="prose_polisher_pruning_cycle" class="pp-number-input" min="5">
+                                        <span class="pp-input-suffix">messages</span>
+                                    </div>
+                                    <small class="pp-help-text">Higher values retain learning data longer for better pattern recognition. Optimized at 30</small>
+                                </div>
+
+                                <div class="pp-control-group">
+                                    <label for="prose_polisher_ngram_max" class="pp-control-label">
+                                        <span>Max Phrase Length</span>
+                                        <i class="fa-solid fa-info-circle pp-tooltip" title="Longest phrases to track. Default: 10 words (optimized to catch longer AI repetitions)"></i>
+                                    </label>
+                                    <div class="pp-number-input-group">
+                                        <input type="number" id="prose_polisher_ngram_max" class="pp-number-input" min="3" max="20">
+                                        <span class="pp-input-suffix">words</span>
+                                    </div>
+                                    <small class="pp-help-text">Longer phrases catch complex AI repetitions. Optimized at 10 for comprehensive detection</small>
+                                </div>
+
+                                <div class="pp-control-group">
+                                    <label for="prose_polisher_pattern_min_common" class="pp-control-label">
+                                        <span>Pattern Detection</span>
+                                        <i class="fa-solid fa-info-circle pp-tooltip" title="How many matching words needed to group similar phrases. Default: 2 (optimized for sensitive pattern matching)"></i>
+                                    </label>
+                                    <div class="pp-number-input-group">
+                                        <input type="number" id="prose_polisher_pattern_min_common" class="pp-number-input" min="2" max="10">
+                                        <span class="pp-input-suffix">words</span>
+                                    </div>
+                                    <small class="pp-help-text">Lower values catch more subtle patterns. Optimized at 2 for comprehensive pattern detection</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROJECT GREMLIN SETTINGS -->
+            <div class="inline-drawer">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <b><i class="fa-solid fa-rocket"></i> Advanced Multi-AI Pipeline</b>
+                    <div class="inline-drawer-icon fa-solid fa-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content">
+                    <div class="pp-settings-card">
+                        <div class="pp-card-content">
+                            <div class="pp-pipeline-intro">
+                                <p class="pp-section-description">
+                                    Uses multiple AI models working together to create higher quality responses. When enabled, it processes every message automatically.
+                                </p>
+                                <div class="pp-warning-box">
+                                    <i class="fa-solid fa-exclamation-triangle"></i>
+                                    <span>This uses more API calls and is slower. Best for important conversations.</span>
+                                </div>
+                            </div>
+
+                            <div class="pp-pipeline-master-control">
+                                <div class="pp-setting-row">
+                                    <div class="pp-setting-control">
+                                        <label class="pp-toggle-switch pp-large">
+                                            <input type="checkbox" id="pp_projectGremlinEnabled">
+                                            <span class="pp-toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="pp-setting-info">
+                                        <div class="pp-setting-title">Enable Multi-AI Pipeline</div>
+                                        <div class="pp-setting-description">
+                                            Controlled by the UI button in the chat interface
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="pp_projectGremlin_settings_container" class="pp-pipeline-roles">
+
+                                <!-- Papa Gremlin -->
+                                <div class="pp-role-card">
+                                    <div class="pp-role-header">
+                                        <div class="pp-role-icon">🏗️</div>
+                                        <div class="pp-role-info">
+                                            <div class="pp-role-title">
+                                                <label class="pp-role-checkbox">
+                                                    <input type="checkbox" id="pp_gremlinPapaEnabled">
+                                                    <span>Architect AI</span>
+                                                </label>
+                                                <span class="pp-role-subtitle">Plans Response</span>
+                                            </div>
+                                            <div class="pp-role-status">
+                                                <span id="pp_gremlinPapaDisplay" class="pp-api-display"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="pp-role-controls">
+                                        <select id="pp_gremlinPapaPreset" class="pp-select" title="Select a parameter preset"></select>
+                                        <button class="pp-control-button pp-browse-gremlin-preset-btn" data-target-select="pp_gremlinPapaPreset" title="Browse Presets">
+                                            <i class="fa-solid fa-folder-open"></i>
+                                        </button>
+                                        <button class="pp-control-button pp-select-api-btn" data-gremlin-role="papa" title="Select API & Model">
+                                            <i class="fa-solid fa-satellite-dish"></i>
+                                        </button>
+                                        <button class="pp-control-button pp-edit-instructions-btn" data-gremlin-role="papa" title="Edit Instructions">
+                                            <i class="fa-solid fa-file-pen"></i>
+                                        </button>
+                                    </div>
+                                    <div class="pp-role-description">
+                                        High-intelligence model for initial response planning
+                                    </div>
+                                </div>
+
+                                <!-- Twin Gremlins -->
+                                <div class="pp-role-card">
+                                    <div class="pp-role-header">
+                                        <div class="pp-role-icon">👥</div>
+                                        <div class="pp-role-info">
+                                            <div class="pp-role-title">
+                                                <label class="pp-role-checkbox">
+                                                    <input type="checkbox" id="pp_gremlinTwinsEnabled">
+                                                    <span>Review AIs</span>
+                                                </label>
+                                                <span class="pp-role-subtitle">Refiners</span>
+                                            </div>
+                                            <div class="pp-role-status">
+                                                <span id="pp_gremlinTwinsDisplay" class="pp-api-display"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="pp-role-controls">
+                                        <select id="pp_gremlinTwinsPreset" class="pp-select" title="Select a parameter preset"></select>
+                                        <button class="pp-control-button pp-browse-gremlin-preset-btn" data-target-select="pp_gremlinTwinsPreset" title="Browse Presets">
+                                            <i class="fa-solid fa-folder-open"></i>
+                                        </button>
+                                        <button class="pp-control-button pp-select-api-btn" data-gremlin-role="twins" title="Select API & Model">
+                                            <i class="fa-solid fa-satellite-dish"></i>
+                                        </button>
+                                        <button class="pp-control-button pp-edit-instructions-btn" data-gremlin-role="twins" title="Edit Instructions">
+                                            <i class="fa-solid fa-file-pen"></i>
+                                        </button>
+                                    </div>
+                                    <div class="pp-twins-config">
+                                        <label for="pp_gremlinTwinsIterations" class="pp-config-label">Review Rounds per AI</label>
+                                        <select id="pp_gremlinTwinsIterations" class="pp-select" title="Number of review messages each AI will generate">
+                                            <option value="1">1 Round (2 total calls)</option>
+                                            <option value="2">2 Rounds (4 total calls)</option>
+                                            <option value="3" selected>3 Rounds (6 total calls)</option>
+                                        </select>
+                                        <small class="pp-help-text">More rounds mean more detailed (and slower) planning</small>
+                                    </div>
+                                    <div class="pp-role-description">
+                                        Fast models for reviewing and refining the response plan
+                                    </div>
+                                </div>
+
+                                <!-- Mama Gremlin -->
+                                <div class="pp-role-card">
+                                    <div class="pp-role-header">
+                                        <div class="pp-role-icon">👩‍💼</div>
+                                        <div class="pp-role-info">
+                                            <div class="pp-role-title">
+                                                <label class="pp-role-checkbox">
+                                                    <input type="checkbox" id="pp_gremlinMamaEnabled">
+                                                    <span>Supervisor AI</span>
+                                                </label>
+                                                <span class="pp-role-subtitle">Finalizer</span>
+                                            </div>
+                                            <div class="pp-role-status">
+                                                <span id="pp_gremlinMamaDisplay" class="pp-api-display"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="pp-role-controls">
+                                        <select id="pp_gremlinMamaPreset" class="pp-select" title="Select a parameter preset"></select>
+                                        <button class="pp-control-button pp-browse-gremlin-preset-btn" data-target-select="pp_gremlinMamaPreset" title="Browse Presets">
+                                            <i class="fa-solid fa-folder-open"></i>
+                                        </button>
+                                        <button class="pp-control-button pp-select-api-btn" data-gremlin-role="mama" title="Select API & Model">
+                                            <i class="fa-solid fa-satellite-dish"></i>
+                                        </button>
+                                        <button class="pp-control-button pp-edit-instructions-btn" data-gremlin-role="mama" title="Edit Instructions">
+                                            <i class="fa-solid fa-file-pen"></i>
+                                        </button>
+                                    </div>
+                                    <div class="pp-role-description">
+                                        Balanced model for final response planning
+                                    </div>
+                                </div>
+
+                                <!-- Writer Gremlin -->
+                                <div class="pp-role-card pp-essential">
+                                    <div class="pp-role-header">
+                                        <div class="pp-role-icon">✍️</div>
+                                        <div class="pp-role-info">
+                                            <div class="pp-role-title">
+                                                <span>Writer AI</span>
+                                                <span class="pp-role-subtitle">Always Active</span>
+                                            </div>
+                                            <div class="pp-role-status">
+                                                <span id="pp_gremlinWriterDisplay" class="pp-api-display"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="pp-role-controls">
+                                        <select id="pp_gremlinWriterPreset" class="pp-select" title="Select a parameter preset"></select>
+                                        <button class="pp-control-button pp-browse-gremlin-preset-btn" data-target-select="pp_gremlinWriterPreset" title="Browse Presets">
+                                            <i class="fa-solid fa-folder-open"></i>
+                                        </button>
+                                        <button class="pp-control-button pp-select-api-btn" data-gremlin-role="writer" title="Select API & Model">
+                                            <i class="fa-solid fa-satellite-dish"></i>
+                                        </button>
+                                        <button class="pp-control-button pp-edit-instructions-btn" data-gremlin-role="writer" title="Edit Instructions">
+                                            <i class="fa-solid fa-file-pen"></i>
+                                        </button>
+                                    </div>
+                                    <div class="pp-role-description">
+                                        Creative model for writing the final response
+                                    </div>
+                                </div>
+
+                                <!-- Writer Chaos Mode -->
+                                <div class="pp-role-card pp-special">
+                                    <div class="pp-role-header">
+                                        <div class="pp-role-icon">🎲</div>
+                                        <div class="pp-role-info">
+                                            <div class="pp-role-title">
+                                                <label class="pp-role-checkbox">
+                                                    <input type="checkbox" id="pp_gremlinWriterChaosModeEnabled">
+                                                    <span>Random Writer Mode</span>
+                                                </label>
+                                                <span class="pp-role-subtitle">For Variety</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="pp-role-controls">
+                                        <button id="pp_configure_writer_chaos_btn" class="pp-action-button pp-accent">
+                                            <i class="fa-solid fa-dice"></i>
+                                            <span>Configure Options</span>
+                                        </button>
+                                    </div>
+                                    <div class="pp-role-description">
+                                        Randomly selects different Writer settings for variety. Overrides standard Writer AI when enabled.
+                                    </div>
+                                </div>
+
+                                <!-- Auditor Gremlin -->
+                                <div class="pp-role-card">
+                                    <div class="pp-role-header">
+                                        <div class="pp-role-icon">📝</div>
+                                        <div class="pp-role-info">
+                                            <div class="pp-role-title">
+                                                <label class="pp-role-checkbox">
+                                                    <input type="checkbox" id="pp_gremlinAuditorEnabled">
+                                                    <span>Editor AI</span>
+                                                </label>
+                                                <span class="pp-role-subtitle">Final Polish</span>
+                                            </div>
+                                            <div class="pp-role-status">
+                                                <span id="pp_gremlinAuditorDisplay" class="pp-api-display"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="pp-role-controls">
+                                        <select id="pp_gremlinAuditorPreset" class="pp-select" title="Select a parameter preset"></select>
+                                        <button class="pp-control-button pp-browse-gremlin-preset-btn" data-target-select="pp_gremlinAuditorPreset" title="Browse Presets">
+                                            <i class="fa-solid fa-folder-open"></i>
+                                        </button>
+                                        <button class="pp-control-button pp-select-api-btn" data-gremlin-role="auditor" title="Select API & Model">
+                                            <i class="fa-solid fa-satellite-dish"></i>
+                                        </button>
+                                        <button class="pp-control-button pp-edit-instructions-btn" data-gremlin-role="auditor" title="Edit Instructions">
+                                            <i class="fa-solid fa-file-pen"></i>
+                                        </button>
+                                    </div>
+                                    <div class="pp-role-description">
+                                        Optional final editor to polish prose and fix any remaining issues before displaying
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+</div>

@@ -1,0 +1,498 @@
+/* ===================================
+   NEMO VN DIALOG SYSTEM
+   Visual Novel-style tutorial interface
+   =================================== */
+
+/* Overlay - semi-transparent, non-blocking */
+.nemo-vn-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+    z-index: 9998;
+    pointer-events: none; /* Allow clicking through to UI */
+    animation: nemo-vn-fade-in 0.3s ease-out;
+}
+
+@keyframes nemo-vn-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Main dialog container - bottom bar VN style */
+.nemo-vn-dialog {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: row-reverse; /* Character on right */
+    width: 100%;
+    max-height: 350px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-top: 3px solid rgba(100, 150, 255, 0.5);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    pointer-events: auto; /* Dialog itself is clickable */
+    animation: nemo-vn-slide-up 0.4s ease-out;
+}
+
+@keyframes nemo-vn-slide-up {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Character art container */
+.nemo-vn-character {
+    flex: 0 0 350px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.3) 100%);
+    border-left: 2px solid rgba(100, 150, 255, 0.3);
+    padding: 10px 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.nemo-vn-character::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center bottom, rgba(100, 150, 255, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.nemo-vn-character-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
+    animation: nemo-vn-character-entrance 0.5s ease-out;
+    z-index: 1;
+}
+
+@keyframes nemo-vn-character-entrance {
+    from {
+        transform: translateY(30px) scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Content area */
+.nemo-vn-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 25px 40px;
+    overflow-y: auto;
+    max-height: 350px;
+}
+
+/* Speaker name */
+.nemo-vn-speaker {
+    font-size: 22px;
+    font-weight: bold;
+    color: #6eb5ff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 10px rgba(110, 181, 255, 0.5);
+    animation: nemo-vn-text-glow 2s ease-in-out infinite;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Close button */
+.nemo-vn-close {
+    background: rgba(255, 80, 80, 0.2);
+    border: 1px solid rgba(255, 80, 80, 0.4);
+    color: #ff8080;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    animation: none;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: normal;
+    text-shadow: none;
+}
+
+.nemo-vn-close:hover {
+    background: rgba(255, 80, 80, 0.3);
+    color: #ffaaaa;
+    transform: rotate(90deg);
+}
+
+@keyframes nemo-vn-text-glow {
+    0%, 100% {
+        text-shadow: 0 2px 10px rgba(110, 181, 255, 0.5);
+    }
+    50% {
+        text-shadow: 0 2px 20px rgba(110, 181, 255, 0.8);
+    }
+}
+
+/* Dialog text */
+.nemo-vn-text {
+    flex: 1;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #e0e0e0;
+    overflow-y: auto;
+    padding-right: 10px;
+    animation: nemo-vn-text-appear 0.3s ease-out;
+    margin-bottom: 10px;
+}
+
+@keyframes nemo-vn-text-appear {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.nemo-vn-text h3 {
+    color: #6eb5ff;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 20px;
+}
+
+.nemo-vn-text p {
+    margin: 10px 0;
+}
+
+.nemo-vn-text ul, .nemo-vn-text ol {
+    margin: 10px 0;
+    padding-left: 25px;
+}
+
+.nemo-vn-text li {
+    margin: 5px 0;
+}
+
+.nemo-vn-text code {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #ffa07a;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    display: inline-block;
+    margin: 2px 0;
+}
+
+.nemo-vn-text strong {
+    color: #ffd700;
+    font-weight: 600;
+}
+
+/* Custom scrollbar */
+.nemo-vn-text::-webkit-scrollbar {
+    width: 8px;
+}
+
+.nemo-vn-text::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.nemo-vn-text::-webkit-scrollbar-thumb {
+    background: rgba(110, 181, 255, 0.5);
+    border-radius: 4px;
+}
+
+.nemo-vn-text::-webkit-scrollbar-thumb:hover {
+    background: rgba(110, 181, 255, 0.7);
+}
+
+/* Highlight box */
+.nemo-vn-highlight {
+    background: rgba(255, 215, 0, 0.15);
+    border: 2px solid #ffd700;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    font-style: italic;
+    color: #ffd700;
+}
+
+/* Progress bar */
+.nemo-vn-progress {
+    position: relative;
+    margin: 20px 0;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.nemo-vn-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6eb5ff 0%, #4a9fff 100%);
+    border-radius: 4px;
+    transition: width 0.4s ease-out;
+    box-shadow: 0 0 10px rgba(110, 181, 255, 0.5);
+}
+
+.nemo-vn-progress-text {
+    position: absolute;
+    top: -25px;
+    right: 0;
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Button container */
+.nemo-vn-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+/* Buttons */
+.nemo-vn-button {
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.nemo-vn-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.nemo-vn-button:active {
+    transform: translateY(0);
+}
+
+.nemo-vn-button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Previous button */
+.nemo-vn-button-prev {
+    background: rgba(100, 100, 100, 0.3);
+    color: #ccc;
+}
+
+.nemo-vn-button-prev:hover:not(:disabled) {
+    background: rgba(100, 100, 100, 0.5);
+    color: #fff;
+}
+
+/* Skip button */
+.nemo-vn-button-skip {
+    background: rgba(255, 80, 80, 0.2);
+    color: #ff8080;
+    border: 1px solid rgba(255, 80, 80, 0.3);
+}
+
+.nemo-vn-button-skip:hover {
+    background: rgba(255, 80, 80, 0.3);
+    color: #ffaaaa;
+}
+
+/* Next button */
+.nemo-vn-button-next {
+    background: linear-gradient(135deg, #6eb5ff 0%, #4a9fff 100%);
+    color: white;
+}
+
+.nemo-vn-button-next:hover {
+    background: linear-gradient(135deg, #4a9fff 0%, #6eb5ff 100%);
+}
+
+/* Complete button state */
+.nemo-vn-button-complete {
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+}
+
+.nemo-vn-button-complete:hover {
+    background: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+}
+
+/* Action button */
+.nemo-vn-button-action {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: #1a1a2e;
+}
+
+.nemo-vn-button-action:hover {
+    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+/* Spotlight effect for highlighted elements */
+.nemo-vn-spotlight {
+    position: fixed;
+    border: 3px solid #ffd700;
+    border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(255, 215, 0, 0.6);
+    pointer-events: none;
+    z-index: 10000; /* Above dialog */
+    animation: nemo-vn-spotlight-pulse 2s ease-in-out infinite;
+}
+
+@keyframes nemo-vn-spotlight-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5),
+                    0 0 30px rgba(255, 215, 0, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5),
+                    0 0 50px rgba(255, 215, 0, 0.9);
+    }
+}
+
+.nemo-vn-highlighted {
+    position: relative;
+    z-index: 10001; /* Above spotlight */
+}
+
+/* Toast notifications */
+.nemo-vn-toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 2px solid rgba(110, 181, 255, 0.5);
+    border-radius: 12px;
+    padding: 20px 30px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s ease-out;
+}
+
+.nemo-vn-toast-show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.nemo-vn-toast-content strong {
+    color: #6eb5ff;
+    font-size: 18px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.nemo-vn-toast-content p {
+    color: #e0e0e0;
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+    .nemo-vn-dialog {
+        max-height: 300px;
+    }
+
+    .nemo-vn-character {
+        flex: 0 0 250px;
+    }
+
+    .nemo-vn-content {
+        padding: 20px 30px;
+        max-height: 300px;
+    }
+
+    .nemo-vn-buttons {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 768px) {
+    .nemo-vn-dialog {
+        max-height: 280px;
+    }
+
+    .nemo-vn-character {
+        flex: 0 0 200px;
+    }
+
+    .nemo-vn-content {
+        padding: 15px 20px;
+    }
+
+    .nemo-vn-speaker {
+        font-size: 20px;
+    }
+
+    .nemo-vn-text {
+        font-size: 14px;
+    }
+
+    .nemo-vn-button {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+
+    .nemo-vn-buttons {
+        gap: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .nemo-vn-dialog {
+        max-height: 250px;
+    }
+
+    .nemo-vn-character {
+        flex: 0 0 150px;
+    }
+
+    .nemo-vn-content {
+        padding: 12px 15px;
+    }
+
+    .nemo-vn-text h3 {
+        font-size: 16px;
+    }
+}
