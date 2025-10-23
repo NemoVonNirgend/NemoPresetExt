@@ -167,12 +167,6 @@ export class ChatManagementManager {
     }
 
     async handleNewChatFlow(chatId) {
-        // Double-check if NemoLore is still enabled before showing popup
-        if (!this.settings.enabled) {
-            console.log('[NemoLore Chat Management] Skipping new chat flow - NemoLore disabled');
-            return;
-        }
-        
         const action = await this.notificationManager.show(
             `🧠 NemoLore Setup\n\nNew conversation detected! How would you like NemoLore to assist?`,
             [

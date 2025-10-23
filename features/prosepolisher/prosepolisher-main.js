@@ -16,7 +16,6 @@ import { regexManager } from './src/regex-manager.js';
 import { ErrorHandler } from './src/error-handler.js';
 import { RegexNavigator } from './src/regex-navigator.js';
 import { updateGlobalRegexArray } from './src/global-regex-integration.js';
-import { HistoricalCleanup } from './src/historical-cleanup.js';
 
 /**
  * ProsePolisher Extension Main Class
@@ -25,7 +24,6 @@ export class ProsePolisherExtension {
     constructor() {
         this.state = state;
         this.uiManager = null;
-        this.historicalCleanup = null;
     }
 
     /**
@@ -147,17 +145,6 @@ export class ProsePolisherExtension {
             console.log('[ProsePolisher] Creating regexNavigator instance...');
             this.state.regexNavigator = new RegexNavigator();
             console.log('[ProsePolisher] regexNavigator initialization complete');
-
-            // Initialize Historical Cleanup System
-            console.log('[ProsePolisher] Initializing historical cleanup system...');
-            this.historicalCleanup = new HistoricalCleanup();
-            await this.historicalCleanup.initialize();
-            
-            // Expose globally for testing and external access
-            window.ProsePolisher = window.ProsePolisher || {};
-            window.ProsePolisher.historicalCleanup = this.historicalCleanup;
-            window.ProsePolisher.regexManager = regexManager;
-            console.log('[ProsePolisher] Historical cleanup system ready');
 
             // NOTE: Event listeners and UI controls will be initialized by the dashboard
             // when it loads the ProsePolisher tab

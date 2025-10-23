@@ -5,8 +5,17 @@
 @import url('./features/onboarding/tutorial-launcher.css');
 
 /* === SILLYTAVERN PANEL WIDTH CUSTOMIZATION === */
-/* Panel width toggle is now controlled via settings checkbox */
-/* Styles are applied dynamically by panel-toggle.js */
+/* Makes the side panels wider for better UX */
+#right-nav-panel {
+    width: 50vw !important; /* 50% of viewport width */
+    right: 0 !important;    /* Align to the right edge */
+    left: auto !important;  /* Crucial: prevent it from stretching from left:0 if that's a default */
+}
+
+#left-nav-panel {
+    width: 50vw !important; /* 50% of viewport width */
+    left: 0 !important;     /* Align to the left edge */
+}
 
 /* === ACCESSIBILITY: Focus Indicators === */
 *:focus-visible {
@@ -2232,15 +2241,11 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { ove
 .nemo-prompt-navigator-content-wrapper #prompt-navigator-grid-view {
     padding: 10px;
     overflow-y: auto;
-    overflow-x: hidden;
     flex-grow: 1;
     width: 100%;
     box-sizing: border-box;
     min-height: 0; /* Critical: allows flex child to shrink and scroll */
     height: 100%; /* Ensures scrollable area */
-    max-height: calc(100vh - 250px); /* Ensure definite height for scrolling */
-    -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
-    overscroll-behavior-y: contain; /* Prevent scroll chaining */
 }
 
 .nemo-prompt-navigator-content-wrapper .view-mode-grid { 
@@ -2961,7 +2966,7 @@ body.sortable-dragging .nemo-engine-section summary::before {
 
 /* === CHARACTER MANAGER (Pop-out) === */
 .nemo-character-manager-content-wrapper .navigator-body { display: flex; flex-grow: 1; overflow: hidden; min-height: 60vh; }
-.nemo-character-manager-content-wrapper .navigator-main-panel { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--nemo-secondary-bg); padding: 15px; border-radius: 8px; overflow: hidden; }
+.nemo-character-manager-content-wrapper .navigator-main-panel { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--nemo-secondary-bg); padding: 15px; border-radius: 8px; }
 
 /* Grid Header & Search */
 #char-manager-grid-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--nemo-border-color); flex-shrink: 0; gap: 20px; flex-wrap: wrap; }
@@ -2983,34 +2988,6 @@ body.sortable-dragging .nemo-engine-section summary::before {
     overscroll-behavior-y: contain;
     min-height: 0; /* Critical: allows flex child to shrink and scroll */
     height: 100%; /* Ensures scrollable area */
-    max-height: calc(100vh - 200px); /* Ensure definite height for scrolling */
-}
-
-/* Ensure character manager grid items have proper height for names */
-.nemo-character-manager-content-wrapper .grid-item {
-    min-height: 180px; /* Increased from default to accommodate icon + name */
-}
-
-.nemo-character-manager-content-wrapper .grid-item .item-icon {
-    height: 120px; /* Ensure icon has proper height */
-    flex-shrink: 0;
-}
-
-.nemo-character-manager-content-wrapper .grid-item .item-name {
-    background-color: rgba(0,0,0,0.3);
-    padding: 8px;
-    text-align: center;
-    font-size: 0.9em;
-    color: #ffffff !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
-    min-height: 40px; /* Ensure minimum height for name display */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
 }
 .char-manager-empty-state { text-align: center; color: var(--nemo-text-muted); padding: 40px; }
 .char-manager-empty-state h3 { margin: 0 0 10px; }
@@ -8048,217 +8025,4 @@ body.theme-terminal .mes_block .avatar {
     .nemo-preset-enhancer-settings .nemo-features-grid {
         grid-template-columns: 1fr !important;
     }
-}
-
-
-/* === MOBILE-FIRST RESPONSIVE HEADER IMPROVEMENTS === */
-/* Mobile-first responsive header improvements */
-
-/* Prompt headers - general improvements for all screens */
-.completion_prompt_manager_prompt,
-.prompt-manager-prompt,
-.nemo-engine-section summary,
-.inline-drawer summary,
-.nemo-preset-title,
-.prompt-header,
-.section-header {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    hyphens: auto;
-    line-height: 1.4;
-}
-
-/* Prompt name text should be flexible */
-span.completion_prompt_manager_prompt_name,
-.prompt-name,
-.nemo-prompt-title {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    hyphens: auto;
-    line-height: 1.3;
-    max-width: 100%;
-}
-
-/* Tablet breakpoint - start making headers more readable */
-@media (max-width: 768px) {
-    .nemo-engine-section summary,
-    .inline-drawer summary {
-        font-size: 1em;
-        padding: 10px 12px;
-        line-height: 1.3;
-    }
-    
-    span.completion_prompt_manager_prompt_name {
-        font-size: 0.95em;
-    }
-    
-    .completion_prompt_manager_prompt,
-    .prompt-manager-prompt {
-        padding: 8px 10px !important;
-        font-size: 0.9rem;
-    }
-    
-    /* Prompt list headers */
-    .nemo-preset-title,
-    .prompt-header,
-    .section-header {
-        font-size: 1.1em;
-        line-height: 1.3;
-        padding: 6px 0;
-    }
-}
-
-/* Mobile phone breakpoint - more aggressive size reductions */
-@media (max-width: 480px) {
-    .nemo-engine-section summary,
-    .inline-drawer summary {
-        font-size: 0.95em;
-        padding: 8px 10px;
-        line-height: 1.2;
-    }
-    
-    span.completion_prompt_manager_prompt_name {
-        font-size: 0.9em;
-    }
-    
-    .completion_prompt_manager_prompt,
-    .prompt-manager-prompt {
-        padding: 6px 8px !important;
-        font-size: 0.85rem;
-        line-height: 1.2;
-    }
-    
-    .nemo-preset-title,
-    .prompt-header,
-    .section-header {
-        font-size: 1.05em;
-        line-height: 1.2;
-        padding: 5px 0;
-    }
-}
-
-/* Very small screens - maximum readability adjustments */
-@media (max-width: 320px) {
-    /* For very small screens like older phones */
-    .nemo-engine-section summary,
-    .inline-drawer summary {
-        font-size: 0.9em;
-        padding: 6px 8px;
-        line-height: 1.2;
-    }
-    
-    span.completion_prompt_manager_prompt_name {
-        font-size: 0.85em;
-    }
-    
-    .completion_prompt_manager_prompt,
-    .prompt-manager-prompt {
-        padding: 5px 6px !important;
-        font-size: 0.8rem;
-    }
-    
-    .nemo-preset-title,
-    .prompt-header,
-    .section-header {
-        font-size: 0.95em !important;
-        line-height: 1.2;
-        padding: 4px 0;
-    }
-    
-    .nemo-preset-tab {
-        font-size: 0.75em !important;
-        padding: 4px 1px !important;
-        min-width: 60px;
-        line-height: 1.2;
-        text-align: center;
-        word-wrap: break-word;
-    }
-}
-
-/* Ensure all text content is readable on small screens */
-@media (max-width: 600px) {
-    .long-text,
-    .description-text,
-    .prompt-text {
-        font-size: 14px;
-        line-height: 1.4;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        hyphens: auto;
-    }
-    
-    /* Prevent horizontal overflow */
-    .nemo-preset-container,
-    .nemo-lore-container {
-        max-width: 100%;
-        overflow-x: hidden;
-    }
-    
-    /* Ensure buttons and controls don't cause horizontal scroll */
-    .nemo-preset-controls,
-    .nemo-lore-controls {
-        max-width: 100%;
-        overflow-x: auto;
-    }
-    
-    /* Header improvements for smaller screens */
-    h1, h2, h3, h4, h5, h6 {
-        line-height: 1.3;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        hyphens: auto;
-    }
-    
-    h1 { font-size: 1.5em; }
-    h2 { font-size: 1.3em; }
-    h3 { font-size: 1.2em; }
-    h4 { font-size: 1.1em; }
-    h5 { font-size: 1.05em; }
-    h6 { font-size: 1em; }
-}
-
-/* Additional mobile-specific header improvements */
-@media (max-width: 480px) {
-    .nemo-preset-title {
-        font-size: 1.1em;
-        text-align: center;
-    }
-    
-    .nemo-preset-section h3 {
-        font-size: 1.05em;
-    }
-    
-    .nemo-preset-tab {
-        font-size: 0.8em;
-        padding: 6px 2px;
-    }
-    
-    /* Even smaller headers for very small screens */
-    h1 { font-size: 1.3em; }
-    h2 { font-size: 1.2em; }
-    h3 { font-size: 1.1em; }
-    h4 { font-size: 1.05em; }
-    h5, h6 { font-size: 1em; }
-}
-
-/* General header improvements for readability */
-.nemo-preset-container h1,
-.nemo-preset-container h2,
-.nemo-preset-container h3,
-.nemo-preset-container h4,
-.nemo-preset-container h5,
-.nemo-preset-container h6 {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    hyphens: auto;
-    line-height: 1.4;
-    margin-bottom: 0.5em;
-}
-
-.nemo-preset-container .header-text,
-.nemo-preset-container .title-text {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    hyphens: auto;
-    line-height: 1.4;
 }

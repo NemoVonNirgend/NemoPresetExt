@@ -110,8 +110,8 @@ export const ExtensionsTabOverhaul = {
         console.log(`${LOG_PREFIX} Found ${containers.length} potential extension containers`);
         
         containers.forEach(container => {
-            // Skip our own UI elements (but NOT the main settings panel)
-            if (container.id === 'nemo-suite-drawer' ||
+            // Skip our own UI elements
+            if (container.id === 'nemo-suite-drawer' || 
                 container.id === 'nemo-tab-extension-overlay' ||
                 container.classList.contains('nemo-extensions-search') ||
                 container.classList.contains('nemo-extensions-layout') ||

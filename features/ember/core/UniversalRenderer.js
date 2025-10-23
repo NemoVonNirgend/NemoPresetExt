@@ -172,8 +172,7 @@ export class UniversalRenderer {
             const language = match[1] || 'javascript';
             const code = match[2].trim();
 
-            // Enhanced validation: Only process if it contains actual code
-            if (code.length > 5 && this.isActualCode(code, language)) {
+            if (code.length > 5) { // Skip tiny blocks
                 codeBlocks.push({
                     type: this.normalizeLanguage(language),
                     code: code,
@@ -280,122 +279,6 @@ export class UniversalRenderer {
         ];
 
         return codeIndicators.some(pattern => pattern.test(text));
-    }
-
-    /**
-     * Enhanced method to check if content in code blocks is actually code
-     * This prevents processing of text content that just happens to be in code blocks
-     */
-    isActualCode(content, language = 'javascript') {
-        const trimmedContent = content.trim();
-        
-        // Very short content is likely not meaningful code
-        if (trimmedContent.length < 10) {
-            return false;
-        }
-
-        // Language-specific checks
-        switch (language.toLowerCase()) {
-            case 'html':
-            case 'htm':
-                return this.isActualHtml(trimmedContent);
-            case 'css':
-                return this.isActualCss(trimmedContent);
-            case 'javascript':
-            case 'js':
-            default:
-                return this.isActualJavaScript(trimmedContent);
-        }
-    }
-
-    /**
-     * Check if content is actual HTML code vs narrative text
-     */
-    isActualHtml(content) {
-        // Must have actual HTML tags, not just angle brackets in text
-        const htmlPatterns = [
-            /<[a-zA-Z][a-zA-Z0-9]*\s*[^>]*>/,  // Opening tags
-            /<\/[a-zA-Z][a-zA-Z0-9]*>/,        // Closing tags
-            /<!DOCTYPE\s+html/i,               // DOCTYPE declaration
-            /<html[^>]*>/i,                    // HTML tag
-            /<head[^>]*>/i,                    // Head tag
-            /<body[^>]*>/i                     // Body tag
-        ];
-
-        // Check for HTML structure indicators
-        const hasHtmlStructure = htmlPatterns.some(pattern => pattern.test(content));
-        
-        // Check if it's NOT just narrative text with occasional HTML entities
-        const narrativeIndicators = [
-            /\b(said|says|whispered|shouted|replied|responded)\b/i,
-            /\b(he|she|they|I|you)\s+(was|were|is|are)\b/i,
-            /\*[^*]+\*/,  // *action text*
-            /\b(walked|moved|stepped|approached|left|entered)\b/i,
-            /\b(looked|glanced|stared|gazed|watched)\b/i
-        ];
-
-        const narrativeScore = narrativeIndicators.filter(pattern => pattern.test(content)).length;
-        
-        // If it has HTML structure and isn't heavily narrative, consider it HTML
-        return hasHtmlStructure && narrativeScore < 2;
-    }
-
-    /**
-     * Check if content is actual CSS code vs narrative text
-     */
-    isActualCss(content) {
-        const cssPatterns = [
-            /\{[^}]*\}/,                       // CSS rule blocks
-            /[.#][\w-]+\s*\{/,                 // Class/ID selectors
-            /\w+\s*:\s*[^;]+;/,                // Property: value; pairs
-            /@(media|import|keyframes|font-face)\b/i, // CSS at-rules
-            /[\w-]+\s*:\s*[\w-]+\s*;/          // Simple property declarations
-        ];
-
-        return cssPatterns.some(pattern => pattern.test(content));
-    }
-
-    /**
-     * Check if content is actual JavaScript code vs narrative text
-     */
-    isActualJavaScript(content) {
-        // JavaScript-specific patterns
-        const jsPatterns = [
-            /\b(function|const|let|var|class|if|else|for|while|return|new|this)\b/,
-            /\b(document|window|console)\./,
-            /[=!]==|&&|\|\||\.\.\.|\?\?|\?\./,
-            /\w+\s*\([^)]*\)\s*[{;]/,
-            /\w+\s*=>\s*[{(]/,
-            /\b(async|await|import|export)\b/,
-            /\/\*[\s\S]*?\*\/|\/\/.*$/m,
-            /`[^`]*\$\{[^}]*\}[^`]*`/
-        ];
-
-        // Check for code patterns
-        const codeScore = jsPatterns.filter(pattern => pattern.test(content)).length;
-        
-        // Check for narrative/roleplay patterns that suggest it's not code
-        const narrativePatterns = [
-            /\b(said|says|whispered|shouted|replied|responded|asked|told)\b/i,
-            /\b(he|she|they|I|you)\s+(was|were|is|are|will|would|could|should)\b/i,
-            /\*[^*]+\*/,  // *action text*
-            /\b(walked|moved|stepped|approached|left|entered|sat|stood)\b/i,
-            /\b(looked|glanced|stared|gazed|watched|observed)\b/i,
-            /\b(smiled|frowned|laughed|sighed|nodded|shook)\b/i,
-            /\b(felt|thought|wondered|realized|noticed|remembered)\b/i,
-            /^[A-Za-z][^:]*:\s*"/,  // Character name: "dialogue"
-            /\b(suddenly|slowly|quickly|quietly|softly|gently)\b/i
-        ];
-
-        const narrativeScore = narrativePatterns.filter(pattern => pattern.test(content)).length;
-        
-        // Consider it code if:
-        // 1. It has at least 2 code patterns AND less than 3 narrative patterns, OR
-        // 2. It has a very high code score (4+), OR
-        // 3. It has clear code structure but low narrative content
-        return (codeScore >= 2 && narrativeScore < 3) ||
-               (codeScore >= 4) ||
-               (codeScore >= 1 && narrativeScore === 0 && content.length > 50);
     }
 
     /**

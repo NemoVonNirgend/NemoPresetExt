@@ -54,9 +54,6 @@ import { applyNemoNetReasoning } from './reasoning/nemonet-reasoning-config.js';
 import { tutorialManager } from './features/onboarding/tutorial-manager.js';
 import { tutorialLauncher } from './features/onboarding/tutorial-launcher.js';
 
-// Feature modules - Panel Toggle
-import { panelToggle } from './features/panel-toggle/panel-toggle.js';
-
 // Archived/deprecated modules (loaded from archive)
 import { NemoCharacterManager } from './archive/character-manager.js';
 import { initPresetNavigatorForApi, PresetNavigator } from './archive/navigator.js';
@@ -111,7 +108,7 @@ async function initializeExtension() {
         NemoPromptArchiveUI.initialize();
 
         // Initialize Ember if enabled
-        if (extension_settings.NemoPresetExt?.enableEmber === true) {
+        if (extension_settings.NemoPresetExt?.enableEmber !== false) {
             const ember2 = new Ember2Extension();
             await ember2.initialize();
             window.Ember2 = ember2;
@@ -123,7 +120,7 @@ async function initializeExtension() {
         await nemoLore.initialize();
         window.NemoLore = nemoLore;
 
-        if (extension_settings.NemoPresetExt?.enableNemoLore === true) {
+        if (extension_settings.NemoPresetExt?.enableNemoLore !== false) {
             logger.info('NemoLore initialized successfully (enabled)');
         } else {
             logger.info('NemoLore UI initialized (functionality disabled - can be enabled via dashboard)');
@@ -133,7 +130,7 @@ async function initializeExtension() {
         console.log('🚨 [NemoPresetExt] Checking ProsePolisher initialization...');
         console.log('🚨 [NemoPresetExt] enableProsePolisher setting:', extension_settings.NemoPresetExt?.enableProsePolisher);
 
-        if (extension_settings.NemoPresetExt?.enableProsePolisher === true) {
+        if (extension_settings.NemoPresetExt?.enableProsePolisher !== false) {
             console.log('🚨 [NemoPresetExt] Creating ProsePolisher instance...');
             try {
                 const prosePolisher = new ProsePolisherExtension();
@@ -152,7 +149,7 @@ async function initializeExtension() {
         }
 
         // Initialize MoodMusic if enabled
-        if (extension_settings.NemoPresetExt?.enableMoodMusic === true) {
+        if (extension_settings.NemoPresetExt?.enableMoodMusic !== false) {
             const moodMusic = new MoodMusicExtension();
             await moodMusic.initialize();
             window.MoodMusic = moodMusic;
@@ -160,7 +157,7 @@ async function initializeExtension() {
         }
 
         // Initialize NEMO-VRM if enabled
-        if (extension_settings.NemoPresetExt?.enableNemoVRM === true) {
+        if (extension_settings.NemoPresetExt?.enableNemoVRM !== false) {
             const nemoVRM = new NemoVRMExtension();
             await nemoVRM.initialize();
             window.NemoVRM = nemoVRM;
@@ -201,9 +198,6 @@ async function initializeExtension() {
 
         // Check if welcome tutorial should auto-start (for first-time users)
         tutorialLauncher.checkWelcomeTutorial();
-
-        // Initialize panel width toggle (always initialize - it's controlled by settings)
-        panelToggle.initialize();
 
         // Make ExtensionsTabOverhaul available globally for the settings toggle
         window.ExtensionsTabOverhaul = ExtensionsTabOverhaul;

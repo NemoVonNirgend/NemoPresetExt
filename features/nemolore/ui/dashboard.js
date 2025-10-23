@@ -358,7 +358,7 @@ export class DashboardManager {
      * Wait for ProsePolisher to finish initializing, then initialize its UI
      * Uses polling with timeout to handle async initialization
      */
-    waitForProsePolisherAndInitialize(attempts = 0, maxAttempts = 10) {
+    waitForProsePolisherAndInitialize(attempts = 0, maxAttempts = 50) {
         const checkInterval = 100; // Check every 100ms
 
         console.log(`🚨 [NemoLore Dashboard] Polling for ProsePolisher... (attempt ${attempts + 1}/${maxAttempts})`);
@@ -370,8 +370,9 @@ export class DashboardManager {
         }
 
         if (attempts >= maxAttempts) {
-            console.log(`🚨 [NemoLore Dashboard] ProsePolisher not found after ${maxAttempts} attempts (${maxAttempts * checkInterval}ms) - this is normal if disabled`);
-            // Call initializeProsePolisherUI anyway so it can show the disabled message
+            console.error(`🚨 [NemoLore Dashboard] ❌ ProsePolisher not found after ${maxAttempts} attempts (${maxAttempts * checkInterval}ms)`);
+            console.error('🚨 [NemoLore Dashboard] ProsePolisher may have failed to initialize - showing error message');
+            // Call initializeProsePolisherUI anyway so it can show the error message
             this.initializeProsePolisherUI();
             return;
         }

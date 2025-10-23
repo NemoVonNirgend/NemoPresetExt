@@ -86,12 +86,48 @@ function applyDefaultEnabled() {
 
 /**
  * Setup tag filtering UI
- * NOTE: Disabled - tag filtering is now integrated into the main prompt manager search bar
  */
 function setupTagFilter() {
-    // Tag filtering functionality is now handled by the prompt manager's unified search
-    // This function is kept for compatibility but does nothing
-    logger.info('Tag filter (integrated into main search bar)');
+    try {
+        // Find the prompt manager container
+        const promptContainer = document.querySelector('#completion_prompt_manager_list');
+        if (!promptContainer) {
+            logger.warn('Prompt container not found, will retry');
+            setTimeout(setupTagFilter, 1000);
+            return;
+        }
+
+        // Check if already setup
+        if (document.querySelector('.nemo-tag-filter')) {
+            return;
+        }
+
+        // Create filter UI
+        const filterContainer = document.createElement('div');
+        filterContainer.className = 'nemo-tag-filter';
+        filterContainer.innerHTML = `
+            <input type="text"
+                   id="nemo-tag-search"
+                   placeholder="🔍 Search prompts by name, tag, or description..."
+                   class="nemo-search-input">
+            <div class="nemo-tag-list" id="nemo-tag-list"></div>
+            <div class="nemo-filter-stats" id="nemo-filter-stats"></div>
+        `;
+
+        // Insert before prompt list
+        promptContainer.parentNode.insertBefore(filterContainer, promptContainer);
+
+        // Setup search handler
+        const searchInput = document.getElementById('nemo-tag-search');
+        searchInput.addEventListener('input', handleTagSearch);
+
+        // Build tag list
+        updateTagList();
+
+        logger.info('Tag filter UI setup complete');
+    } catch (error) {
+        logger.error('Error setting up tag filter:', error);
+    }
 }
 
 /**

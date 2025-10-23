@@ -14,8 +14,6 @@ export class PromptNavigator {
         this.breadcrumbs = null;
         this.searchInput = null;
         this.searchClearBtn = null;
-        this.tagList = null;
-        this.filterStats = null;
         
         this.metadata = { folders: {}, prompts: {} };
         this.currentPath = [{ id: 'root', name: 'Home' }];
@@ -26,8 +24,6 @@ export class PromptNavigator {
         this.viewMode = 'grid';
         this.currentSort = 'name-asc';
         this.currentFilter = 'all';
-        this.selectedTags = new Set();
-        this.availableTags = new Set();
         this.debouncedRender = debounce(() => this.render(), 250);
     }
 
@@ -41,10 +37,8 @@ export class PromptNavigator {
         // Cache DOM elements
         this.mainView = this.navigatorElement.querySelector('#prompt-navigator-grid-view');
         this.breadcrumbs = this.navigatorElement.querySelector('#prompt-navigator-breadcrumbs');
-        this.searchInput = this.navigatorElement.querySelector('#nemo-tag-search');
+        this.searchInput = this.navigatorElement.querySelector('#prompt-navigator-search-input');
         this.searchClearBtn = this.navigatorElement.querySelector('#prompt-navigator-search-clear');
-        this.tagList = this.navigatorElement.querySelector('#nemo-tag-list');
-        this.filterStats = this.navigatorElement.querySelector('#nemo-filter-stats');
         this.newFolderBtn = this.navigatorElement.querySelector('#prompt-navigator-new-folder-btn');
         this.viewToggleBtn = this.navigatorElement.querySelector('#prompt-navigator-view-toggle-btn');
         this.sortBtn = this.navigatorElement.querySelector('#prompt-navigator-sort-btn');
@@ -54,21 +48,8 @@ export class PromptNavigator {
 
         // Add event listeners
         this.newFolderBtn.addEventListener('click', () => this.createNewFolder());
-        this.searchInput.addEventListener('input', () => {
-            this.updateTagList();
-            this.debouncedRender();
-        });
-        this.searchInput.addEventListener('focus', () => this.showTagList());
-        this.searchInput.addEventListener('blur', () => {
-            // Delay hiding to allow tag clicks
-            setTimeout(() => this.hideTagList(), 200);
-        });
-        this.searchClearBtn.addEventListener('click', () => {
-            this.searchInput.value = '';
-            this.selectedTags.clear();
-            this.hideTagList();
-            this.render();
-        });
+        this.searchInput.addEventListener('input', this.debouncedRender);
+        this.searchClearBtn.addEventListener('click', () => { this.searchInput.value = ''; this.render(); });
         this.viewToggleBtn.addEventListener('click', () => this.toggleViewMode());
         this.sortBtn.addEventListener('click', (e) => this.showSortMenu(e));
         this.filterBtn.addEventListener('click', (e) => this.showFilterMenu(e));
@@ -134,41 +115,16 @@ export class PromptNavigator {
             const role = item.dataset.pmRole || '';
             
             if (promptName && identifier) {
-                // Extract tags from prompt name (words starting with # or in brackets)
-                const tags = this.extractTags(promptName);
-                
                 prompts.push({
                     identifier: identifier,
                     name: promptName,
                     role: role,
-                    tags: tags,
                     element: item
                 });
-                
-                // Add tags to available tags set
-                tags.forEach(tag => this.availableTags.add(tag));
             }
         });
 
         return prompts;
-    }
-    
-    extractTags(text) {
-        const tags = [];
-        
-        // Extract hashtags
-        const hashtagMatches = text.matchAll(/#(\w+)/g);
-        for (const match of hashtagMatches) {
-            tags.push(match[1].toLowerCase());
-        }
-        
-        // Extract bracketed tags like [tag]
-        const bracketMatches = text.matchAll(/\[([^\]]+)\]/g);
-        for (const match of bracketMatches) {
-            tags.push(match[1].toLowerCase());
-        }
-        
-        return [...new Set(tags)]; // Remove duplicates
     }
 
     loadMetadata() {
@@ -267,23 +223,7 @@ export class PromptNavigator {
 
         // Filtering
         items = items.filter(item => {
-            // Search term filtering (searches name, tags, and description)
-            if (searchTerm) {
-                const nameMatch = item.name.toLowerCase().includes(searchTerm);
-                const tagMatch = item.type === 'prompt' && item.data.tags?.some(tag => tag.includes(searchTerm));
-                const roleMatch = item.type === 'prompt' && item.data.role?.toLowerCase().includes(searchTerm);
-                
-                if (!nameMatch && !tagMatch && !roleMatch) return false;
-            }
-            
-            // Selected tags filtering
-            if (this.selectedTags.size > 0 && item.type === 'prompt') {
-                const hasAllTags = Array.from(this.selectedTags).every(selectedTag =>
-                    item.data.tags?.some(tag => tag === selectedTag)
-                );
-                if (!hasAllTags) return false;
-            }
-            
+            if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return false;
             if (this.currentFilter === 'uncategorized' && item.type === 'prompt' && item.data.folderId) return false;
             if (this.currentFilter === 'favorites') {
                 if (item.type === 'folder') return false; // Only show prompts in favorites view
@@ -323,105 +263,6 @@ export class PromptNavigator {
         this.mainView.innerHTML = '';
         this.mainView.appendChild(fragment);
         this.renderFavoritesSidebar();
-        this.updateFilterStats(items.length);
-    }
-    
-    updateFilterStats(visibleCount) {
-        if (!this.filterStats) return;
-        
-        const totalPrompts = this.allPrompts.length;
-        const currentFolderId = this.currentPath[this.currentPath.length - 1].id;
-        
-        // Count prompts in current folder
-        const promptsInFolder = this.allPrompts.filter(p => {
-            const meta = this.metadata.prompts[p.identifier] || {};
-            const isUncategorized = !meta.folderId;
-            const isInCurrentFolder = meta.folderId === currentFolderId;
-            const isInRootAndCurrentIsRoot = isUncategorized && currentFolderId === 'root';
-            
-            return isInCurrentFolder || isInRootAndCurrentIsRoot;
-        }).length;
-        
-        const searchTerm = this.searchInput.value.toLowerCase().trim();
-        const hasFilters = searchTerm || this.selectedTags.size > 0 || this.currentFilter !== 'all';
-        
-        if (hasFilters) {
-            this.filterStats.textContent = `Showing ${visibleCount} of ${promptsInFolder} prompts`;
-            this.filterStats.style.display = 'block';
-        } else {
-            this.filterStats.textContent = '';
-            this.filterStats.style.display = 'none';
-        }
-    }
-    
-    showTagList() {
-        if (!this.tagList) return;
-        
-        const searchTerm = this.searchInput.value.toLowerCase().trim();
-        
-        // Only show if there are tags or a search term
-        if (this.availableTags.size > 0 || searchTerm) {
-            this.tagList.style.display = 'block';
-        }
-    }
-    
-    hideTagList() {
-        if (!this.tagList) return;
-        this.tagList.style.display = 'none';
-    }
-    
-    updateTagList() {
-        if (!this.tagList) return;
-        
-        const searchTerm = this.searchInput.value.toLowerCase().trim();
-        
-        // Filter tags based on search term
-        let relevantTags = Array.from(this.availableTags);
-        if (searchTerm) {
-            relevantTags = relevantTags.filter(tag => tag.includes(searchTerm));
-        }
-        
-        // Sort tags alphabetically
-        relevantTags.sort();
-        
-        // Clear and repopulate tag list
-        this.tagList.innerHTML = '';
-        
-        if (relevantTags.length === 0) {
-            this.tagList.style.display = 'none';
-            return;
-        }
-        
-        relevantTags.forEach(tag => {
-            const tagButton = document.createElement('button');
-            tagButton.className = 'nemo-tag-button';
-            tagButton.textContent = `#${tag}`;
-            tagButton.dataset.tag = tag;
-            
-            if (this.selectedTags.has(tag)) {
-                tagButton.classList.add('selected');
-            }
-            
-            tagButton.addEventListener('mousedown', (e) => {
-                e.preventDefault(); // Prevent blur event
-                this.toggleTag(tag);
-            });
-            
-            this.tagList.appendChild(tagButton);
-        });
-        
-        this.tagList.style.display = 'block';
-    }
-    
-    toggleTag(tag) {
-        if (this.selectedTags.has(tag)) {
-            this.selectedTags.delete(tag);
-        } else {
-            this.selectedTags.add(tag);
-        }
-        
-        this.updateTagList();
-        this.render();
     }
 
     createGridItem(item) {

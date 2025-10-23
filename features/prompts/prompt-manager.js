@@ -183,9 +183,9 @@ export const NemoPresetManager = {
             <div id="nemoPresetSearchContainer" role="search">
                 <input type="text"
                        id="nemoPresetSearchInput"
-                       placeholder="🔍 Search prompts by name, tag, or content..."
+                       placeholder="Search prompts (name & content)..."
                        class="text_pole"
-                       aria-label="Search prompts by name, tag, or content"
+                       aria-label="Search prompts by name or content"
                        autocomplete="off">
                 <div class="nemo-search-controls" role="toolbar" aria-label="Prompt manager tools">
                     <button id="nemoPresetSearchClear"

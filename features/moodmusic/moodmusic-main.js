@@ -124,14 +124,9 @@ export class MoodMusicExtension {
             this.updateLikedSongsUI();
             this.findAndStorePresetDropdown();
 
-            // Load server status without showing error toasts on first load
-            try {
-                await this.loadCredentialsStatus();
-                await this.checkAuthStatus();
-            } catch (error) {
-                // Silently handle initial load errors - user can configure via UI
-                console.log(`${LOG_PREFIX} Initial auth check: ${error.message}`);
-            }
+            // Load server status
+            await this.loadCredentialsStatus();
+            await this.checkAuthStatus();
 
             // Start polling if authenticated
             if (this.isExtensionActive && this.isAuthenticated) {

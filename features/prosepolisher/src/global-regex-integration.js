@@ -59,8 +59,6 @@ export async function updateGlobalRegexArray() {
                     runOnEdit: rule.runOnEdit ?? false,
                     markdownOnly: rule.markdownOnly ?? false,
                     promptOnly: rule.promptOnly ?? false,
-                    // Hide from SillyTavern's regex UI
-                    hideInUI: true,
                 };
                 extension_settings.regex.push(globalRule);
             }

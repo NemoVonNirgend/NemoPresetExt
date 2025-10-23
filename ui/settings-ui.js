@@ -101,32 +101,10 @@ export const NemoSettingsUI = {
                     });
                 }
 
-                // ProsePolisher Setting
-                const prosePolisherToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableProsePolisher'));
-                if (prosePolisherToggle) {
-                    prosePolisherToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableProsePolisher ?? false;
-                    prosePolisherToggle.addEventListener('change', () => {
-                        extension_settings[NEMO_EXTENSION_NAME].enableProsePolisher = prosePolisherToggle.checked;
-                        saveSettingsDebounced();
-                        this.showRefreshNotification();
-                    });
-                }
-
-                // MoodMusic Setting
-                const moodMusicToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableMoodMusic'));
-                if (moodMusicToggle) {
-                    moodMusicToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableMoodMusic ?? false;
-                    moodMusicToggle.addEventListener('change', () => {
-                        extension_settings[NEMO_EXTENSION_NAME].enableMoodMusic = moodMusicToggle.checked;
-                        saveSettingsDebounced();
-                        this.showRefreshNotification();
-                    });
-                }
-
                 // Ember Setting
                 const emberToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableEmber'));
                 if (emberToggle) {
-                    emberToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableEmber ?? false;
+                    emberToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableEmber ?? true;
                     emberToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableEmber = emberToggle.checked;
                         saveSettingsDebounced();
