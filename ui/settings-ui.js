@@ -176,6 +176,17 @@ export const NemoSettingsUI = {
                     });
                 }
 
+                // Wide Navigation Panels Setting
+                const widePanelsToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableWidePanels'));
+                if (widePanelsToggle) {
+                    widePanelsToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.nemoEnableWidePanels ?? true;
+                    widePanelsToggle.addEventListener('change', () => {
+                        extension_settings[NEMO_EXTENSION_NAME].nemoEnableWidePanels = widePanelsToggle.checked;
+                        saveSettingsDebounced();
+                        this.showRefreshNotification();
+                    });
+                }
+
                 // Extensions Tab Overhaul Setting
                 const extensionsTabOverhaulToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableExtensionsTabOverhaul'));
                 extensionsTabOverhaulToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.nemoEnableExtensionsTabOverhaul ?? true;

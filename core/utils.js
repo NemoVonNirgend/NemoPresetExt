@@ -37,6 +37,12 @@ export function ensureSettingsNamespace() {
         return false;
     }
     extension_settings[NEMO_EXTENSION_NAME] = extension_settings[NEMO_EXTENSION_NAME] || {};
+    
+    // Initialize default settings if they don't exist
+    if (extension_settings[NEMO_EXTENSION_NAME].nemoEnableWidePanels === undefined) {
+        extension_settings[NEMO_EXTENSION_NAME].nemoEnableWidePanels = true; // Default to enabled
+    }
+    
     return true;
 }
 

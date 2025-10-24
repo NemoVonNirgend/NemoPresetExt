@@ -4,18 +4,9 @@
 @import url('./features/onboarding/vn-dialog.css');
 @import url('./features/onboarding/tutorial-launcher.css');
 
-/* === SILLYTAVERN PANEL WIDTH CUSTOMIZATION === */
-/* Makes the side panels wider for better UX */
-#right-nav-panel {
-    width: 50vw !important; /* 50% of viewport width */
-    right: 0 !important;    /* Align to the right edge */
-    left: auto !important;  /* Crucial: prevent it from stretching from left:0 if that's a default */
-}
-
-#left-nav-panel {
-    width: 50vw !important; /* 50% of viewport width */
-    left: 0 !important;     /* Align to the left edge */
-}
+/* === WIDE PANELS CSS MOVED TO DYNAMIC LOADING IN content.js === */
+/* The wide panels feature is now conditionally applied based on user settings */
+/* See applyWidePanelsStyles() in content.js for the implementation */
 
 /* === ACCESSIBILITY: Focus Indicators === */
 *:focus-visible {

@@ -215,6 +215,33 @@ async function initializeExtension() {
             logger.info('Extensions Tab Overhaul is disabled, skipping initialization');
         }
 
+        // Initialize Wide Panels setting - Add or remove CSS that makes panels take 50% width
+        const widePanelsEnabled = extension_settings.NemoPresetExt?.nemoEnableWidePanels !== false;
+        logger.debug('Wide Panels setting check', { widePanelsEnabled, fullValue: extension_settings.NemoPresetExt?.nemoEnableWidePanels });
+        
+        if (widePanelsEnabled) {
+            logger.info('Wide Panels enabled, applying 50% width CSS');
+            applyWidePanelsStyles();
+        } else {
+            logger.info('Wide Panels disabled, using SillyTavern default width');
+            removeWidePanelsStyles();
+        }
+        
+        // Add event listener for settings changes to update the panel width behavior
+        eventSource.on(event_types.SETTINGS_UPDATED, () => {
+            setTimeout(() => {
+                const newWidePanelsEnabled = extension_settings.NemoPresetExt?.nemoEnableWidePanels !== false;
+                logger.debug('Wide Panels setting changed', { newWidePanelsEnabled });
+                
+                if (newWidePanelsEnabled) {
+                    logger.info('Wide Panels setting enabled, applying 50% width CSS');
+                    applyWidePanelsStyles();
+                } else {
+                    logger.info('Wide Panels setting disabled, using SillyTavern default width');
+                    removeWidePanelsStyles();
+                }
+            }, 100); // Small delay to ensure settings are fully updated
+        });
         // Observer management with proper cleanup
         const ExtensionManager = {
             observers: new Map(),
@@ -349,6 +376,45 @@ async function initializeExtension() {
         console.error('🚨 [NemoPresetExt] Stack trace:', error.stack);
     }
 }
+
+// CSS functions for Wide Panels feature - conditionally load the styles
+function applyWidePanelsStyles() {
+    // Remove any existing styles first
+    let styleEl = document.getElementById('nemo-wide-panels-styles');
+    if (styleEl) {
+        styleEl.remove();
+    }
+    
+    // Add the wide panels CSS
+    styleEl = document.createElement('style');
+    styleEl.id = 'nemo-wide-panels-styles';
+    styleEl.textContent = `
+        /* Wide navigation panels - 50% viewport width */
+        #right-nav-panel {
+            width: 50vw !important;
+            right: 0 !important;
+            left: auto !important;
+        }
+        #left-nav-panel {
+            width: 50vw !important;
+            left: 0 !important;
+        }
+    `;
+    document.head.appendChild(styleEl);
+    logger.debug('Applied wide panels styles (50% width)');
+}
+
+function removeWidePanelsStyles() {
+    const styleEl = document.getElementById('nemo-wide-panels-styles');
+    if (styleEl) {
+        styleEl.remove();
+        logger.debug('Removed wide panels styles (using SillyTavern default width)');
+    }
+}
+
+// Keep old function names for backward compatibility
+const applyWidePanelsOverride = removeWidePanelsStyles;
+const removeWidePanelsOverride = applyWidePanelsStyles;
 
 // Enhanced preset navigator initialization that works with both new and legacy code
 function initPresetNavigatorForApiEnhanced(apiType) {
