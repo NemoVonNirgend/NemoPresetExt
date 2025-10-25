@@ -1,7 +1,6 @@
 interface Window {
     getWorldEntry: (name: string, data: any, entry: any) => Promise<JQuery<HTMLElement>>;
     displayWorldEntries: (name: string, data: any, ...args: any[]) => Promise<void>;
-    nemolore_intercept_messages: (messages: any[]) => Promise<boolean>;
 }
 
 declare class Sortable {

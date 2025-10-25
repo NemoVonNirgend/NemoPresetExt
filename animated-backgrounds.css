@@ -478,6 +478,10 @@
         padding: 8px;
     }
     
+    .enhanced-bg-controls button {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
 }
 
 /* Playlist window styles */
