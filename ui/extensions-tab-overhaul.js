@@ -21,6 +21,8 @@ export const ExtensionsTabOverhaul = {
         'Memory': ['summarize_container', 'vectors_container', 'chromadb_container', 'qvink_memory_settings', 'vectors_enhanced_container'],
         'Utilities': ['websearch_container', 'regex_container', 'randomizer_container', 'message_limit_container', 'injects_container', 'accuweather_container', 'blip_container', 'emulatorjs_container', 'qr_container', 'translation_container', 'idle_container', 'hypebot_container', 'rss_container', 'timelines_container', 'webllm_container'],
         'NemoSuite': [
+            // NemoPresetExt core settings (this extension)
+            'nemo-preset-ext-settings',
             // Standalone Nemo extensions (if installed separately)
             'nemo-ext-prose-polisher',
             'nemo-ext-prosepolisher',
@@ -191,20 +193,19 @@ export const ExtensionsTabOverhaul = {
         console.log(`${LOG_PREFIX} Found ${containers.length} potential extension containers`);
         
         containers.forEach(container => {
-            // Skip our own UI elements
+            // Skip our own UI elements (but NOT nemo-preset-enhancer-settings, we want that!)
             if (container.id === 'nemo-suite-drawer' ||
                 container.id === 'nemo-tab-extension-overlay' ||
                 container.classList.contains('nemo-extensions-search') ||
                 container.classList.contains('nemo-extensions-layout') ||
-                container.classList.contains('nemo-folder-controls') ||
-                container.classList.contains('nemo-preset-enhancer-settings')) {
+                container.classList.contains('nemo-folder-controls')) {
                 return;
             }
 
             let id = container.id;
             const titleElement = container.querySelector('.inline-drawer-header b, h4, .extension-name, [data-extension-name]');
             let title = 'Unknown Extension';
-            
+
             if (titleElement) {
                 title = titleElement.textContent.trim();
             } else if (container.dataset.extensionName) {
@@ -213,7 +214,12 @@ export const ExtensionsTabOverhaul = {
                 title = id.replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             }
 
-            if (!id) {
+            // Special handling for NemoPresetExt settings
+            if (container.classList.contains('nemo-preset-enhancer-settings')) {
+                id = 'nemo-preset-ext-settings';
+                title = 'NemoPreset UI Extensions';
+                container.id = id;
+            } else if (!id) {
                 id = `nemo-ext-${title.replace(/\s+/g, '-').toLowerCase()}`;
                 container.id = id;
             }
@@ -245,9 +251,10 @@ export const ExtensionsTabOverhaul = {
     createEnhancedInterface: function(container) {
         console.log(`${LOG_PREFIX} 🏗️ createEnhancedInterface called, initialized=${this.initialized}`);
 
-        // Prevent running if already initialized
-        if (this.initialized) {
-            console.log(`${LOG_PREFIX} ⛔ Already initialized, skipping createEnhancedInterface to prevent destroying existing organization`);
+        // Check if the interface is already created by looking for our layout element
+        const existingLayout = document.querySelector('.nemo-extensions-layout');
+        if (existingLayout) {
+            console.log(`${LOG_PREFIX} ⛔ Interface already created, skipping to prevent destroying existing organization`);
             return;
         }
 
@@ -313,25 +320,23 @@ export const ExtensionsTabOverhaul = {
         layoutContainer.appendChild(leftColumn);
         layoutContainer.appendChild(rightColumn);
 
-        // Clear and setup containers
+        // Setup containers
         const settings1 = document.getElementById('extensions_settings');
         const settings2 = document.getElementById('extensions_settings2');
 
-        // Hide any standalone NemoPresetExt settings that weren't discovered as cards
-        document.querySelectorAll('.nemo-preset-enhancer-settings').forEach(el => {
-            if (!el.closest('.nemo-extension-card')) {
-                el.style.display = 'none';
-            }
+        // Hide all original extension elements (they'll be shown when cards are clicked)
+        discoveredExtensions.forEach(ext => {
+            ext.element.style.display = 'none';
         });
 
-        settings1.innerHTML = '';
+        // Hide settings2 container
         if(settings2) {
-            settings2.innerHTML = '';
             settings2.style.display = 'none';
         }
 
-        settings1.appendChild(controlsContainer);
-        settings1.appendChild(layoutContainer);
+        // Prepend our interface to settings1 (don't clear it, just add to the beginning)
+        settings1.insertBefore(layoutContainer, settings1.firstChild);
+        settings1.insertBefore(controlsContainer, settings1.firstChild);
         
         this.addSearchHandler();
         this.setupContextMenu();
@@ -540,7 +545,10 @@ export const ExtensionsTabOverhaul = {
         
         // Move the ACTUAL extension element (not a clone) to maintain functionality
         const extensionElement = extensionData.element;
-        
+
+        // Make sure the element is visible
+        extensionElement.style.display = '';
+
         // If it's a drawer, open it and show content directly
         if (extensionElement.querySelector('.inline-drawer-content')) {
             const drawerContent = extensionElement.querySelector('.inline-drawer-content');
@@ -550,7 +558,7 @@ export const ExtensionsTabOverhaul = {
         } else {
             contentElement.appendChild(extensionElement);
         }
-        
+
         // Show overlay within the tab
         overlay.classList.add('active');
         this.currentView = 'extension';
@@ -565,11 +573,14 @@ export const ExtensionsTabOverhaul = {
         if (this.currentExtension && this.currentExtension.element) {
             const extensionElement = this.currentExtension.element;
             const originalParent = this.currentExtension.originalParent;
-            
+
             if (originalParent && originalParent.parentNode) {
                 console.log(`${LOG_PREFIX} Restoring extension element to original parent`);
                 originalParent.appendChild(extensionElement);
-                
+
+                // Hide the element again (since we hid all extensions in createEnhancedInterface)
+                extensionElement.style.display = 'none';
+
                 // If it was a drawer, restore proper state
                 if (extensionElement.querySelector('.inline-drawer-content')) {
                     const drawerContent = extensionElement.querySelector('.inline-drawer-content');
@@ -942,12 +953,16 @@ export const ExtensionsTabOverhaul = {
 
     refreshInterface: function() {
         const timestamp = new Date().toLocaleTimeString();
-        console.log(`${LOG_PREFIX} ⚠️ refreshInterface called at ${timestamp} - DISABLED to prevent breaking organization`);
+        console.log(`${LOG_PREFIX} ⚙️ refreshInterface called at ${timestamp}`);
 
-        // DISABLED: This was causing extensions to disappear after initial organization
-        // this.reorganizeExtensions();
+        // Check if the interface exists before trying to refresh
+        const layoutContainer = document.querySelector('.nemo-extensions-layout');
+        if (!layoutContainer) {
+            console.warn(`${LOG_PREFIX} Layout container not found, cannot refresh`);
+            return;
+        }
 
-        console.log(`${LOG_PREFIX} Skipping reorganization to keep extensions visible`);
+        this.reorganizeExtensions();
     },
     
     reorganizeExtensions: function() {
