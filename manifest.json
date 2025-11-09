@@ -1,8 +1,8 @@
 {
     "display_name": "NemoPresetExt",
     "author": "@NemoVonNirgend",
-    "version": "3.4.0",
-    "description": "Transforms the prompt manager with collapsible sections, triggers, and a full Preset Navigator.",
+    "version": "4.6.3-mid-patch",
+    "description": "Transforms the prompt manager with collapsible sections, triggers, and a full Preset Navigator. Core features only - no NemoLore, ProsePolisher, Ember, Card Emporium, MoodMusic, or NemoVRM.",
     "requires": [],
     "optional": [],
     "js": "content.js",

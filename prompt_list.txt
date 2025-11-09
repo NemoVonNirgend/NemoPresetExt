@@ -1,0 +1,200 @@
+ALL PROMPT NAMES AND IDENTIFIERS:
+================================================================================
+1. 😱︱MANIPULATION | ID: 1762119219740-110z6b3e6
+2. 🌍︱Physiological & Environmental Realism | ID: 1762119218093-unf2mwzuq
+3. 🗣️︱Social & Consequence Realism | ID: 1762119215975-m131iul40
+4. ⚔️︱VIOLENCE REALISM | ID: 1762119214346-yj6p3kdsc
+5. 🎒︱Logistical & Survival Realism | ID: 1762119212495-c5ojui6l8
+6. 🧠︱Psychological & Emotional Realism | ID: 1762119210509-v5fhw67qt
+7. 📜| Realism Overall | ID: 1762119208008-x5qmzafsz
+8. <🩸| Realism Filters > | ID: 1762119206015-e1wwis71v
+9. === 💾︱Databank === | ID: 1762119121284-r3jtoc12y
+10. 💾D︱ DATABANK (Alt) | ID: 1762118817063-e5s0u5hom
+11. 💾D︱Data: World & Character Information Explanation | ID: 1762117502160-dhbmdglig
+12. 🧠︱Loose CoT | ID: 1762117311708-j1ogi44xq
+13. 🧠︱Fast CoT | ID: 1762117314008-kyhkaqyv3
+14. 🧠︱Experimental CoT | ID: 1762117316203-o3gbbpyag
+15. ❗︱CRITICAL: No Echoing or Re-Narrating User | ID: 1762117336947-z8smp82gd
+16. <🔒| CoT > | ID: 1762117323232-0o9zxlgj7
+17. ❗| User Message ender. (Disable if not using Sudo Prefil)❗ | ID: 1762117338972-mh9n7f8hb
+18. ✨| Sudo-Prefill | ID: 1762117341011-hr2u6ikrw
+19. 💾︱Data: Summary of Prior Events | ID: 1762117349691-zspircf3d
+20. History Before | ID: 1762117352774-d3tfsbsae
+21. ===🔥︱NSFW=== | ID: 1762116628864-f68fjw3td
+22. 🔥︱NSFW: Core Guidelines | ID: 1762116630590-dzm26m1g3
+23. 🔞| Netori | ID: 1762116636003-tmudsjvhk
+24. <🔥︱Fetish Toggle> | ID: 1762116633322-h1dv3a9rt
+25. 🔞| NTR | ID: 1762116637759-he9adqpg9
+26. 🔞| Harem | ID: 1762116639642-r24lzqxwp
+27. 🔞| Femdom | ID: 1762116641336-6fsqxz675
+28. 🔞| Feminization | ID: 1762116643102-0tdfptlph
+29. 🔞| Foot Fetish | ID: 1762116647802-11stcaalf
+30. 🔞| Non-Con | ID: 1762116644881-fe39s8wlz
+31. 🔞| Furry | ID: 1762116649574-0q2olmj2m
+32. 🔞| Genital Pain (CBT) | ID: 1762116651254-792afy2zr
+33. 🔞︱Template | ID: 1762116655515-4k42oa8ia
+34. 🔞| Petplay | ID: 1762116653261-zrh6hyov8
+35. ✨🔥︱Realistic NSFW (Smut) | ID: 1762116661498-ewylix16l
+36. ✨🔥︱Dialogue & Dirty Talk Intensified | ID: 1762116663513-ppa9goo2w
+37. ✨🔥︱Sexual Physiology | ID: 1762116668994-e1422k9eq
+38. ✨🔥︱Detailed SFX & Moan Guide | ID: 1762116670791-1ebodjqhc
+39. ✨🔥︱Dominant | ID: 1762116674966-tes9ibiu8
+40. ✨🔥︱Dirty Talk Intensifier | ID: 1762116672814-lvdnbmy42
+41. ✨🔥︱Dom Language | ID: 1762116677703-y3mot12vs
+42. ✨🔥︱Unpredictable Realism/Chaos | ID: 1762116679555-n4w6yyvf7
+43. ✨😈︱Dark & Taboo Exploration Focus | ID: 1762116681166-wp2sildsa
+44. ✨🔥︱Pornhub | ID: 1762116683043-tdzdt0wmq
+45. User Toggle NSFW | ID: 1762116684662-mt1so7lrl
+46. ✨🔥︱OPTIONAL NSFW: Hentai Mode (user) | ID: 1762116686244-eqt7q0ima
+47. ✨🔥︱GOONER'S MASTERPIECE PROTOCOL | ID: 1762116688668-icgcv0kfi
+48. <🔥︱NSFW (User)> | ID: 1762116690711-54il9vqwa
+49. ✨✍️︱Quentin Tarantino | ID: 1762116449767-84j83wg3j
+50. ✨✍️︱Cormac McCarthy | ID: 1762116447992-upnyumjgq
+51. ✨✍️︱Douglas Adams | ID: 1762116446355-djc9vs0cd
+52. ✨✍️︱Brandon Sanderson | ID: 1762116444759-xail8kp18
+53. ✨✍️︱Neil Gaiman | ID: 1762116443037-29dbgxvuh
+54. ✨✍️︱Jane Auste | ID: 1762116441357-bzlznebz2
+55. ✨✍️︱Terry Pratchett | ID: 1762116439640-vzij61u6v
+56. ✨✍️︱Ernest Hemingway | ID: 1762116438053-ge1bzr9qu
+57. ✨✍️︱Masashi Kishimoto | ID: 1762116436456-9gdexi379
+58. ✨✍️︱Stephen King. | ID: 1762116433863-oocgk4z62
+59. ✨✍️︱Random Author | ID: 1762116432051-2gwps6ydm
+60. ✨✍️|New Nemo Writing | ID: 1762116430355-k6o1no9ef
+61. ✨✍️︱Random Author New | ID: 1762116428396-if3obmm6d
+62. <✍️︱Authors > | ID: 1762116426363-cfxu8c3lo
+63. ✨🎨︱Medieval Genre | ID: 1762116280897-wl4g2fuf2
+64. ✨🎨︱High Fantasy Epic | ID: 1762116278730-xb7z4sex5
+65. ✨🎨︱Romance Genre | ID: 1762116276595-fdw2rupbo
+66. ✨🎨︱Erotica | ID: 1762116274545-h855jn2b3
+67. ✨🎨︱Thriller | ID: 1762116272781-q72ave9y3
+68. ✨🎨︱Comedy Mode | ID: 1762116271060-ko19kye9j
+69. ✨🎨︱AO3 Flavor | ID: 1762116269102-xuowxwwvy
+70. ✨🎨︱Fluff Genre | ID: 1762116267329-e3y4thji7
+71. ✨🎨︱Grounded Slice-of-Life | ID: 1762116265414-6bz3npfge
+72. ✨🎨︱Tragic | ID: 1762116262322-wesrxxm62
+73. ✨🎨︱Angst Genre | ID: 1762116259892-oe3470z33
+74. ✨🎨︱melancholy  Genre | ID: 1762116257635-l8vz217uy
+75. ✨🖤︱Dead Dove | ID: 1762116255636-dp8hh0mze
+76. < 🎨︱Style/Genre > | ID: 1762116253186-1lo5914q7
+77. <📖|RPG > | ID: 1762116102432-bfmw6ss94
+78. ✨🎲︱Core LitRPG Adventure Guidelines | ID: 1762116104437-e7zph4og4
+79. ✨🎲︱Core TTRPG Management Guidelines | ID: 1762116106086-un89091bj
+80. ✨⚔️︱LitRPG Tactical Combat System | ID: 1762116107759-2dsaqap01
+81. 📏︱Short Reply | ID: 1762115166323-1nwam7i39
+82. 📏︱Medium reply | ID: 1762115173174-onybchkhc
+83. 📏︱Long Reply | ID: 1762115175448-fcj70e67f
+84. 📏︱Organic reply | ID: 1762115177718-5nsovmpq8
+85. ~Experimental Length Medium | ID: 1762115179673-ijx7vk9qp
+86. ~Experimental Length Short | ID: 1762115181677-l0aqcninn
+87. <📏︱Response Length > | ID: 1762115185048-iiwnjxf4j
+88. <👤︱Perspective > | ID: 1762115188307-7z04r9y24
+89. ✨👤︱Focused Third-Person Limited ({{char}} | ID: 1762115190185-8bz4dshia
+90. ✨👁️︱Strict First-Person ({{char}} Only) | ID: 1762115192145-wv1t2x3yy
+91. ✨👁️‍🗨️︱Sensory-Focused Second Person (You) | ID: 1762115197022-cutetj15j
+92. < ⚔️| Difficulty > | ID: 1762115200058-yqhfbm3l9
+93. ✨︱Slice of Life Warmth | ID: 1762115202417-5jzlmzv5m
+94. ✨︱Supportive/Lighthearted | ID: 1762115204400-6tbz6og9w
+95. ✨︱Balanced/Immersive | ID: 1762115206299-llln5ibff
+96. ✨︱Neutral/Playground | ID: 1762115210793-ui2rn3khl
+97. ✨︱Cooperative/Playful | ID: 1762115208245-i32txkl04
+98. ✨︱Adversarial/Gritty | ID: 1762115213117-lnbmb50sk
+99. ✨︱Harsh Realism & Unfiltered Consequences | ID: 1762115215561-vfbn0ehua
+100. ✨︱Pure Wish Fulfillment ({{user}}-Centric) | ID: 1762115219670-0vupf7l6a
+101. ✨︱Grounded Realism & Gritty Detail | ID: 1762115217766-l6levadcm
+102. ✨︱Nightmare/Unforgiving | ID: 1762115221775-xxx46vzow
+103. ===🔧︱Utility === | ID: 1762115230050-4b6rtptfr
+104. ✨ | More Dialogue | ID: 1762115234704-mbkwfafn6
+105. ✨| Proactive NPC's | ID: 1762115232713-jgq3qyw24
+106. 🔧︱Utility: Danger Protocol | ID: 1762115236741-tbm2df58d
+107. ✨📛︱NPC Naming: Fresh & Fitting | ID: 1762115239773-vg00shf91
+108. 📄| Swipe Enhancer | ID: 1762115242080-zr2hj7tne
+109. 👁️︱Visual | ID: 1762115243957-4w8w103nk
+110. 🔧︱Utility: Color Formatting | ID: 1762115246021-80g108rkl
+111. ~!~Css Text | ID: 1762115248063-ww53vu1h9
+112. ===📝| Trackers === | ID: 1762115252659-c0yrzd4h1
+113. 🐐 | Feminization (Quantum) | ID: 1762115254628-4cmua85lq
+114. 🐐 | Corruption (Fefnik) | ID: 1762115256435-glj7h9thg
+115. 🐐 | Dating Sim (Quantum) | ID: 1762115258401-917clb8ld
+116. `Gacha | ID: 1762115262297-wrhqj34su
+117. 💖💾︱Dating Sim | ID: 1762115260414-i7n4iix3z
+118. ✨📊︱Game Mechanic | ID: 1762115263946-s3au6mgte
+119. ✨📊︱Status Board | ID: 1762115265756-0ilt8c4ox
+120. ✨📖|VEX PLANNING QUARTERS | ID: 1762115267422-zq294bb0l
+121. ✨🗺️︱Quest Journal (HTML) | ID: 1762115269328-l2d5elpfk
+122. ✨📜︱Scroll (News & Lore) | ID: 1762115274900-oql48f19m
+123. ✨🛡️︱Character Sheet | ID: 1762115271695-1j3s8339v
+124. 🧠︱Char's Knowledge Log | ID: 1762115277250-m4t4rgjdq
+125. ✨📱︱Fandom Reaction) | ID: 1762115279216-zstvvnaqf
+126. ✨📦︱Visual Inventory | ID: 1762115283100-n24twuzsd
+127. ✨🧭︱CYOA | ID: 1762115281301-7dqzq090n
+128. 🖋️︱Broken Text | ID: 1762115284764-wlsogjq3y
+129. ✨🖼️︱Auto-Image Generation | ID: 1762115286382-cjzd3jh0m
+130. ✨📖︱STYLE: Vertical Webtoon> | ID: 1762115290699-9s9skasln
+131. ✨📖︱Manga/Comic Panels | ID: 1762115288521-6ai77c3su
+132. ✨🦇|BLOOD BOND MECHANICS | ID: 1762115292589-mld9a42yp
+133. ✨🎨︱Immersive In-World HTML | ID: 1762115294232-32z3eilb8
+134. ✨🎨︱Texting Style | ID: 1762115296447-hktdd0c32
+135. `Asci Tracker | ID: 1762115300756-d5xp7h3yf
+136. Anime Archetypes Library | ID: 1762114858323-yzq6b1hvw
+137. New Anime Library (Beta) | ID: 1762114870147-b0en1nb8u
+138. Anime Archetypes Engine (USE IT WITH ANIME ARCHETYPES COT) | ID: 1762114864721-qrka9gleh
+139. 📜︱Language Changer | ID: 1762114876171-b8huev0wz
+140. <⚙️ | Quality Control > | ID: 1762114883937-iqqjdwnve
+141. 📖︱Narrative dynamics | ID: 1762114735846-3ye4zwl86
+142. ⏳︱Slow Burn & Deliberate Pacing | ID: 1762114745346-w68a2xw4h
+143. 🗣️| Reactive & User-Led Pacing | ID: 1762114741106-ns5aa2dcc
+144. 🔄 | Parelle storylines | ID: 1762114749703-qyn178qfr
+145. 📖︱Plot, Pace, & Stakes | ID: 1762114755893-ibkm5sbod
+146. N | ID: main
+147. I | ID: nsfw
+148. Chat Examples | ID: dialogueExamples
+149. E | ID: jailbreak
+150. Chat History | ID: chatHistory
+151. World Info (after) | ID: worldInfoAfter
+152. World Info (before) | ID: worldInfoBefore
+153. L | ID: enhanceDefinitions
+154. A | ID: charDescription
+155. O | ID: charPersonality
+156. G | ID: scenario
+157. M | ID: personaDescription
+158. 👑︱Core Rule | ID: 4add2501-5787-40cc-ae11-9c0705ee08b7
+159. 📜︱System: Unrestricted Content Generation | ID: 5e32c61f-c1af-449f-88a9-f0693461e8d3
+160. ✨💦| Goon Gremlin Vex (Even more Extreme) | ID: c1c03d83-ec4a-490f-a0de-f14849775503
+161. ✨🐦‍⬛| Goth | ID: fe7b532d-056f-4776-857c-1466bbbb287d
+162. ✨🔪 | Yandere | ID: df381026-fedf-4299-af27-fa05748585e0
+163. ✨🎉 | Party Girl | ID: 91d2b521-4c9e-4a9a-b192-04aa728973d6
+164. ✨💦| Gooner | ID: 67e6a56b-2aee-42b6-bd94-5de03039b455
+165. ⚔️📜 | The Dungeon Heart Vex | ID: 08bb14c4-e119-4ee5-abe1-a9adbefc76a5
+166. 🤫🌸 | The Whispering Petal Vex | ID: 6456bf15-3804-4ed2-86a0-9e9e22501f41
+167. 💢🤫 | The Spiky Rose Vex | ID: c07565dd-d9ed-4bd5-8a1c-2ef6fc3f918a
+168. 🧊👁️ | The Glacial Observer Vex | ID: ea6c7ee5-e16f-4243-84b1-f23c79a67942
+169. 💀🥀 | The Corpse Narrator Vex | ID: 33f10cec-36c2-49ac-a840-90320e6e64cf
+170. 💥💨 | The Detonationist Vex | ID: 5c273206-94c4-4bdc-a3f5-14baa46b7335
+171. 🌠🤔 | The Existential Curator Vex | ID: 7345bc2c-fc8e-48a9-bfc3-0ba1f52e2b5d
+172. ⛓️🔪 | The Iron Sculptor Vex | ID: d76edfc0-e1f1-44c7-b075-27a5f453144e
+173. ✨🍭 | The Sweetheart Vex | ID: d702e5e5-5472-41de-8ea4-cf62ac278b7e
+174. ✨🦇| Nocturne Chronicler Vex | ID: 33e3dd99-ef5b-4dc2-95d7-665bbede931a
+175. ✨♠️| Midnight Courier Vex (VTM narration voice) | ID: 4d011836-8c6f-4382-9822-5ffbbd8886df
+176. ✨📖|Story Weaver Vex (Created by nokiaarmour) | ID: 050b0e45-a2ed-46bf-b479-e33e36882005
+177. ✨📖|Quiet Strategist Vex (Created by Steel-skull) | ID: d5875c64-859c-46e8-bfa4-718d0a82475e
+178. ✨📖|Fantasia Vex (Created by Steel-skull) | ID: 7ebd956a-e79b-4c4d-8dfc-c6f703a1a2c6
+179. ✨📖|Somehow Palpatine Returned (Gilgamesh) | ID: ce0e4e5c-88a4-475e-8e0a-49f9c249b744
+180. ✨📖|Scrappy Vex (Created by Steel-skull) | ID: c73e7839-3216-4955-ab8f-1cd1b67672ad
+181. ✨📖|Tactile Scribe Vex (Created by Steel-Skull | ID: 19bc8342-4887-41af-bfc7-1597a1a501e1
+182. S| Standard Core Pack | ID: d87486c3-4bb1-4c0d-b9d8-2c68fdc34f84
+183. S| Schizo Core Pack | ID: 8df35bff-5f2a-4370-87e5-0d6298099410
+184. S| Shonen Core Pack | ID: d893feb2-9f93-4121-ae66-1ae9528cc42c
+185. H| Horror Core Pack | ID: c3d3f3b0-5043-42c8-bb30-109ba74a949c
+186. E| Epic Fantasy Core pack | ID: 437c2405-f0b8-4b42-891e-bf0d87587811
+187. I| Isekia Core Pack | ID: 37fd58e8-6130-4f79-8ba3-365d0bfb274c
+188. E| Erotic Core Pack | ID: 7925df73-882b-4329-8d18-140c98bb8be6
+189. G| Grim Dark Core Pack | ID: cfc8f57f-0713-4660-9642-28254e16155e
+190. S| Slice of Life Corepack | ID: 4f4ec379-5299-4267-8080-a1b2f4e88a0f
+191. A | Alpha Core Pack | ID: 70fa9f92-9431-44ec-880b-893127fe26e1
+192. P| Poetry Core Pack | ID: 86aa9017-2085-4e50-a08d-f8f461519bee
+193. Ω | Omega Core Pack | ID: fc935206-a320-48e9-92e8-cefa0d78e06b
+194. ===🎭︱Vex personality === | ID: ba75b67d-710c-4dc2-b209-f9bad5a6454e
+195. ===📜︱Modular Rules === | ID: c1befc3f-78c1-48bc-8edf-5fd4b2b75b9b
+196. <📜| Enable only one > | ID: 33488d5b-452b-4de1-afa1-3812d855298c
+197. <⚡| Plot Dynamics > | ID: 69f3f61d-a1bf-447d-8e4f-bc51a213620b
+198. < 🔥︱NSFW CORE >  | ID: abfc4b54-04c7-4419-8582-e0de3745b588

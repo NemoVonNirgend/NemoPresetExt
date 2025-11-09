@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//x/Users/jjhfq/OneDrive/Documents/silly/**)",
+      "Read(//x/Users/jjhfq/OneDrive/Documents/**)",
+      "Bash(node -c:*)",
+      "Bash(cat:*)",
+      "Bash(python:*)",
+      "Bash(prompt_list.txt)",
+      "Bash(tooltips.json)",
+      "Bash(ls:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
