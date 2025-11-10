@@ -413,15 +413,18 @@ Vex is your personal assistant for learning NemoPresetExt:
 
 ### Available Tutorials
 
-The tutorial system includes guides for:
+The tutorial system includes comprehensive guides for all features:
 
 1. **Welcome Tutorial** - Introduction to the extension suite
 2. **Preset Management** - Learn collapsible sections and organization
-3. **Directives Engine** - Master prompt metadata and rules
-4. **Animated Backgrounds** - Set up video backgrounds
-5. **UI Overhauls** - Navigate the enhanced interface
-6. **Reasoning System** - Understand CoT parsing
-7. **And More** - Additional tutorials for all features
+3. **Preset Navigator** - Browse and manage API presets visually
+4. **Animated Backgrounds** - Set up video and YouTube backgrounds
+5. **Directives Engine** - Master prompt metadata and rules
+6. **UI Overhauls** - Navigate the enhanced interface
+7. **NemoNet Reasoning** - Understand Chain of Thought parsing
+8. **HTML Trimmer** - Optimize context usage automatically
+9. **NemoEngine 7.6 Setup Guide** - Complete step-by-step configuration walkthrough (25 detailed steps)
+10. **Quick Tips** - Keyboard shortcuts and hidden features
 
 ### Features
 

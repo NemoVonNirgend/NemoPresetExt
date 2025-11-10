@@ -5,6 +5,65 @@
  * This is the CORE version - only includes tutorials for features present in this build
  */
 
+// Vex portrait paths - different expressions for different moods
+const VEX_PORTRAITS = {
+    default: 'scripts/extensions/third-party/NemoPresetExt/assets/vex-default.png',      // Neutral, standard pose
+    smiling: 'scripts/extensions/third-party/NemoPresetExt/assets/vex-smiling.png',      // Happy, cheerful
+    talking: 'scripts/extensions/third-party/NemoPresetExt/assets/vex-talking.png',      // Explaining, teaching
+    thinking: 'scripts/extensions/third-party/NemoPresetExt/assets/vex-thinking.png'     // Thoughtful, considering
+};
+
+/**
+ * Helper function to find and highlight a prompt by name
+ * @param {string} promptName - The name of the prompt to highlight
+ * @returns {string|null} - CSS selector if found, null otherwise
+ */
+function findPromptSelector(promptName) {
+    // Try to find prompt in the DOM
+    // SillyTavern prompts are typically in the prompt manager
+    // We'll search for elements containing the prompt name
+    const promptElements = document.querySelectorAll('[id*="completion_prompt"], [id*="prompt_manager"]');
+
+    for (const element of promptElements) {
+        const text = element.textContent || '';
+        if (text.includes(promptName)) {
+            return `#${element.id}`;
+        }
+    }
+
+    // If not found by ID, try finding by text content
+    const allPrompts = document.querySelectorAll('.prompt-manager-prompt, .inline-drawer');
+    for (const prompt of allPrompts) {
+        const nameElement = prompt.querySelector('.prompt-name, .inline-drawer-header');
+        if (nameElement && nameElement.textContent.includes(promptName)) {
+            return `.prompt-manager-prompt:has(.prompt-name:contains("${promptName}"))`;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Helper function to open the prompt manager
+ */
+function openPromptManager() {
+    try {
+        // Try to find and click the prompt manager button
+        const promptManagerBtn = document.querySelector('[data-i18n="Prompts"], button:contains("Prompts")');
+        if (promptManagerBtn && !promptManagerBtn.classList.contains('active')) {
+            promptManagerBtn.click();
+        }
+
+        // Alternative: try to find the Advanced Formatting panel
+        const advancedFormattingBtn = document.querySelector('[data-i18n="Advanced Formatting"]');
+        if (advancedFormattingBtn && !advancedFormattingBtn.classList.contains('active')) {
+            advancedFormattingBtn.click();
+        }
+    } catch (error) {
+        console.warn('[NemoEngine Tutorial] Could not automatically open prompt manager:', error);
+    }
+}
+
 export const tutorials = {
     // Welcome Tutorial
     welcome: {
@@ -14,6 +73,7 @@ export const tutorials = {
         steps: [
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Hey there, I'm Vex! 👋</h3>
                     <p>Welcome to NemoPresetExt! I'm your guide to all the powerful features in this extension.</p>
@@ -22,6 +82,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>What's Inside? 🎁</h3>
                     <p>This extension includes <strong>8 powerful core features</strong>:</p>
@@ -39,6 +100,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>How This Works 📚</h3>
                     <p>I'll guide you through each feature with step-by-step tutorials. You can:</p>
@@ -52,6 +114,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Let's Get Started! 🚀</h3>
                     <p>Ready to dive in? You can either:</p>
@@ -74,6 +137,7 @@ export const tutorials = {
         steps: [
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Welcome to Preset Management! 📋</h3>
                     <p>This is the original feature that started it all! Let me show you how to organize your prompts like a master.</p>
@@ -84,6 +148,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 1: Opening the Prompt Manager 🚪</h3>
                     <p>First, let's make sure you know where to find your prompts:</p>
@@ -98,6 +163,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 2: Creating Your First Divider ✂️</h3>
                     <p>Let's create a collapsible section! Here's exactly how:</p>
@@ -113,6 +179,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 3: Adding Prompts to Your Section 📝</h3>
                     <p>Now let's add some prompts under that divider:</p>
@@ -128,6 +195,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 4: Collapsing and Expanding Sections 🎯</h3>
                     <p>Here's where it gets cool:</p>
@@ -142,6 +210,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 5: Using the Search Bar 🔍</h3>
                     <p>With lots of prompts, finding things can be tough. That's where search comes in!</p>
@@ -157,6 +226,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 6: Drag and Drop Reordering 🔄</h3>
                     <p>Want to rearrange your prompts? Easy!</p>
@@ -172,6 +242,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
                 text: `
                     <h3>Step 7: Organizing Multiple Sections 📚</h3>
                     <p>Here's a pro workflow for organizing complex presets:</p>
@@ -191,6 +262,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
                 text: `
                     <h3>Step 8: Custom Divider Patterns 🎨</h3>
                     <p>Want to use different symbols? You can customize the divider pattern!</p>
@@ -207,6 +279,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>You're All Set! ✅</h3>
                     <p>Congratulations! You now know how to:</p>
@@ -233,6 +306,7 @@ export const tutorials = {
         steps: [
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Welcome to Preset Navigator! 🧭</h3>
                     <p>Tired of scrolling through dropdown menus to find your presets? The Preset Navigator makes browsing and selecting API presets a breeze!</p>
@@ -241,6 +315,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 1: Finding the Browse Button 🔍</h3>
                     <p>Here's how to access the Preset Navigator:</p>
@@ -255,6 +330,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 2: Opening the Navigator 🚀</h3>
                     <p>Let's open it up and see what's inside:</p>
@@ -269,6 +345,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 3: Browsing Presets 👀</h3>
                     <p>Now you can explore your presets visually:</p>
@@ -283,6 +360,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 4: Using Quick Search 🔎</h3>
                     <p>Got lots of presets? Use the search feature:</p>
@@ -297,6 +375,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 5: Selecting a Preset ✨</h3>
                     <p>Ready to switch to a different preset? Simple:</p>
@@ -311,6 +390,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Step 6: Multi-API Support 🌐</h3>
                     <p>The Preset Navigator works with these API providers:</p>
@@ -327,6 +407,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Navigator Master! 🎓</h3>
                     <p>You're now a Preset Navigator pro! Remember:</p>
@@ -351,6 +432,7 @@ export const tutorials = {
         steps: [
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Let's Make Things Move! 🎬</h3>
                     <p>Static backgrounds are so yesterday! Let me show you how to add animated backgrounds to your chats.</p>
@@ -359,6 +441,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 1: Enable Animated Backgrounds ⚙️</h3>
                     <p>First, we need to make sure the feature is turned on:</p>
@@ -374,6 +457,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 2: Accessing Background Settings 🖼️</h3>
                     <p>Let's navigate to SillyTavern's background settings:</p>
@@ -389,6 +473,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 3: Adding a Video Background 🎥</h3>
                     <p>Let's add a video file as your background:</p>
@@ -403,6 +488,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 4: Using YouTube Backgrounds 📺</h3>
                     <p>Want to use a YouTube video? Even easier:</p>
@@ -418,6 +504,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 5: Controlling Playback 🎮</h3>
                     <p>Customize how your background plays:</p>
@@ -438,6 +525,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
                 text: `
                     <h3>Step 6: Performance Optimization 🚀</h3>
                     <p>Keep your backgrounds smooth with these tips:</p>
@@ -453,6 +541,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>You're a Director Now! 🎥</h3>
                     <p>That's everything about animated backgrounds! You now know:</p>
@@ -477,6 +566,7 @@ export const tutorials = {
         steps: [
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Time to Get Advanced! 🎯</h3>
                     <p>The Directives Engine is one of the most powerful features in the suite. It lets you add logic, conditions, and metadata directly into your prompts!</p>
@@ -485,6 +575,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>What Are Directives? 🤔</h3>
                     <p>Directives are special comments you add to your prompts using this syntax:</p>
@@ -496,6 +587,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 1: Your First Directive ✨</h3>
                     <p>Let's add a simple tooltip directive:</p>
@@ -513,6 +605,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 2: Using the Autocomplete 💡</h3>
                     <p>Don't memorize directives - use autocomplete instead!</p>
@@ -529,6 +622,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 3: Dependencies with @requires 🔗</h3>
                     <p>Make prompts depend on each other automatically:</p>
@@ -547,6 +641,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 4: Conflicts with @exclusive-with ⚔️</h3>
                     <p>Prevent conflicting prompts from being active together:</p>
@@ -566,6 +661,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 5: API-Specific Prompts 🌐</h3>
                     <p>Show prompts only for specific API providers:</p>
@@ -584,6 +680,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 6: Categories for Organization 📁</h3>
                     <p>Group prompts logically with categories:</p>
@@ -602,6 +699,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 7: Priority Control 🎯</h3>
                     <p>Control the order prompts are processed:</p>
@@ -620,6 +718,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>All Available Directives 📝</h3>
                     <p>Here's your complete directive toolkit:</p>
@@ -639,6 +738,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Master of Directives! 🎓</h3>
                     <p>Congratulations! You now know:</p>
@@ -664,6 +764,7 @@ export const tutorials = {
         steps: [
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Welcome to the UI Overhauls! 🎨</h3>
                     <p>NemoPresetExt includes several UI improvements that make SillyTavern cleaner, more organized, and easier to use!</p>
@@ -672,6 +773,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Extensions Tab Overhaul 📂</h3>
                     <p>The Extensions tab gets a complete makeover:</p>
@@ -687,6 +789,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>User Settings Tabs 🗂️</h3>
                     <p>Transform the User Settings panel into organized tabs:</p>
@@ -701,6 +804,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Advanced Formatting Tabs 📋</h3>
                     <p>The Advanced Formatting panel gets tabs too:</p>
@@ -714,6 +818,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Wide Navigation Panels 📏</h3>
                     <p>Give yourself more working space:</p>
@@ -729,6 +834,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Lorebook UI Overhaul 📖</h3>
                     <p>Enhanced World Info interface:</p>
@@ -743,6 +849,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Quick Lorebook Access 🚀</h3>
                     <p>Manage lorebooks right from the prompt manager:</p>
@@ -757,6 +864,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Unified Reasoning Section 🧠</h3>
                     <p>All reasoning-related prompts in one place:</p>
@@ -771,6 +879,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
                 text: `
                     <h3>Customization Tips 💡</h3>
                     <p>Here's my recommended setup process:</p>
@@ -787,6 +896,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>UI Master! 🎨</h3>
                     <p>You now know all the UI enhancements available:</p>
@@ -812,6 +922,7 @@ export const tutorials = {
         steps: [
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Welcome to NemoNet Reasoning! 🧠</h3>
                     <p>NemoNet is a Chain of Thought (CoT) reasoning parser that makes your AI think more deeply and logically!</p>
@@ -820,6 +931,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>What is Chain of Thought? 🤔</h3>
                     <p>Chain of Thought reasoning means the AI "thinks out loud" before responding.</p>
@@ -834,6 +946,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>How NemoNet Works ⚙️</h3>
                     <p>NemoNet doesn't generate reasoning - it <strong>parses and formats</strong> it beautifully!</p>
@@ -849,6 +962,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Supported Reasoning Formats 📝</h3>
                     <p>NemoNet recognizes many CoT formats:</p>
@@ -865,6 +979,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 1: Setting Up CoT Prompts 📋</h3>
                     <p>To use NemoNet, you need prompts that trigger reasoning:</p>
@@ -881,6 +996,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 2: Viewing Formatted Reasoning 👀</h3>
                     <p>Once the AI generates reasoning:</p>
@@ -896,6 +1012,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
                 text: `
                     <h3>Step 3: Configuration Options ⚙️</h3>
                     <p>Customize NemoNet's behavior:</p>
@@ -911,6 +1028,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
                 text: `
                     <h3>When to Use CoT Reasoning 🎯</h3>
                     <p>Chain of Thought is especially powerful for:</p>
@@ -927,6 +1045,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Benefits of NemoNet 🌟</h3>
                     <p>Why use NemoNet's reasoning parser?</p>
@@ -942,6 +1061,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Reasoning Expert! 🎓</h3>
                     <p>You're now ready to use NemoNet Reasoning:</p>
@@ -967,6 +1087,7 @@ export const tutorials = {
         steps: [
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Welcome to HTML Trimmer! ✂️</h3>
                     <p>Long conversations with lots of formatted HTML can eat up your context window fast!</p>
@@ -975,6 +1096,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>The Problem 😰</h3>
                     <p>HTML content in messages takes up a lot of space:</p>
@@ -996,6 +1118,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>The Solution 💡</h3>
                     <p>HTML Trimmer solves this by:</p>
@@ -1010,6 +1133,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 1: Enable Auto-Trim ⚙️</h3>
                     <p>Let's turn on automatic HTML trimming:</p>
@@ -1024,6 +1148,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 2: Configure the Threshold 🎚️</h3>
                     <p>Control how many recent messages to keep untouched:</p>
@@ -1039,6 +1164,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
                 text: `
                     <h3>Step 3: Manual Trimming 🔧</h3>
                     <p>Want to trim right now? Use the manual button:</p>
@@ -1055,6 +1181,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>What Gets Trimmed? 🎯</h3>
                     <p>HTML Trimmer is smart about what it processes:</p>
@@ -1070,6 +1197,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Before & After Example 📊</h3>
                     <p><strong>Before trimming:</strong></p>
@@ -1093,6 +1221,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
                 text: `
                     <h3>Best Practices 💎</h3>
                     <p>Get the most out of HTML Trimmer:</p>
@@ -1107,6 +1236,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Context Optimizer! 🎓</h3>
                     <p>You're now an HTML Trimmer expert:</p>
@@ -1132,6 +1262,7 @@ export const tutorials = {
         steps: [
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>Let's Speed Things Up! ⚡</h3>
                     <p>I've got some quick tips and hidden features that'll make your life easier!</p>
@@ -1140,6 +1271,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Keyboard Shortcuts ⌨️</h3>
                     <p>Save time with these shortcuts:</p>
@@ -1154,6 +1286,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Search Power Tips 🔍</h3>
                     <p>Master the search bars:</p>
@@ -1168,6 +1301,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
                 text: `
                     <h3>Organization Strategies 📚</h3>
                     <p>Pro tips for organizing your prompts:</p>
@@ -1182,6 +1316,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
                 text: `
                     <h3>Settings Management 💾</h3>
                     <p>Your settings are precious - back them up!</p>
@@ -1196,6 +1331,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
                 text: `
                     <h3>Feature Toggle Tips 🔀</h3>
                     <p>Customize exactly what you want enabled:</p>
@@ -1210,6 +1346,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
                 text: `
                     <h3>Performance Tips 🚀</h3>
                     <p>Keep things running smoothly:</p>
@@ -1224,6 +1361,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
                 text: `
                     <h3>Tutorial Menu 📚</h3>
                     <p>You can always come back to any tutorial!</p>
@@ -1240,6 +1378,7 @@ export const tutorials = {
             },
             {
                 speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
                 text: `
                     <h3>You're a Power User Now! 💪</h3>
                     <p>With these tips and tricks, you'll be using NemoPresetExt like a pro!</p>
@@ -1252,6 +1391,704 @@ export const tutorials = {
                         <li>✓ Optimize for performance</li>
                     </ul>
                     <p>Remember: Don't be afraid to experiment! Happy creating! 😊</p>
+                `
+            }
+        ]
+    },
+
+    // NemoEngine Tutorial
+    nemoEngine: {
+        name: 'NemoEngine Setup Guide',
+        description: 'Comprehensive step-by-step guide to configuring NemoEngine',
+        category: 'advanced',
+        steps: [
+            // Section 1: Welcome & Overview (2 steps)
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
+                text: `
+                    <h3>Welcome to NemoEngine! 🚀</h3>
+                    <p>Welcome to the NemoEngine setup guide! I'm here to teach you how to configure this powerful storytelling system step by step.</p>
+                    <p>By the end of this tutorial, you'll know exactly how to customize NemoEngine for your perfect roleplay experience!</p>
+                    <p>Let's dive in and unlock the full potential of your stories!</p>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>What's Inside NemoEngine? 📦</h3>
+                    <p>NemoEngine is a comprehensive storytelling framework that includes:</p>
+                    <ul>
+                        <li><strong>200+ Prompts</strong> - A massive, professionally-crafted prompt library</li>
+                        <li><strong>Modular System</strong> - Mix and match components to fit your story</li>
+                        <li><strong>Vex Narrator Personalities</strong> - Choose the voice/style of your narrative</li>
+                        <li><strong>Core Packs</strong> - Genre-specific storytelling frameworks (Standard, Schizo, Shonen, Horror, etc.)</li>
+                        <li><strong>Utility Features</strong> - Quality controls, response length, perspective, difficulty settings</li>
+                        <li><strong>Realism Filters</strong> - Optional grounded consequences (violence, social, environmental, etc.)</li>
+                        <li><strong>Chain of Thought (CoT)</strong> - Three reasoning modes for deeper AI thinking</li>
+                        <li><strong>RPG Systems</strong> - LitRPG, TTRPG management, and tactical combat</li>
+                        <li><strong>Trackers</strong> - Status displays with ASCII formatting options</li>
+                        <li><strong>NSFW Content</strong> - Opt-in adult content with granular controls</li>
+                    </ul>
+                    <p>It's like having a complete writer's studio at your fingertips!</p>
+                `
+            },
+            // Section 2: Selecting a Vex Personality (3 steps)
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Understanding Vex Personalities 🎭</h3>
+                    <p>Vex personalities are the <strong>narrator and voice of your story</strong>. Think of them as the storyteller who shapes how your narrative unfolds!</p>
+                    <p>Each Vex personality affects:</p>
+                    <ul>
+                        <li><strong>Narrative Direction</strong> - What themes and plot elements emerge</li>
+                        <li><strong>Diction & Word Choice</strong> - The vocabulary and tone used</li>
+                        <li><strong>Story Themes</strong> - Whether your story leans dark, playful, serious, or whimsical</li>
+                        <li><strong>Pacing & Flow</strong> - How quickly or slowly events develop</li>
+                    </ul>
+                    <p><strong>Important:</strong> Only <strong>ONE</strong> Vex personality can be active at a time! They're mutually exclusive - choose the one that matches your story's vibe.</p>
+                    <p><em>💡 Tip: Open your prompt manager (Advanced Formatting > Prompts) to see the Vex personalities in action!</em></p>
+                `,
+                onShow: function() {
+                    // Try to open the prompt manager to show users where Vex personalities are
+                    openPromptManager();
+                }
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>Meet the Vex Personalities! 🎨</h3>
+                    <p>Here are all the available personalities, organized by category:</p>
+
+                    <p><strong>Fun & Light:</strong></p>
+                    <ul>
+                        <li><strong>Party Girl Vex</strong> - Energetic, upbeat, comedy-focused narratives</li>
+                        <li><strong>Sweetheart Vex</strong> - Warm, supportive, wholesome storytelling</li>
+                    </ul>
+
+                    <p><strong>Dark & Intense:</strong></p>
+                    <ul>
+                        <li><strong>Yandere Vex</strong> - Obsessive, possessive, intense psychological themes</li>
+                        <li><strong>Corpse Narrator Vex</strong> - Horror-focused, macabre, death themes</li>
+                        <li><strong>Goth Vex</strong> - Dark aesthetic, melancholic, gothic atmosphere</li>
+                        <li><strong>Iron Sculptor Vex</strong> - Harsh, unforgiving, brutal narratives</li>
+                    </ul>
+
+                    <p><strong>RPG & Adventure:</strong></p>
+                    <ul>
+                        <li><strong>Dungeon Heart Vex</strong> - Classic D&D dungeon master style</li>
+                        <li><strong>Nocturne Chronicler Vex</strong> - Epic quests, grand adventures</li>
+                        <li><strong>Midnight Courier Vex</strong> - Fast-paced, urgent, mission-driven</li>
+                    </ul>
+
+                    <p><strong>Extreme NSFW:</strong></p>
+                    <ul>
+                        <li><strong>Goon Gremlin Vex</strong> - Hentai-focused, extremely explicit adult content</li>
+                    </ul>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
+                text: `
+                    <h3>Choosing Your Vex Personality 🤔</h3>
+                    <p>Not sure which to pick? Match the personality to your story type!</p>
+
+                    <p><strong>Story-Based Recommendations:</strong></p>
+                    <ul>
+                        <li><strong>Romance Stories</strong> → Whispering Petal Vex (soft, gentle) or Sweetheart Vex</li>
+                        <li><strong>Horror/Thriller</strong> → Corpse Narrator Vex or Goth Vex</li>
+                        <li><strong>D&D/Fantasy Adventure</strong> → Dungeon Heart Vex or Nocturne Chronicler Vex</li>
+                        <li><strong>Comedy/Lighthearted</strong> → Party Girl Vex</li>
+                        <li><strong>Action/Combat-Heavy</strong> → Iron Sculptor Vex or Detonationist Vex</li>
+                        <li><strong>Slice of Life</strong> → Sweetheart Vex</li>
+                        <li><strong>Dark Psychological</strong> → Yandere Vex or Glacial Observer Vex</li>
+                        <li><strong>Tsundere Characters</strong> → Spiky Rose Vex</li>
+                    </ul>
+
+                    <p><strong>Additional Specialty Personalities:</strong></p>
+                    <ul>
+                        <li><strong>Whispering Petal Vex</strong> - Soft, gentle, intimate narratives</li>
+                        <li><strong>Spiky Rose Vex</strong> - Tsundere-style, prickly-but-sweet</li>
+                        <li><strong>Glacial Observer Vex</strong> - Clinical, detached, analytical</li>
+                        <li><strong>Detonationist Vex</strong> - Explosive action, high-octane sequences</li>
+                        <li><strong>Story Weaver Vex</strong> - Community-made, balanced storytelling</li>
+                        <li><strong>Fantasia Vex</strong> - Whimsical, magical, fairytale-like</li>
+                    </ul>
+
+                    <p>Remember: You can switch personalities anytime! Experiment to find your favorite.</p>
+                `
+            },
+            // Section 3: Putting the U in Utility (4 steps)
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>The Utility Dropdown: Quality of Life Features 🔧</h3>
+                    <p>The <strong>===🔧︱Utility ===</strong> section contains essential features that improve your storytelling experience!</p>
+                    <p>These are quality-of-life enhancements that make your AI responses better, more varied, and more engaging.</p>
+                    <p>Let me walk you through each category of utility features!</p>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Quality Control Features ⚙️</h3>
+                    <p>These prompts enhance the overall quality of AI responses:</p>
+                    <ul>
+                        <li><strong>More Dialogue</strong> - NPCs speak 4-7 lines per response instead of one-liners, creating richer conversations</li>
+                        <li><strong>Proactive NPCs</strong> - Characters take autonomous actions, have their own goals, and don't just react to you</li>
+                        <li><strong>Danger Protocol</strong> - Threats are followed through realistically - enemies don't give up, dangers persist</li>
+                        <li><strong>NPC Naming</strong> - All characters get unique, memorable names instead of generic "the bartender"</li>
+                        <li><strong>Swipe Enhancer</strong> - Each swipe variation is genuinely different, not just rephrased</li>
+                        <li><strong>Visual (Show Don't Tell)</strong> - Descriptions focus on actions and sensory details instead of stating emotions</li>
+                    </ul>
+                    <p>These work great together - enable whichever match your preferences!</p>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Response Length, Perspective & Difficulty 📏</h3>
+                    <p><strong>Response Length</strong> - Control how long AI responses are:</p>
+                    <ul>
+                        <li><strong>Short</strong> - 300-600 words, quick exchanges</li>
+                        <li><strong>Medium</strong> - 600-800 words (recommended for most stories)</li>
+                        <li><strong>Long</strong> - 900-1100 words, detailed narrative</li>
+                        <li><strong>Dynamic</strong> - Length adapts to context (action = shorter, exploration = longer)</li>
+                    </ul>
+
+                    <p><strong>Perspective</strong> - Narrative point of view:</p>
+                    <ul>
+                        <li><strong>Third-Person</strong> - "He walked..." (most common, easiest to work with)</li>
+                        <li><strong>First-Person 'I'</strong> - "I walked..." (immersive, character-focused)</li>
+                        <li><strong>Second-Person 'You'</strong> - "You walked..." (choose-your-own-adventure style)</li>
+                    </ul>
+
+                    <p><strong>Difficulty</strong> - Story challenge level:</p>
+                    <ul>
+                        <li><strong>Slice of Life Warmth</strong> - Cozy, comforting, low-stakes</li>
+                        <li><strong>Supportive</strong> - Friendly, encouraging tone</li>
+                        <li><strong>Lighthearted</strong> - Fun and easygoing</li>
+                    </ul>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>Style, Genre & Author Emulation ✍️</h3>
+                    <p><strong>Style/Genre Toggles</strong> - Additional writing style modifications available in the Utility section</p>
+
+                    <p><strong>Authors</strong> - Emulate famous writing styles!</p>
+                    <p>NemoEngine can mimic the writing techniques of renowned authors:</p>
+                    <ul>
+                        <li><strong>Quentin Tarantino</strong> - Snappy dialogue, non-linear storytelling, pop culture references</li>
+                        <li><strong>Ernest Hemingway</strong> - Terse, minimalist prose, "iceberg theory"</li>
+                        <li><strong>Neil Gaiman</strong> - Mythological themes, dark fantasy, whimsical-yet-serious</li>
+                        <li><strong>Stephen King</strong> - Horror atmosphere, character-driven suspense</li>
+                        <li><strong>Jane Austen</strong> - Social commentary, romantic tension, period language</li>
+                        <li><strong>And many more!</strong></li>
+                    </ul>
+
+                    <p><strong>Special Options:</strong></p>
+                    <ul>
+                        <li><strong>Random Author</strong> - Picks a different author style each response for variety</li>
+                        <li><strong>New Nemo Writing</strong> - The default NemoEngine writing style (modern, balanced, engaging)</li>
+                    </ul>
+
+                    <p>Experiment with different authors to find what resonates with your story!</p>
+                `
+            },
+            // Section 4: Modular Rules - Core Packs (3 steps)
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Understanding Core Packs 📚</h3>
+                    <p>Core Packs are <strong>complete storytelling frameworks</strong> that define the fundamental rules of your narrative world.</p>
+                    <p>Think of them as different "game modes" - each one creates a distinct storytelling experience!</p>
+
+                    <p><strong>Critical Rules:</strong></p>
+                    <ul>
+                        <li>Core Packs are <strong>mutually exclusive</strong> - only ONE can be active at a time</li>
+                        <li>Each pack defines tone, pacing, prose style, and narrative priorities</li>
+                        <li>Switching Core Packs dramatically changes how your story unfolds</li>
+                        <li>Choose based on your genre and desired experience</li>
+                    </ul>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>Available Core Packs 🎯</h3>
+                    <p>Here are the major Core Packs and what they do:</p>
+
+                    <ul>
+                        <li><strong>Standard Core Pack</strong> - The default, balanced framework
+                            <ul>
+                                <li>Modern prose, ~70% dialogue, natural pacing</li>
+                                <li>Best for: General roleplays, balanced stories</li>
+                            </ul>
+                        </li>
+
+                        <li><strong>Schizo Core Pack</strong> - ANIME CHAOS MODE!
+                            <ul>
+                                <li>Light, bouncy, high-energy comedy</li>
+                                <li>Over-the-top reactions, rapid pacing</li>
+                                <li>Best for: Comedy, slice-of-life anime, chaotic fun</li>
+                            </ul>
+                        </li>
+
+                        <li><strong>Shonen Core Pack</strong> - COMBAT MODE ACTIVATED
+                            <ul>
+                                <li>Kinetic battle sequences, power scaling, training arcs</li>
+                                <li>Friendship, rivalry, determination themes</li>
+                                <li>Best for: Action anime, battle-focused stories</li>
+                            </ul>
+                        </li>
+
+                        <li><strong>Horror Core Pack</strong> - Atmospheric dread and terror
+                            <ul>
+                                <li>Suspenseful pacing, psychological horror, survival</li>
+                                <li>Best for: Horror, thriller, dark stories</li>
+                            </ul>
+                        </li>
+                    </ul>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
+                text: `
+                    <h3>More Core Packs & Plot Dynamics ⚡</h3>
+                    <p><strong>Additional Core Packs:</strong></p>
+                    <ul>
+                        <li><strong>Epic Fantasy Core Pack</strong> - Tolkien-style grand quests, world-ending stakes</li>
+                        <li><strong>Isekai Core Pack</strong> - Transported to another world, game mechanics, power fantasy</li>
+                        <li><strong>Erotic Core Pack</strong> - Adult-focused narrative with sensual emphasis</li>
+                        <li><strong>Grim Dark Core Pack</strong> - Warhammer 40K-style grimdark, moral ambiguity, despair</li>
+                        <li><strong>Slice of Life Core Pack</strong> - Cozy, everyday moments, relationship focus</li>
+                        <li><strong>Poetry Core Pack</strong> - Lyrical, metaphorical prose with poetic flair</li>
+                    </ul>
+
+                    <p><strong>Plot Dynamics</strong> - Fine-tune your story's momentum!</p>
+                    <p>These controls adjust how fast your story moves and how proactive it is:</p>
+                    <ul>
+                        <li><strong>Plot</strong> - How quickly story events progress</li>
+                        <li><strong>Pace</strong> - Speed of individual scenes and action sequences</li>
+                        <li><strong>Stakes</strong> - How high the tension and consequences are</li>
+                    </ul>
+                    <p>Combine with your chosen Core Pack for precise control over narrative flow!</p>
+                `
+            },
+            // Section 5: Realism Filters (2 steps)
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Realism Filters: Grounded Consequences 🌍</h3>
+                    <p>Realism Filters add <strong>optional grounded consequences</strong> to your story world.</p>
+                    <p>They make actions have realistic, lasting impacts instead of being reset each scene.</p>
+
+                    <p><strong>Key Points:</strong></p>
+                    <ul>
+                        <li>These are <strong>optional flavor</strong> for advanced users</li>
+                        <li>Unlike Core Packs, Realism Filters <strong>can be mixed and matched</strong></li>
+                        <li>Enable only the filters that fit your story</li>
+                        <li>Great for immersion and dramatic stakes</li>
+                    </ul>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>Available Realism Filters 🎯</h3>
+                    <p>Each filter adds realistic consequences to a different aspect of the story:</p>
+
+                    <ul>
+                        <li><strong>Violence Realism (⚔️)</strong>
+                            <ul>
+                                <li>Combat injuries persist and require treatment</li>
+                                <li>Recovery takes realistic time</li>
+                                <li>Physical trauma affects performance</li>
+                                <li>Death is permanent and impactful</li>
+                            </ul>
+                        </li>
+
+                        <li><strong>Social Realism (🗣️)</strong>
+                            <ul>
+                                <li>Actions affect reputation</li>
+                                <li>Legal and social consequences for crimes</li>
+                                <li>Rumors spread, relationships matter</li>
+                                <li>NPCs remember your past behavior</li>
+                            </ul>
+                        </li>
+
+                        <li><strong>Environmental Realism (🌍)</strong>
+                            <ul>
+                                <li>Weather affects travel and comfort</li>
+                                <li>Fatigue accumulates from exertion</li>
+                                <li>Hunger, thirst, and exposure are dangers</li>
+                                <li>Terrain impacts movement and strategy</li>
+                            </ul>
+                        </li>
+
+                        <li><strong>Logistical Realism (🎒)</strong>
+                            <ul>
+                                <li>Resources are tracked (food, ammo, money)</li>
+                                <li>Equipment degrades and needs maintenance</li>
+                                <li>Carrying capacity limits what you can bring</li>
+                                <li>Supplies must be replenished</li>
+                            </ul>
+                        </li>
+
+                        <li><strong>Psychological Realism (🧠)</strong>
+                            <ul>
+                                <li>Trauma accumulates from horrible events</li>
+                                <li>Stress affects decision-making</li>
+                                <li>PTSD and emotional scars persist</li>
+                                <li>Fear and sanity are mechanical concerns</li>
+                            </ul>
+                        </li>
+
+                        <li><strong>Realism Overall</strong> - Enables ALL filters at once for maximum realism</li>
+                    </ul>
+                `
+            },
+            // Section 6: Chain of Thought (CoT) (3 steps)
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Chain of Thought (CoT): Reasoning Before Response 🧠</h3>
+                    <p>Chain of Thought makes the AI <strong>think before it responds</strong> by reasoning through the scenario in special tags.</p>
+
+                    <p><strong>What is CoT?</strong></p>
+                    <ul>
+                        <li>AI reasons through the situation in <code>&lt;think&gt;</code> tags</li>
+                        <li>Considers context, character motivations, consequences</li>
+                        <li>Then provides a response based on that reasoning</li>
+                        <li>Results in more consistent, logical, high-quality responses</li>
+                    </ul>
+
+                    <p><strong>NemoPresetExt Integration:</strong></p>
+                    <p>NemoPresetExt helps capture CoT consistently! For best results:</p>
+                    <ul>
+                        <li>Go to <strong>Advanced Formatting</strong> settings</li>
+                        <li>Find <strong>"Start reply with"</strong></li>
+                        <li>Add <code>&lt;think&gt;</code> to force the AI to begin with reasoning</li>
+                    </ul>
+                    <p>(This is optional but highly recommended for consistent CoT!)</p>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>Three CoT Modes 🎯</h3>
+                    <p><strong>Important:</strong> Only ONE CoT mode can be active at a time! They're mutually exclusive.</p>
+
+                    <p><strong>1. Loose CoT</strong> - Flexible and Adaptive</p>
+                    <ul>
+                        <li>Free-form reasoning, no rigid structure</li>
+                        <li><strong>"Council of Vex"</strong> - Multiple perspectives debate approaches</li>
+                        <li>Uses tools and resources as needed</li>
+                        <li>Adapts reasoning depth to situation complexity</li>
+                        <li>Fastest, most creative option</li>
+                        <li>Best for: Dynamic stories, creative freedom, variety</li>
+                    </ul>
+
+                    <p><strong>2. Fast CoT</strong> - Streamlined 7-Step Process</p>
+                    <ul>
+                        <li>Balanced speed and depth (recommended!)</li>
+                        <li>Structured 7-step reasoning:
+                            <ol>
+                                <li>Context assessment</li>
+                                <li>Character analysis</li>
+                                <li>Situation evaluation</li>
+                                <li>Consequence prediction</li>
+                                <li>Response planning</li>
+                                <li>Tone/style selection</li>
+                                <li>Final verification</li>
+                            </ol>
+                        </li>
+                        <li>Consistent quality without excessive overhead</li>
+                        <li>Best for: Most stories, general use</li>
+                    </ul>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
+                text: `
+                    <h3>Main CoT & Choosing Your Mode 🤔</h3>
+                    <p><strong>3. Main CoT</strong> - Most Comprehensive (Experimental)</p>
+                    <ul>
+                        <li>Maximum reasoning depth and detail</li>
+                        <li>7 detailed sections with extensive analysis:
+                            <ul>
+                                <li>Deep context review</li>
+                                <li>Multi-character psychology</li>
+                                <li>World state tracking</li>
+                                <li>Long-term consequence modeling</li>
+                                <li>Narrative coherence verification</li>
+                                <li>Stylistic consistency checks</li>
+                                <li>Final quality assurance</li>
+                            </ul>
+                        </li>
+                        <li>Highest quality, but uses more tokens and time</li>
+                        <li>Best for: Complex narratives, mystery/detective work, strategic campaigns</li>
+                    </ul>
+
+                    <p><strong>All CoT modes close with <code>&lt;/think&gt;</code> before the actual narrative response.</strong></p>
+
+                    <p><strong>Which Should You Choose?</strong></p>
+                    <ul>
+                        <li><strong>Loose CoT</strong> - Want flexibility and creative freedom</li>
+                        <li><strong>Fast CoT</strong> - Best all-around choice (recommended for most users!)</li>
+                        <li><strong>Main CoT</strong> - Need maximum depth and control, willing to spend extra tokens</li>
+                    </ul>
+
+                    <p>Try Fast CoT first, then experiment with the others to find your preference!</p>
+                `
+            },
+            // Section 7: RPG Systems (2 steps)
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>RPG Systems: Game Mechanics & Management 📖</h3>
+                    <p>The <strong>&lt;📖|RPG &gt;</strong> section contains three different RPG systems!</p>
+                    <p>These add game mechanics, statistics, and management systems to your stories.</p>
+                    <p>Perfect for LitRPG adventures, D&D-style campaigns, and tactical combat scenarios!</p>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>Three RPG System Options 🎲</h3>
+
+                    <p><strong>1. Core LitRPG Adventure</strong> - Video game-style progression</p>
+                    <ul>
+                        <li>Skills and experience points (XP)</li>
+                        <li>Leveling system with skill trees</li>
+                        <li>Dungeon portals with F-tier to S-tier difficulty</li>
+                        <li>Essence Coins currency system</li>
+                        <li>Adventurers Guild for quests and rankings</li>
+                        <li>Loot drops and item rarity</li>
+                        <li>Best for: Korean/Japanese LitRPG, Solo Leveling-style stories</li>
+                    </ul>
+
+                    <p><strong>2. Core TTRPG Management</strong> - D&D-style tabletop mechanics</p>
+                    <ul>
+                        <li>Six core attributes: STR, DEX, CON, INT, WIS, CHA</li>
+                        <li>Classes (Fighter, Wizard, Rogue, etc.)</li>
+                        <li>Saving throws and skill checks</li>
+                        <li>Quest journal and NPC relationship tracking</li>
+                        <li>Inventory and equipment management</li>
+                        <li>Party dynamics and group decisions</li>
+                        <li>Best for: D&D campaigns, classic fantasy RPGs</li>
+                    </ul>
+
+                    <p><strong>3. LitRPG Tactical Combat</strong> - Turn-based battle system</p>
+                    <ul>
+                        <li>Turn-based initiative order</li>
+                        <li>Attack rolls and damage calculations</li>
+                        <li>Positioning and terrain effects</li>
+                        <li>Enemy AI with tactical decision-making</li>
+                        <li>Action economy (move, action, bonus action)</li>
+                        <li>Best for: Detailed combat scenarios, strategy-focused battles</li>
+                    </ul>
+
+                    <p>These can be combined with Core Packs and Realism Filters for ultimate customization!</p>
+                `
+            },
+            // Section 8: Trackers (2 steps)
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Trackers: Status Information Display 📊</h3>
+                    <p>The <strong>===| Trackers ===</strong> section contains prompts that display status information about your character, environment, and story state.</p>
+
+                    <p><strong>What Do Trackers Show?</strong></p>
+                    <ul>
+                        <li>Character stats (HP, MP, status effects)</li>
+                        <li>Inventory and equipment</li>
+                        <li>Quest objectives and progress</li>
+                        <li>Environmental conditions</li>
+                        <li>Relationship meters</li>
+                        <li>And much more!</li>
+                    </ul>
+
+                    <p><strong>ASCII Tracker - The Lightweight Solution</strong></p>
+                    <p>By default, trackers can generate heavy HTML/CSS formatting. <strong>ASCII Tracker</strong> converts ALL tracker requests to lightweight ASCII format!</p>
+                    <ul>
+                        <li>Uses plain text instead of HTML</li>
+                        <li>Dramatically reduces token usage</li>
+                        <li>Maintains all functionality</li>
+                        <li>Cleaner, faster, more efficient</li>
+                    </ul>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>How ASCII Tracker Works 🔤</h3>
+                    <p>ASCII Tracker transforms complex HTML trackers into clean, simple ASCII art!</p>
+
+                    <p><strong>Features:</strong></p>
+                    <ul>
+                        <li><strong>Unicode Box-Drawing</strong> - Uses characters like ═ ║ ╔ ╗ ╚ ╝ for borders</li>
+                        <li><strong>Progress Bars</strong> - [████████░░] instead of styled divs</li>
+                        <li><strong>Collapsible Sections</strong> - Uses <code>&lt;details&gt;</code> tags for expanding/collapsing</li>
+                        <li><strong>Merged Interface</strong> - Combines multiple trackers into one unified display</li>
+                        <li><strong>Token Efficient</strong> - 70-90% fewer tokens than HTML trackers</li>
+                    </ul>
+
+                    <p><strong>Example ASCII Tracker:</strong></p>
+                    <pre>
+╔═══════════════════════════════╗
+║ Character Status              ║
+╠═══════════════════════════════╣
+║ HP: [████████░░] 80/100       ║
+║ MP: [██████████] 100/100      ║
+║ Stamina: [████░░░░░░] 40/100  ║
+╠═══════════════════════════════╣
+║ Status: Healthy               ║
+╚═══════════════════════════════╝
+                    </pre>
+
+                    <p>Enable ASCII Tracker for clean, lightweight status displays that won't eat your context!</p>
+                    <p>It maintains all the information while rendering as simple ASCII instead of complex HTML/CSS.</p>
+                `
+            },
+            // Section 9: NSFW Content (2 steps)
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>NSFW Content: Adult Content Controls 🔞</h3>
+                    <p>The <strong>===🔥︱NSFW===</strong> section contains opt-in adult content controls.</p>
+
+                    <p><strong>Important Facts:</strong></p>
+                    <ul>
+                        <li>All NSFW content is <strong>disabled by default</strong></li>
+                        <li>You must <strong>manually enable</strong> what you want</li>
+                        <li>Granular controls - choose exactly what content you're comfortable with</li>
+                        <li>No judgment - it's your story, your rules</li>
+                    </ul>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>NSFW Features & Guidelines 🔥</h3>
+
+                    <p><strong>Core NSFW Guidelines</strong> - The main adult content framework:</p>
+                    <ul>
+                        <li><strong>Anatomical Precision</strong> - Detailed physical descriptions</li>
+                        <li><strong>Raw Language</strong> - Explicit terminology, no euphemisms</li>
+                        <li><strong>Sensory Immersion</strong> - Focus on physical sensations</li>
+                        <li><strong>Vulgar Communication</strong> - Dirty talk and explicit dialogue</li>
+                        <li><strong>Physical Reactions</strong> - Body language and involuntary responses</li>
+                        <li><strong>Hentai Tools (Optional)</strong> - Anime-style exaggeration and tropes</li>
+                    </ul>
+
+                    <p><strong>Additional NSFW Toggles:</strong></p>
+                    <ul>
+                        <li>Specific fetish prompts for various kinks</li>
+                        <li>Intensity controls</li>
+                        <li>Consent and boundary frameworks</li>
+                        <li>Dark themes (use responsibly, if at all)</li>
+                    </ul>
+
+                    <p><strong>Critical Reminder:</strong></p>
+                    <ul>
+                        <li>Enable <strong>only what you're comfortable with</strong></li>
+                        <li>Respect your own boundaries</li>
+                        <li>You can disable features at any time</li>
+                        <li>Mix with appropriate Vex personalities (like Goon Gremlin Vex for hentai content)</li>
+                    </ul>
+                `
+            },
+            // Section 10: Quick Setup Workflow (2 steps)
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
+                text: `
+                    <h3>Quick Setup Workflow for Beginners 🚀</h3>
+                    <p>Not sure where to start? Follow this recommended setup process:</p>
+
+                    <ol>
+                        <li><strong>Keep 👑 Core Rule enabled</strong> - This should ALWAYS stay on (it's the foundation)</li>
+                        <li><strong>Choose ONE Vex Personality</strong> - Pick the narrator that matches your story vibe</li>
+                        <li><strong>Select Response Length</strong> - Medium (600-800 words) recommended for most stories</li>
+                        <li><strong>Choose Perspective</strong> - Third-Person is easiest to work with</li>
+                        <li><strong>Set Difficulty</strong> - Supportive for comfort, adjust as needed</li>
+                        <li><strong>Pick ONE Core Pack</strong> - Standard for general use, or genre-specific for focused stories</li>
+                        <li><strong>Add Utility features as desired</strong> - More Dialogue, Proactive NPCs, etc.</li>
+                        <li><strong>Choose ONE CoT mode</strong> - Fast CoT recommended for balanced performance</li>
+                        <li><strong>Add Realism Filters optionally</strong> - Mix and match based on your story needs</li>
+                        <li><strong>Configure NSFW if needed</strong> - Opt-in only what you want</li>
+                    </ol>
+
+                    <p><strong>Golden Rules:</strong></p>
+                    <ul>
+                        <li>Only ONE: Vex Personality</li>
+                        <li>Only ONE: Core Pack</li>
+                        <li>Only ONE: CoT mode</li>
+                        <li>Only ONE: Response Length</li>
+                        <li>Only ONE: Perspective</li>
+                        <li>Only ONE: Difficulty</li>
+                        <li>Everything else mixes and matches!</li>
+                    </ul>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
+                text: `
+                    <h3>You're Ready to Create Amazing Stories! ✍️</h3>
+                    <p>Congratulations! You've completed the NemoEngine setup guide!</p>
+
+                    <p><strong>What You've Learned:</strong></p>
+                    <ul>
+                        <li>✓ What NemoEngine includes (200+ prompts, modular system)</li>
+                        <li>✓ Vex Personalities - the narrator/voice of your story</li>
+                        <li>✓ Utility features - quality controls, response length, perspective, difficulty, authors</li>
+                        <li>✓ Core Packs - genre-specific storytelling frameworks</li>
+                        <li>✓ Realism Filters - optional grounded consequences</li>
+                        <li>✓ Chain of Thought - three reasoning modes</li>
+                        <li>✓ RPG Systems - LitRPG, TTRPG, tactical combat</li>
+                        <li>✓ Trackers & ASCII Tracker - efficient status displays</li>
+                        <li>✓ NSFW Content - opt-in adult controls</li>
+                        <li>✓ Quick Setup Workflow - how to get started</li>
+                    </ul>
+
+                    <p><strong>Remember the Key Rules:</strong></p>
+                    <ul>
+                        <li>Only ONE Vex Personality</li>
+                        <li>Only ONE Core Pack</li>
+                        <li>Only ONE CoT mode</li>
+                        <li>Only ONE Response Length</li>
+                        <li>Only ONE Perspective</li>
+                        <li>Only ONE Difficulty</li>
+                        <li>Everything else mixes and matches!</li>
+                    </ul>
+
+                    <p>Now go forth and create incredible stories! Happy writing! ✍️</p>
                 `
             }
         ]
@@ -1268,5 +2105,6 @@ export const TUTORIAL_IDS = {
     UI_OVERHAULS: 'uiOverhauls',
     NEMONET_REASONING: 'nemoNetReasoning',
     HTML_TRIMMER: 'htmlTrimmer',
-    QUICK_TIPS: 'quickTips'
+    QUICK_TIPS: 'quickTips',
+    NEMO_ENGINE: 'nemoEngine'
 };

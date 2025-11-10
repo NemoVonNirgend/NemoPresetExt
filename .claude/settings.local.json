@@ -8,7 +8,9 @@
       "Bash(python:*)",
       "Bash(prompt_list.txt)",
       "Bash(tooltips.json)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []
