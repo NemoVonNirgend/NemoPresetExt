@@ -4,6 +4,7 @@ import { callGenericPopup, POPUP_TYPE } from '../../../../popup.js';
 import { getContext } from '../../../../extensions.js';
 import { LOG_PREFIX, generateUUID } from '../core/utils.js';
 import { CharacterManagerUI } from './character-manager-ui.js';
+import logger from '../core/logger.js';
 
 // --- SINGLETON UI INSTANCE ---
 let characterManagerUIInstance = null;
@@ -68,11 +69,6 @@ function injectHeaderUI() {
     });
 }
 
-// Legacy event listeners removed. All UI is in CharacterManagerUI.
-function setupEventListeners() {
-    // Intentionally left blank
-}
-
 export const NemoCharacterManager = {
     isInitialized: false,
     observer: null,
@@ -91,13 +87,13 @@ export const NemoCharacterManager = {
             return;
         }
 
-        console.log(`${LOG_PREFIX} Initializing Character Manager (v5 - Navigator Only)...`);
-        
+        logger.info('Initializing Character Manager (Navigator Only)');
+
         injectHeaderUI();
         // All event listeners and rendering logic have been moved to the UI class.
         // This manager's only job is to inject the "Browse" button.
         this.isInitialized = true;
 
-        console.log(`${LOG_PREFIX} Character Manager initialized successfully.`);
+        logger.info('Character Manager initialized successfully');
     },
 };

@@ -1,0 +1,2131 @@
+/* ==========================================================================
+   WINDOWS 98 RETRO THEME FOR SILLYTAVERN
+   A nostalgic throwback to the classic Windows 98 interface
+   Complete desktop experience with taskbar, program windows, and IRC chat
+   ========================================================================== */
+
+/* === WINDOWS 98 COLOR VARIABLES === */
+:root {
+    --win98-bg: #008080;
+    --win98-window-bg: #c0c0c0;
+    --win98-window-dark: #808080;
+    --win98-window-darker: #404040;
+    --win98-window-light: #dfdfdf;
+    --win98-window-lighter: #ffffff;
+    --win98-titlebar-active: linear-gradient(90deg, #000080, #1084d0);
+    --win98-titlebar-inactive: linear-gradient(90deg, #808080, #b0b0b0);
+    --win98-text: #000000;
+    --win98-text-light: #ffffff;
+    --win98-highlight: #000080;
+    --win98-highlight-text: #ffffff;
+    --win98-button-face: #c0c0c0;
+    --win98-scrollbar: #c0c0c0;
+    --win98-input-bg: #ffffff;
+    --win98-border-light: #ffffff;
+    --win98-border-dark: #808080;
+    --win98-border-darker: #404040;
+    --win98-taskbar-height: 36px;
+    --win98-titlebar-height: 22px;
+}
+
+/* === FONTS === */
+@font-face {
+    font-family: 'MS Sans Serif';
+    src: local('MS Sans Serif'), local('Microsoft Sans Serif'), local('Segoe UI');
+}
+
+/* === BODY - THE DESKTOP === */
+body.nemo-theme-win98 {
+    background: var(--win98-bg) !important;
+    font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    font-size: 14px !important;
+    padding-bottom: var(--win98-taskbar-height) !important;
+    overflow: hidden !important;
+    color: #000000 !important;
+}
+
+/* Scale up all text elements */
+body.nemo-theme-win98 * {
+    font-size: inherit;
+}
+
+/* === GLOBAL TEXT COLOR OVERRIDE === */
+/* Force black text on all elements to override user themes */
+body.nemo-theme-win98,
+body.nemo-theme-win98 * {
+    --SmartThemeBodyColor: #000000 !important;
+}
+
+body.nemo-theme-win98 span,
+body.nemo-theme-win98 div,
+body.nemo-theme-win98 p,
+body.nemo-theme-win98 label,
+body.nemo-theme-win98 a:not(:hover),
+body.nemo-theme-win98 h1,
+body.nemo-theme-win98 h2,
+body.nemo-theme-win98 h3,
+body.nemo-theme-win98 h4,
+body.nemo-theme-win98 h5,
+body.nemo-theme-win98 h6,
+body.nemo-theme-win98 strong,
+body.nemo-theme-win98 b,
+body.nemo-theme-win98 i:not(.fa-solid):not(.fa-regular):not(.fa-brands):not([class*="fa-"]),
+body.nemo-theme-win98 em,
+body.nemo-theme-win98 li,
+body.nemo-theme-win98 td,
+body.nemo-theme-win98 th,
+body.nemo-theme-win98 .text_pole,
+body.nemo-theme-win98 .menu_button,
+body.nemo-theme-win98 button {
+    color: #000000 !important;
+}
+
+/* Title bars and headers should have white text */
+body.nemo-theme-win98 .inline-drawer-header,
+body.nemo-theme-win98 .inline-drawer-header *,
+body.nemo-theme-win98 .inline-drawer-toggle,
+body.nemo-theme-win98 .inline-drawer-toggle b,
+body.nemo-theme-win98 .inline-drawer-toggle strong,
+body.nemo-theme-win98 .popup_title,
+body.nemo-theme-win98 .popup h3 {
+    color: #ffffff !important;
+}
+
+/* Character names on desktop should have white text with shadow for readability */
+body.nemo-theme-win98 .ch_name {
+    color: #ffffff !important;
+    text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000 !important;
+}
+
+/* Links should be blue */
+body.nemo-theme-win98 a {
+    color: #0000ff !important;
+}
+
+body.nemo-theme-win98 a:hover {
+    color: #ff0000 !important;
+}
+
+body.nemo-theme-win98 a:visited {
+    color: #800080 !important;
+}
+
+/* Hide SillyTavern backgrounds */
+body.nemo-theme-win98 #bg1,
+body.nemo-theme-win98 #bg2,
+body.nemo-theme-win98 #bg_custom {
+    display: none !important;
+}
+
+/* === MAIN CONTAINER === */
+body.nemo-theme-win98 #sheld {
+    background: var(--win98-bg) !important;
+    padding: 4px !important;
+    padding-bottom: calc(var(--win98-taskbar-height) + 8px) !important;
+    height: calc(100vh - var(--win98-taskbar-height)) !important;
+}
+
+/* ==========================================================================
+   TASKBAR - THE CLASSIC WINDOWS 98 TASKBAR
+   ========================================================================== */
+
+/* Hide original top bar - it's empty anyway */
+body.nemo-theme-win98 #top-bar {
+    display: none !important;
+}
+
+/* Transform #top-settings-holder into the taskbar */
+body.nemo-theme-win98 #top-settings-holder {
+    position: fixed !important;
+    bottom: 0 !important;
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: var(--win98-taskbar-height) !important;
+    max-height: var(--win98-taskbar-height) !important;
+    min-height: var(--win98-taskbar-height) !important;
+    background: var(--win98-window-bg) !important;
+    border: none !important;
+    border-top: 2px solid var(--win98-border-light) !important;
+    box-shadow: inset 0 1px 0 var(--win98-window-lighter) !important;
+    z-index: 99999 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 2px 4px !important;
+    gap: 2px !important;
+    margin: 0 !important;
+    transform: none !important;
+    overflow: visible !important;
+}
+
+/* Start Button - inject via CSS */
+body.nemo-theme-win98 #top-settings-holder::before {
+    content: 'Start';
+    font-family: 'MS Sans Serif', Tahoma, sans-serif;
+    background: var(--win98-button-face);
+    border: 2px solid;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light);
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark);
+    padding: 2px 10px 2px 24px;
+    font-weight: bold;
+    font-size: 14px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-right: 4px;
+    position: relative;
+    min-width: 70px;
+}
+
+/* Windows Logo in Start Button */
+body.nemo-theme-win98 #top-settings-holder::after {
+    content: '';
+    position: fixed;
+    bottom: 7px;
+    left: 12px;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg,
+        #ff0000 25%,
+        #00ff00 25%,
+        #00ff00 50%,
+        #0000ff 50%,
+        #0000ff 75%,
+        #ffff00 75%);
+    z-index: 10001;
+    pointer-events: none;
+}
+
+/* Drawer containers as taskbar button groups */
+body.nemo-theme-win98 #top-settings-holder > .drawer {
+    display: inline-flex !important;
+    flex-shrink: 0 !important;
+    position: static !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    width: auto !important;
+}
+
+/* Drawer toggle (the icon container) */
+body.nemo-theme-win98 #top-settings-holder > .drawer > .drawer-toggle,
+body.nemo-theme-win98 #top-settings-holder .drawer-toggle.drawer-header {
+    display: inline-flex !important;
+    align-items: center !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: auto !important;
+}
+
+/* Hide the drawer-content panels from the taskbar area */
+body.nemo-theme-win98 #top-settings-holder > .drawer > .drawer-content {
+    position: fixed !important;
+    bottom: var(--win98-taskbar-height) !important;
+    top: auto !important;
+}
+
+/* === TASKBAR BUTTONS (drawer icons) === */
+body.nemo-theme-win98 #top-settings-holder .drawer-icon {
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark) !important;
+    padding: 2px 8px !important;
+    height: 26px !important;
+    min-width: 80px !important;
+    max-width: 150px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    font-size: 14px !important;
+    font-weight: normal !important;
+    color: var(--win98-text) !important;
+    cursor: pointer !important;
+    gap: 4px !important;
+    border-radius: 0 !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Add program names to taskbar buttons */
+body.nemo-theme-win98 #leftNavDrawerIcon::after {
+    content: 'AI Config';
+}
+body.nemo-theme-win98 #API-status-top::after {
+    content: 'Connections';
+}
+body.nemo-theme-win98 .drawer-icon[title="AI Response Formatting"]::after {
+    content: 'Formatting';
+}
+body.nemo-theme-win98 #WIDrawerIcon::after {
+    content: 'World Info';
+}
+body.nemo-theme-win98 .drawer-icon[title="User Settings"]::after {
+    content: 'Settings';
+}
+body.nemo-theme-win98 .drawer-icon[title="Extensions"]::after {
+    content: 'Extensions';
+}
+
+/* Taskbar button hover */
+body.nemo-theme-win98 .drawer-icon:hover {
+    background: var(--win98-window-light) !important;
+}
+
+/* Taskbar button active/pressed - panel open state */
+body.nemo-theme-win98 .drawer-icon:not(.closedIcon),
+body.nemo-theme-win98 .drawer-icon:active {
+    border-color: var(--win98-border-darker) var(--win98-border-light) var(--win98-border-light) var(--win98-border-darker) !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-dark),
+        inset -1px -1px 0 var(--win98-window-lighter) !important;
+    background: repeating-linear-gradient(
+        0deg,
+        var(--win98-window-bg),
+        var(--win98-window-bg) 1px,
+        var(--win98-window-light) 1px,
+        var(--win98-window-light) 2px
+    ) !important;
+}
+
+/* System tray area */
+body.nemo-theme-win98 #win98-systray,
+body.nemo-theme-win98 .win98-systray {
+    margin-left: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 2px 8px !important;
+    background: var(--win98-window-bg) !important;
+    border: 1px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+    height: 24px !important;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+    font-size: 14px !important;
+    color: var(--win98-text) !important;
+    flex-shrink: 0 !important;
+}
+
+/* ==========================================================================
+   WINDOW STYLING - ALL PANELS AS WINDOWS 98 WINDOWS
+   ========================================================================== */
+
+/* Generic window container mixin */
+body.nemo-theme-win98 #left-nav-panel,
+body.nemo-theme-win98 #right-nav-panel,
+body.nemo-theme-win98 .drawer-content {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark),
+        4px 4px 0 rgba(0, 0, 0, 0.4) !important;
+    border-radius: 0 !important;
+    padding-top: var(--win98-titlebar-height) !important;
+    position: relative !important;
+}
+
+/* Window title bars */
+body.nemo-theme-win98 #left-nav-panel::before,
+body.nemo-theme-win98 #right-nav-panel::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    height: var(--win98-titlebar-height);
+    background: var(--win98-titlebar-active);
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    font-weight: bold;
+    font-size: 14px;
+    color: white;
+    z-index: 10;
+}
+
+/* Left Panel - Explorer Style */
+body.nemo-theme-win98 #left-nav-panel::before {
+    content: 'My Computer - AI Configuration';
+    background: var(--win98-titlebar-active);
+    padding-left: 24px;
+}
+
+/* Left panel folder icon */
+body.nemo-theme-win98 #left-nav-panel::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 16px;
+    height: 14px;
+    background: #ffff80;
+    border: 1px solid #808000;
+    border-radius: 1px 1px 0 0;
+    z-index: 11;
+}
+
+/* Right Panel - Control Panel Style */
+body.nemo-theme-win98 #right-nav-panel::before {
+    content: 'Control Panel - Settings';
+    background: var(--win98-titlebar-active);
+    padding-left: 24px;
+}
+
+/* Right panel gear icon */
+body.nemo-theme-win98 #right-nav-panel::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 6px;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #808080;
+    border-radius: 50%;
+    z-index: 11;
+}
+
+/* Panel header drag bar - hide and replace */
+body.nemo-theme-win98 #left-nav-panelheader,
+body.nemo-theme-win98 #right-nav-panelheader {
+    display: none !important;
+}
+
+/* Panel pin checkbox - style as title bar button */
+body.nemo-theme-win98 #lm_button_panel_pin_div,
+body.nemo-theme-win98 #rm_button_panel_pin_div {
+    position: absolute !important;
+    top: 4px !important;
+    right: 4px !important;
+    z-index: 20 !important;
+}
+
+body.nemo-theme-win98 #lm_button_panel_pin_div label,
+body.nemo-theme-win98 #rm_button_panel_pin_div label {
+    background: var(--win98-button-face) !important;
+    border: 1px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    width: 16px !important;
+    height: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+}
+
+/* Hide checkbox, show X button style */
+body.nemo-theme-win98 #lm_button_panel_pin,
+body.nemo-theme-win98 #rm_button_panel_pin {
+    display: none !important;
+}
+
+/* ==========================================================================
+   CHAT AREA - MSN MESSENGER / IRC STYLE
+   ========================================================================== */
+
+/* Main chat container as MSN window */
+body.nemo-theme-win98 #chat {
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+    font-family: 'Fixedsys', 'Lucida Console', 'Consolas', 'Courier New', monospace !important;
+    padding: 4px !important;
+    margin: 0 !important;
+}
+
+/* Chat container wrapper */
+body.nemo-theme-win98 #sheld > .flex1 {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark),
+        4px 4px 0 rgba(0, 0, 0, 0.4) !important;
+    border-radius: 0 !important;
+    position: relative !important;
+    padding-top: var(--win98-titlebar-height) !important;
+    margin: 4px !important;
+}
+
+/* Chat window title bar */
+body.nemo-theme-win98 #sheld > .flex1::before {
+    content: 'MSN Messenger - Chat';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    height: var(--win98-titlebar-height);
+    background: var(--win98-titlebar-active);
+    display: flex;
+    align-items: center;
+    padding: 0 4px 0 24px;
+    font-weight: bold;
+    font-size: 14px;
+    color: white;
+    z-index: 10;
+}
+
+/* MSN icon in title bar */
+body.nemo-theme-win98 #sheld > .flex1::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 6px;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(180deg, #00ff00 0%, #008000 100%);
+    border-radius: 50%;
+    z-index: 11;
+}
+
+/* IRC-style messages */
+body.nemo-theme-win98 .mes {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 1px 4px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 0 !important;
+}
+
+body.nemo-theme-win98 .mes_block {
+    background: transparent !important;
+    padding: 0 !important;
+    flex: 1 !important;
+}
+
+/* Message text styling */
+body.nemo-theme-win98 .mes_text {
+    font-family: 'Fixedsys', 'Lucida Console', 'Consolas', 'Courier New', monospace !important;
+    font-size: 15px !important;
+    line-height: 1.5 !important;
+    color: var(--win98-text) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* IRC-style username prefix */
+body.nemo-theme-win98 .mes .name_text {
+    font-family: 'Fixedsys', 'Lucida Console', 'Consolas', 'Courier New', monospace !important;
+    font-weight: bold !important;
+    font-size: 15px !important;
+    margin-right: 8px !important;
+    white-space: nowrap !important;
+}
+
+/* User messages - green username */
+body.nemo-theme-win98 .mes[is_user="true"] .name_text {
+    color: #008000 !important;
+}
+
+body.nemo-theme-win98 .mes[is_user="true"] .name_text::before {
+    content: '<';
+    color: #008000;
+}
+
+body.nemo-theme-win98 .mes[is_user="true"] .name_text::after {
+    content: '>';
+    color: #008000;
+}
+
+/* AI/Character messages - blue username */
+body.nemo-theme-win98 .mes[is_user="false"] .name_text {
+    color: #000080 !important;
+}
+
+body.nemo-theme-win98 .mes[is_user="false"] .name_text::before {
+    content: '<';
+    color: #000080;
+}
+
+body.nemo-theme-win98 .mes[is_user="false"] .name_text::after {
+    content: '>';
+    color: #000080;
+}
+
+/* Narration/action messages */
+body.nemo-theme-win98 .mes_narration .mes_text {
+    color: #800080 !important;
+    font-style: italic !important;
+}
+
+body.nemo-theme-win98 .mes_narration .mes_text::before {
+    content: '* ';
+    font-style: normal;
+}
+
+/* Hide avatar in IRC mode for cleaner look */
+body.nemo-theme-win98 .avatar {
+    display: none !important;
+}
+
+/* Timestamp style */
+body.nemo-theme-win98 .mes .timestamp {
+    font-family: 'Fixedsys', 'Lucida Console', 'Consolas', monospace !important;
+    font-size: 10px !important;
+    color: #808080 !important;
+    margin-left: 8px !important;
+}
+
+body.nemo-theme-win98 .mes .timestamp::before {
+    content: '[';
+}
+
+body.nemo-theme-win98 .mes .timestamp::after {
+    content: ']';
+}
+
+/* ==========================================================================
+   MESSAGE INPUT - CLASSIC TEXT BOX
+   ========================================================================== */
+
+body.nemo-theme-win98 #send_form {
+    background: var(--win98-window-bg) !important;
+    border-top: 2px solid var(--win98-border-light) !important;
+    padding: 4px !important;
+    border-radius: 0 !important;
+    gap: 4px !important;
+}
+
+body.nemo-theme-win98 #send_textarea {
+    background: var(--win98-input-bg) !important;
+    color: var(--win98-text) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+    font-family: 'Fixedsys', 'Lucida Console', 'Consolas', 'Courier New', monospace !important;
+    font-size: 15px !important;
+    resize: none !important;
+    padding: 4px !important;
+}
+
+body.nemo-theme-win98 #send_textarea::placeholder {
+    color: #808080 !important;
+}
+
+/* Send button */
+body.nemo-theme-win98 #send_but,
+body.nemo-theme-win98 #mes_send {
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark) !important;
+    border-radius: 0 !important;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+    font-size: 14px !important;
+    color: var(--win98-text) !important;
+    padding: 4px 16px !important;
+}
+
+body.nemo-theme-win98 #send_but::before,
+body.nemo-theme-win98 #mes_send::before {
+    content: 'Send';
+}
+
+/* ==========================================================================
+   CLASSIC BUTTONS
+   ========================================================================== */
+
+body.nemo-theme-win98 .menu_button,
+body.nemo-theme-win98 button,
+body.nemo-theme-win98 .stscript_btn,
+body.nemo-theme-win98 input[type="button"],
+body.nemo-theme-win98 input[type="submit"] {
+    background: var(--win98-button-face) !important;
+    color: var(--win98-text) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+    font-size: 14px !important;
+    padding: 4px 12px !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark) !important;
+    text-shadow: none !important;
+    transition: none !important;
+    transform: none !important;
+}
+
+body.nemo-theme-win98 .menu_button:hover,
+body.nemo-theme-win98 button:hover {
+    transform: none !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark) !important;
+}
+
+body.nemo-theme-win98 .menu_button:active,
+body.nemo-theme-win98 button:active {
+    border-color: var(--win98-border-darker) var(--win98-border-light) var(--win98-border-light) var(--win98-border-darker) !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-dark),
+        inset -1px -1px 0 var(--win98-window-lighter) !important;
+    padding: 5px 11px 3px 13px !important;
+}
+
+/* ==========================================================================
+   INPUT FIELDS
+   ========================================================================== */
+
+body.nemo-theme-win98 input[type="text"],
+body.nemo-theme-win98 input[type="number"],
+body.nemo-theme-win98 input[type="password"],
+body.nemo-theme-win98 input[type="search"],
+body.nemo-theme-win98 textarea,
+body.nemo-theme-win98 select {
+    background: var(--win98-input-bg) !important;
+    color: var(--win98-text) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+    font-size: 14px !important;
+    padding: 3px 4px !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+}
+
+body.nemo-theme-win98 input:focus,
+body.nemo-theme-win98 textarea:focus,
+body.nemo-theme-win98 select:focus {
+    outline: 1px dotted var(--win98-text) !important;
+    outline-offset: -3px !important;
+}
+
+/* ==========================================================================
+   SCROLLBARS - CLASSIC STYLE
+   ========================================================================== */
+
+body.nemo-theme-win98 ::-webkit-scrollbar {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+body.nemo-theme-win98 ::-webkit-scrollbar-track {
+    background: repeating-linear-gradient(
+        135deg,
+        var(--win98-window-bg),
+        var(--win98-window-bg) 2px,
+        var(--win98-window-light) 2px,
+        var(--win98-window-light) 4px
+    ) !important;
+}
+
+body.nemo-theme-win98 ::-webkit-scrollbar-thumb {
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark) !important;
+}
+
+body.nemo-theme-win98 ::-webkit-scrollbar-button {
+    background: var(--win98-button-face);
+    border: 2px solid;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light);
+    height: 16px;
+    width: 16px;
+}
+
+/* Scrollbar arrows */
+body.nemo-theme-win98 ::-webkit-scrollbar-button:vertical:decrement {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M8 6l4 4H4z'/%3E%3C/svg%3E");
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+body.nemo-theme-win98 ::-webkit-scrollbar-button:vertical:increment {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M8 10l-4-4h8z'/%3E%3C/svg%3E");
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* ==========================================================================
+   DRAWERS/ACCORDIONS AS PROGRAM PANELS
+   ========================================================================== */
+
+body.nemo-theme-win98 .inline-drawer {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    margin-bottom: 2px !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark) !important;
+}
+
+body.nemo-theme-win98 .inline-drawer-header,
+body.nemo-theme-win98 .inline-drawer-toggle {
+    background: var(--win98-titlebar-active) !important;
+    color: var(--win98-text-light) !important;
+    padding: 2px 6px !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .inline-drawer-content {
+    background: var(--win98-window-bg) !important;
+    padding: 8px !important;
+    border-top: 1px solid var(--win98-border-dark) !important;
+}
+
+/* Drawer chevron icons */
+body.nemo-theme-win98 .inline-drawer-icon {
+    color: white !important;
+    font-size: 10px !important;
+}
+
+/* ==========================================================================
+   CHECKBOXES
+   ========================================================================== */
+
+body.nemo-theme-win98 input[type="checkbox"] {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    width: 13px !important;
+    height: 13px !important;
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    cursor: pointer !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+}
+
+body.nemo-theme-win98 input[type="checkbox"]:checked {
+    background: var(--win98-input-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath fill='%23000' d='M1 5l2 2 5-5v2L3 9 0 6z'/%3E%3C/svg%3E") center/8px no-repeat !important;
+}
+
+/* ==========================================================================
+   RADIO BUTTONS
+   ========================================================================== */
+
+body.nemo-theme-win98 input[type="radio"] {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    width: 13px !important;
+    height: 13px !important;
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+}
+
+body.nemo-theme-win98 input[type="radio"]:checked::after {
+    content: '' !important;
+    display: block !important;
+    width: 5px !important;
+    height: 5px !important;
+    background: var(--win98-text) !important;
+    border-radius: 50% !important;
+    margin: 2px !important;
+}
+
+/* ==========================================================================
+   TOOLTIPS AS CLASSIC HELP BUBBLES
+   ========================================================================== */
+
+body.nemo-theme-win98 [data-tooltip],
+body.nemo-theme-win98 .tooltip {
+    background: #ffffe1 !important;
+    color: var(--win98-text) !important;
+    border: 1px solid var(--win98-text) !important;
+    border-radius: 0 !important;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+    font-size: 14px !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3) !important;
+    padding: 2px 4px !important;
+}
+
+/* ==========================================================================
+   POPUPS AS DIALOG WINDOWS
+   ========================================================================== */
+
+body.nemo-theme-win98 .popup,
+body.nemo-theme-win98 .popup_outer,
+body.nemo-theme-win98 dialog.popup {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.5) !important;
+}
+
+body.nemo-theme-win98 .popup h3,
+body.nemo-theme-win98 .popup_title {
+    background: var(--win98-titlebar-active) !important;
+    color: var(--win98-text-light) !important;
+    padding: 4px 8px !important;
+    margin: -2px -2px 8px -2px !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+}
+
+/* Dialog close button */
+body.nemo-theme-win98 .popup_close,
+body.nemo-theme-win98 .popup-button-close {
+    background: var(--win98-button-face) !important;
+    border: 1px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    width: 16px !important;
+    height: 14px !important;
+    padding: 0 !important;
+    line-height: 12px !important;
+    font-size: 10px !important;
+}
+
+/* ==========================================================================
+   CHARACTER CARDS AS DESKTOP ICONS
+   ========================================================================== */
+
+body.nemo-theme-win98 .character_select {
+    background: transparent !important;
+    border: none !important;
+    text-align: center !important;
+    padding: 8px !important;
+    width: 80px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    cursor: default !important;
+}
+
+body.nemo-theme-win98 .character_select:hover {
+    background: transparent !important;
+}
+
+body.nemo-theme-win98 .character_select:hover .avatar img,
+body.nemo-theme-win98 .character_select.selected .avatar img {
+    outline: 1px dotted var(--win98-text) !important;
+}
+
+body.nemo-theme-win98 .character_select:hover .ch_name,
+body.nemo-theme-win98 .character_select.selected .ch_name {
+    background: var(--win98-highlight) !important;
+    color: var(--win98-highlight-text) !important;
+}
+
+body.nemo-theme-win98 .character_select .avatar {
+    display: block !important;
+    width: 32px !important;
+    height: 32px !important;
+    margin-bottom: 4px !important;
+}
+
+body.nemo-theme-win98 .character_select .avatar img {
+    width: 32px !important;
+    height: 32px !important;
+    border: 1px solid var(--win98-border-darker) !important;
+    box-shadow: 1px 1px 0 var(--win98-border-dark) !important;
+    object-fit: cover !important;
+}
+
+body.nemo-theme-win98 .ch_name {
+    font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+    font-size: 14px !important;
+    color: var(--win98-text-light) !important;
+    text-shadow: 1px 1px 0 #000 !important;
+    padding: 1px 3px !important;
+    max-width: 70px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+/* ==========================================================================
+   TABS AS CLASSIC TABS
+   ========================================================================== */
+
+body.nemo-theme-win98 .nav-tabs,
+body.nemo-theme-win98 .tabs {
+    background: var(--win98-window-bg) !important;
+    border-bottom: none !important;
+    padding: 0 !important;
+}
+
+body.nemo-theme-win98 .nav-tab,
+body.nemo-theme-win98 .tab {
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-bottom: none !important;
+    border-radius: 0 !important;
+    margin-right: 2px !important;
+    padding: 4px 12px !important;
+    font-size: 14px !important;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+    position: relative !important;
+    top: 2px !important;
+}
+
+body.nemo-theme-win98 .nav-tab.active,
+body.nemo-theme-win98 .tab.active {
+    background: var(--win98-window-bg) !important;
+    border-bottom: 2px solid var(--win98-window-bg) !important;
+    z-index: 1 !important;
+}
+
+/* ==========================================================================
+   RANGE SLIDERS
+   ========================================================================== */
+
+body.nemo-theme-win98 input[type="range"] {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background: transparent !important;
+    height: 20px !important;
+}
+
+body.nemo-theme-win98 input[type="range"]::-webkit-slider-track {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    height: 4px !important;
+}
+
+body.nemo-theme-win98 input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 11px !important;
+    height: 21px !important;
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    cursor: pointer !important;
+    margin-top: -10px !important;
+}
+
+/* ==========================================================================
+   PROGRESS BARS - CLASSIC STYLE
+   ========================================================================== */
+
+body.nemo-theme-win98 .typing_indicator_progress,
+body.nemo-theme-win98 progress {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    height: 16px !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+}
+
+body.nemo-theme-win98 .typing_indicator_progress_bar,
+body.nemo-theme-win98 progress::-webkit-progress-value {
+    background: repeating-linear-gradient(
+        90deg,
+        #000080,
+        #000080 8px,
+        transparent 8px,
+        transparent 10px
+    ) !important;
+}
+
+/* ==========================================================================
+   CONTEXT MENUS
+   ========================================================================== */
+
+body.nemo-theme-win98 .context-menu,
+body.nemo-theme-win98 .dropdown-menu {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3) !important;
+    padding: 2px !important;
+}
+
+body.nemo-theme-win98 .context-menu-item,
+body.nemo-theme-win98 .dropdown-item {
+    padding: 4px 20px 4px 28px !important;
+    font-size: 14px !important;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+    border-radius: 0 !important;
+    position: relative !important;
+}
+
+body.nemo-theme-win98 .context-menu-item:hover,
+body.nemo-theme-win98 .dropdown-item:hover {
+    background: var(--win98-highlight) !important;
+    color: var(--win98-highlight-text) !important;
+}
+
+/* Menu separator */
+body.nemo-theme-win98 .context-menu hr,
+body.nemo-theme-win98 .dropdown-menu hr {
+    border: none !important;
+    border-top: 1px solid var(--win98-border-dark) !important;
+    border-bottom: 1px solid var(--win98-border-light) !important;
+    margin: 2px 0 !important;
+}
+
+/* ==========================================================================
+   SELECT2 DROPDOWNS
+   ========================================================================== */
+
+body.nemo-theme-win98 .select2-container--default .select2-selection--single {
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    height: auto !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+}
+
+body.nemo-theme-win98 .select2-dropdown {
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .select2-results__option {
+    padding: 3px 8px !important;
+    font-size: 14px !important;
+}
+
+body.nemo-theme-win98 .select2-results__option--highlighted {
+    background: var(--win98-highlight) !important;
+    color: var(--win98-highlight-text) !important;
+}
+
+/* ==========================================================================
+   TOASTS/NOTIFICATIONS - ERROR DIALOGS
+   ========================================================================== */
+
+body.nemo-theme-win98 .toast,
+body.nemo-theme-win98 .nemo-toast {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: var(--win98-text) !important;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.5) !important;
+    font-size: 14px !important;
+}
+
+body.nemo-theme-win98 .toast.error::before,
+body.nemo-theme-win98 .nemo-toast.error::before {
+    content: '❌';
+    margin-right: 8px;
+}
+
+body.nemo-theme-win98 .toast.warning::before,
+body.nemo-theme-win98 .nemo-toast.warning::before {
+    content: '⚠️';
+    margin-right: 8px;
+}
+
+body.nemo-theme-win98 .toast.info::before,
+body.nemo-theme-win98 .nemo-toast.info::before {
+    content: 'ℹ️';
+    margin-right: 8px;
+}
+
+body.nemo-theme-win98 .toast.success::before,
+body.nemo-theme-win98 .nemo-toast.success::before {
+    content: '✅';
+    margin-right: 8px;
+}
+
+/* ==========================================================================
+   DISABLE MODERN EFFECTS
+   ========================================================================== */
+
+body.nemo-theme-win98 * {
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body.nemo-theme-win98 *:not(.inline-drawer-header):not(.popup_title):not(.popup h3):not(.drawer-icon) {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* ==========================================================================
+   DESKTOP CLOCK (System Tray)
+   ========================================================================== */
+
+body.nemo-theme-win98 .win98-clock {
+    font-family: 'MS Sans Serif', Tahoma, sans-serif;
+    font-size: 14px;
+    padding: 2px 8px;
+    border-left: 1px solid var(--win98-border-dark);
+    margin-left: auto;
+}
+
+/* ==========================================================================
+   MOBILE/RESPONSIVE ADJUSTMENTS
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    body.nemo-theme-win98 .drawer-icon::after {
+        display: none !important;
+    }
+
+    body.nemo-theme-win98 .drawer-icon {
+        min-width: 40px !important;
+        padding: 2px 6px !important;
+    }
+
+    body.nemo-theme-win98 #top-settings-holder::before {
+        padding: 2px 6px 2px 20px;
+        min-width: 50px;
+    }
+}
+
+/* ==========================================================================
+   NEMOPRESETEXT UI ELEMENTS - WIN98 STYLE
+   ========================================================================== */
+
+/* === NEMO CARDS === */
+body.nemo-theme-win98 .nemo-card,
+body.nemo-theme-win98 .nemo-extension-card,
+body.nemo-theme-win98 .nemo-preset-card,
+body.nemo-theme-win98 .nemo-settings-card,
+body.nemo-theme-win98 .nemo-archive-item {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark) !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .nemo-card:hover,
+body.nemo-theme-win98 .nemo-extension-card:hover,
+body.nemo-theme-win98 .nemo-preset-card:hover,
+body.nemo-theme-win98 .nemo-archive-item:hover {
+    background: var(--win98-window-light) !important;
+    transform: none !important;
+}
+
+/* === NEMO CARD HEADERS === */
+body.nemo-theme-win98 .nemo-card-header,
+body.nemo-theme-win98 .nemo-card-header-full,
+body.nemo-theme-win98 .nemo-archive-header {
+    background: var(--win98-titlebar-active) !important;
+    color: #ffffff !important;
+    padding: 4px 8px !important;
+    border-radius: 0 !important;
+    margin: -2px -2px 8px -2px !important;
+}
+
+body.nemo-theme-win98 .nemo-card-header *,
+body.nemo-theme-win98 .nemo-card-header-full *,
+body.nemo-theme-win98 .nemo-archive-header * {
+    color: #ffffff !important;
+}
+
+body.nemo-theme-win98 .nemo-card-title,
+body.nemo-theme-win98 .nemo-archive-title {
+    color: #ffffff !important;
+    font-weight: bold !important;
+}
+
+/* === NEMO BUTTONS === */
+body.nemo-theme-win98 .nemo-icon-button,
+body.nemo-theme-win98 .nemo-back-button,
+body.nemo-theme-win98 .nemo-options-button {
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark) !important;
+}
+
+body.nemo-theme-win98 .nemo-icon-button:hover,
+body.nemo-theme-win98 .nemo-back-button:hover,
+body.nemo-theme-win98 .nemo-options-button:hover {
+    background: var(--win98-window-light) !important;
+    transform: none !important;
+}
+
+body.nemo-theme-win98 .nemo-icon-button:active,
+body.nemo-theme-win98 .nemo-back-button:active,
+body.nemo-theme-win98 .nemo-options-button:active {
+    border-color: var(--win98-border-darker) var(--win98-border-light) var(--win98-border-light) var(--win98-border-darker) !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-dark),
+        inset -1px -1px 0 var(--win98-window-lighter) !important;
+}
+
+/* === NEMO STATUS BADGES === */
+body.nemo-theme-win98 .nemo-status-badge,
+body.nemo-theme-win98 .nemo-card-badge {
+    background: var(--win98-window-bg) !important;
+    border: 1px solid var(--win98-border-darker) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+    font-size: 12px !important;
+    padding: 2px 6px !important;
+}
+
+body.nemo-theme-win98 .nemo-status-badge.success,
+body.nemo-theme-win98 .nemo-status-badge.enabled {
+    background: #00ff00 !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .nemo-status-badge.warning {
+    background: #ffff00 !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .nemo-status-badge.error,
+body.nemo-theme-win98 .nemo-status-badge.disabled {
+    background: #ff0000 !important;
+    color: #ffffff !important;
+}
+
+body.nemo-theme-win98 .nemo-status-badge.info {
+    background: #0000ff !important;
+    color: #ffffff !important;
+}
+
+/* === NEMO SECTIONS/DRAWERS === */
+body.nemo-theme-win98 .nemo-engine-section,
+body.nemo-theme-win98 .nemo-sub-section,
+body.nemo-theme-win98 .nemo-section,
+body.nemo-theme-win98 .nemo-feature-group {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    margin-bottom: 4px !important;
+}
+
+body.nemo-theme-win98 .nemo-engine-section summary,
+body.nemo-theme-win98 .nemo-sub-section summary,
+body.nemo-theme-win98 .nemo-group-title {
+    background: var(--win98-titlebar-active) !important;
+    color: #ffffff !important;
+    padding: 4px 8px !important;
+    border-radius: 0 !important;
+    font-weight: bold !important;
+}
+
+body.nemo-theme-win98 .nemo-engine-section summary *,
+body.nemo-theme-win98 .nemo-sub-section summary * {
+    color: #ffffff !important;
+}
+
+/* === NEMO TOASTS === */
+body.nemo-theme-win98 .nemo-toast {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.5) !important;
+    color: #000000 !important;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+}
+
+body.nemo-theme-win98 .nemo-toast-close {
+    background: var(--win98-button-face) !important;
+    border: 1px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+/* === NEMO PROGRESS BARS === */
+body.nemo-theme-win98 .nemo-token-progress {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+}
+
+body.nemo-theme-win98 .nemo-token-progress-bar {
+    background: repeating-linear-gradient(
+        90deg,
+        #000080,
+        #000080 8px,
+        transparent 8px,
+        transparent 10px
+    ) !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .nemo-token-progress-bar.warning {
+    background: repeating-linear-gradient(
+        90deg,
+        #808000,
+        #808000 8px,
+        transparent 8px,
+        transparent 10px
+    ) !important;
+}
+
+body.nemo-theme-win98 .nemo-token-progress-bar.error {
+    background: repeating-linear-gradient(
+        90deg,
+        #800000,
+        #800000 8px,
+        transparent 8px,
+        transparent 10px
+    ) !important;
+}
+
+/* === NEMO LOADING INDICATORS === */
+body.nemo-theme-win98 .nemo-loading-indicator,
+body.nemo-theme-win98 .nemo-loading-spinner,
+body.nemo-theme-win98 .nemo-loading-overlay {
+    background: var(--win98-window-bg) !important;
+}
+
+body.nemo-theme-win98 .nemo-loading-spinner::before {
+    border-color: var(--win98-border-darker) !important;
+    border-top-color: #000080 !important;
+}
+
+/* === NEMO SETTINGS UI === */
+body.nemo-theme-win98 .nemo-preset-enhancer-settings {
+    background: var(--win98-window-bg) !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .nemo-setting-row {
+    background: var(--win98-window-bg) !important;
+    border: 1px solid var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    padding: 8px !important;
+    margin-bottom: 4px !important;
+}
+
+body.nemo-theme-win98 .nemo-setting-row:hover {
+    background: var(--win98-window-light) !important;
+}
+
+body.nemo-theme-win98 .nemo-setting-title,
+body.nemo-theme-win98 .nemo-setting-description {
+    color: #000000 !important;
+}
+
+/* === NEMO TOGGLE SWITCHES === */
+body.nemo-theme-win98 .nemo-toggle-switch {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .nemo-toggle-switch input:checked + .nemo-toggle-slider {
+    background: #000080 !important;
+}
+
+body.nemo-theme-win98 .nemo-toggle-slider {
+    background: var(--win98-window-bg) !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .nemo-toggle-slider::before {
+    background: var(--win98-button-face) !important;
+    border: 1px solid var(--win98-border-darker) !important;
+    border-radius: 0 !important;
+}
+
+/* === NEMO THEME CARDS === */
+body.nemo-theme-win98 .nemo-theme-card {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .nemo-theme-card:hover {
+    background: var(--win98-window-light) !important;
+}
+
+body.nemo-theme-win98 .nemo-theme-card.selected {
+    border-color: #000080 !important;
+    background: var(--win98-highlight) !important;
+    color: #ffffff !important;
+}
+
+/* === NEMO ARCHIVE UI === */
+body.nemo-theme-win98 .nemo-archive-contents,
+body.nemo-theme-win98 .nemo-prompts-section,
+body.nemo-theme-win98 .nemo-system-prompts-section {
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .nemo-prompts-section h4,
+body.nemo-theme-win98 .nemo-system-prompts-section h4 {
+    background: var(--win98-button-face) !important;
+    color: #000000 !important;
+    border-bottom: 1px solid var(--win98-border-dark) !important;
+}
+
+body.nemo-theme-win98 .nemo-prompt-item,
+body.nemo-theme-win98 .nemo-system-prompt-item {
+    background: var(--win98-input-bg) !important;
+    border: 1px solid var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .nemo-prompt-item:hover,
+body.nemo-theme-win98 .nemo-system-prompt-item:hover {
+    background: var(--win98-highlight) !important;
+    color: #ffffff !important;
+}
+
+/* === NEMO EXTENSIONS LAYOUT === */
+body.nemo-theme-win98 .nemo-extensions-layout,
+body.nemo-theme-win98 .nemo-extensions-column {
+    background: var(--win98-window-bg) !important;
+}
+
+body.nemo-theme-win98 .nemo-extension-category-drawer {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .nemo-extensions-search {
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+/* === NEMO TAB EXTENSION VIEW === */
+body.nemo-theme-win98 .nemo-tab-extension-view {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .nemo-extension-view-header {
+    background: var(--win98-titlebar-active) !important;
+    color: #ffffff !important;
+}
+
+body.nemo-theme-win98 .nemo-extension-title {
+    color: #ffffff !important;
+}
+
+body.nemo-theme-win98 .nemo-extension-view-content {
+    background: var(--win98-window-bg) !important;
+    color: #000000 !important;
+}
+
+/* === NEMO TABS === */
+body.nemo-theme-win98 .nemo-settings-tab,
+body.nemo-theme-win98 .nemo-tab {
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-bottom: none !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+    padding: 4px 12px !important;
+}
+
+body.nemo-theme-win98 .nemo-settings-tab.active,
+body.nemo-theme-win98 .nemo-tab.active {
+    background: var(--win98-window-bg) !important;
+    border-bottom: 2px solid var(--win98-window-bg) !important;
+}
+
+/* === NEMO DIVIDERS === */
+body.nemo-theme-win98 .nemo-divider {
+    border-top: 1px solid var(--win98-border-dark) !important;
+    border-bottom: 1px solid var(--win98-border-light) !important;
+    background: none !important;
+}
+
+body.nemo-theme-win98 .nemo-divider-vertical {
+    border-left: 1px solid var(--win98-border-dark) !important;
+    border-right: 1px solid var(--win98-border-light) !important;
+}
+
+/* === NEMO CONVERTED DRAWERS === */
+body.nemo-theme-win98 .nemo-converted-drawer {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .nemo-converted-drawer .inline-drawer-toggle {
+    background: var(--win98-titlebar-active) !important;
+}
+
+/* === NEMO STATS === */
+body.nemo-theme-win98 .nemo-stat,
+body.nemo-theme-win98 .nemo-archive-stats,
+body.nemo-theme-win98 .nemo-archive-date {
+    color: #000000 !important;
+    background: transparent !important;
+}
+
+/* ==========================================================================
+   PRESET NAVIGATOR - WIN98 EXPLORER STYLE
+   ========================================================================== */
+
+/* Main navigator wrapper */
+body.nemo-theme-win98 .nemo-preset-navigator-content-wrapper,
+body.nemo-theme-win98 .nemo-prompt-navigator-content-wrapper,
+body.nemo-theme-win98 .nemo-character-manager-content-wrapper {
+    background: var(--win98-window-bg) !important;
+    color: #000000 !important;
+}
+
+/* Navigator body - the main content area */
+body.nemo-theme-win98 .navigator-body {
+    background: var(--win98-window-bg) !important;
+    color: #000000 !important;
+}
+
+/* Sidebar - like Windows Explorer tree view */
+body.nemo-theme-win98 .navigator-sidebar {
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+}
+
+/* Favorites section header */
+body.nemo-theme-win98 .navigator-favorites-section h4 {
+    background: var(--win98-button-face) !important;
+    color: #000000 !important;
+    border-bottom: 1px solid var(--win98-border-dark) !important;
+    padding: 4px 8px !important;
+    font-weight: bold !important;
+}
+
+/* Favorites list */
+body.nemo-theme-win98 .navigator-favorites-list {
+    background: var(--win98-input-bg) !important;
+}
+
+/* Individual favorite items */
+body.nemo-theme-win98 .navigator-favorite-item {
+    background: transparent !important;
+    color: #000000 !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    padding: 2px 4px !important;
+}
+
+body.nemo-theme-win98 .navigator-favorite-item:hover {
+    background: var(--win98-highlight) !important;
+    color: #ffffff !important;
+}
+
+body.nemo-theme-win98 .navigator-favorite-item.selected {
+    background: var(--win98-highlight) !important;
+    color: #ffffff !important;
+}
+
+/* Main panel - file listing area */
+body.nemo-theme-win98 .navigator-main-panel {
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+}
+
+/* Grid items - like Windows 98 icons */
+body.nemo-theme-win98 .grid-item,
+body.nemo-theme-win98 .nemo-preset-navigator-content-wrapper .grid-item {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+    text-align: center !important;
+}
+
+body.nemo-theme-win98 .grid-item:hover {
+    background: transparent !important;
+}
+
+body.nemo-theme-win98 .grid-item:hover .item-name,
+body.nemo-theme-win98 .grid-item.selected .item-name {
+    background: var(--win98-highlight) !important;
+    color: #ffffff !important;
+}
+
+body.nemo-theme-win98 .grid-item.selected {
+    background: transparent !important;
+}
+
+body.nemo-theme-win98 .grid-item .item-icon {
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .grid-item .item-name {
+    color: #000000 !important;
+    font-size: 12px !important;
+    padding: 2px 4px !important;
+}
+
+/* Header area with search and buttons */
+body.nemo-theme-win98 .nemo-header-buttons {
+    background: var(--win98-window-bg) !important;
+}
+
+body.nemo-theme-win98 .nemo-header-buttons button,
+body.nemo-theme-win98 .nemo-header-buttons .menu_button {
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+/* Search input in navigator */
+body.nemo-theme-win98 .navigator-search,
+body.nemo-theme-win98 #navigator-search {
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+}
+
+/* Modal footer */
+body.nemo-theme-win98 .nemo-preset-navigator-content-wrapper .modal-footer,
+body.nemo-theme-win98 .modal-footer {
+    background: var(--win98-window-bg) !important;
+    border-top: 2px solid var(--win98-border-light) !important;
+}
+
+/* Empty state */
+body.nemo-theme-win98 .navigator-empty-state {
+    background: var(--win98-input-bg) !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .navigator-empty-state h3,
+body.nemo-theme-win98 .navigator-empty-state p {
+    color: #000000 !important;
+}
+
+/* View mode buttons */
+body.nemo-theme-win98 .view-mode-btn,
+body.nemo-theme-win98 [class*="view-mode"] button {
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .view-mode-btn.active,
+body.nemo-theme-win98 .view-mode-btn:active {
+    border-color: var(--win98-border-darker) var(--win98-border-light) var(--win98-border-light) var(--win98-border-darker) !important;
+    box-shadow: inset 1px 1px 0 var(--win98-window-dark) !important;
+}
+
+/* Action controls */
+body.nemo-theme-win98 .action-controls button {
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .action-controls button:disabled {
+    color: var(--win98-border-dark) !important;
+}
+
+/* List view items */
+body.nemo-theme-win98 .list-item,
+body.nemo-theme-win98 .view-mode-list .item {
+    background: transparent !important;
+    border-bottom: 1px solid var(--win98-border-dark) !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .list-item:hover,
+body.nemo-theme-win98 .view-mode-list .item:hover {
+    background: var(--win98-highlight) !important;
+    color: #ffffff !important;
+}
+
+body.nemo-theme-win98 .list-item.selected {
+    background: var(--win98-highlight) !important;
+    color: #ffffff !important;
+}
+
+/* Folder items */
+body.nemo-theme-win98 .folder-item {
+    background: transparent !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .folder-item:hover .item-name {
+    background: var(--win98-highlight) !important;
+    color: #ffffff !important;
+}
+
+/* Navigator popup dialog - make the whole dialog Win98 style */
+body.nemo-theme-win98 .popup:has(.nemo-preset-navigator-content-wrapper),
+body.nemo-theme-win98 .popup:has(.nemo-prompt-navigator-content-wrapper),
+body.nemo-theme-win98 .popup:has(.nemo-character-manager-content-wrapper),
+body.nemo-theme-win98 dialog:has(.nemo-preset-navigator-content-wrapper),
+body.nemo-theme-win98 dialog:has(.nemo-prompt-navigator-content-wrapper) {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.5) !important;
+}
+
+/* The popup content area */
+body.nemo-theme-win98 .popup_content:has(.nemo-preset-navigator-content-wrapper),
+body.nemo-theme-win98 .popup_content:has(.nemo-prompt-navigator-content-wrapper) {
+    background: var(--win98-window-bg) !important;
+}
+
+/* View mode grid background */
+body.nemo-theme-win98 .view-mode-grid {
+    background: var(--win98-input-bg) !important;
+}
+
+/* Breadcrumb/path bar */
+body.nemo-theme-win98 .navigator-breadcrumb,
+body.nemo-theme-win98 .path-bar {
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    color: #000000 !important;
+}
+
+/* Toolbar area */
+body.nemo-theme-win98 .navigator-toolbar {
+    background: var(--win98-window-bg) !important;
+    border-bottom: 1px solid var(--win98-border-dark) !important;
+}
+
+/* Status bar at bottom */
+body.nemo-theme-win98 .navigator-status,
+body.nemo-theme-win98 .status-bar {
+    background: var(--win98-window-bg) !important;
+    border-top: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    color: #000000 !important;
+    font-size: 12px !important;
+}
+
+/* Column headers in list/details view */
+body.nemo-theme-win98 .column-header,
+body.nemo-theme-win98 .list-header {
+    background: var(--win98-button-face) !important;
+    border: 1px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    color: #000000 !important;
+    font-weight: bold !important;
+}
+
+/* ==========================================================================
+   CATEGORY TRAY / PROMPT CARDS - WIN98 STYLE
+   ========================================================================== */
+
+/* Main category tray container */
+body.nemo-theme-win98 .nemo-category-tray {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.4) !important;
+    color: #000000 !important;
+}
+
+/* Tray header - title bar style */
+body.nemo-theme-win98 .nemo-tray-header {
+    background: var(--win98-titlebar-active) !important;
+    color: #ffffff !important;
+    padding: 4px 8px !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .nemo-tray-title {
+    color: #ffffff !important;
+    font-weight: bold !important;
+}
+
+/* Tray close button */
+body.nemo-theme-win98 .nemo-tray-close {
+    background: var(--win98-button-face) !important;
+    border: 1px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+    width: 16px !important;
+    height: 14px !important;
+    padding: 0 !important;
+    line-height: 12px !important;
+}
+
+body.nemo-theme-win98 .nemo-tray-close:hover {
+    background: var(--win98-window-light) !important;
+}
+
+/* Tray header controls */
+body.nemo-theme-win98 .nemo-tray-header-controls {
+    background: transparent !important;
+}
+
+body.nemo-theme-win98 .nemo-tray-header-controls button {
+    background: var(--win98-button-face) !important;
+    border: 1px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+/* Toggle all button */
+body.nemo-theme-win98 .nemo-tray-toggle-all {
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .nemo-tray-toggle-all:hover {
+    background: var(--win98-window-light) !important;
+}
+
+body.nemo-theme-win98 .nemo-tray-toggle-all.nemo-all-enabled {
+    background: #00ff00 !important;
+}
+
+/* Tray grid - the card container */
+body.nemo-theme-win98 .nemo-tray-grid {
+    background: var(--win98-input-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-dark) var(--win98-border-light) var(--win98-border-light) var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    box-shadow: inset 1px 1px 0 var(--win98-border-darker) !important;
+}
+
+/* Tray footer */
+body.nemo-theme-win98 .nemo-tray-footer {
+    background: var(--win98-window-bg) !important;
+    border-top: 1px solid var(--win98-border-dark) !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .nemo-tray-hint {
+    color: #000000 !important;
+}
+
+/* Tray section (collapsible groups) */
+body.nemo-theme-win98 .nemo-tray-section {
+    background: var(--win98-window-bg) !important;
+    border: 1px solid var(--win98-border-dark) !important;
+    border-radius: 0 !important;
+    margin-bottom: 2px !important;
+}
+
+body.nemo-theme-win98 .nemo-tray-section > summary {
+    background: var(--win98-button-face) !important;
+    color: #000000 !important;
+    padding: 4px 8px !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .nemo-tray-section > summary:hover {
+    background: var(--win98-window-light) !important;
+}
+
+body.nemo-theme-win98 .nemo-tray-section.nemo-tray-open > summary {
+    background: var(--win98-highlight) !important;
+    color: #ffffff !important;
+}
+
+/* Compact toggle button */
+body.nemo-theme-win98 .nemo-tray-compact-toggle {
+    background: var(--win98-button-face) !important;
+    border: 1px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+/* Presets dropdown in tray */
+body.nemo-theme-win98 .nemo-tray-presets-dropdown {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+}
+
+body.nemo-theme-win98 .nemo-tray-presets-btn {
+    background: var(--win98-button-face) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+/* === PROMPT CARDS === */
+body.nemo-theme-win98 .nemo-prompt-card {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+    box-shadow:
+        inset 1px 1px 0 var(--win98-window-lighter),
+        inset -1px -1px 0 var(--win98-window-dark) !important;
+}
+
+body.nemo-theme-win98 .nemo-prompt-card:hover {
+    background: var(--win98-window-light) !important;
+}
+
+/* Enabled prompt card - green tint */
+body.nemo-theme-win98 .nemo-prompt-card-enabled {
+    background: #c0ffc0 !important;
+    border-color: #008000 var(--win98-border-darker) var(--win98-border-darker) #008000 !important;
+}
+
+body.nemo-theme-win98 .nemo-prompt-card-enabled:hover {
+    background: #a0ffa0 !important;
+}
+
+/* Card header */
+body.nemo-theme-win98 .nemo-prompt-card-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--win98-border-dark) !important;
+    padding: 4px !important;
+}
+
+/* Card name */
+body.nemo-theme-win98 .nemo-prompt-card-name {
+    color: #000000 !important;
+    font-weight: bold !important;
+}
+
+/* Card status indicator */
+body.nemo-theme-win98 .nemo-prompt-card-status {
+    background: var(--win98-button-face) !important;
+    border: 1px solid var(--win98-border-darker) !important;
+    border-radius: 0 !important;
+}
+
+/* Card tooltip/description */
+body.nemo-theme-win98 .nemo-prompt-card-tooltip {
+    background: #ffffe1 !important;
+    border: 1px solid #000000 !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3) !important;
+}
+
+/* Card badge (CORE, etc.) */
+body.nemo-theme-win98 .nemo-prompt-card-badge {
+    background: var(--win98-highlight) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--win98-border-darker) !important;
+    border-radius: 0 !important;
+    font-weight: bold !important;
+    padding: 1px 4px !important;
+}
+
+/* Card actions */
+body.nemo-theme-win98 .nemo-prompt-card-actions {
+    background: transparent !important;
+}
+
+body.nemo-theme-win98 .nemo-prompt-card-edit {
+    background: var(--win98-button-face) !important;
+    border: 1px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}
+
+body.nemo-theme-win98 .nemo-prompt-card-edit:hover {
+    background: var(--win98-window-light) !important;
+}
+
+/* Highlighted/focused card */
+body.nemo-theme-win98 .nemo-prompt-card-highlighted,
+body.nemo-theme-win98 .nemo-prompt-card.nemo-card-focused {
+    border-color: var(--win98-highlight) !important;
+    outline: 2px solid var(--win98-highlight) !important;
+}
+
+/* Cards with custom colors - override to Win98 style */
+body.nemo-theme-win98 .nemo-prompt-card[style*="--nemo-card-color"] {
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+}
+
+/* Card dependencies */
+body.nemo-theme-win98 .nemo-prompt-card-deps {
+    background: var(--win98-window-bg) !important;
+    border-top: 1px solid var(--win98-border-dark) !important;
+    color: #000000 !important;
+    font-size: 11px !important;
+}
+
+/* CoT (Chain of Thought) section styling */
+body.nemo-theme-win98 [class*="cot"],
+body.nemo-theme-win98 [class*="CoT"] {
+    background: var(--win98-window-bg) !important;
+    border: 2px solid !important;
+    border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
+    border-radius: 0 !important;
+    color: #000000 !important;
+}

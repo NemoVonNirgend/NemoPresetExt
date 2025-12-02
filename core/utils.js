@@ -49,7 +49,11 @@ export function ensureSettingsNamespace() {
         enableLorebookManagement: true,
         enableHTMLTrimming: false,
         htmlTrimmingKeepCount: 0,  // Default to 0 (no auto-trim)
-        dividerRegexPattern: ''
+        dividerRegexPattern: '',
+        // UI Theme settings - 'none', 'win98', 'discord'
+        uiTheme: 'none',
+        // Mobile enhancements - auto-detected on touch devices, can be disabled
+        enableMobileEnhancements: true
     };
 
     // Apply defaults for any missing settings
@@ -151,63 +155,67 @@ export const LocalStorageAsync = {
 
 // Note: generateUUID, debounce, escapeHtml are now imported from SillyTavern utils above
 
+// Debug flag for verbose logging - set to true during development
+const DEBUG_UTILS = false;
+
 export async function showColorPickerPopup(currentSelectedColorValue, title = "Select Color") {
     return new Promise((resolve) => {
-        console.log(`${LOG_PREFIX} showColorPickerPopup called with value: ${currentSelectedColorValue}`);
+        if (DEBUG_UTILS) console.log(`${LOG_PREFIX} showColorPickerPopup called with value: ${currentSelectedColorValue}`);
 
-        let contentHtml = `<div class="nemo-color-picker-popup"><h4>${title}</h4><div class="nemo-color-swatches">`;
+        const popupId = `nemo-color-picker-${generateUUID()}`;
+
+        // Add ID directly to content HTML so we can reliably find it
+        let contentHtml = `<div id="${popupId}" class="nemo-color-picker-popup"><h4>${title}</h4><div class="nemo-color-swatches">`;
         PREDEFINED_COLORS.forEach(color => {
             const isSelected = color.value === currentSelectedColorValue;
             contentHtml += `<div class="nemo-color-swatch ${isSelected ? 'selected' : ''}" data-color="${color.value}" style="background-color:${color.value || '#777' };" title="${color.name}"></div>`;
         });
         contentHtml += `</div><button id="nemo-clear-folder-color-btn" class="menu_button popup-button">Clear Color</button></div>`;
 
-        const popupId = `nemo-color-picker-${generateUUID()}`;
-        console.log(`${LOG_PREFIX} Creating popup with id: ${popupId}`);
+        if (DEBUG_UTILS) console.log(`${LOG_PREFIX} Creating popup with id: ${popupId}`);
 
         // Call the popup WITHOUT awaiting (it shouldn't block)
         callGenericPopup(contentHtml, POPUP_TYPE.TEXT, '', {
             wide: false,
             large: false,
-            okButton: 'Cancel',
-            id: popupId
+            okButton: 'Cancel'
         });
 
         // Wait for the popup element to exist in the DOM
         waitForElement(`#${popupId}`, (popupElement) => {
-            console.log(`${LOG_PREFIX} Popup element found, attaching handlers`);
+            if (DEBUG_UTILS) console.log(`${LOG_PREFIX} Popup element found, attaching handlers`);
             popupElement.dataset.resolved = "false";
 
             // Try multiple selectors to find the popup container
             const stPopupOuter = popupElement.closest('.popup_outer, dialog.popup, dialog[data-id], .popup');
 
-            console.log(`${LOG_PREFIX} Popup outer element:`, stPopupOuter);
-            console.log(`${LOG_PREFIX} Popup element parent:`, popupElement.parentElement);
+            if (DEBUG_UTILS) console.log(`${LOG_PREFIX} Popup outer element:`, stPopupOuter);
+            if (DEBUG_UTILS) console.log(`${LOG_PREFIX} Popup element parent:`, popupElement.parentElement);
 
             // Ensure the popup appears on top of other modals
             if (stPopupOuter) {
                 stPopupOuter.style.zIndex = '10003';
-                console.log(`${LOG_PREFIX} Set popup z-index to 10003 on:`, stPopupOuter.tagName, stPopupOuter.className);
+                if (DEBUG_UTILS) console.log(`${LOG_PREFIX} Set popup z-index to 10003 on:`, stPopupOuter.tagName, stPopupOuter.className);
             } else {
                 // Fallback: try setting z-index on parent element
                 const parent = popupElement.parentElement;
                 if (parent) {
                     parent.style.zIndex = '10003';
-                    console.log(`${LOG_PREFIX} Set z-index on parent element:`, parent.tagName, parent.className);
+                    if (DEBUG_UTILS) console.log(`${LOG_PREFIX} Set z-index on parent element:`, parent.tagName, parent.className);
                 }
             }
 
             // Find all popup backgrounds and set the last one (most recent) to high z-index
             const allPopupBgs = document.querySelectorAll('.popup_background');
-            console.log(`${LOG_PREFIX} Found ${allPopupBgs.length} popup backgrounds`);
+            if (DEBUG_UTILS) console.log(`${LOG_PREFIX} Found ${allPopupBgs.length} popup backgrounds`);
             if (allPopupBgs.length > 0) {
                 const latestBg = allPopupBgs[allPopupBgs.length - 1];
                 latestBg.style.zIndex = '10002';
-                console.log(`${LOG_PREFIX} Set latest popup background z-index to 10002`);
+                if (DEBUG_UTILS) console.log(`${LOG_PREFIX} Set latest popup background z-index to 10002`);
             }
 
             const handleClose = (value) => {
-                console.log(`${LOG_PREFIX} handleClose called with value: ${value}`);
+                if (DEBUG_UTILS) console.log(`${LOG_PREFIX} handleClose called with value: ${value}`);
                 if (popupElement.dataset.resolved === "true") return;
                 popupElement.dataset.resolved = "true";
                 resolve(value);

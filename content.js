@@ -6,6 +6,7 @@ import { LOG_PREFIX, ensureSettingsNamespace, waitForElement } from './core/util
 import { CONSTANTS } from './core/constants.js';
 import logger from './core/logger.js';
 import { initializeStorage, migrateFromLocalStorage } from './core/storage-migration.js';
+import { initializeDirectiveCache, clearDirectiveCache } from './core/directive-cache.js';
 
 // UI modules
 import { NemoSettingsUI } from './ui/settings-ui.js';
@@ -13,14 +14,20 @@ import { NemoGlobalUI } from './ui/global-ui.js';
 import { UserSettingsTabs } from './ui/user-settings-tabs.js';
 import { AdvancedFormattingTabs } from './ui/advanced-formatting-tabs.js';
 import { ExtensionsTabOverhaul } from './ui/extensions-tab-overhaul.js';
+import { initializeThemes, initThemeSelector } from './ui/theme-manager.js';
 
 // Feature modules - Prompts
 import { NemoPresetManager, loadAndSetDividerRegex } from './features/prompts/prompt-manager.js';
 import { NemoPromptArchiveUI } from './features/prompts/prompt-archive-ui.js';
+import { initCategoryTray } from './features/prompts/category-tray.js';
+
+// Feature modules - Image Generation
+import { initPollinationsInterceptor } from './features/pollinations-interceptor.js';
+import PollinationsInterceptor from './features/pollinations-interceptor.js';
 
 // Feature modules - Directives
 import { initDirectiveUI } from './features/directives/directive-ui.js';
-import { initPromptDirectiveHooks } from './features/directives/prompt-directive-hooks.js';
+import { initPromptDirectiveHooks, initMessageTriggerHooks } from './features/directives/prompt-directive-hooks.js';
 import { initDirectiveAutocomplete } from './features/directives/directive-autocomplete-ui.js';
 import { initDirectiveFeatures } from './features/directives/directive-features.js';
 import { initDirectiveFeaturesFixes } from './features/directives/directive-features-fixes.js';
@@ -37,11 +44,11 @@ import { initializeHTMLTrimmer, setupAutoTrim } from './reasoning/html-trimmer.j
 import { tutorialManager } from './features/onboarding/tutorial-manager.js';
 import { tutorialLauncher } from './features/onboarding/tutorial-launcher.js';
 
-// Archived/deprecated modules (loaded from archive)
+// Archive modules - these are still in use but may be deprecated in future versions
 import { NemoCharacterManager } from './archive/character-manager.js';
-import { initPresetNavigatorForApi, PresetNavigator } from './archive/navigator.js';
+import { PresetNavigator } from './archive/navigator.js';
 import { NemoWorldInfoUI } from './archive/world-info-ui.js';
-import domCache, { DOMUtils } from './archive/dom-cache.js';
+import domCache from './archive/dom-cache.js';
 
 // Extension name constant for legacy code compatibility
 const NEMO_EXTENSION_NAME = 'NemoPresetExt';
@@ -92,6 +99,10 @@ async function initializeExtension() {
         initializeStorage();
         migrateFromLocalStorage();
 
+        // Initialize UI themes early (before other UI elements load)
+        console.log('🔧 NemoNet: Initializing UI themes...');
+        await initializeThemes();
+
         await loadAndSetDividerRegex();
 
         // Initialize all modules
@@ -100,6 +111,10 @@ async function initializeExtension() {
         console.log('🔧 NemoNet: Calling NemoSettingsUI.initialize()...');
         NemoSettingsUI.initialize();
         console.log('🔧 NemoNet: NemoSettingsUI.initialize() returned');
+
+        // Initialize theme selector UI handlers (after settings UI is loaded)
+        initThemeSelector();
+
         NemoGlobalUI.initialize();
         NemoPromptArchiveUI.initialize();
 
@@ -120,14 +135,33 @@ async function initializeExtension() {
             await backgroundUIEnhancements.initialize();
         }
 
+        // Initialize directive cache for performance (parse once, use everywhere)
+        // This caches all prompt directives so we don't re-parse content repeatedly
+        console.log('🔧 NemoNet: Initializing directive cache...');
+        setTimeout(() => {
+            initializeDirectiveCache();
+            console.log('🔧 NemoNet: Directive cache initialized');
+        }, 1000); // Delay to ensure promptManager is ready
+
         // Initialize directive system
         initDirectiveUI();
         initPromptDirectiveHooks();
+        initMessageTriggerHooks();  // Message-based auto-enable/disable triggers
         initDirectiveAutocomplete();
         initDirectiveFeatures();
 
         // Apply fixes for directive features
         initDirectiveFeaturesFixes();
+
+        // Initialize category tray system for quick prompt selection
+        initCategoryTray();
+
+        // Initialize Pollinations Interceptor (experimental - opt-in)
+        const pollinationsInterceptorEnabled = extension_settings.NemoPresetExt?.nemoEnablePollinationsInterceptor === true;
+        if (pollinationsInterceptorEnabled) {
+            logger.info('Initializing Pollinations Interceptor (experimental)...');
+            initPollinationsInterceptor();
+        }
 
         // Initialize robust reasoning parser for NemoNet CoT
         applyNemoNetReasoning();
@@ -148,6 +182,13 @@ async function initializeExtension() {
 
         // Make NemoPresetManager available globally for preset state preservation
         window.NemoPresetManager = NemoPresetManager;
+
+        // Make PollinationsInterceptor available globally for manual testing
+        // Usage: window.PollinationsInterceptor.init() - Initialize interceptor
+        //        window.PollinationsInterceptor.scan(element) - Scan element for Pollinations images
+        //        window.PollinationsInterceptor.interceptAll(element) - Process all images in element
+        //        window.PollinationsInterceptor.extractPrompts(html) - Extract prompts without replacing
+        window.PollinationsInterceptor = PollinationsInterceptor;
 
         const isEnabled = extension_settings.NemoPresetExt?.nemoEnableExtensionsTabOverhaul !== false;
         logger.debug('Extensions Tab Overhaul setting check', { isEnabled, fullValue: extension_settings.NemoPresetExt?.nemoEnableExtensionsTabOverhaul });
@@ -184,8 +225,27 @@ async function initializeExtension() {
                     logger.info('Wide Panels setting disabled, using SillyTavern default width');
                     removeWidePanelsStyles();
                 }
+
+                // Refresh directive cache when settings change (prompts may have been modified)
+                initializeDirectiveCache();
             }, 100); // Small delay to ensure settings are fully updated
         });
+
+        // Handle viewport resize for wide panels (disable on mobile)
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const widePanelsEnabled = extension_settings.NemoPresetExt?.nemoEnableWidePanels !== false;
+                if (widePanelsEnabled) {
+                    applyWidePanelsStyles(); // Will auto-disable on mobile
+                }
+            }, 150);
+        });
+
+        // Initialize Mobile Enhancements - auto-detect touch devices
+        initializeMobileEnhancements();
+
         // Observer management with proper cleanup
         const ExtensionManager = {
             observers: new Map(),
@@ -323,29 +383,39 @@ async function initializeExtension() {
 
 // CSS functions for Wide Panels feature - conditionally load the styles
 function applyWidePanelsStyles() {
+    // Skip on mobile devices - wide panels don't make sense on small screens
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (isMobile) {
+        logger.debug('Wide panels disabled on mobile viewport');
+        removeWidePanelsStyles();
+        return;
+    }
+
     // Remove any existing styles first
     let styleEl = document.getElementById('nemo-wide-panels-styles');
     if (styleEl) {
         styleEl.remove();
     }
 
-    // Add the wide panels CSS
+    // Add the wide panels CSS with media query to prevent mobile application
     styleEl = document.createElement('style');
     styleEl.id = 'nemo-wide-panels-styles';
     styleEl.textContent = `
-        /* Wide navigation panels - 50% viewport width */
-        #right-nav-panel {
-            width: 50vw !important;
-            right: 0 !important;
-            left: auto !important;
-        }
-        #left-nav-panel {
-            width: 50vw !important;
-            left: 0 !important;
+        /* Wide navigation panels - 50% viewport width (desktop only) */
+        @media (min-width: 769px) {
+            #right-nav-panel {
+                width: 50vw !important;
+                right: 0 !important;
+                left: auto !important;
+            }
+            #left-nav-panel {
+                width: 50vw !important;
+                left: 0 !important;
+            }
         }
     `;
     document.head.appendChild(styleEl);
-    logger.debug('Applied wide panels styles (50% width)');
+    logger.debug('Applied wide panels styles (50% width, desktop only)');
 }
 
 function removeWidePanelsStyles() {
@@ -354,6 +424,38 @@ function removeWidePanelsStyles() {
         styleEl.remove();
         logger.debug('Removed wide panels styles (using SillyTavern default width)');
     }
+}
+
+// Mobile Enhancements - Auto-detect touch devices and apply enhanced mobile styles
+function initializeMobileEnhancements() {
+    const isEnabled = extension_settings.NemoPresetExt?.enableMobileEnhancements !== false;
+    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+
+    logger.debug('Mobile enhancements check', { isEnabled, isTouchDevice });
+
+    if (isEnabled && isTouchDevice) {
+        document.body.classList.add('nemo-mobile-enhanced');
+        logger.info('Mobile enhancements enabled - touch device detected');
+    } else {
+        document.body.classList.remove('nemo-mobile-enhanced');
+        if (!isEnabled) {
+            logger.info('Mobile enhancements disabled by user setting');
+        } else {
+            logger.debug('Mobile enhancements not applied - not a touch device');
+        }
+    }
+
+    // Listen for device changes (e.g., connecting external mouse on tablet)
+    window.matchMedia('(pointer: coarse)').addEventListener('change', (e) => {
+        const isEnabled = extension_settings.NemoPresetExt?.enableMobileEnhancements !== false;
+        if (isEnabled && e.matches) {
+            document.body.classList.add('nemo-mobile-enhanced');
+            logger.info('Touch device detected - enabling mobile enhancements');
+        } else if (!e.matches) {
+            document.body.classList.remove('nemo-mobile-enhanced');
+            logger.info('Non-touch device detected - disabling mobile enhancements');
+        }
+    });
 }
 
 // Keep old function names for backward compatibility

@@ -6,9 +6,10 @@
  */
 
 import logger from '../../core/logger.js';
-import { validatePromptActivation, getAllPromptsWithState, parsePromptDirectives } from './prompt-directives.js';
-import { showConflictToast } from './directive-ui.js';
+import { validatePromptActivation, getAllPromptsWithState, parsePromptDirectives, evaluateMessageTriggers, getCurrentMessageCount } from './prompt-directives.js';
+import { showConflictToast, showMessageTriggerToast } from './directive-ui.js';
 import { promptManager } from '../../../../../openai.js';
+import { eventSource, event_types } from '../../../../../../script.js';
 
 // Track which prompts are currently being validated (prevents double popups)
 const validatingPrompts = new Set();
@@ -18,11 +19,8 @@ let hooksInitialized = false;
  * Initialize directive validation hooks
  */
 export function initPromptDirectiveHooks() {
-    console.log('[Directive Hooks] initPromptDirectiveHooks called, hooksInitialized:', hooksInitialized);
-
     if (hooksInitialized) {
         logger.warn('Directive hooks already initialized, skipping');
-        console.warn('[Directive Hooks] ATTEMPTING TO INITIALIZE TWICE - BLOCKED');
         return;
     }
 
@@ -45,7 +43,6 @@ function interceptPromptToggles() {
     // Use event delegation to catch all prompt toggle clicks
     document.addEventListener('click', handlePromptToggleClick, true);
     logger.info('Registered click event listener for directive validation');
-    console.log('[Directive Hooks] Event listener registered (removed old one first if existed)');
 }
 
 /**
@@ -71,17 +68,8 @@ function handlePromptToggleClick(event) {
         return;
     }
 
-    console.log('[Directive Hooks] ============================================');
-    console.log('[Directive Hooks] CLICK EVENT FIRED');
-    console.log('[Directive Hooks] Toggle for prompt:', identifier);
-    console.log('[Directive Hooks] Event target:', event.target);
-    console.log('[Directive Hooks] Event phase:', event.eventPhase);
-    console.log('[Directive Hooks] Stack trace:');
-    console.trace();
-
     // Check if this specific prompt is already being validated
     if (validatingPrompts.has(identifier)) {
-        console.log('[Directive Hooks] Already validating this prompt, BLOCKING');
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
@@ -91,22 +79,16 @@ function handlePromptToggleClick(event) {
     // Determine if we're enabling or disabling
     const isCurrentlyEnabled = !promptManager?.isPromptDisabledForActiveCharacter(identifier);
 
-    console.log('[Directive Hooks] Currently enabled:', isCurrentlyEnabled);
-
     // Only validate when enabling a prompt
     if (isCurrentlyEnabled) {
-        console.log('[Directive Hooks] Prompt is currently enabled, allowing disable');
         return;
     }
-
-    console.log('[Directive Hooks] Intercepting toggle, will validate first');
 
     // Prevent the default toggle action - we'll handle it manually
     event.preventDefault();
     event.stopPropagation();
 
     // Mark this prompt as being validated
-    console.log('[Directive Hooks] Adding prompt to validatingPrompts set');
     validatingPrompts.add(identifier);
 
     // Validate the activation and toggle if allowed
@@ -117,38 +99,26 @@ function handlePromptToggleClick(event) {
  * Validate prompt activation and show conflict UI if needed
  */
 function validateAndToggle(promptId, toggleElement) {
-    console.log('[Validate] Starting validation for:', promptId);
-
     try {
         const allPrompts = getAllPromptsWithState();
-        console.log('[Validate] Got', allPrompts.length, 'prompts');
-
         const issues = validatePromptActivation(promptId, allPrompts);
-        console.log('[Validate] Found', issues.length, 'issues');
 
         if (issues.length === 0) {
-            console.log('[Validate] No issues, performing toggle');
             // No issues, proceed with toggle
             performToggle(promptId, true);
             // Remove from validating set after a short delay
             setTimeout(() => {
                 validatingPrompts.delete(promptId);
-                console.log('[Validate] Removed from validating set');
             }, 300);
             return;
         }
 
-        console.log('[Validate] Issues:', issues);
-
         // Check if we have errors or just warnings
         const hasErrors = issues.some(i => i.severity === 'error');
-        console.log('[Validate] Has errors:', hasErrors);
 
         if (!hasErrors) {
-            console.log('[Validate] Only warnings, showing toast');
             // Just warnings, show toast but allow proceeding
             showConflictToast(issues, promptId, (proceed) => {
-                console.log('[Validate] User chose:', proceed);
                 if (proceed) {
                     performToggle(promptId, true);
                 }
@@ -160,10 +130,8 @@ function validateAndToggle(promptId, toggleElement) {
 
         // Has errors, check if we can auto-resolve
         const canAutoResolve = checkAutoResolution(issues, allPrompts, promptId);
-        console.log('[Validate] Can auto-resolve:', canAutoResolve);
 
         if (canAutoResolve) {
-            console.log('[Validate] Auto-resolving');
             // Auto-resolve and enable
             performAutoResolution(issues, allPrompts, promptId);
             performToggle(promptId, true);
@@ -172,10 +140,8 @@ function validateAndToggle(promptId, toggleElement) {
                 validatingPrompts.delete(promptId);
             }, 300);
         } else {
-            console.log('[Validate] Showing conflict toast');
             // Show conflict toast for manual resolution
             showConflictToast(issues, promptId, (proceed) => {
-                console.log('[Validate] User chose:', proceed);
                 if (proceed) {
                     performToggle(promptId, true);
                 }
@@ -185,7 +151,6 @@ function validateAndToggle(promptId, toggleElement) {
         }
     } catch (error) {
         logger.error('Error validating prompt activation:', error);
-        console.error('[Validate] Error:', error);
         // On error, allow the toggle to proceed
         performToggle(promptId, true);
         // Remove from validating set on error
@@ -209,7 +174,7 @@ function checkAutoResolution(issues, allPrompts, promptId) {
     let canResolve = true;
 
     for (const issue of issues) {
-        if (issue.type === 'exclusive' || issue.type === 'category-limit') {
+        if (issue.type === 'exclusive' || issue.type === 'category-limit' || issue.type === 'mutual-exclusive-group') {
             // Check if we have auto-disable for these prompts
             const conflictingIds = [];
             if (issue.conflictingPrompt) conflictingIds.push(issue.conflictingPrompt.identifier);
@@ -247,7 +212,7 @@ function performAutoResolution(issues, allPrompts, promptId) {
     const directives = parsePromptDirectives(prompt.content);
 
     for (const issue of issues) {
-        if (issue.type === 'exclusive' || issue.type === 'category-limit') {
+        if (issue.type === 'exclusive' || issue.type === 'category-limit' || issue.type === 'mutual-exclusive-group') {
             // Auto-disable conflicting prompts
             if (issue.conflictingPrompt) {
                 performToggle(issue.conflictingPrompt.identifier, false);
@@ -275,11 +240,8 @@ function performAutoResolution(issues, allPrompts, promptId) {
  * Perform the actual toggle operation
  */
 function performToggle(identifier, enable) {
-    console.log('[PerformToggle] Called for:', identifier, 'enable:', enable);
-
     if (!promptManager) {
         logger.warn('Prompt manager not available');
-        console.log('[PerformToggle] No prompt manager!');
         return;
     }
 
@@ -287,12 +249,8 @@ function performToggle(identifier, enable) {
         const prompt = promptManager.getPromptById(identifier);
         const activeCharacter = promptManager.activeCharacter;
 
-        console.log('[PerformToggle] Found prompt:', prompt?.name);
-        console.log('[PerformToggle] Active character:', activeCharacter);
-
         if (!prompt) {
             logger.warn(`Prompt not found: ${identifier}`);
-            console.log('[PerformToggle] Prompt not found!');
             return;
         }
 
@@ -301,12 +259,8 @@ function performToggle(identifier, enable) {
 
         if (!promptOrderEntry) {
             logger.warn(`Prompt order entry not found: ${identifier}`);
-            console.log('[PerformToggle] Prompt order entry not found!');
             return;
         }
-
-        console.log('[PerformToggle] Current enabled state:', promptOrderEntry.enabled);
-        console.log('[PerformToggle] Setting to:', enable);
 
         // Set the enabled state
         promptOrderEntry.enabled = enable;
@@ -318,19 +272,14 @@ function performToggle(identifier, enable) {
         }
 
         // Re-render the prompt manager UI
-        console.log('[PerformToggle] Calling render');
         promptManager.render();
 
         // Save settings
-        console.log('[PerformToggle] Saving settings');
         promptManager.saveServiceSettings();
-
-        console.log('[PerformToggle] Toggle complete');
 
         logger.debug(`Toggled prompt ${identifier} to ${enable ? 'enabled' : 'disabled'}`);
     } catch (error) {
         logger.error('Error performing toggle:', error);
-        console.error('[PerformToggle] Error:', error);
     }
 }
 
@@ -355,4 +304,103 @@ function updateToggleUI(identifier, enabled) {
         toggleElement.classList.add('prompt-disabled');
         toggleElement.classList.remove('prompt-enabled');
     }
+}
+
+// Track last processed message count to avoid repeated triggers
+let lastProcessedMessageCount = -1;
+let messageTriggerHooksInitialized = false;
+
+/**
+ * Initialize message-based trigger hooks
+ * Listens for message events and evaluates triggers
+ */
+export function initMessageTriggerHooks() {
+    if (messageTriggerHooksInitialized) {
+        logger.warn('Message trigger hooks already initialized');
+        return;
+    }
+
+    logger.info('Initializing message trigger hooks');
+
+    // Listen for messages being sent/received
+    eventSource.on(event_types.MESSAGE_SENT, () => {
+        setTimeout(checkMessageTriggers, 100); // Small delay to ensure chat is updated
+    });
+
+    eventSource.on(event_types.MESSAGE_RECEIVED, () => {
+        setTimeout(checkMessageTriggers, 100);
+    });
+
+    // Also check on chat changed (new chat loaded)
+    eventSource.on(event_types.CHAT_CHANGED, () => {
+        lastProcessedMessageCount = -1; // Reset when chat changes
+        setTimeout(checkMessageTriggers, 200);
+    });
+
+    // Check on generation started (for pre-generation triggers)
+    eventSource.on(event_types.GENERATION_STARTED, () => {
+        checkMessageTriggers();
+    });
+
+    messageTriggerHooksInitialized = true;
+    logger.info('Message trigger hooks initialized');
+}
+
+/**
+ * Check and apply message-based triggers
+ */
+export async function checkMessageTriggers() {
+    try {
+        const messageCount = getCurrentMessageCount();
+
+        // Skip if we've already processed this message count
+        if (messageCount === lastProcessedMessageCount) {
+            return;
+        }
+
+        const allPrompts = getAllPromptsWithState();
+        if (!allPrompts.length) {
+            return;
+        }
+
+        const triggerResult = evaluateMessageTriggers(messageCount, allPrompts);
+
+        // Check if any changes need to be made
+        if (triggerResult.toEnable.length === 0 && triggerResult.toDisable.length === 0) {
+            lastProcessedMessageCount = messageCount;
+            return;
+        }
+
+        logger.info(`Message triggers at count ${messageCount}:`, triggerResult.triggered);
+
+        // Apply enables
+        for (const identifier of triggerResult.toEnable) {
+            performToggle(identifier, true);
+            logger.info(`Auto-enabled prompt via message trigger: ${identifier}`);
+        }
+
+        // Apply disables
+        for (const identifier of triggerResult.toDisable) {
+            performToggle(identifier, false);
+            logger.info(`Auto-disabled prompt via message trigger: ${identifier}`);
+        }
+
+        // Show notification toast if changes were made
+        if (triggerResult.triggered.length > 0) {
+            showMessageTriggerToast(triggerResult.triggered, messageCount);
+        }
+
+        lastProcessedMessageCount = messageCount;
+
+    } catch (error) {
+        logger.error('Error checking message triggers:', error);
+    }
+}
+
+/**
+ * Manually trigger a check (for UI buttons or testing)
+ */
+export function forceCheckMessageTriggers() {
+    lastProcessedMessageCount = -1;
+    return checkMessageTriggers();
 }

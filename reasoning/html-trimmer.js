@@ -7,13 +7,23 @@
 import { saveSettingsDebounced } from '../../../../../script.js';
 import { extension_settings } from '../../../../extensions.js';
 
+// Debug flag - set to true for verbose logging during development
+const DEBUG_HTML_TRIMMER = false;
+
+// Conditional logging helper
+function debugLog(...args) {
+    if (DEBUG_HTML_TRIMMER) {
+        debugLog('', ...args);
+    }
+}
+
 let getContext;
 
 /**
  * Initialize the HTML trimmer module
  */
 export function initializeHTMLTrimmer() {
-    console.log('NemoNet HTML Trimmer: Initializing...');
+    debugLog(' Initializing...');
 
     // Import getContext from SillyTavern
     import('/scripts/extensions.js').then(module => {
@@ -23,7 +33,7 @@ export function initializeHTMLTrimmer() {
             // Fallback: Try to find it in window scope
             getContext = () => window.SillyTavern?.getContext?.() || { chat: [] };
         }
-        console.log('NemoNet HTML Trimmer: getContext imported');
+        debugLog(' getContext imported');
     }).catch(() => {
         // Final fallback
         getContext = () => ({ chat: [] });
@@ -180,7 +190,6 @@ function convertTableToASCII(table, indentLevel = 0) {
 
     // Build ASCII table
     let output = '';
-    const totalWidth = columnWidths.reduce((sum, w) => sum + w + 3, 1);
     const topBorder = indent + '┌' + columnWidths.map(w => '─'.repeat(w + 2)).join('┬') + '┐';
     const bottomBorder = indent + '└' + columnWidths.map(w => '─'.repeat(w + 2)).join('┴') + '┘';
     const middleBorder = indent + '├' + columnWidths.map(w => '─'.repeat(w + 2)).join('┼') + '┤';
@@ -206,42 +215,45 @@ function convertTableToASCII(table, indentLevel = 0) {
 }
 
 /**
- * Extract text content from HTML, removing all tags and styles (legacy fallback)
+ * Calculate UI complexity score for an element
+ * Used to determine if an element is a UI block vs narrative content
+ * @param {HTMLElement} element - The element to analyze
+ * @returns {number} Complexity score (5+ indicates UI block)
  */
-function extractTextFromHTML(html) {
-    // Create a temporary div to parse HTML
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
+function calculateComplexityScore(element) {
+    const styleAttr = element.getAttribute('style') || '';
 
-    // Remove script and style elements
-    const scripts = temp.querySelectorAll('script, style');
-    scripts.forEach(el => el.remove());
+    // Count visual complexity indicators
+    const hasGradient = styleAttr.includes('linear-gradient') || styleAttr.includes('radial-gradient');
+    const hasBorder = styleAttr.includes('border:') || styleAttr.includes('border-radius:');
+    const hasShadow = styleAttr.includes('box-shadow') || styleAttr.includes('text-shadow');
+    const hasBackground = styleAttr.includes('background:') || styleAttr.includes('background-color:');
+    const hasGrid = styleAttr.includes('grid-template') || styleAttr.includes('display: grid') || styleAttr.includes('display:grid');
+    const hasFlex = styleAttr.includes('display: flex') || styleAttr.includes('display:flex');
 
-    // Get text content
-    let text = temp.textContent || temp.innerText || '';
+    // Check for nested structure (UI panels usually have nested elements)
+    const hasNestedDetails = element.querySelector('details') !== null;
+    const hasNestedDivs = element.querySelectorAll('div').length > 2;
+    const hasProgressBars = element.querySelectorAll('[style*="width:"][style*="height"]').length > 0;
+    const hasEmbeddedStyles = element.querySelector('style') !== null;
 
-    // Clean up whitespace
-    text = text
-        .replace(/\n\s*\n/g, '\n') // Remove multiple newlines
-        .replace(/[ \t]+/g, ' ')    // Normalize spaces
-        .trim();
+    // Check for long inline styles (UI panels have extensive styling)
+    const hasComplexStyling = styleAttr.length > 150;
 
-    return text;
-}
+    // Calculate complexity score
+    let score = 0;
+    if (hasGradient) score += 2;
+    if (hasBorder) score += 1;
+    if (hasShadow) score += 1;
+    if (hasBackground) score += 1;
+    if (hasGrid || hasFlex) score += 1;
+    if (hasNestedDetails) score += 2;
+    if (hasNestedDivs) score += 1;
+    if (hasProgressBars) score += 2;
+    if (hasComplexStyling) score += 2;
+    if (hasEmbeddedStyles) score += 3;
 
-/**
- * Convert HTML block to simple text format (no dropdown wrapper)
- */
-function convertHTMLToText(html) {
-    const textContent = extractTextFromHTML(html);
-
-    if (!textContent || textContent.length < 10) {
-        // If no meaningful content, return empty
-        return '';
-    }
-
-    // Return just the text content, no wrapper
-    return textContent;
+    return score;
 }
 
 /**
@@ -272,11 +284,11 @@ function repairBrokenHTML(messageContent) {
     const temp = document.createElement('div');
     temp.innerHTML = messageContent;
 
-    console.log('NemoNet HTML Trimmer: 🔧 AUTO-REPAIR: Input has', temp.children.length, 'top-level children');
+    debugLog(' 🔧 AUTO-REPAIR: Input has', temp.children.length, 'top-level children');
 
     // Find all font tags that wrap multiple children
     const fontTags = temp.querySelectorAll('font');
-    console.log('NemoNet HTML Trimmer: 🔧 AUTO-REPAIR: Found', fontTags.length, 'font tags total');
+    debugLog(' 🔧 AUTO-REPAIR: Found', fontTags.length, 'font tags total');
 
     fontTags.forEach((fontTag, index) => {
         console.log(`NemoNet HTML Trimmer: 🔧 AUTO-REPAIR: Font tag #${index} has`, fontTag.children.length, 'children');
@@ -284,8 +296,8 @@ function repairBrokenHTML(messageContent) {
         // If a font tag has more than 2 children, it's likely a broken wrapper
         // Unwrap its children to the parent level
         if (fontTag.children.length > 2) {
-            console.log('NemoNet HTML Trimmer: 🔧 AUTO-REPAIR: Unwrapping font tag with', fontTag.children.length, 'children');
-            console.log('NemoNet HTML Trimmer: 🔧 AUTO-REPAIR: Children tags:', Array.from(fontTag.children).map(c => c.tagName).join(', '));
+            debugLog(' 🔧 AUTO-REPAIR: Unwrapping font tag with', fontTag.children.length, 'children');
+            debugLog(' 🔧 AUTO-REPAIR: Children tags:', Array.from(fontTag.children).map(c => c.tagName).join(', '));
 
             const parent = fontTag.parentElement;
             const childrenArray = Array.from(fontTag.children);
@@ -300,7 +312,7 @@ function repairBrokenHTML(messageContent) {
         }
     });
 
-    console.log('NemoNet HTML Trimmer: 🔧 AUTO-REPAIR: After repair, has', temp.children.length, 'top-level children');
+    debugLog(' 🔧 AUTO-REPAIR: After repair, has', temp.children.length, 'top-level children');
     return temp.innerHTML;
 }
 
@@ -318,8 +330,8 @@ function separateNarrativeFromUI(messageContent) {
     let narrative = '';
     let uiBlocks = [];
 
-    console.log('NemoNet HTML Trimmer: 🔍 STARTING SEPARATION - Total top-level children:', temp.children.length);
-    console.log('NemoNet HTML Trimmer: 🔍 Total child nodes (including text):', temp.childNodes.length);
+    debugLog(' 🔍 STARTING SEPARATION - Total top-level children:', temp.children.length);
+    debugLog(' 🔍 Total child nodes (including text):', temp.childNodes.length);
 
     Array.from(temp.childNodes).forEach((node, index) => {
         if (node.nodeType === Node.ELEMENT_NODE) {
@@ -338,7 +350,7 @@ function separateNarrativeFromUI(messageContent) {
         if (node.nodeType === Node.TEXT_NODE) {
             const text = node.textContent;
             if (text.trim().length > 0) {
-                console.log('NemoNet HTML Trimmer: 📝 TEXT NODE (narrative) - Length:', text.length);
+                debugLog(' 📝 TEXT NODE (narrative) - Length:', text.length);
                 narrative += text;
             }
             return;
@@ -372,40 +384,7 @@ function separateNarrativeFromUI(messageContent) {
         }
 
         // UNIVERSAL UI BLOCK DETECTION - based on structural complexity, not keywords
-
-        // Count visual complexity indicators
-        const hasGradient = styleAttr.includes('linear-gradient') || styleAttr.includes('radial-gradient');
-        const hasBorder = styleAttr.includes('border:') || styleAttr.includes('border-radius:');
-        const hasShadow = styleAttr.includes('box-shadow') || styleAttr.includes('text-shadow');
-        const hasBackground = styleAttr.includes('background:') || styleAttr.includes('background-color:');
-        const hasGrid = styleAttr.includes('grid-template') || styleAttr.includes('display: grid') || styleAttr.includes('display:grid');
-        const hasFlex = styleAttr.includes('display: flex') || styleAttr.includes('display:flex');
-
-        // Check for nested structure (UI panels usually have nested elements)
-        const hasNestedDetails = child.querySelector('details') !== null;
-        const hasNestedDivs = child.querySelectorAll('div').length > 2;
-        const hasProgressBars = child.querySelectorAll('[style*="width:"][style*="height"]').length > 0;
-        const hasEmbeddedStyles = child.querySelector('style') !== null; // Embedded <style> tags
-
-        // Check for long inline styles (UI panels have extensive styling)
-        const hasComplexStyling = styleAttr.length > 150;
-
-        // Calculate complexity score
-        let complexityScore = 0;
-        if (hasGradient) complexityScore += 2;
-        if (hasBorder) complexityScore += 1;
-        if (hasShadow) complexityScore += 1;
-        if (hasBackground) complexityScore += 1;
-        if (hasGrid || hasFlex) complexityScore += 1;
-        if (hasNestedDetails) complexityScore += 2;
-        if (hasNestedDivs) complexityScore += 1;
-        if (hasProgressBars) complexityScore += 2;
-        if (hasComplexStyling) complexityScore += 2;
-        if (hasEmbeddedStyles) complexityScore += 3; // Embedded <style> tags are a strong UI indicator
-
-        // UI block = high complexity score (5+)
-        // Archive ALL complex HTML blocks, including cutaways
-        // Cutaways are preserved in the archive as ASCII, keeping them in context
+        const complexityScore = calculateComplexityScore(child);
         const isUIBlock = complexityScore >= 5;
 
         console.log(`NemoNet HTML Trimmer: 🔍 Evaluating ${tagName} - Score: ${complexityScore}, isUIBlock: ${isUIBlock}`);
@@ -418,58 +397,34 @@ function separateNarrativeFromUI(messageContent) {
             tagName === 'br'; // Line breaks
 
         if (isUIBlock) {
-            console.log('NemoNet HTML Trimmer: ✅ UI BLOCK DETECTED - Complexity Score:', complexityScore);
+            debugLog(' ✅ UI BLOCK DETECTED - Complexity Score:', complexityScore);
             console.log('  - Tag:', tagName);
             console.log('  - Style length:', styleAttr.length);
             console.log('  - Text preview:', text.substring(0, 80));
-            console.log('  - Gradient:', hasGradient, '| Border:', hasBorder, '| Shadow:', hasShadow);
-            console.log('  - Nested divs:', hasNestedDivs, '| Nested details:', hasNestedDetails);
             uiBlocks.push(child.outerHTML);
         } else {
             // DEFAULT TO NARRATIVE - preserve all story content (paragraphs, dialogue, cutaways)
-            console.log('NemoNet HTML Trimmer: 📝 NARRATIVE - Complexity Score:', complexityScore, '- Tag:', tagName);
+            debugLog(' 📝 NARRATIVE - Complexity Score:', complexityScore, '- Tag:', tagName);
 
             // SPECIAL CASE: If this is a <font> wrapper with children, recursively process them
             // This handles broken HTML where <font> wraps multiple <p> tags AND UI blocks
             if (tagName === 'font' && child.children.length > 0) {
-                console.log('NemoNet HTML Trimmer: 🔧 Font wrapper detected with', child.children.length, 'children - processing recursively');
-                console.log('NemoNet HTML Trimmer: 🔧 Font wrapper outerHTML preview:', child.outerHTML.substring(0, 200));
+                debugLog(' 🔧 Font wrapper detected with', child.children.length, 'children - processing recursively');
+                debugLog(' 🔧 Font wrapper outerHTML preview:', child.outerHTML.substring(0, 200));
 
                 // Recursively process children of the font tag
                 Array.from(child.children).forEach((fontChild, childIndex) => {
                     console.log(`NemoNet HTML Trimmer: 🔧 Processing font child #${childIndex}:`, fontChild.tagName);
-                    const childTag = fontChild.tagName.toLowerCase();
-                    const childStyle = fontChild.getAttribute('style') || '';
 
-                    // Re-check if this child is a UI block
-                    const childGradient = childStyle.includes('linear-gradient') || childStyle.includes('radial-gradient');
-                    const childBorder = childStyle.includes('border:') || childStyle.includes('border-radius:');
-                    const childShadow = childStyle.includes('box-shadow');
-                    const childBackground = childStyle.includes('background:');
-                    const childGrid = childStyle.includes('grid-template') || childStyle.includes('display: grid') || childStyle.includes('display:grid');
-                    const childFlex = childStyle.includes('display: flex') || childStyle.includes('display:flex');
-                    const childNestedDetails = fontChild.querySelector('details') !== null;
-                    const childNestedDivs = fontChild.querySelectorAll('div').length > 2;
-                    const childComplexStyling = childStyle.length > 150;
-
-                    let childComplexity = 0;
-                    if (childGradient) childComplexity += 2;
-                    if (childBorder) childComplexity += 1;
-                    if (childShadow) childComplexity += 1;
-                    if (childBackground) childComplexity += 1;
-                    if (childGrid || childFlex) childComplexity += 1;
-                    if (childNestedDetails) childComplexity += 2;
-                    if (childNestedDivs) childComplexity += 1;
-                    if (childComplexStyling) childComplexity += 2;
-
-                    // Archive all complex blocks (including cutaways)
+                    // Use helper function to calculate complexity
+                    const childComplexity = calculateComplexityScore(fontChild);
                     const isChildUIBlock = childComplexity >= 5;
 
                     if (isChildUIBlock) {
-                        console.log('NemoNet HTML Trimmer: 🔧  -> Child is UI block (score:', childComplexity, '), archiving');
+                        debugLog(' 🔧  -> Child is UI block (score:', childComplexity, '), archiving');
                         uiBlocks.push(fontChild.outerHTML);
                     } else {
-                        console.log('NemoNet HTML Trimmer: 🔧  -> Child is narrative (score:', childComplexity, '), keeping');
+                        debugLog(' 🔧  -> Child is narrative (score:', childComplexity, '), keeping');
                         narrative += fontChild.outerHTML;
                     }
                 });
@@ -479,10 +434,10 @@ function separateNarrativeFromUI(messageContent) {
         }
     });
 
-    console.log('NemoNet HTML Trimmer: 🔍 SEPARATION COMPLETE');
-    console.log('NemoNet HTML Trimmer: 🔍 Narrative length:', narrative.length, 'chars');
-    console.log('NemoNet HTML Trimmer: 🔍 UI blocks found:', uiBlocks.length);
-    console.log('NemoNet HTML Trimmer: 🔍 Narrative preview:', narrative.substring(0, 300));
+    debugLog(' 🔍 SEPARATION COMPLETE');
+    debugLog(' 🔍 Narrative length:', narrative.length, 'chars');
+    debugLog(' 🔍 UI blocks found:', uiBlocks.length);
+    debugLog(' 🔍 Narrative preview:', narrative.substring(0, 300));
 
     return { narrative: narrative.trim(), uiBlocks };
 }
@@ -494,13 +449,13 @@ function separateNarrativeFromUI(messageContent) {
 function trimMessageHTML(messageContent) {
     try {
         if (!shouldTrimHTML(messageContent)) {
-            console.log('NemoNet HTML Trimmer: Message does not meet trimming criteria (not enough HTML tags)');
+            debugLog(' Message does not meet trimming criteria (not enough HTML tags)');
             return messageContent; // No trimming needed
         }
 
-        console.log('NemoNet HTML Trimmer: ===== STARTING TRIM PROCESS =====');
-        console.log('NemoNet HTML Trimmer: Original message length:', messageContent.length);
-        console.log('NemoNet HTML Trimmer: Original HTML preview:', messageContent.substring(0, 500));
+        debugLog(' ===== STARTING TRIM PROCESS =====');
+        debugLog(' Original message length:', messageContent.length);
+        debugLog(' Original HTML preview:', messageContent.substring(0, 500));
 
         // Check if the message content is wrapped in a mes_text div
         // If so, we need to extract the innerHTML, process it, then wrap it back
@@ -514,18 +469,18 @@ function trimMessageHTML(messageContent) {
         if (temp.children.length === 1 && temp.children[0].classList.contains('mes_text')) {
             mesTextWrapper = temp.children[0];
             contentToProcess = mesTextWrapper.innerHTML;
-            console.log('NemoNet HTML Trimmer: 🔍 Detected mes_text wrapper, processing innerHTML only');
-            console.log('NemoNet HTML Trimmer: 🔍 Content to process preview:', contentToProcess.substring(0, 300));
+            debugLog(' 🔍 Detected mes_text wrapper, processing innerHTML only');
+            debugLog(' 🔍 Content to process preview:', contentToProcess.substring(0, 300));
         }
 
         // Separate narrative from UI blocks
         const { narrative, uiBlocks } = separateNarrativeFromUI(contentToProcess);
 
-        console.log('NemoNet HTML Trimmer: Found', uiBlocks.length, 'UI blocks to archive');
-        console.log('NemoNet HTML Trimmer: Narrative length:', narrative.length);
+        debugLog(' Found', uiBlocks.length, 'UI blocks to archive');
+        debugLog(' Narrative length:', narrative.length);
 
         if (uiBlocks.length === 0) {
-            console.log('NemoNet HTML Trimmer: No UI blocks found to archive (complexity too low)');
+            debugLog(' No UI blocks found to archive (complexity too low)');
             return messageContent;
         }
 
@@ -537,7 +492,7 @@ function trimMessageHTML(messageContent) {
         }
 
         // Convert UI blocks to ASCII-formatted text that preserves visual structure
-        console.log('NemoNet HTML Trimmer: Converting UI blocks to ASCII...');
+        debugLog(' Converting UI blocks to ASCII...');
         const uiASCII = uiBlocks.map(html => convertHTMLToASCII(html)).join('\n\n');
 
     // Create archived UI dropdown with ASCII content
@@ -557,7 +512,7 @@ ${uiASCII}
         if (mesTextWrapper) {
             mesTextWrapper.innerHTML = result;
             result = mesTextWrapper.outerHTML;
-            console.log('NemoNet HTML Trimmer: 🔍 Wrapped result back in mes_text div');
+            debugLog(' 🔍 Wrapped result back in mes_text div');
         }
 
         const savedChars = messageContent.length - result.length;
@@ -567,7 +522,7 @@ ${uiASCII}
             console.log(`NemoNet HTML Trimmer: UI archived (${result.length} chars vs ${messageContent.length} original)`);
         }
 
-        console.log('NemoNet HTML Trimmer: ===== TRIM COMPLETE =====');
+        debugLog(' ===== TRIM COMPLETE =====');
         return result;
     } catch (error) {
         console.error('NemoNet HTML Trimmer: ERROR during trimming:', error);
@@ -612,7 +567,7 @@ export function trimOldMessagesHTML(messagesToKeep = 4) {
     const chat = context?.chat;
 
     if (!chat || chat.length === 0) {
-        console.log('NemoNet HTML Trimmer: No messages to process');
+        debugLog(' No messages to process');
         return { processed: 0, trimmed: 0, saved: 0 };
     }
 
@@ -653,17 +608,17 @@ export function trimOldMessagesHTML(messagesToKeep = 4) {
         context.saveChat();
 
         console.log(`NemoNet HTML Trimmer: ✅ Complete! Processed ${processedCount} messages, trimmed ${trimmedCount}, saved ${totalSaved} characters`);
-        console.log('NemoNet HTML Trimmer: Reloading chat to apply formatting...');
+        debugLog(' Reloading chat to apply formatting...');
 
         // Trigger a full chat reload to re-render messages with proper formatting
         // This ensures SillyTavern re-applies all its native rendering (wrapping text in <p> tags, etc.)
         setTimeout(() => {
             if (typeof context.reloadCurrentChat === 'function') {
                 context.reloadCurrentChat();
-                console.log('NemoNet HTML Trimmer: ✅ Chat reloaded successfully');
+                debugLog(' ✅ Chat reloaded successfully');
             } else {
                 console.warn('NemoNet HTML Trimmer: reloadCurrentChat not available, formatting may appear broken until page refresh');
-                console.log('NemoNet HTML Trimmer: 💡 Tip: Click the edit button on the message to see proper formatting');
+                debugLog(' 💡 Tip: Click the edit button on the message to see proper formatting');
             }
         }, 100);
     } else {
@@ -681,7 +636,7 @@ export function trimOldMessagesHTML(messagesToKeep = 4) {
  * Auto-trim on message send (if enabled)
  */
 export function setupAutoTrim() {
-    console.log('NemoNet HTML Trimmer: Setting up auto-trim hooks...');
+    debugLog(' Setting up auto-trim hooks...');
 
     // Import eventSource
     import('/script.js').then(scriptModule => {
@@ -698,7 +653,7 @@ export function setupAutoTrim() {
 
             if (settings?.enableHTMLTrimming) {
                 const keepMessages = settings.htmlTrimmingKeepCount || 4;
-                console.log('NemoNet HTML Trimmer: Auto-trimming triggered (keeping last', keepMessages, 'messages)');
+                debugLog(' Auto-trimming triggered (keeping last', keepMessages, 'messages)');
 
                 // Small delay to ensure message is saved
                 setTimeout(() => {
@@ -707,6 +662,6 @@ export function setupAutoTrim() {
             }
         });
 
-        console.log('NemoNet HTML Trimmer: ✅ Auto-trim hooks registered');
+        debugLog(' ✅ Auto-trim hooks registered');
     });
 }

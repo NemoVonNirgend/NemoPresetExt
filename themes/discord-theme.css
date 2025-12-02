@@ -1,0 +1,1075 @@
+/* ==========================================================================
+   DISCORD-STYLE THEME FOR SILLYTAVERN
+   Full Discord UI transformation
+   ========================================================================== */
+
+/* === DISCORD COLOR VARIABLES === */
+body.nemo-theme-discord {
+    /* Core backgrounds */
+    --discord-dark: #1e1f22;
+    --discord-darker: #1a1b1e;
+    --discord-darkest: #111214;
+    --discord-channels-bg: #2b2d31;
+    --discord-chat-bg: #313338;
+    --discord-input-bg: #383a40;
+
+    /* Hover states */
+    --discord-hover: #35373c;
+    --discord-active: #404249;
+
+    /* Text colors */
+    --discord-text-normal: #dbdee1;
+    --discord-text-muted: #949ba4;
+    --discord-text-link: #00a8fc;
+    --discord-header-primary: #f2f3f5;
+
+    /* Brand colors */
+    --discord-blurple: #5865f2;
+    --discord-blurple-hover: #4752c4;
+    --discord-green: #23a55a;
+
+    /* Borders */
+    --discord-border: #3f4147;
+}
+
+/* ==========================================================================
+   BASE STYLES
+   ========================================================================== */
+
+body.nemo-theme-discord {
+    background: var(--discord-chat-bg) !important;
+    color: var(--discord-text-normal) !important;
+}
+
+/* ==========================================================================
+   SERVER SIDEBAR - Transform top-settings-holder into Discord server list
+   ========================================================================== */
+
+/* Hide the original top-bar completely */
+body.nemo-theme-discord #top-bar {
+    display: none !important;
+}
+
+/* Transform top-settings-holder into the Discord server sidebar */
+body.nemo-theme-discord #top-settings-holder {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 72px !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    background: var(--discord-dark) !important;
+    z-index: 10000 !important;
+    padding: 0 !important;
+    padding-top: 60px !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    margin: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* SillyTavern logo/home button at top of server bar */
+body.nemo-theme-discord #top-settings-holder::before {
+    content: "ST";
+    position: fixed !important;
+    top: 12px !important;
+    left: 12px !important;
+    width: 48px !important;
+    height: 48px !important;
+    background: var(--discord-blurple) !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: bold !important;
+    font-size: 18px !important;
+    color: white !important;
+    cursor: pointer !important;
+    transition: border-radius 0.15s ease-out !important;
+    z-index: 10001 !important;
+}
+
+body.nemo-theme-discord #top-settings-holder::after {
+    content: "";
+    position: fixed !important;
+    top: 68px !important;
+    left: 20px !important;
+    width: 32px !important;
+    height: 2px !important;
+    background: var(--discord-border) !important;
+    border-radius: 1px !important;
+    z-index: 10001 !important;
+}
+
+/* Style the drawer buttons as Discord server icons */
+body.nemo-theme-discord #top-settings-holder > .drawer {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    max-width: 48px !important;
+    max-height: 48px !important;
+    border-radius: 50% !important;
+    background: var(--discord-channels-bg) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: border-radius 0.15s ease-out, background-color 0.15s ease-out !important;
+    color: var(--discord-text-normal) !important;
+    font-size: 20px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 100 !important;
+    transform: none !important;
+    overflow: hidden !important;
+    backdrop-filter: none !important;
+}
+
+body.nemo-theme-discord #top-settings-holder > .drawer:hover {
+    border-radius: 35% !important;
+    background: var(--discord-blurple) !important;
+    color: white !important;
+}
+
+/* Ensure drawer buttons are clickable */
+body.nemo-theme-discord #top-settings-holder > .drawer {
+    pointer-events: auto !important;
+}
+
+/* Make sure the drawer-icon (the clickable icon part) is visible and clickable */
+body.nemo-theme-discord #top-settings-holder > .drawer > .drawer-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    font-size: 20px !important;
+    color: inherit !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Make sure nested icons inside buttons are visible and centered */
+body.nemo-theme-discord #top-settings-holder .drawer-icon i,
+body.nemo-theme-discord #top-settings-holder .drawer-icon .fa-solid,
+body.nemo-theme-discord #top-settings-holder .drawer-icon .fa-regular,
+body.nemo-theme-discord #top-settings-holder .drawer-icon svg {
+    font-size: 20px !important;
+    color: inherit !important;
+    display: block !important;
+    pointer-events: none !important;
+}
+
+/* Position drawer-content panels to appear to the right of the server bar */
+body.nemo-theme-discord #top-settings-holder > .drawer > .drawer-content {
+    position: fixed !important;
+    left: 72px !important;
+    top: 0 !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+}
+
+/* Hide the right nav holder in server bar - not needed */
+body.nemo-theme-discord #top-bar #rightNavHolder {
+    display: none !important;
+}
+
+/* ==========================================================================
+   MAIN CONTENT LAYOUT - Shift everything to accommodate server sidebar
+   ========================================================================== */
+
+body.nemo-theme-discord #sheld {
+    margin-left: 72px !important;
+    width: calc(100% - 72px) !important;
+}
+
+body.nemo-theme-discord #left-nav-panel {
+    left: 72px !important;
+}
+
+/* ==========================================================================
+   PANEL BACKGROUNDS
+   ========================================================================== */
+
+body.nemo-theme-discord #left-nav-panel {
+    background: var(--discord-channels-bg) !important;
+}
+
+body.nemo-theme-discord #right-nav-panel {
+    background: var(--discord-channels-bg) !important;
+}
+
+/* ==========================================================================
+   CHAT AREA
+   ========================================================================== */
+
+body.nemo-theme-discord #chat,
+body.nemo-theme-discord #sheld {
+    background: var(--discord-chat-bg) !important;
+}
+
+/* ==========================================================================
+   MESSAGES
+   ========================================================================== */
+
+body.nemo-theme-discord .mes {
+    background: transparent !important;
+    border: none !important;
+}
+
+body.nemo-theme-discord .mes:hover {
+    background: rgba(0, 0, 0, 0.06) !important;
+}
+
+body.nemo-theme-discord .mes .name_text {
+    color: var(--discord-green) !important;
+}
+
+body.nemo-theme-discord .mes[is_user="true"] .name_text {
+    color: var(--discord-blurple) !important;
+}
+
+body.nemo-theme-discord .mes_text {
+    color: var(--discord-text-normal) !important;
+}
+
+body.nemo-theme-discord .mes_block {
+    background: transparent !important;
+}
+
+/* ==========================================================================
+   INPUT AREA
+   ========================================================================== */
+
+body.nemo-theme-discord #send_textarea {
+    background: var(--discord-input-bg) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: var(--discord-text-normal) !important;
+}
+
+body.nemo-theme-discord #send_textarea::placeholder {
+    color: var(--discord-text-muted) !important;
+}
+
+/* ==========================================================================
+   BUTTONS
+   ========================================================================== */
+
+body.nemo-theme-discord .menu_button {
+    background: var(--discord-blurple) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 3px !important;
+}
+
+body.nemo-theme-discord .menu_button:hover {
+    background: var(--discord-blurple-hover) !important;
+}
+
+/* ==========================================================================
+   INPUT FIELDS
+   ========================================================================== */
+
+body.nemo-theme-discord input[type="text"],
+body.nemo-theme-discord input[type="number"],
+body.nemo-theme-discord input[type="password"],
+body.nemo-theme-discord textarea:not(#send_textarea),
+body.nemo-theme-discord select {
+    background: var(--discord-dark) !important;
+    border: 1px solid var(--discord-border) !important;
+    color: var(--discord-text-normal) !important;
+}
+
+/* ==========================================================================
+   SCROLLBARS
+   ========================================================================== */
+
+body.nemo-theme-discord ::-webkit-scrollbar {
+    width: 8px !important;
+    height: 8px !important;
+}
+
+body.nemo-theme-discord ::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+body.nemo-theme-discord ::-webkit-scrollbar-thumb {
+    background: var(--discord-dark) !important;
+    border-radius: 4px !important;
+}
+
+/* ==========================================================================
+   POPUPS
+   ========================================================================== */
+
+body.nemo-theme-discord .popup,
+body.nemo-theme-discord dialog.popup {
+    background: var(--discord-channels-bg) !important;
+    border: none !important;
+    color: var(--discord-text-normal) !important;
+}
+
+body.nemo-theme-discord .popup_background {
+    background: rgba(0, 0, 0, 0.85) !important;
+}
+
+/* ==========================================================================
+   DISCORD SETTINGS PANEL OVERLAY - Centered Modal Style
+   ========================================================================== */
+
+body.nemo-theme-discord .discord-settings-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    z-index: 999 !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+}
+
+body.nemo-theme-discord .discord-settings-overlay.visible {
+    display: flex !important;
+}
+
+body.nemo-theme-discord .discord-settings-container {
+    display: flex !important;
+    width: 95% !important;
+    max-width: 1200px !important;
+    height: 90vh !important;
+    max-height: 900px !important;
+    background: var(--discord-channels-bg) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+body.nemo-theme-discord .discord-settings-sidebar {
+    width: 200px !important;
+    min-width: 200px !important;
+    background: var(--discord-channels-bg) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 16px 8px 16px 16px !important;
+    overflow-y: auto !important;
+    border-right: 1px solid var(--discord-border) !important;
+}
+
+body.nemo-theme-discord .discord-settings-nav {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+body.nemo-theme-discord .discord-settings-nav-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 8px 10px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    color: var(--discord-text-muted) !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    transition: background 0.1s, color 0.1s !important;
+}
+
+body.nemo-theme-discord .discord-settings-nav-item:hover {
+    background: var(--discord-hover) !important;
+    color: var(--discord-text-normal) !important;
+}
+
+body.nemo-theme-discord .discord-settings-nav-item.active {
+    background: var(--discord-active) !important;
+    color: var(--discord-header-primary) !important;
+}
+
+body.nemo-theme-discord .discord-settings-nav-item i {
+    width: 20px !important;
+    text-align: center !important;
+    font-size: 16px !important;
+}
+
+body.nemo-theme-discord .discord-settings-content {
+    flex: 1 !important;
+    background: var(--discord-chat-bg) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 16px 24px !important;
+}
+
+body.nemo-theme-discord .discord-settings-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 16px !important;
+    padding-bottom: 16px !important;
+    border-bottom: 1px solid var(--discord-border) !important;
+}
+
+body.nemo-theme-discord .discord-settings-header h2 {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: var(--discord-header-primary) !important;
+    margin: 0 !important;
+}
+
+body.nemo-theme-discord .discord-settings-body {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+body.nemo-theme-discord .discord-settings-body .drawer-content {
+    background: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+body.nemo-theme-discord .discord-settings-close {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    z-index: 10 !important;
+}
+
+body.nemo-theme-discord .discord-close-btn {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    background: var(--discord-hover) !important;
+    color: var(--discord-text-muted) !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 16px !important;
+    transition: all 0.15s !important;
+}
+
+body.nemo-theme-discord .discord-close-btn:hover {
+    background: var(--discord-active) !important;
+    color: var(--discord-text-normal) !important;
+}
+
+body.nemo-theme-discord .discord-close-hint {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: var(--discord-text-muted) !important;
+    background: var(--discord-hover) !important;
+    padding: 4px 6px !important;
+    border-radius: 4px !important;
+}
+
+/* ==========================================================================
+   DISCORD QUICK LINKS FOLDER
+   ========================================================================== */
+
+/* Folder container */
+body.nemo-theme-discord .discord-links-folder {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    margin-top: 8px !important;
+}
+
+/* Folder button (collapsed state) */
+body.nemo-theme-discord .discord-folder-btn {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 16px !important;
+    background: var(--discord-darker) !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: border-radius 0.15s ease-out, background-color 0.15s ease-out !important;
+    color: var(--discord-green) !important;
+    font-size: 18px !important;
+    position: relative !important;
+}
+
+body.nemo-theme-discord .discord-folder-btn:hover {
+    border-radius: 35% !important;
+    background: var(--discord-green) !important;
+    color: white !important;
+}
+
+body.nemo-theme-discord .discord-folder-btn.expanded {
+    border-radius: 35% !important;
+    background: var(--discord-green) !important;
+    color: white !important;
+}
+
+/* Folder expanded content */
+body.nemo-theme-discord .discord-folder-content {
+    display: none !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 8px 0 !important;
+    background: var(--discord-darker) !important;
+    border-radius: 16px !important;
+    margin-top: 4px !important;
+    width: 56px !important;
+}
+
+body.nemo-theme-discord .discord-folder-content.expanded {
+    display: flex !important;
+}
+
+/* Individual link buttons in folder */
+body.nemo-theme-discord .discord-folder-link {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    background: var(--discord-channels-bg) !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: border-radius 0.15s ease-out, background-color 0.15s ease-out !important;
+    color: var(--discord-text-normal) !important;
+    font-size: 16px !important;
+    text-decoration: none !important;
+}
+
+body.nemo-theme-discord .discord-folder-link:hover {
+    border-radius: 35% !important;
+    background: var(--discord-blurple) !important;
+    color: white !important;
+}
+
+/* Tooltip for links */
+body.nemo-theme-discord .discord-folder-link[data-tooltip]:hover::after {
+    content: attr(data-tooltip) !important;
+    position: absolute !important;
+    left: 72px !important;
+    background: var(--discord-darkest) !important;
+    color: var(--discord-text-normal) !important;
+    padding: 8px 12px !important;
+    border-radius: 4px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    z-index: 10002 !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+}
+
+/* Separator in folder */
+body.nemo-theme-discord .discord-folder-separator {
+    width: 32px !important;
+    height: 2px !important;
+    background: var(--discord-border) !important;
+    border-radius: 1px !important;
+    margin: 4px 0 !important;
+}
+
+/* ==========================================================================
+   DISCORD DM SIDEBAR (HotSwap Characters)
+   ========================================================================== */
+
+body.nemo-theme-discord .discord-dm-sidebar {
+    position: fixed !important;
+    left: 72px !important;
+    top: 0 !important;
+    width: 240px !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    background: var(--discord-channels-bg) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    z-index: 9998 !important;
+    border-right: 1px solid var(--discord-darker) !important;
+}
+
+/* Adjust main content when DM sidebar is visible */
+body.nemo-theme-discord.discord-dm-open #sheld {
+    margin-left: 312px !important;
+    width: calc(100% - 312px) !important;
+}
+
+body.nemo-theme-discord.discord-dm-open #left-nav-panel {
+    left: 312px !important;
+}
+
+/* Search bar at top */
+body.nemo-theme-discord .discord-dm-search {
+    padding: 10px !important;
+    flex-shrink: 0 !important;
+}
+
+body.nemo-theme-discord .discord-dm-search input {
+    width: 100% !important;
+    background: var(--discord-dark) !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 8px 10px !important;
+    color: var(--discord-text-muted) !important;
+    font-size: 13px !important;
+}
+
+body.nemo-theme-discord .discord-dm-search input::placeholder {
+    color: var(--discord-text-muted) !important;
+}
+
+body.nemo-theme-discord .discord-dm-search input:focus {
+    outline: none !important;
+    color: var(--discord-text-normal) !important;
+}
+
+/* Navigation buttons (Friends, etc.) */
+body.nemo-theme-discord .discord-dm-nav {
+    padding: 8px 8px 0 8px !important;
+    flex-shrink: 0 !important;
+}
+
+body.nemo-theme-discord .discord-dm-nav-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 8px 10px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    color: var(--discord-text-muted) !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    transition: background 0.1s, color 0.1s !important;
+    margin-bottom: 2px !important;
+}
+
+body.nemo-theme-discord .discord-dm-nav-item:hover {
+    background: var(--discord-hover) !important;
+    color: var(--discord-text-normal) !important;
+}
+
+body.nemo-theme-discord .discord-dm-nav-item.active {
+    background: var(--discord-active) !important;
+    color: var(--discord-header-primary) !important;
+}
+
+body.nemo-theme-discord .discord-dm-nav-item i {
+    font-size: 20px !important;
+    width: 24px !important;
+    text-align: center !important;
+}
+
+/* Direct Messages header */
+body.nemo-theme-discord .discord-dm-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 16px 16px 8px 16px !important;
+    flex-shrink: 0 !important;
+}
+
+body.nemo-theme-discord .discord-dm-header-title {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    color: var(--discord-text-muted) !important;
+    letter-spacing: 0.02em !important;
+}
+
+body.nemo-theme-discord .discord-dm-header-add {
+    color: var(--discord-text-muted) !important;
+    cursor: pointer !important;
+    font-size: 16px !important;
+    transition: color 0.1s !important;
+}
+
+body.nemo-theme-discord .discord-dm-header-add:hover {
+    color: var(--discord-text-normal) !important;
+}
+
+/* DM list container */
+body.nemo-theme-discord .discord-dm-list {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 0 8px 8px 8px !important;
+}
+
+/* Individual DM item (character) */
+body.nemo-theme-discord .discord-dm-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 6px 8px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: background 0.1s !important;
+    margin-bottom: 2px !important;
+}
+
+body.nemo-theme-discord .discord-dm-item:hover {
+    background: var(--discord-hover) !important;
+}
+
+body.nemo-theme-discord .discord-dm-item.active {
+    background: var(--discord-active) !important;
+}
+
+/* Character avatar */
+body.nemo-theme-discord .discord-dm-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    flex-shrink: 0 !important;
+    background: var(--discord-dark) !important;
+}
+
+/* Character info */
+body.nemo-theme-discord .discord-dm-info {
+    flex: 1 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+body.nemo-theme-discord .discord-dm-name {
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    color: var(--discord-text-muted) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    transition: color 0.1s !important;
+}
+
+body.nemo-theme-discord .discord-dm-item:hover .discord-dm-name,
+body.nemo-theme-discord .discord-dm-item.active .discord-dm-name {
+    color: var(--discord-text-normal) !important;
+}
+
+body.nemo-theme-discord .discord-dm-status {
+    font-size: 12px !important;
+    color: var(--discord-text-muted) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Online indicator */
+body.nemo-theme-discord .discord-dm-avatar-wrapper {
+    position: relative !important;
+    flex-shrink: 0 !important;
+}
+
+body.nemo-theme-discord .discord-dm-online-indicator {
+    position: absolute !important;
+    bottom: -2px !important;
+    right: -2px !important;
+    width: 14px !important;
+    height: 14px !important;
+    background: var(--discord-green) !important;
+    border: 3px solid var(--discord-channels-bg) !important;
+    border-radius: 50% !important;
+}
+
+/* Toggle button in server bar */
+body.nemo-theme-discord .discord-dm-toggle {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 50% !important;
+    background: var(--discord-channels-bg) !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: border-radius 0.15s ease-out, background-color 0.15s ease-out !important;
+    color: var(--discord-text-normal) !important;
+    font-size: 20px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.nemo-theme-discord .discord-dm-toggle:hover,
+body.nemo-theme-discord .discord-dm-toggle.active {
+    border-radius: 35% !important;
+    background: var(--discord-blurple) !important;
+    color: white !important;
+}
+
+/* Empty state */
+body.nemo-theme-discord .discord-dm-empty {
+    padding: 16px !important;
+    text-align: center !important;
+    color: var(--discord-text-muted) !important;
+    font-size: 13px !important;
+}
+
+body.nemo-theme-discord .discord-dm-empty i {
+    font-size: 32px !important;
+    margin-bottom: 8px !important;
+    display: block !important;
+}
+
+/* ==========================================================================
+   DISCORD CHARACTER PROFILE PANEL (Right Side - Persistent)
+   ========================================================================== */
+
+body.nemo-theme-discord .discord-profile-panel {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 340px !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    background: var(--discord-channels-bg) !important;
+    z-index: 100 !important;
+    display: none !important;
+    flex-direction: column !important;
+    border-left: 1px solid var(--discord-darker) !important;
+}
+
+body.nemo-theme-discord .discord-profile-panel.open {
+    display: flex !important;
+}
+
+/* Adjust chat area when profile panel is open */
+body.nemo-theme-discord.discord-profile-open #sheld {
+    width: calc(100% - 72px - 340px) !important;
+}
+
+body.nemo-theme-discord.discord-profile-open.discord-dm-open #sheld {
+    width: calc(100% - 312px - 340px) !important;
+}
+
+/* Profile banner area */
+body.nemo-theme-discord .discord-profile-banner {
+    height: 120px !important;
+    background: linear-gradient(135deg, var(--discord-blurple) 0%, #3a1c71 100%) !important;
+    position: relative !important;
+    flex-shrink: 0 !important;
+}
+
+/* Close button */
+body.nemo-theme-discord .discord-profile-close {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+    color: white !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 14px !important;
+    transition: background 0.15s !important;
+}
+
+body.nemo-theme-discord .discord-profile-close:hover {
+    background: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Profile avatar */
+body.nemo-theme-discord .discord-profile-avatar-wrapper {
+    position: absolute !important;
+    bottom: -50px !important;
+    left: 20px !important;
+}
+
+body.nemo-theme-discord .discord-profile-avatar {
+    width: 100px !important;
+    height: 100px !important;
+    border-radius: 50% !important;
+    border: 6px solid var(--discord-channels-bg) !important;
+    object-fit: cover !important;
+    background: var(--discord-dark) !important;
+    cursor: pointer !important;
+}
+
+body.nemo-theme-discord .discord-profile-avatar:hover {
+    opacity: 0.9 !important;
+}
+
+body.nemo-theme-discord .discord-profile-status {
+    position: absolute !important;
+    bottom: 4px !important;
+    right: 4px !important;
+    width: 24px !important;
+    height: 24px !important;
+    background: var(--discord-green) !important;
+    border: 4px solid var(--discord-channels-bg) !important;
+    border-radius: 50% !important;
+}
+
+/* Profile body */
+body.nemo-theme-discord .discord-profile-body {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 60px 16px 16px 16px !important;
+}
+
+/* Profile card */
+body.nemo-theme-discord .discord-profile-card {
+    background: var(--discord-dark) !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+    margin-top: 8px !important;
+}
+
+body.nemo-theme-discord .discord-profile-name {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    color: var(--discord-header-primary) !important;
+    margin-bottom: 4px !important;
+}
+
+body.nemo-theme-discord .discord-profile-username {
+    font-size: 14px !important;
+    color: var(--discord-text-muted) !important;
+    margin-bottom: 12px !important;
+}
+
+body.nemo-theme-discord .discord-profile-divider {
+    height: 1px !important;
+    background: var(--discord-border) !important;
+    margin: 12px 0 !important;
+}
+
+body.nemo-theme-discord .discord-profile-section-title {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    color: var(--discord-header-primary) !important;
+    margin-bottom: 8px !important;
+}
+
+body.nemo-theme-discord .discord-profile-section-content {
+    font-size: 14px !important;
+    color: var(--discord-text-normal) !important;
+    line-height: 1.4 !important;
+    max-height: 150px !important;
+    overflow-y: auto !important;
+}
+
+body.nemo-theme-discord .discord-profile-meta {
+    display: flex !important;
+    gap: 16px !important;
+    margin-top: 12px !important;
+}
+
+body.nemo-theme-discord .discord-profile-meta-item {
+    font-size: 12px !important;
+    color: var(--discord-text-muted) !important;
+}
+
+body.nemo-theme-discord .discord-profile-meta-item strong {
+    display: block !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    color: var(--discord-header-primary) !important;
+    margin-bottom: 4px !important;
+}
+
+/* View full image button */
+body.nemo-theme-discord .discord-profile-view-full {
+    width: 100% !important;
+    padding: 10px !important;
+    margin-top: 12px !important;
+    background: var(--discord-blurple) !important;
+    border: none !important;
+    border-radius: 4px !important;
+    color: white !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: background 0.15s !important;
+}
+
+body.nemo-theme-discord .discord-profile-view-full:hover {
+    background: var(--discord-blurple-hover) !important;
+}
+
+/* Image modal for full size view */
+body.nemo-theme-discord .discord-image-modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    z-index: 100001 !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 40px !important;
+}
+
+body.nemo-theme-discord .discord-image-modal.open {
+    display: flex !important;
+}
+
+body.nemo-theme-discord .discord-image-modal img {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    border-radius: 8px !important;
+}
+
+body.nemo-theme-discord .discord-image-modal-close {
+    position: absolute !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    background: var(--discord-hover) !important;
+    color: var(--discord-text-normal) !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 20px !important;
+}
+
+/* Make avatar clickable with cursor hint */
+body.nemo-theme-discord .discord-dm-avatar-wrapper {
+    cursor: zoom-in !important;
+}
+
+/* Make chat message avatars clickable */
+body.nemo-theme-discord .mesAvatarWrapper .avatar {
+    cursor: zoom-in !important;
+}

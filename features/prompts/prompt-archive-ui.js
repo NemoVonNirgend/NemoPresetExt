@@ -17,7 +17,6 @@ export const NemoPromptArchiveUI = {
         this.injectArchiveUI();
         
         this.initialized = true;
-        console.log(`${LOG_PREFIX} Prompt Archive UI initialized`);
     },
 
     injectArchiveUI: function() {
@@ -305,8 +304,6 @@ export const NemoPromptArchiveUI = {
         const promptItems = archiveItem.querySelectorAll('.nemo-prompt-item');
         const systemPromptItems = archiveItem.querySelectorAll('.nemo-system-prompt-item');
 
-        console.log(`Setting up listeners for ${promptItems.length} prompts and ${systemPromptItems.length} system prompts`);
-
         // Right-click context menu for individual prompts
         promptItems.forEach(item => {
             // Remove any existing listeners to avoid duplicates
@@ -319,7 +316,6 @@ export const NemoPromptArchiveUI = {
             newItem.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Right-click detected on prompt item');
                 const archiveId = newItem.dataset.archiveId;
                 const promptId = newItem.dataset.promptId;
                 this.showPromptContextMenu(e, archiveId, promptId, 'prompt');
@@ -329,7 +325,6 @@ export const NemoPromptArchiveUI = {
             newItem.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Click detected on prompt item - showing context menu');
                 const archiveId = newItem.dataset.archiveId;
                 const promptId = newItem.dataset.promptId;
                 this.showPromptContextMenu(e, archiveId, promptId, 'prompt');
@@ -348,7 +343,6 @@ export const NemoPromptArchiveUI = {
             newItem.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Right-click detected on system prompt item');
                 const archiveId = newItem.dataset.archiveId;
                 const promptName = newItem.dataset.promptName;
                 this.showPromptContextMenu(e, archiveId, promptName, 'system');
@@ -358,7 +352,6 @@ export const NemoPromptArchiveUI = {
             newItem.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Click detected on system prompt item - showing context menu');
                 const archiveId = newItem.dataset.archiveId;
                 const promptName = newItem.dataset.promptName;
                 this.showPromptContextMenu(e, archiveId, promptName, 'system');
@@ -471,8 +464,6 @@ export const NemoPromptArchiveUI = {
     },
 
     showPromptContextMenu: function(event, archiveId, promptIdentifier, type) {
-        console.log(`Showing context menu for ${type}: ${promptIdentifier} from archive ${archiveId}`);
-        
         // Remove any existing context menu
         this.removeContextMenu();
         
@@ -511,16 +502,13 @@ export const NemoPromptArchiveUI = {
         });
         
         addToCurrentOption.addEventListener('click', () => {
-            console.log(`Context menu clicked for ${type}: ${promptIdentifier}`);
             this.addSinglePromptToPreset(archiveId, promptIdentifier, type);
             this.removeContextMenu();
         });
-        
+
         menu.appendChild(addToCurrentOption);
         document.body.appendChild(menu);
-        
-        console.log('Context menu added to DOM');
-        
+
         // Remove menu when clicking elsewhere
         setTimeout(() => {
             document.addEventListener('click', this.removeContextMenu.bind(this), { once: true });

@@ -16,17 +16,9 @@ import { promptManager } from '../../../../../openai.js';
  * @param {Function} onResolve - Callback when user resolves the conflict
  */
 export function showConflictToast(issues, promptId, onResolve) {
-    console.log('[Directive UI] ============================================');
-    console.log('[Directive UI] showConflictToast CALLED');
-    console.log('[Directive UI] Prompt ID:', promptId);
-    console.log('[Directive UI] Issues count:', issues.length);
-    console.log('[Directive UI] Stack trace:');
-    console.trace();
-
     // Check if there's already a toast showing for this prompt
     const existingToast = document.querySelector(`.nemo-directive-toast[data-prompt-id="${promptId}"]`);
     if (existingToast) {
-        console.log('[Directive UI] Toast already showing for prompt:', promptId, 'skipping duplicate');
         return;
     }
 
@@ -79,8 +71,9 @@ export function showConflictToast(issues, promptId, onResolve) {
         const hasExclusive = errors.some(i => i.type === 'exclusive');
         const hasMissingDep = errors.some(i => i.type === 'missing-dependency');
         const hasCategoryLimit = errors.some(i => i.type === 'category-limit');
+        const hasGroupExclusive = errors.some(i => i.type === 'mutual-exclusive-group');
 
-        if (hasExclusive || hasCategoryLimit) {
+        if (hasExclusive || hasCategoryLimit || hasGroupExclusive) {
             // Option to disable conflicting prompts
             content += '<button class="nemo-toast-btn nemo-toast-btn-primary" data-action="disable-conflicts">Disable Conflicting Prompts</button>';
         }
@@ -122,6 +115,74 @@ export function showConflictToast(issues, promptId, onResolve) {
             }
         }, 10000);
     }
+}
+
+/**
+ * Show a toast notification for message-based triggers
+ * @param {Array} triggered - Array of triggered changes
+ * @param {number} messageCount - Current message count
+ */
+export function showMessageTriggerToast(triggered, messageCount) {
+    if (!triggered || triggered.length === 0) return;
+
+    // Remove any existing message trigger toast
+    const existingToast = document.querySelector('.nemo-message-trigger-toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'nemo-directive-toast nemo-message-trigger-toast';
+    toast.setAttribute('role', 'status');
+
+    const enabled = triggered.filter(t => t.action === 'enable');
+    const disabled = triggered.filter(t => t.action === 'disable');
+
+    let content = '<div class="nemo-toast-header">';
+    content += '<span class="nemo-toast-icon">📊</span>';
+    content += `<span class="nemo-toast-title">Message Trigger (${messageCount} messages)</span>`;
+    content += '<button class="nemo-toast-dismiss" aria-label="Dismiss">&times;</button>';
+    content += '</div>';
+
+    content += '<div class="nemo-toast-body">';
+
+    if (enabled.length > 0) {
+        content += '<div class="nemo-trigger-section">';
+        content += '<strong class="nemo-trigger-enabled">✓ Enabled:</strong>';
+        content += '<ul class="nemo-trigger-list">';
+        for (const item of enabled) {
+            content += `<li title="${escapeHtml(item.reason)}">${escapeHtml(item.name)}</li>`;
+        }
+        content += '</ul></div>';
+    }
+
+    if (disabled.length > 0) {
+        content += '<div class="nemo-trigger-section">';
+        content += '<strong class="nemo-trigger-disabled">✗ Disabled:</strong>';
+        content += '<ul class="nemo-trigger-list">';
+        for (const item of disabled) {
+            content += `<li title="${escapeHtml(item.reason)}">${escapeHtml(item.name)}</li>`;
+        }
+        content += '</ul></div>';
+    }
+
+    content += '</div>';
+    toast.innerHTML = content;
+
+    // Dismiss button handler
+    const dismissBtn = toast.querySelector('.nemo-toast-dismiss');
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => removeToast(toast));
+    }
+
+    document.body.appendChild(toast);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            removeToast(toast);
+        }
+    }, 5000);
 }
 
 /**
@@ -181,6 +242,7 @@ function handleToastAction(action, issues, promptId, toastElement, onResolve) {
 function getIssueTypeLabel(type) {
     const labels = {
         'exclusive': 'Mutual Exclusion',
+        'mutual-exclusive-group': 'Group Exclusion',
         'missing-dependency': 'Missing Requirement',
         'category-limit': 'Category Limit',
         'soft-conflict': 'Potential Conflict',

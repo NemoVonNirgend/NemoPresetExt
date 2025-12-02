@@ -269,7 +269,7 @@ class NemoPresetEventBus {
      * @private
      */
     _generateListenerId() {
-        return `listener_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return `listener_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
 }
 

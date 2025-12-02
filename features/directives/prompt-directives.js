@@ -7,15 +7,55 @@
 
 import logger from '../../core/logger.js';
 import { promptManager } from '../../../../../openai.js';
+import { getContext } from '../../../../../extensions.js';
+
+// Directive parsing cache for performance optimization
+// Uses a Map with content hash as key to avoid re-parsing identical content
+const directiveCache = new Map();
+const CACHE_MAX_SIZE = 500; // Maximum cached entries
+const CACHE_TTL = 60000; // Cache TTL in ms (1 minute)
 
 /**
- * Parse all directives from a prompt's content
+ * Simple hash function for cache keys
+ * @param {string} str - String to hash
+ * @returns {string} Hash string
+ */
+function hashContent(str) {
+    let hash = 0;
+    if (str.length === 0) return String(hash);
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return String(hash);
+}
+
+/**
+ * Clear the directive cache (call when prompts are modified)
+ */
+export function clearDirectiveCache() {
+    directiveCache.clear();
+    logger.debug('Directive cache cleared');
+}
+
+/**
+ * Parse all directives from a prompt's content (with caching)
  * @param {string} content - The prompt content
  * @returns {Object} Parsed directives
  */
 export function parsePromptDirectives(content) {
     if (!content) return getEmptyDirectives();
 
+    // Check cache first
+    const cacheKey = hashContent(content);
+    const cached = directiveCache.get(cacheKey);
+
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+        return cached.directives;
+    }
+
+    // Parse directives
     const directives = getEmptyDirectives();
 
     // Extract all {{// ... }} blocks
@@ -26,6 +66,18 @@ export function parsePromptDirectives(content) {
         const comment = match[1].trim();
         parseDirectiveLine(comment, directives);
     }
+
+    // Store in cache
+    if (directiveCache.size >= CACHE_MAX_SIZE) {
+        // Remove oldest entries (first 100)
+        const keys = Array.from(directiveCache.keys()).slice(0, 100);
+        keys.forEach(k => directiveCache.delete(k));
+    }
+
+    directiveCache.set(cacheKey, {
+        directives: directives,
+        timestamp: Date.now()
+    });
 
     return directives;
 }
@@ -109,7 +161,14 @@ function getEmptyDirectives() {
         // Smart Behavior
         autoEnableWith: [],
         suggestEnableWith: [],
-        loadOrder: null
+        loadOrder: null,
+
+        // Message-Based Triggers (NEW)
+        enableAtMessage: null,      // Auto-enable at this message count
+        disableAtMessage: null,     // Auto-disable at this message count
+        messageRange: null,         // {start: N, end: M} - only active between these message counts
+        enableAfterMessage: null,   // Enable after N messages (stays enabled)
+        disableAfterMessage: null   // Disable after N messages (stays disabled)
     };
 }
 
@@ -335,6 +394,30 @@ function parseDirectiveLine(line, directives) {
     else if (line.startsWith('@load-order ')) {
         directives.loadOrder = parseInt(line.substring(12).trim());
     }
+
+    // Message-Based Triggers (NEW)
+    else if (line.startsWith('@enable-at-message ')) {
+        directives.enableAtMessage = parseInt(line.substring(19).trim());
+    }
+    else if (line.startsWith('@disable-at-message ')) {
+        directives.disableAtMessage = parseInt(line.substring(20).trim());
+    }
+    else if (line.startsWith('@message-range ')) {
+        const rangeStr = line.substring(15).trim();
+        const match = rangeStr.match(/^(\d+)\s*-\s*(\d+)?$/);
+        if (match) {
+            directives.messageRange = {
+                start: parseInt(match[1]),
+                end: match[2] ? parseInt(match[2]) : Infinity
+            };
+        }
+    }
+    else if (line.startsWith('@enable-after-message ')) {
+        directives.enableAfterMessage = parseInt(line.substring(22).trim());
+    }
+    else if (line.startsWith('@disable-after-message ')) {
+        directives.disableAfterMessage = parseInt(line.substring(23).trim());
+    }
 }
 
 /**
@@ -419,6 +502,27 @@ export function validatePromptActivation(promptId, allPrompts) {
                 currentPrompt: prompt,
                 category: directives.maxOnePerCategory,
                 directive: 'max-one-per-category'
+            });
+        }
+    }
+
+    // Check mutual-exclusive-group (only one prompt in this group can be active)
+    if (directives.mutualExclusiveGroup) {
+        const sameGroup = allPrompts.filter(p => {
+            if (!p.enabled || p.identifier === promptId || !p.content) return false;
+            const pDirectives = parsePromptDirectives(p.content);
+            return pDirectives.mutualExclusiveGroup === directives.mutualExclusiveGroup;
+        });
+
+        if (sameGroup.length > 0) {
+            issues.push({
+                type: 'mutual-exclusive-group',
+                severity: 'error',
+                message: `Only one prompt from group "${directives.mutualExclusiveGroup}" can be active at a time. Already active: ${sameGroup.map(p => `"${p.name}"`).join(', ')}`,
+                conflictingPrompts: sameGroup,
+                currentPrompt: prompt,
+                group: directives.mutualExclusiveGroup,
+                directive: 'mutual-exclusive-group'
             });
         }
     }
@@ -695,6 +799,56 @@ Suggest prompts that work well together.
 
 ---
 
+## Message-Based Triggers
+
+### @enable-at-message <number>
+Automatically enable this prompt when the chat reaches this many messages.
+
+**Example:**
+\\{\\{// @enable-at-message 50 }}
+(Prompt will auto-enable when chat has 50+ messages)
+
+---
+
+### @disable-at-message <number>
+Automatically disable this prompt when the chat reaches this many messages.
+
+**Example:**
+\\{\\{// @disable-at-message 100 }}
+(Prompt will auto-disable when chat has 100+ messages)
+
+---
+
+### @message-range <start>-<end>
+Only keep this prompt active within a message range.
+
+**Example:**
+\\{\\{// @message-range 20-80 }}
+(Prompt is only active between messages 20 and 80)
+
+\\{\\{// @message-range 50- }}
+(Prompt activates at 50 and stays active indefinitely)
+
+---
+
+### @enable-after-message <number>
+Enable this prompt permanently after the specified message count.
+
+**Example:**
+\\{\\{// @enable-after-message 25 }}
+(Once chat hits 25 messages, prompt enables and stays enabled)
+
+---
+
+### @disable-after-message <number>
+Disable this prompt permanently after the specified message count.
+
+**Example:**
+\\{\\{// @disable-after-message 75 }}
+(Once chat hits 75 messages, prompt disables and stays disabled)
+
+---
+
 ## Complete Example
 
 \\{\\{// @tooltip Master realism toggle for grounded, believable stories }}
@@ -729,3 +883,120 @@ To use directives like @exclusive-with, you need the prompt's identifier.
 
 Or check the prompt's data-pm-identifier attribute in the HTML.
 `;
+
+/**
+ * Evaluate message-based triggers and return prompts that need state changes
+ * @param {number} messageCount - Current message count in chat
+ * @param {Array} allPrompts - All prompts with their current states
+ * @returns {Object} { toEnable: [], toDisable: [] } - Arrays of prompt identifiers
+ */
+export function evaluateMessageTriggers(messageCount, allPrompts) {
+    const result = {
+        toEnable: [],
+        toDisable: [],
+        triggered: [] // For logging/UI feedback
+    };
+
+    if (!Array.isArray(allPrompts) || messageCount < 0) {
+        return result;
+    }
+
+    for (const prompt of allPrompts) {
+        if (!prompt.content) continue;
+
+        const directives = parsePromptDirectives(prompt.content);
+        const isEnabled = prompt.enabled;
+
+        // @enable-at-message - Enable when message count is reached (one-time)
+        if (directives.enableAtMessage !== null && !isEnabled) {
+            if (messageCount >= directives.enableAtMessage) {
+                result.toEnable.push(prompt.identifier);
+                result.triggered.push({
+                    id: prompt.identifier,
+                    name: prompt.name,
+                    action: 'enable',
+                    reason: `Message count (${messageCount}) >= enable threshold (${directives.enableAtMessage})`
+                });
+            }
+        }
+
+        // @disable-at-message - Disable when message count is reached (one-time)
+        if (directives.disableAtMessage !== null && isEnabled) {
+            if (messageCount >= directives.disableAtMessage) {
+                result.toDisable.push(prompt.identifier);
+                result.triggered.push({
+                    id: prompt.identifier,
+                    name: prompt.name,
+                    action: 'disable',
+                    reason: `Message count (${messageCount}) >= disable threshold (${directives.disableAtMessage})`
+                });
+            }
+        }
+
+        // @message-range - Active only within range
+        if (directives.messageRange !== null) {
+            const { start, end } = directives.messageRange;
+            const shouldBeActive = messageCount >= start && messageCount <= end;
+
+            if (shouldBeActive && !isEnabled) {
+                result.toEnable.push(prompt.identifier);
+                result.triggered.push({
+                    id: prompt.identifier,
+                    name: prompt.name,
+                    action: 'enable',
+                    reason: `Message count (${messageCount}) entered range [${start}-${end === Infinity ? '∞' : end}]`
+                });
+            } else if (!shouldBeActive && isEnabled) {
+                result.toDisable.push(prompt.identifier);
+                result.triggered.push({
+                    id: prompt.identifier,
+                    name: prompt.name,
+                    action: 'disable',
+                    reason: `Message count (${messageCount}) outside range [${start}-${end === Infinity ? '∞' : end}]`
+                });
+            }
+        }
+
+        // @enable-after-message - Permanent enable after threshold
+        if (directives.enableAfterMessage !== null && !isEnabled) {
+            if (messageCount >= directives.enableAfterMessage) {
+                result.toEnable.push(prompt.identifier);
+                result.triggered.push({
+                    id: prompt.identifier,
+                    name: prompt.name,
+                    action: 'enable',
+                    reason: `Message count (${messageCount}) >= permanent enable threshold (${directives.enableAfterMessage})`
+                });
+            }
+        }
+
+        // @disable-after-message - Permanent disable after threshold
+        if (directives.disableAfterMessage !== null && isEnabled) {
+            if (messageCount >= directives.disableAfterMessage) {
+                result.toDisable.push(prompt.identifier);
+                result.triggered.push({
+                    id: prompt.identifier,
+                    name: prompt.name,
+                    action: 'disable',
+                    reason: `Message count (${messageCount}) >= permanent disable threshold (${directives.disableAfterMessage})`
+                });
+            }
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Get current message count from SillyTavern context
+ * @returns {number} Current message count
+ */
+export function getCurrentMessageCount() {
+    try {
+        const context = getContext();
+        return context?.chat?.length || 0;
+    } catch (error) {
+        logger.error('Error getting message count:', error);
+        return 0;
+    }
+}

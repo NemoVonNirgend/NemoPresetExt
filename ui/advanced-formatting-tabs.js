@@ -2,6 +2,7 @@
 // Overhauls the Advanced Formatting section to use a tabbed interface with search
 
 import { LOG_PREFIX } from '../core/utils.js';
+import logger from '../core/logger.js';
 
 export const AdvancedFormattingTabs = {
     initialized: false,
@@ -27,7 +28,7 @@ export const AdvancedFormattingTabs = {
                 setTimeout(() => {
                     this.createTabbedInterface(advancedFormattingDrawer);
                     this.initialized = true;
-                    console.log(`${LOG_PREFIX} Advanced Formatting Tabs initialized`);
+                    logger.info('Advanced Formatting Tabs initialized');
                 }, 100);
             }
         }, 500);
@@ -37,7 +38,7 @@ export const AdvancedFormattingTabs = {
         try {
             const mainContentArea = advancedFormattingDrawer.querySelector('.flex-container.spaceEvenly');
             if (!mainContentArea) {
-                console.error(`${LOG_PREFIX} Could not find Advanced Formatting main content area`);
+                logger.error('Could not find Advanced Formatting main content area');
                 return;
             }
 
@@ -85,21 +86,19 @@ export const AdvancedFormattingTabs = {
             
             // Add search functionality
             this.addSearchHandler();
-            
-            console.log(`${LOG_PREFIX} Advanced Formatting tabbed interface created successfully`);
         } catch (error) {
-            console.error(`${LOG_PREFIX} Error creating Advanced Formatting tabbed interface:`, error);
+            logger.error('Error creating Advanced Formatting tabbed interface', error);
         }
     },
 
     reorganizeContent: function(mainContentArea) {
         // Get the three main columns
         const contextSettingsColumn = document.getElementById('ContextSettings');
-        const instructSettingsColumn = document.getElementById('InstructSettingsColumn');  
+        const instructSettingsColumn = document.getElementById('InstructSettingsColumn');
         const systemPromptColumn = document.getElementById('SystemPromptColumn');
-        
+
         if (!contextSettingsColumn || !instructSettingsColumn || !systemPromptColumn) {
-            console.error(`${LOG_PREFIX} Could not find all Advanced Formatting columns`);
+            logger.error('Could not find all Advanced Formatting columns');
             return;
         }
         
@@ -149,8 +148,6 @@ export const AdvancedFormattingTabs = {
         mainContentArea.appendChild(instructTemplateTab);
         mainContentArea.appendChild(systemPromptTab);
         mainContentArea.appendChild(reasoningMiscTab);
-        
-        console.log(`${LOG_PREFIX} Advanced Formatting content reorganized into tabs`);
     },
 
 
@@ -186,7 +183,6 @@ export const AdvancedFormattingTabs = {
         });
 
         this.activeTab = tabName;
-        console.log(`${LOG_PREFIX} Switched to Advanced Formatting tab: ${tabName}`);
     },
 
     addSearchHandler: function() {
@@ -210,8 +206,6 @@ export const AdvancedFormattingTabs = {
                     handleSearch(e.target.value);
                 }
             });
-            
-            console.log(`${LOG_PREFIX} Added search handler for Advanced Formatting tabs`);
         }
     },
 
@@ -314,8 +308,6 @@ export const AdvancedFormattingTabs = {
                 this.makeCloneInteractive(clone, element);
             });
         }
-        
-        console.log(`${LOG_PREFIX} Applied Advanced Formatting search filter for: "${searchTerm}" (${matchingElements.length} results)`);
     },
 
     clearSearchFilter: function() {
@@ -333,8 +325,6 @@ export const AdvancedFormattingTabs = {
         if (activeTabContent) {
             activeTabContent.style.display = 'block';
         }
-        
-        console.log(`${LOG_PREFIX} Cleared Advanced Formatting search filter`);
     },
 
     isRelevantElement: function(element) {
@@ -509,9 +499,8 @@ export const AdvancedFormattingTabs = {
             if (systemPromptTab) systemPromptTab.remove();
             if (reasoningMiscTab) reasoningMiscTab.remove();
         }
-        
+
         this.initialized = false;
-        console.log(`${LOG_PREFIX} Advanced Formatting original layout restored`);
     },
 
     // Method to cleanup existing tab interface

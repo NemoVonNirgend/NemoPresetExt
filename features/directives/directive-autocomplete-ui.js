@@ -7,6 +7,8 @@
 
 import logger from '../../core/logger.js';
 import { getAutocompleteSuggestions, insertSuggestion } from './directive-autocomplete.js';
+import { extension_settings } from '../../../../../extensions.js';
+import { NEMO_EXTENSION_NAME } from '../../core/utils.js';
 
 let activeTextarea = null;
 let autocompleteDropdown = null;
@@ -18,6 +20,13 @@ let selectedIndex = 0;
  * Initialize autocomplete for prompt editor
  */
 export function initDirectiveAutocomplete() {
+    // Check if autocomplete is enabled in settings
+    const isEnabled = extension_settings[NEMO_EXTENSION_NAME]?.enableDirectiveAutocomplete ?? true;
+    if (!isEnabled) {
+        logger.info('Directive autocomplete disabled by settings');
+        return;
+    }
+
     logger.info('Initializing directive autocomplete UI');
 
     // Wait for prompt editor to be available
@@ -48,18 +57,14 @@ export function initDirectiveAutocomplete() {
  */
 function attachAutocomplete(textarea) {
     if (activeTextarea === textarea) {
-        console.log('[AC UI] Already attached to this textarea');
         return;
     }
-
-    console.log('[AC UI] Attaching autocomplete to textarea:', textarea);
 
     activeTextarea = textarea;
 
     // Create dropdown if it doesn't exist
     if (!autocompleteDropdown) {
         createDropdown();
-        console.log('[AC UI] Created dropdown element');
     }
 
     // Add event listeners
@@ -69,7 +74,6 @@ function attachAutocomplete(textarea) {
     textarea.addEventListener('focus', handleFocus);
 
     logger.info('Attached autocomplete to prompt editor textarea');
-    console.log('[AC UI] Event listeners attached');
 }
 
 /**
@@ -96,26 +100,19 @@ function createDropdown() {
  * Handle input event
  */
 function handleInput(e) {
-    console.log('[AC UI] Input event triggered');
     const textarea = e.target;
     const cursorPos = textarea.selectionStart;
     const text = textarea.value;
 
-    console.log('[AC UI] Textarea value length:', text.length, 'cursor at:', cursorPos);
-
     // Get suggestions
     const result = getAutocompleteSuggestions(text, cursorPos);
 
-    console.log('[AC UI] Got result:', result);
-
     if (result.suggestions && result.suggestions.length > 0) {
-        console.log('[AC UI] Showing dropdown with', result.suggestions.length, 'suggestions');
         currentSuggestions = result.suggestions;
         currentResult = result;
         selectedIndex = 0;
         showDropdown(textarea);
     } else {
-        console.log('[AC UI] No suggestions, hiding dropdown');
         hideDropdown();
     }
 }

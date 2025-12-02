@@ -276,7 +276,6 @@ export class PromptNavigator {
         // Set folder color as CSS variable for inheritance
         if (data.color) {
             itemEl.style.setProperty('--nemo-folder-color', data.color);
-            console.log(`[PromptNavigator] Setting folder color: ${data.color} for ${data.name}`);
         }
 
         const icon = document.createElement('div');
@@ -534,22 +533,29 @@ export class PromptNavigator {
         
         menu.innerHTML = itemsHTML;
 
-        const popupContainer = item.closest('.popup');
+        // Find the popup container - ST uses .popup_outer or dialog.popup
+        const popupContainer = item.closest('.popup_outer, dialog.popup, .popup');
         if (popupContainer) {
             popupContainer.appendChild(menu);
             const popupRect = popupContainer.getBoundingClientRect();
             menu.style.left = `${e.clientX - popupRect.left}px`;
             menu.style.top = `${e.clientY - popupRect.top}px`;
-            menu.style.display = 'block';
-
-            menu.addEventListener('click', async (me) => {
-                const actionTarget = me.target.closest('li[data-action]');
-                if (actionTarget) {
-                    this.hideContextMenu(); // Hide first
-                    await this.runContextMenuAction(actionTarget.dataset.action, actionTarget.dataset.id);
-                }
-            }, { once: true });
+        } else {
+            // Fallback - append to body with fixed positioning
+            document.body.appendChild(menu);
+            menu.style.position = 'fixed';
+            menu.style.left = `${e.clientX}px`;
+            menu.style.top = `${e.clientY}px`;
         }
+        menu.style.display = 'block';
+
+        menu.addEventListener('click', async (me) => {
+            const actionTarget = me.target.closest('li[data-action]');
+            if (actionTarget) {
+                this.hideContextMenu(); // Hide first
+                await this.runContextMenuAction(actionTarget.dataset.action, actionTarget.dataset.id);
+            }
+        }, { once: true });
     }
 
     async runContextMenuAction(action, id) {
@@ -682,12 +688,22 @@ export class PromptNavigator {
     }
 
     showMiniMenu(anchor, menu) {
-        const popupContainer = anchor.closest('.popup');
-        popupContainer.appendChild(menu);
-        const anchorRect = anchor.getBoundingClientRect();
-        const popupRect = popupContainer.getBoundingClientRect();
-        menu.style.left = `${anchorRect.left - popupRect.left}px`;
-        menu.style.top = `${anchorRect.bottom - popupRect.top + 5}px`;
+        // Find the popup container - ST uses .popup_outer or dialog.popup
+        const popupContainer = anchor.closest('.popup_outer, dialog.popup, .popup');
+        if (popupContainer) {
+            popupContainer.appendChild(menu);
+            const anchorRect = anchor.getBoundingClientRect();
+            const popupRect = popupContainer.getBoundingClientRect();
+            menu.style.left = `${anchorRect.left - popupRect.left}px`;
+            menu.style.top = `${anchorRect.bottom - popupRect.top + 5}px`;
+        } else {
+            // Fallback - append to body with fixed positioning
+            document.body.appendChild(menu);
+            menu.style.position = 'fixed';
+            const anchorRect = anchor.getBoundingClientRect();
+            menu.style.left = `${anchorRect.left}px`;
+            menu.style.top = `${anchorRect.bottom + 5}px`;
+        }
         menu.style.display = 'block';
     }
 

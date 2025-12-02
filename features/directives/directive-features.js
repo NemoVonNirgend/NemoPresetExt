@@ -8,6 +8,7 @@
 import logger from '../../core/logger.js';
 import { getAllPromptsWithState, parsePromptDirectives } from './prompt-directives.js';
 import { promptManager } from '../../../../../openai.js';
+import { getContext } from '../../../../../extensions.js';
 
 /**
  * Initialize all directive-based features
@@ -528,17 +529,28 @@ function setupProfileSystem() {
 
 /**
  * Activate a profile
+ * Only affects prompts that have at least one profile defined.
+ * Prompts without any @profile directives are left untouched.
  */
 function activateProfile(profileName) {
     try {
         const allPrompts = getAllPromptsWithState();
         let enabledCount = 0;
         let disabledCount = 0;
+        let skippedCount = 0;
 
         for (const prompt of allPrompts) {
             if (!prompt.content) continue;
 
             const directives = parsePromptDirectives(prompt.content);
+
+            // IMPORTANT: Only affect prompts that have profiles defined
+            // Skip prompts that don't participate in the profile system
+            if (directives.profiles.length === 0) {
+                skippedCount++;
+                continue;
+            }
+
             const shouldBeEnabled = directives.profiles.includes(profileName);
 
             const promptOrderEntry = promptManager.getPromptOrderEntry(promptManager.activeCharacter, prompt.identifier);
@@ -556,7 +568,7 @@ function activateProfile(profileName) {
         if (enabledCount > 0 || disabledCount > 0) {
             promptManager.render();
             promptManager.saveServiceSettings();
-            logger.info(`Activated profile "${profileName}": enabled ${enabledCount}, disabled ${disabledCount}`);
+            logger.info(`Activated profile "${profileName}": enabled ${enabledCount}, disabled ${disabledCount}, skipped ${skippedCount} (no profile)`);
 
             // Show toast
             showToast(`Profile "${profileName}" activated`, 'success');
@@ -773,7 +785,8 @@ function applyConditionalVisibility() {
 
             // Check if-api
             if (shouldShow && directives.ifApi.length > 0) {
-                const currentApi = promptManager?.main_api || '';
+                const context = getContext();
+                const currentApi = context?.mainApi || '';
                 shouldShow = directives.ifApi.includes(currentApi.toLowerCase());
             }
 

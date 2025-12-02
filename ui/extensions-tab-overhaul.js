@@ -4,6 +4,7 @@
 import { LOG_PREFIX } from '../core/utils.js';
 import { extension_settings } from '../../../../extensions.js';
 import { saveSettingsDebounced } from '../../../../../script.js';
+import logger from '../core/logger.js';
 
 export const ExtensionsTabOverhaul = {
     initialized: false,
@@ -52,13 +53,13 @@ export const ExtensionsTabOverhaul = {
 
     initialize: function() {
         if (this.initialized) {
-            console.log(`${LOG_PREFIX} ⚠️ initialize() called but already initialized - skipping to prevent double initialization`);
+            logger.debug('Extensions Tab Overhaul already initialized - skipping');
             return;
         }
-        
+
         // Load saved settings
         this.loadSettings();
-        
+
         let pollCount = 0;
         const pollForExtensions = setInterval(() => {
             const extensionsContainer1 = document.getElementById('extensions_settings');
@@ -70,12 +71,10 @@ export const ExtensionsTabOverhaul = {
             const totalExtensions = container1Children + container2Children;
 
             pollCount++;
-            console.log(`${LOG_PREFIX} Checking extensions (poll ${pollCount}): container1=${container1Children}, container2=${container2Children}, total=${totalExtensions}`);
 
             // Wait for at least 5 seconds (5 polls) AND have extensions, OR timeout at 20 seconds
             if ((extensionsContainer1 && totalExtensions > 0 && pollCount >= 5) || pollCount >= 20) {
                 clearInterval(pollForExtensions);
-                console.log(`${LOG_PREFIX} Initializing after ${pollCount} polls with ${totalExtensions} extensions`);
 
                 // Set initialized FIRST to prevent double initialization
                 this.initialized = true;
@@ -86,7 +85,7 @@ export const ExtensionsTabOverhaul = {
                     this.setupEventListeners();
                     this.hideDuplicateSettings();
 
-                    console.log(`${LOG_PREFIX} Enhanced Extensions Tab initialized with ${totalExtensions} extensions`);
+                    logger.info('Enhanced Extensions Tab initialized', { totalExtensions });
                 }, 2000); // Wait 2 full seconds after deciding to initialize
             }
         }, 1000);
@@ -107,43 +106,28 @@ export const ExtensionsTabOverhaul = {
             extensionTags: this.extensionTags
         };
         saveSettingsDebounced();
-
-        console.log(`${LOG_PREFIX} Settings saved:`, {
-            customFolders: Object.keys(this.customFolders),
-            extensionTags: this.extensionTags
-        });
     },
 
     hideDuplicateSettings: function() {
-        console.log(`${LOG_PREFIX} 🔍 Starting hideDuplicateSettings - looking for duplicate panels`);
-
         const hideAttempt = () => {
             const allSettings = document.querySelectorAll('.nemo-preset-enhancer-settings');
-            console.log(`${LOG_PREFIX} Found ${allSettings.length} .nemo-preset-enhancer-settings elements`);
 
-            let hiddenCount = 0;
-            allSettings.forEach((el, index) => {
+            allSettings.forEach((el) => {
                 const isInCard = el.closest('.nemo-extension-card');
                 const isInOverlay = el.closest('#nemo-extension-view-content');
                 const isInTabOverlay = el.closest('#nemo-tab-extension-overlay');
 
-                console.log(`${LOG_PREFIX} Element ${index}: inCard=${!!isInCard}, inOverlay=${!!isInOverlay}, inTabOverlay=${!!isInTabOverlay}`);
-
                 // Only hide if it's NOT inside a card or any overlay
                 if (!isInCard && !isInOverlay && !isInTabOverlay) {
-                    console.log(`${LOG_PREFIX} 🚫 Hiding duplicate NemoPresetExt settings panel (element ${index})`);
                     el.style.display = 'none';
-                    hiddenCount++;
                 }
             });
-
-            console.log(`${LOG_PREFIX} Hidden ${hiddenCount} duplicate settings panels`);
         };
 
         // Try multiple times with increasing delays to catch all duplicates
-        setTimeout(hideAttempt, 500);   // First try after 500ms
-        setTimeout(hideAttempt, 1000);  // Second try after 1s
-        setTimeout(hideAttempt, 2000);  // Third try after 2s
+        setTimeout(hideAttempt, 500);
+        setTimeout(hideAttempt, 1000);
+        setTimeout(hideAttempt, 2000);
 
         // Also set up a MutationObserver to catch any future duplicates
         const observer = new MutationObserver(() => {
@@ -160,8 +144,6 @@ export const ExtensionsTabOverhaul = {
         if (extensionsContainer2) {
             observer.observe(extensionsContainer2, { childList: true, subtree: true });
         }
-
-        console.log(`${LOG_PREFIX} 👀 MutationObserver set up to watch for duplicate settings panels`);
     },
 
     setupTabExtensionView: function() {
@@ -189,9 +171,7 @@ export const ExtensionsTabOverhaul = {
     discoverExtensions: function() {
         const extensions = [];
         const containers = document.querySelectorAll('#extensions_settings > *, #extensions_settings2 > *');
-        
-        console.log(`${LOG_PREFIX} Found ${containers.length} potential extension containers`);
-        
+
         containers.forEach(container => {
             // Skip our own UI elements (but NOT nemo-preset-enhancer-settings, we want that!)
             if (container.id === 'nemo-suite-drawer' ||
@@ -223,15 +203,7 @@ export const ExtensionsTabOverhaul = {
                 id = `nemo-ext-${title.replace(/\s+/g, '-').toLowerCase()}`;
                 container.id = id;
             }
-            
-            console.log(`${LOG_PREFIX} Discovered extension:`, { id, title, className: container.className });
-            
-            // Debug: Check if this extension matches any NemoSuite extensions
-            const nemoSuiteIds = ['nemo-ext-prose-polisher', 'nemo-ext-nemopreset-ui', 'nemo-ext-ember'];
-            if (nemoSuiteIds.includes(id)) {
-                console.log(`${LOG_PREFIX} Found NemoSuite extension: ${id} (${title})`);
-            }
-            
+
             extensions.push({
                 id: id,
                 element: container,
@@ -239,22 +211,14 @@ export const ExtensionsTabOverhaul = {
                 originalParent: container.parentNode
             });
         });
-        
-        console.log(`${LOG_PREFIX} Total extensions discovered: ${extensions.length}`);
-        
-        // Debug: List all discovered extension IDs
-        console.log(`${LOG_PREFIX} All discovered extension IDs:`, extensions.map(ext => ext.id));
-        
+
         return extensions;
     },
 
     createEnhancedInterface: function(container) {
-        console.log(`${LOG_PREFIX} 🏗️ createEnhancedInterface called, initialized=${this.initialized}`);
-
         // Check if the interface is already created by looking for our layout element
         const existingLayout = document.querySelector('.nemo-extensions-layout');
         if (existingLayout) {
-            console.log(`${LOG_PREFIX} ⛔ Interface already created, skipping to prevent destroying existing organization`);
             return;
         }
 
@@ -367,16 +331,7 @@ export const ExtensionsTabOverhaul = {
             if (!grouped[category]) grouped[category] = [];
             grouped[category].push(ext);
         });
-        
-        // Debug: Log the grouped results
-        console.log(`${LOG_PREFIX} Grouped extensions:`, grouped);
-        console.log(`${LOG_PREFIX} Categories with extensions:`, Object.keys(grouped));
-        if (grouped['NemoSuite']) {
-            console.log(`${LOG_PREFIX} NemoSuite contains:`, grouped['NemoSuite'].map(ext => `${ext.id} (${ext.title})`));
-        } else {
-            console.log(`${LOG_PREFIX} NemoSuite category not found in grouped extensions`);
-        }
-        
+
         return grouped;
     },
 
@@ -575,7 +530,6 @@ export const ExtensionsTabOverhaul = {
             const originalParent = this.currentExtension.originalParent;
 
             if (originalParent && originalParent.parentNode) {
-                console.log(`${LOG_PREFIX} Restoring extension element to original parent`);
                 originalParent.appendChild(extensionElement);
 
                 // Hide the element again (since we hid all extensions in createEnhancedInterface)
@@ -591,9 +545,8 @@ export const ExtensionsTabOverhaul = {
         
         // Show the main extension interface again
         this.showMainInterface();
-        
+
         // Force save any pending changes
-        console.log(`${LOG_PREFIX} Back button pressed, ensuring all settings are saved`);
         this.saveSettings();
         
         this.currentView = 'main';
@@ -629,10 +582,9 @@ export const ExtensionsTabOverhaul = {
             if (!this.customFolders[cleanName] && !this.defaultCategories[cleanName]) {
                 this.customFolders[cleanName] = [];
                 this.saveSettings();
-                
+
                 // Add the new folder to the interface without breaking layout
                 this.addCustomFolderToInterface(cleanName);
-                console.log(`${LOG_PREFIX} Created custom folder: ${cleanName}`);
             } else {
                 alert('A folder with that name already exists!');
             }
@@ -664,7 +616,6 @@ export const ExtensionsTabOverhaul = {
     confirmDeleteCustomFolder: function(folderName) {
         // Check if it's actually a custom folder
         if (!this.customFolders.hasOwnProperty(folderName)) {
-            console.warn(`${LOG_PREFIX} Attempted to delete non-custom folder: ${folderName}`);
             return;
         }
 
@@ -684,8 +635,6 @@ export const ExtensionsTabOverhaul = {
     },
 
     deleteCustomFolder: function(folderName) {
-        console.log(`${LOG_PREFIX} Deleting custom folder: ${folderName}`);
-        
         // Move all extensions out of this folder back to default categories
         const extensionsToReassign = [];
         for (const [extensionId, assignedFolder] of Object.entries(this.extensionTags)) {
@@ -694,19 +643,16 @@ export const ExtensionsTabOverhaul = {
                 delete this.extensionTags[extensionId];
             }
         }
-        
+
         // Remove the folder from custom folders
         delete this.customFolders[folderName];
-        
+
         // Save settings
         this.saveSettings();
-        
-        // Log the operation
-        console.log(`${LOG_PREFIX} Deleted folder "${folderName}" and reassigned ${extensionsToReassign.length} extensions to default categories`);
-        
+
         // Refresh the interface to reflect changes
         this.refreshInterface();
-        
+
         // Show success message
         this.showNotification(`Custom folder "${folderName}" deleted successfully. ${extensionsToReassign.length > 0 ? `${extensionsToReassign.length} extension${extensionsToReassign.length > 1 ? 's' : ''} moved to default categories.` : ''}`, 'success');
     },
@@ -856,22 +802,15 @@ export const ExtensionsTabOverhaul = {
         dialog.querySelectorAll('.nemo-folder-option').forEach(option => {
             option.addEventListener('click', () => {
                 const folderName = option.dataset.folderName;
-                
-                console.log(`${LOG_PREFIX} Moving extension ${extensionId} to folder: ${folderName}`);
-                
+
                 if (folderName === 'default') {
                     // Remove from custom folders - let it go back to default category
                     delete this.extensionTags[extensionId];
-                    console.log(`${LOG_PREFIX} Removed extension ${extensionId} from custom folders`);
                 } else {
                     // Move to selected folder
                     this.extensionTags[extensionId] = folderName;
-                    console.log(`${LOG_PREFIX} Assigned extension ${extensionId} to folder ${folderName}`);
                 }
-                
-                console.log(`${LOG_PREFIX} Current extension assignments:`, this.extensionTags);
-                console.log(`${LOG_PREFIX} Current custom folders:`, this.customFolders);
-                
+
                 this.saveSettings();
                 this.refreshInterface();
                 dialog.remove();
@@ -952,41 +891,30 @@ export const ExtensionsTabOverhaul = {
     },
 
     refreshInterface: function() {
-        const timestamp = new Date().toLocaleTimeString();
-        console.log(`${LOG_PREFIX} ⚙️ refreshInterface called at ${timestamp}`);
-
         // Check if the interface exists before trying to refresh
         const layoutContainer = document.querySelector('.nemo-extensions-layout');
         if (!layoutContainer) {
-            console.warn(`${LOG_PREFIX} Layout container not found, cannot refresh`);
             return;
         }
 
         this.reorganizeExtensions();
     },
-    
-    reorganizeExtensions: function() {
-        console.log(`${LOG_PREFIX} 🔄 reorganizeExtensions called`);
 
+    reorganizeExtensions: function() {
         // Get the current layout container
         const layoutContainer = document.querySelector('.nemo-extensions-layout');
         if (!layoutContainer) {
-            console.warn(`${LOG_PREFIX} Layout container not found during refresh`);
             return;
         }
 
         // Get all extension cards BEFORE clearing anything
         const allExtensionCards = document.querySelectorAll('.nemo-extension-card');
-        console.log(`${LOG_PREFIX} Found ${allExtensionCards.length} extension cards in DOM`);
-
         const extensions = [];
 
         // Rebuild extension data from existing cards
         allExtensionCards.forEach(card => {
             const extensionId = card.dataset.extensionId;
             const extensionData = card._extensionData;
-
-            console.log(`${LOG_PREFIX} Card data:`, {extensionId, hasExtensionData: !!extensionData});
 
             if (extensionId && extensionData) {
                 extensions.push({
@@ -998,10 +926,7 @@ export const ExtensionsTabOverhaul = {
             }
         });
 
-        console.log(`${LOG_PREFIX} Found ${extensions.length} extensions to reorganize from cards`);
-        
         if (extensions.length === 0) {
-            console.warn(`${LOG_PREFIX} No extensions found for reorganization, using stored original extensions`);
             // Fall back to using the originally stored extensions
             if (this.originalExtensions && this.originalExtensions.length > 0) {
                 const fallbackExtensions = this.originalExtensions.map(orig => ({
@@ -1011,12 +936,10 @@ export const ExtensionsTabOverhaul = {
                     originalParent: orig.originalParent
                 }));
                 extensions.push(...fallbackExtensions);
-                console.log(`${LOG_PREFIX} Using ${extensions.length} stored extensions`);
             }
         }
-        
+
         if (extensions.length === 0) {
-            console.error(`${LOG_PREFIX} No extensions available for reorganization`);
             return;
         }
 
@@ -1047,8 +970,6 @@ export const ExtensionsTabOverhaul = {
                 }
             }
         });
-        
-        console.log(`${LOG_PREFIX} Interface reorganization completed`);
     },
     
     getExtensionTitle: function(element) {
@@ -1064,70 +985,62 @@ export const ExtensionsTabOverhaul = {
     },
 
     cleanup: function() {
-        console.log(`${LOG_PREFIX} Starting cleanup...`);
-        
         // First, make sure we're showing the main interface
         this.showMainInterface();
-        
+
         // Close any open extension view and restore elements properly
         if (this.currentView === 'extension') {
             this.closeFullScreen();
         }
-        
+
         // Remove our custom elements
         const overlay = document.getElementById('nemo-tab-extension-overlay');
         if (overlay) {
             overlay.remove();
         }
-        
+
         const contextMenu = document.getElementById('nemo-extension-context-menu');
         if (contextMenu) {
             contextMenu.remove();
         }
-        
+
         // Restore original extensions to their containers
         const settings1 = document.getElementById('extensions_settings');
         const settings2 = document.getElementById('extensions_settings2');
-        
-        console.log(`${LOG_PREFIX} Restoring ${this.originalExtensions.length} extensions`);
-        
+
         // COMPLETELY clear settings1 content first
         if (settings1) {
             settings1.innerHTML = '';
             // Remove the data attribute that marks it as grouped
             settings1.removeAttribute('data-nemo-grouped');
         }
-        
+
         // Restore settings2 visibility and clear it too
         if (settings2) {
             settings2.style.display = '';
             settings2.innerHTML = '';
         }
-        
+
         // Restore original extension elements to their proper containers
         this.originalExtensions.forEach(({ element, originalParent }) => {
-            console.log(`${LOG_PREFIX} Restoring extension:`, element.id, 'to parent:', originalParent?.id);
-            
             // Determine target container
             let targetContainer = settings1; // Default to settings1
             if (originalParent && originalParent.id === 'extensions_settings2') {
                 targetContainer = settings2;
             }
-            
+
             // Restore the extension element
             if (targetContainer && element) {
                 targetContainer.appendChild(element);
             }
         });
-        
-        console.log(`${LOG_PREFIX} Cleanup completed - interface should be restored to original state`);
+
         this.initialized = false;
         this.currentView = 'main';
         this.currentExtension = null;
         this.originalExtensions = [];
-        
+
         // Ensure the disabled state is persisted
-        console.log(`${LOG_PREFIX} Ensuring settings are saved after cleanup`);
         this.saveSettings();
     }
 };

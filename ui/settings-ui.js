@@ -8,14 +8,12 @@ import logger from '../core/logger.js';
 
 export const NemoSettingsUI = {
     initialize: async function() {
-        console.log('🔧 NemoNet: NemoSettingsUI.initialize() called');
         logger.info('NemoSettingsUI: Starting initialization...');
         const pollForSettings = setInterval(async () => {
             const container = document.getElementById('extensions_settings');
-            console.log('🔧 NemoNet: Polling for settings container...', !!container);
+            logger.debug('NemoSettingsUI: Polling for settings container...', { found: !!container });
             if (container && !document.querySelector('.nemo-preset-enhancer-settings')) {
                 clearInterval(pollForSettings);
-                console.log('🔧 NemoNet: Settings container found, loading HTML...');
                 logger.info('NemoSettingsUI: Container found, loading settings...');
                 ensureSettingsNamespace();
                 // Save settings after ensuring defaults are set
@@ -33,10 +31,8 @@ export const NemoSettingsUI = {
                     }
 
                     const htmlContent = await response.text();
-                    console.log('🔧 NemoNet: HTML fetched, length:', htmlContent.length);
-                    logger.info('NemoSettingsUI: HTML fetched, inserting into DOM...');
+                    logger.debug('NemoSettingsUI: HTML fetched', { length: htmlContent.length });
                     container.insertAdjacentHTML('beforeend', htmlContent);
-                    console.log('🔧 NemoNet: HTML inserted into DOM');
                     logger.info('NemoSettingsUI: HTML inserted successfully');
 
                     // Regex Settings
@@ -98,6 +94,16 @@ export const NemoSettingsUI = {
                     });
                 }
 
+                const directiveAutocompleteToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableDirectiveAutocomplete'));
+                if (directiveAutocompleteToggle) {
+                    directiveAutocompleteToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableDirectiveAutocomplete ?? true;
+                    directiveAutocompleteToggle.addEventListener('change', () => {
+                        extension_settings[NEMO_EXTENSION_NAME].enableDirectiveAutocomplete = directiveAutocompleteToggle.checked;
+                        saveSettingsDebounced();
+                        this.showRefreshNotification();
+                    });
+                }
+
                 // Animated Backgrounds Setting
                 const animatedBgToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableAnimatedBackgrounds'));
                 if (animatedBgToggle) {
@@ -146,7 +152,7 @@ export const NemoSettingsUI = {
                 const manualTrimButton = document.getElementById('nemoManualHTMLTrim');
                 const trimStatus = document.getElementById('nemoHTMLTrimStatus');
 
-                console.log('🔧 NemoNet: HTML Trimming UI elements found:', {
+                logger.debug('NemoSettingsUI: HTML Trimming UI elements', {
                     toggle: !!htmlTrimmingToggle,
                     keepCount: !!htmlTrimmingKeepCount,
                     button: !!manualTrimButton,
@@ -154,8 +160,7 @@ export const NemoSettingsUI = {
                 });
 
                 if (htmlTrimmingToggle && htmlTrimmingKeepCount && manualTrimButton) {
-                    console.log('🔧 NemoNet: Attaching HTML trimming event listeners...');
-                    console.log('🔧 NemoNet: Button element:', manualTrimButton);
+                    logger.debug('NemoSettingsUI: Attaching HTML trimming event listeners');
                     htmlTrimmingToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableHTMLTrimming ?? false;
                     htmlTrimmingKeepCount.value = extension_settings[NEMO_EXTENSION_NAME]?.htmlTrimmingKeepCount || 4;
 
@@ -175,24 +180,18 @@ export const NemoSettingsUI = {
                     });
 
                     manualTrimButton.addEventListener('click', async () => {
-                        console.log('🔧 NemoNet: Manual trim button clicked!');
                         logger.info('Manual HTML trim requested');
                         trimStatus.textContent = 'Trimming...';
                         trimStatus.style.color = '#aaa';
 
                         try {
-                            console.log('🔧 NemoNet: Importing HTML trimmer module...');
                             // Dynamic import of HTML trimmer
                             const { trimOldMessagesHTML } = await import('../reasoning/html-trimmer.js');
-                            console.log('🔧 NemoNet: Module imported successfully');
-
                             const keepCount = parseInt(htmlTrimmingKeepCount.value);
-                            console.log('🔧 NemoNet: Keep count:', keepCount);
-                            console.log('🔧 NemoNet: Calling trimOldMessagesHTML...');
+                            logger.debug('NemoSettingsUI: Calling trimOldMessagesHTML', { keepCount });
 
                             const result = trimOldMessagesHTML(keepCount);
-
-                            console.log('🔧 NemoNet: Trim result:', result);
+                            logger.debug('NemoSettingsUI: Trim result', result);
 
                             if (result.trimmed > 0) {
                                 trimStatus.textContent = `✓ Trimmed ${result.trimmed} messages, saved ${result.saved} chars`;
@@ -202,18 +201,16 @@ export const NemoSettingsUI = {
                                 trimStatus.style.color = '#aaa';
                             }
                         } catch (error) {
-                            console.error('🔧 NemoNet: HTML trimming ERROR:', error);
-                            console.error('🔧 NemoNet: Error stack:', error.stack);
-                            logger.error('HTML trimming failed:', error);
+                            logger.error('HTML trimming failed', error);
                             trimStatus.textContent = '✗ Error: ' + error.message;
                             trimStatus.style.color = 'red';
                         }
 
                         setTimeout(() => { trimStatus.textContent = ''; }, 5000);
                     });
-                    console.log('🔧 NemoNet: ✅ Event listener attached to trim button');
+                    logger.debug('NemoSettingsUI: Event listener attached to trim button');
                 } else {
-                    console.warn('🔧 NemoNet: ❌ Failed to find HTML trimming UI elements, skipping event listeners');
+                    logger.warn('NemoSettingsUI: Failed to find HTML trimming UI elements, skipping event listeners');
                 }
 
                 // Tab Overhauls Setting
@@ -235,6 +232,63 @@ export const NemoSettingsUI = {
                         extension_settings[NEMO_EXTENSION_NAME].nemoEnableWidePanels = widePanelsToggle.checked;
                         saveSettingsDebounced();
                         this.showRefreshNotification();
+                    });
+                }
+
+                // Mobile Enhancements Setting
+                const mobileEnhancementsToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableMobileEnhancements'));
+                if (mobileEnhancementsToggle) {
+                    mobileEnhancementsToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableMobileEnhancements ?? true;
+                    mobileEnhancementsToggle.addEventListener('change', () => {
+                        extension_settings[NEMO_EXTENSION_NAME].enableMobileEnhancements = mobileEnhancementsToggle.checked;
+                        saveSettingsDebounced();
+
+                        // Immediately apply/remove the mobile enhancement class
+                        if (mobileEnhancementsToggle.checked) {
+                            // Re-check if touch device and apply
+                            if (window.matchMedia('(pointer: coarse)').matches) {
+                                document.body.classList.add('nemo-mobile-enhanced');
+                            }
+                        } else {
+                            document.body.classList.remove('nemo-mobile-enhanced');
+                        }
+
+                        logger.info(`Mobile enhancements ${mobileEnhancementsToggle.checked ? 'enabled' : 'disabled'}`);
+                    });
+                }
+
+                // Pollinations Interceptor Setting
+                const pollinationsInterceptorToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnablePollinationsInterceptor'));
+                if (pollinationsInterceptorToggle) {
+                    pollinationsInterceptorToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.nemoEnablePollinationsInterceptor ?? false;
+                    pollinationsInterceptorToggle.addEventListener('change', async () => {
+                        extension_settings[NEMO_EXTENSION_NAME].nemoEnablePollinationsInterceptor = pollinationsInterceptorToggle.checked;
+                        saveSettingsDebounced();
+
+                        // Immediately initialize/disable the interceptor
+                        if (pollinationsInterceptorToggle.checked) {
+                            // Initialize the interceptor
+                            if (window.PollinationsInterceptor) {
+                                window.PollinationsInterceptor.init();
+                                logger.info('Pollinations Interceptor enabled and initialized');
+
+                                // Show enable notification
+                                const notification = document.createElement('div');
+                                notification.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Pollinations Interceptor enabled! Hover over Pollinations images to regenerate.';
+                                notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4CAF50; color: white; padding: 15px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.3);';
+                                document.body.appendChild(notification);
+                                setTimeout(() => notification.remove(), 4000);
+                            }
+                        } else {
+                            logger.info('Pollinations Interceptor disabled');
+
+                            // Show disable notification
+                            const notification = document.createElement('div');
+                            notification.innerHTML = '<i class="fa-solid fa-times"></i> Pollinations Interceptor disabled';
+                            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ff9800; color: white; padding: 15px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.3);';
+                            document.body.appendChild(notification);
+                            setTimeout(() => notification.remove(), 3000);
+                        }
                     });
                 }
 
@@ -265,12 +319,12 @@ export const NemoSettingsUI = {
                         setTimeout(() => enableNotification.remove(), 3000);
                     } else {
                         // Disable the extensions tab overhaul
-                        console.log(`[NemoPresetExt] Attempting to disable extensions tab overhaul...`);
+                        logger.debug('Attempting to disable extensions tab overhaul');
                         if (window.ExtensionsTabOverhaul && window.ExtensionsTabOverhaul.initialized) {
-                            console.log(`[NemoPresetExt] Calling cleanup function...`);
+                            logger.debug('Calling cleanup function');
                             window.ExtensionsTabOverhaul.cleanup();
                         } else {
-                            console.log(`[NemoPresetExt] ExtensionsTabOverhaul not available or not initialized`);
+                            logger.debug('ExtensionsTabOverhaul not available or not initialized');
                         }
                         
                         // Show disable notification

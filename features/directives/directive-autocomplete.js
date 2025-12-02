@@ -464,19 +464,13 @@ const DIRECTIVE_DEFINITIONS = [
  * @returns {Object} Autocomplete result
  */
 export function getAutocompleteSuggestions(text, cursorPos) {
-    console.log('[Autocomplete] Called with cursor at:', cursorPos);
-    console.log('[Autocomplete] Text around cursor:', text.substring(Math.max(0, cursorPos - 30), cursorPos + 10));
-
     // Check if we're inside a {{// }} comment block
     const commentContext = getCommentContext(text, cursorPos);
-    console.log('[Autocomplete] Comment context:', commentContext);
 
     if (commentContext.inComment) {
-        console.log('[Autocomplete] Inside comment, calling directive suggestions');
         return getDirectiveAutocompleteSuggestions(text, cursorPos, commentContext);
     }
 
-    console.log('[Autocomplete] Not in comment, calling prompt name search');
     // Not in a comment - check for general prompt name search
     return getPromptNameSearchSuggestions(text, cursorPos);
 }
@@ -488,10 +482,6 @@ function getDirectiveAutocompleteSuggestions(text, cursorPos, commentContext) {
     const lineStart = commentContext.lineStart;
     const lineText = text.substring(lineStart, cursorPos);
     const trimmedLine = lineText.trim();
-
-    console.log('[Directive AC] lineStart:', lineStart, 'cursorPos:', cursorPos);
-    console.log('[Directive AC] lineText:', lineText);
-    console.log('[Directive AC] trimmedLine:', trimmedLine);
 
     // Case 1: Just typed {{// - suggest all directives
     if (trimmedLine === '' || trimmedLine === '{{//' || trimmedLine === '{{// ') {
@@ -516,18 +506,11 @@ function getDirectiveAutocompleteSuggestions(text, cursorPos, commentContext) {
         const directiveName = directiveMatch[1];
         const valueText = directiveMatch[2];
 
-        console.log('[Directive AC] Matched directive:', directiveName, 'valueText:', valueText);
-
         const definition = DIRECTIVE_DEFINITIONS.find(d => d.directive === directiveName);
 
         if (definition && definition.valueType === 'prompt-list') {
-            console.log('[Directive AC] Found definition, calling getPromptSuggestions');
             // Suggest prompt identifiers
-            const result = getPromptSuggestions(valueText, lineStart, cursorPos, definition);
-            console.log('[Directive AC] Got suggestions:', result.suggestions?.length || 0);
-            return result;
-        } else {
-            console.log('[Directive AC] No definition or wrong valueType:', definition?.valueType);
+            return getPromptSuggestions(valueText, lineStart, cursorPos, definition);
         }
     }
 
@@ -648,9 +631,6 @@ function getMacroSuggestions(currentWord, wordStart, wordEnd) {
     if (variableMacroMatch) {
         const macroName = variableMacroMatch[1];
         const partialVarName = variableMacroMatch[2].toLowerCase();
-
-        console.log('[Macro AC] Variable macro detected:', macroName, 'partial:', partialVarName);
-
         return getVariableSuggestions(macroName, partialVarName, wordStart, wordEnd);
     }
 
@@ -697,7 +677,6 @@ function getVariableSuggestions(macroName, partialVarName, wordStart, wordEnd) {
         try {
             if (chat_metadata?.variables) {
                 const localVars = Object.keys(chat_metadata.variables);
-                console.log('[Variable AC] Found', localVars.length, 'local variables');
                 localVars.forEach(varName => {
                     variables.push({
                         name: varName,
@@ -707,7 +686,7 @@ function getVariableSuggestions(macroName, partialVarName, wordStart, wordEnd) {
                 });
             }
         } catch (error) {
-            console.log('[Variable AC] Error getting local variables:', error);
+            // Silently handle error
         }
     }
 
@@ -716,7 +695,6 @@ function getVariableSuggestions(macroName, partialVarName, wordStart, wordEnd) {
         try {
             if (extension_settings?.variables?.global) {
                 const globalVars = Object.keys(extension_settings.variables.global);
-                console.log('[Variable AC] Found', globalVars.length, 'global variables');
                 globalVars.forEach(varName => {
                     variables.push({
                         name: varName,
@@ -726,7 +704,7 @@ function getVariableSuggestions(macroName, partialVarName, wordStart, wordEnd) {
                 });
             }
         } catch (error) {
-            console.log('[Variable AC] Error getting global variables:', error);
+            // Silently handle error
         }
     }
 
@@ -734,8 +712,6 @@ function getVariableSuggestions(macroName, partialVarName, wordStart, wordEnd) {
     const matchingVars = variables.filter(v =>
         v.name.toLowerCase().includes(partialVarName)
     ).slice(0, 20);
-
-    console.log('[Variable AC] Matching variables:', matchingVars.length);
 
     if (matchingVars.length === 0) {
         return { suggestions: [], context: null };
@@ -936,8 +912,6 @@ function getValueSuggestions(valueText, lineStart, cursorPos, definition) {
     const currentWord = lastComma === -1 ? valueText : valueText.substring(lastComma + 1);
     const trimmedWord = currentWord.trim().toLowerCase();
 
-    console.log('[Value Suggestions] Directive:', definition.directive, 'Search:', trimmedWord);
-
     // Filter and score suggestions for smart sorting
     const scoredSuggestions = suggestions
         .map(s => {
@@ -1029,18 +1003,14 @@ function getPromptSuggestions(valueText, lineStart, cursorPos, definition) {
     }
 
     const allPrompts = getAllPromptsWithState();
-    console.log('[Prompt Suggestions] All prompts count:', allPrompts.length);
 
     // Get the current word being typed (after last comma)
     const lastComma = valueText.lastIndexOf(',');
     const currentWord = lastComma === -1 ? valueText : valueText.substring(lastComma + 1);
     const trimmedWord = currentWord.trim().toLowerCase();
 
-    console.log('[Prompt Suggestions] Searching for:', trimmedWord);
-
     // Don't show suggestions for very short searches
     if (trimmedWord.length === 0) {
-        console.log('[Prompt Suggestions] Empty search term');
         return { suggestions: [], context: null };
     }
 
@@ -1054,20 +1024,12 @@ function getPromptSuggestions(valueText, lineStart, cursorPos, definition) {
             const nameNoEmoji = name.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
             const nameClean = nameNoEmoji.replace(/[^a-z0-9\s]/gi, '').trim();
 
-            const matches = id.includes(trimmedWord) ||
+            return id.includes(trimmedWord) ||
                    name.includes(trimmedWord) ||
                    nameNoEmoji.includes(trimmedWord) ||
                    nameClean.includes(trimmedWord);
-
-            if (matches) {
-                console.log('[Prompt Suggestions] Match found:', p.name, '(', p.identifier, ')');
-            }
-
-            return matches;
         })
         .slice(0, 20); // Limit to 20 suggestions
-
-    console.log('[Prompt Suggestions] Total matches:', matchingPrompts.length);
 
     if (matchingPrompts.length === 0) {
         return { suggestions: [], context: null };

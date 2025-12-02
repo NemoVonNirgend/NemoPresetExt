@@ -73,6 +73,22 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableDirectiveAutocomplete" checked>
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Directive Autocomplete</div>
+                                <div class="nemo-setting-description">
+                                    Show autocomplete suggestions when typing directives in the prompt editor
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
                         </div>
 
                         <!-- Optional UI Features -->
@@ -214,6 +230,38 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableMobileEnhancements" checked>
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Mobile UI Enhancements</div>
+                                <div class="nemo-setting-description">
+                                    Optimized layouts, larger touch targets, and improved readability on touch devices
+                                    <span class="nemo-badge-info">Auto-detects touch devices</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnablePollinationsInterceptor">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Pollinations Image Interceptor</div>
+                                <div class="nemo-setting-description">
+                                    Intercept Pollinations.ai image URLs in messages and regenerate them using SillyTavern's configured image generation backend
+                                    <span class="nemo-badge-info">Uses your SD/DALL-E/etc settings</span>
+                                </div>
+                            </div>
+                        </div>
                         </div>
                     </div>
                     </div>
@@ -232,6 +280,77 @@
                             <p class="nemo-section-description">
                                 Personalize the appearance and behavior of the extension.
                             </p>
+
+                            <!-- UI THEME SELECTOR -->
+                            <div class="nemo-control-group nemo-theme-selector-group">
+                                <label class="nemo-control-label">
+                                    <span>UI Theme Overhaul</span>
+                                    <i class="fa-solid fa-info-circle nemo-tooltip" title="Optional complete UI makeovers inspired by classic interfaces. These are purely cosmetic and don't affect functionality."></i>
+                                </label>
+                                <p class="nemo-help-text" style="margin-bottom: 12px;">
+                                    Transform SillyTavern's entire look with these optional retro/alternative themes.
+                                </p>
+                                <div class="nemo-theme-cards">
+                                    <div class="nemo-theme-card" data-theme="none">
+                                        <div class="nemo-theme-preview nemo-theme-preview-none">
+                                            <i class="fa-solid fa-ban"></i>
+                                        </div>
+                                        <div class="nemo-theme-info">
+                                            <span class="nemo-theme-name">None</span>
+                                            <span class="nemo-theme-desc">Default ST theme</span>
+                                        </div>
+                                        <input type="radio" name="nemoUITheme" value="none" checked>
+                                    </div>
+                                    <div class="nemo-theme-card" data-theme="win98">
+                                        <div class="nemo-theme-preview nemo-theme-preview-win98">
+                                            <div class="win98-titlebar-mini">
+                                                <span>SillyTavern</span>
+                                                <div class="win98-buttons-mini">
+                                                    <span>_</span><span>□</span><span>×</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="nemo-theme-info">
+                                            <span class="nemo-theme-name">Windows 98</span>
+                                            <span class="nemo-theme-desc">Classic retro OS</span>
+                                        </div>
+                                        <input type="radio" name="nemoUITheme" value="win98">
+                                    </div>
+                                    <div class="nemo-theme-card" data-theme="discord">
+                                        <div class="nemo-theme-preview nemo-theme-preview-discord">
+                                            <div class="discord-sidebar-mini"></div>
+                                            <div class="discord-content-mini">
+                                                <div class="discord-msg-mini"></div>
+                                                <div class="discord-msg-mini"></div>
+                                            </div>
+                                        </div>
+                                        <div class="nemo-theme-info">
+                                            <span class="nemo-theme-name">Discord</span>
+                                            <span class="nemo-theme-desc">Chat app style</span>
+                                        </div>
+                                        <input type="radio" name="nemoUITheme" value="discord">
+                                    </div>
+                                    <div class="nemo-theme-card" data-theme="cyberpunk">
+                                        <div class="nemo-theme-preview nemo-theme-preview-cyberpunk">
+                                            <div class="cyberpunk-header-mini">NEMONET</div>
+                                            <div class="cyberpunk-terminal-mini">
+                                                <div class="cyberpunk-line-mini">> INIT...</div>
+                                                <div class="cyberpunk-line-mini cyan">> READY_</div>
+                                            </div>
+                                        </div>
+                                        <div class="nemo-theme-info">
+                                            <span class="nemo-theme-name">Cyberpunk</span>
+                                            <span class="nemo-theme-desc">NemoNet CLI style</span>
+                                        </div>
+                                        <input type="radio" name="nemoUITheme" value="cyberpunk">
+                                    </div>
+                                </div>
+                                <small class="nemo-help-text nemo-refresh-note" style="margin-top: 10px; display: block;">
+                                    <i class="fa-solid fa-rotate"></i> Requires page refresh after changing
+                                </small>
+                            </div>
+
+                            <hr style="border: none; border-top: 1px solid var(--SmartThemeBorderColor); margin: 20px 0;">
 
                             <div class="nemo-control-group">
                                 <label for="nemo-message-theme-select" class="nemo-control-label">
@@ -702,5 +821,212 @@ input:disabled + .nemo-toggle-slider {
 .nemo-about-item a:hover {
     opacity: 0.8;
     text-decoration: underline;
+}
+
+/* Theme Selector Cards */
+.nemo-theme-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 10px;
+}
+
+@media (max-width: 1024px) {
+    .nemo-theme-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .nemo-theme-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+.nemo-theme-card {
+    position: relative;
+    background: var(--black50a);
+    border: 2px solid var(--SmartThemeBorderColor);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.nemo-theme-card:hover {
+    border-color: var(--SmartThemeQuoteColor);
+    background: var(--black30a);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.nemo-theme-card:has(input:checked) {
+    border-color: var(--SmartThemeQuoteColor);
+    background: rgba(var(--SmartThemeQuoteColorRGB), 0.15);
+    box-shadow: 0 0 0 1px var(--SmartThemeQuoteColor), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.nemo-theme-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.nemo-theme-preview {
+    width: 100%;
+    height: 60px;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nemo-theme-preview-none {
+    background: linear-gradient(135deg, var(--black70a) 0%, var(--black50a) 100%);
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.5;
+    font-size: 24px;
+}
+
+.nemo-theme-preview-win98 {
+    background: #008080;
+    flex-direction: column;
+    padding: 4px;
+}
+
+.win98-titlebar-mini {
+    width: 90%;
+    height: 16px;
+    background: linear-gradient(90deg, #000080, #1084d0);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    font-size: 8px;
+    color: white;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif;
+    font-weight: bold;
+}
+
+.win98-buttons-mini {
+    display: flex;
+    gap: 2px;
+    font-size: 7px;
+}
+
+.win98-buttons-mini span {
+    width: 10px;
+    height: 10px;
+    background: #c0c0c0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: black;
+    border: 1px outset #fff;
+}
+
+.nemo-theme-preview-discord {
+    background: #36393f;
+    padding: 4px;
+    gap: 4px;
+}
+
+.discord-sidebar-mini {
+    width: 20%;
+    height: 100%;
+    background: #202225;
+    border-radius: 2px;
+}
+
+.discord-content-mini {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+}
+
+.discord-msg-mini {
+    height: 12px;
+    background: #40444b;
+    border-radius: 2px;
+}
+
+.discord-msg-mini:first-child {
+    width: 80%;
+}
+
+.discord-msg-mini:last-child {
+    width: 60%;
+}
+
+/* Cyberpunk Theme Preview */
+.nemo-theme-preview-cyberpunk {
+    background: #0a0a0f;
+    flex-direction: column;
+    padding: 4px;
+    font-family: 'Consolas', monospace;
+    overflow: hidden;
+}
+
+.cyberpunk-header-mini {
+    font-size: 10px;
+    font-weight: bold;
+    color: #ff1744;
+    letter-spacing: 2px;
+    text-align: center;
+    text-shadow: 0 0 5px rgba(255, 23, 68, 0.5);
+    margin-bottom: 4px;
+    border-bottom: 1px solid #ff1744;
+    padding-bottom: 2px;
+}
+
+.cyberpunk-terminal-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.cyberpunk-line-mini {
+    font-size: 7px;
+    color: #888899;
+    letter-spacing: 0.5px;
+}
+
+.cyberpunk-line-mini.cyan {
+    color: #00fff9;
+    text-shadow: 0 0 5px rgba(0, 255, 249, 0.5);
+    animation: cyberBlink 1s infinite;
+}
+
+@keyframes cyberBlink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.5; }
+}
+
+.nemo-theme-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.nemo-theme-name {
+    font-weight: 600;
+    font-size: 0.95em;
+    color: var(--SmartThemeBodyColor);
+}
+
+.nemo-theme-desc {
+    font-size: 0.8em;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.6;
 }
 </style>

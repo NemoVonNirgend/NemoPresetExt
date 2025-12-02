@@ -31,12 +31,21 @@ function findPromptSelector(promptName) {
         }
     }
 
-    // If not found by ID, try finding by text content
+    // If not found by ID, try finding by text content and generate a unique selector
     const allPrompts = document.querySelectorAll('.prompt-manager-prompt, .inline-drawer');
-    for (const prompt of allPrompts) {
+    for (let i = 0; i < allPrompts.length; i++) {
+        const prompt = allPrompts[i];
         const nameElement = prompt.querySelector('.prompt-name, .inline-drawer-header');
         if (nameElement && nameElement.textContent.includes(promptName)) {
-            return `.prompt-manager-prompt:has(.prompt-name:contains("${promptName}"))`;
+            // Return a selector using nth-of-type since :contains() is not valid CSS
+            const parent = prompt.parentElement;
+            const siblings = parent ? Array.from(parent.children).filter(el =>
+                el.classList.contains('prompt-manager-prompt') || el.classList.contains('inline-drawer')
+            ) : [];
+            const index = siblings.indexOf(prompt);
+            if (index !== -1) {
+                return `.prompt-manager-prompt:nth-of-type(${index + 1}), .inline-drawer:nth-of-type(${index + 1})`;
+            }
         }
     }
 
@@ -49,7 +58,8 @@ function findPromptSelector(promptName) {
 function openPromptManager() {
     try {
         // Try to find and click the prompt manager button
-        const promptManagerBtn = document.querySelector('[data-i18n="Prompts"], button:contains("Prompts")');
+        // Note: :contains() is not valid CSS - use data attributes instead
+        const promptManagerBtn = document.querySelector('[data-i18n="Prompts"]');
         if (promptManagerBtn && !promptManagerBtn.classList.contains('active')) {
             promptManagerBtn.click();
         }

@@ -9,6 +9,7 @@ import storage from '../../core/storage-migration.js';
 import '../../lib/Sortable.min.js'; // Import Sortable
 import { getTooltip } from './prompt-tooltips.js';
 import { parsePromptDirectives } from '../directives/prompt-directives.js';
+import { disableTrayMode } from './category-tray.js';
 
 // 1. CONFIGURATION & STATE
 const NEMO_BUILT_IN_PATTERNS = ['=+', '⭐─+', '━+'];
@@ -60,28 +61,18 @@ function extractTooltipFromPrompt(identifier) {
     try {
         // Use the imported prompt manager
         if (!promptManager) {
-            // console.log('[Tooltip] Prompt manager not available');
             return null;
         }
 
         // Get the prompt by identifier
         const prompt = promptManager.getPromptById(identifier);
-        if (!prompt) {
-            // console.log(`[Tooltip] Prompt not found for identifier: ${identifier}`);
+        if (!prompt || !prompt.content) {
             return null;
         }
-
-        if (!prompt.content) {
-            // console.log(`[Tooltip] Prompt has no content: ${identifier}`);
-            return null;
-        }
-
-        // console.log(`[Tooltip] Checking prompt content for ${identifier}:`, prompt.content.substring(0, 100));
 
         // First, try to parse @tooltip directive using the directive parser
         const directives = parsePromptDirectives(prompt.content);
         if (directives.tooltip) {
-            // console.log(`[Tooltip] Found @tooltip directive for ${identifier}: ${directives.tooltip.substring(0, 50)}...`);
             return directives.tooltip;
         }
 
@@ -94,16 +85,12 @@ function extractTooltipFromPrompt(identifier) {
             const tooltip = match[1].trim();
             // Don't show directive syntax in tooltip
             if (!tooltip.startsWith('@')) {
-                // console.log(`[Tooltip] Extracted plain comment tooltip for ${identifier}: ${tooltip.substring(0, 50)}...`);
                 return tooltip;
             }
         }
 
-        // console.log(`[Tooltip] No tooltip found in prompt content for: ${identifier}`);
         return null;
     } catch (error) {
-        // Only show actual errors, not routine misses
-        // console.error('[Tooltip] Error extracting tooltip from prompt:', error);
         return null;
     }
 }
@@ -117,7 +104,6 @@ function extractTooltipFromPrompt(identifier) {
 function applyTooltipToPrompt(item) {
     const nameLink = item.querySelector(SELECTORS.promptNameLink);
     if (!nameLink) {
-        // console.log('[Tooltip] No nameLink found for item');
         return;
     }
 
@@ -125,8 +111,6 @@ function applyTooltipToPrompt(item) {
 
     // Try to get the prompt identifier from data attributes
     const identifier = item.getAttribute('data-pm-identifier');
-
-    // console.log(`[Tooltip] Applying tooltip for: ${promptName}, identifier: ${identifier}`);
 
     // First, try to extract tooltip from prompt content
     let tooltipText = null;
@@ -137,9 +121,6 @@ function applyTooltipToPrompt(item) {
     // Fallback to hardcoded tooltips if no dynamic tooltip found
     if (!tooltipText) {
         tooltipText = getTooltip(promptName);
-        // if (tooltipText) {
-        //     console.log(`[Tooltip] Using hardcoded tooltip for: ${promptName}`);
-        // }
     }
 
     if (tooltipText) {
@@ -151,9 +132,6 @@ function applyTooltipToPrompt(item) {
         // Set the tooltip as the title attribute
         nameLink.setAttribute('title', tooltipText);
         nameLink.classList.add('nemo-has-tooltip');
-        // console.log(`[Tooltip] Tooltip applied successfully for: ${promptName}`);
-    } else {
-        // console.log(`[Tooltip] No tooltip found for: ${promptName}`);
     }
 }
 
@@ -472,18 +450,37 @@ export const NemoPresetManager = {
 
     updateSectionCount: function(sectionElement) {
         if (!sectionElement || !sectionElement.matches('details.nemo-engine-section')) return;
-        
+
         const content = sectionElement.querySelector('.nemo-section-content');
         if (!content) return;
 
         const totalCount = content.children.length;
         const enabledCount = content.querySelectorAll(`:scope > ${SELECTORS.promptItemRow} .${SELECTORS.enabledToggleClass}`).length;
-        
+
         const countSpan = sectionElement.querySelector('summary .nemo-enabled-count');
         if (countSpan) countSpan.textContent = ` (${enabledCount}/${totalCount})`;
-        
+
         const masterToggle = sectionElement.querySelector('.nemo-section-master-toggle');
         if (masterToggle) masterToggle.classList.toggle('nemo-active', enabledCount > 0);
+
+        // Update progress bar
+        const progressBar = sectionElement.querySelector('summary .nemo-section-progress');
+        if (progressBar) {
+            const percentage = totalCount > 0 ? (enabledCount / totalCount) * 100 : 0;
+            progressBar.style.setProperty('--progress-width', `${percentage}%`);
+            progressBar.setAttribute('data-enabled', enabledCount);
+            progressBar.setAttribute('data-total', totalCount);
+
+            // Color coding based on percentage
+            progressBar.classList.remove('nemo-progress-none', 'nemo-progress-partial', 'nemo-progress-full');
+            if (enabledCount === 0) {
+                progressBar.classList.add('nemo-progress-none');
+            } else if (enabledCount === totalCount) {
+                progressBar.classList.add('nemo-progress-full');
+            } else {
+                progressBar.classList.add('nemo-progress-partial');
+            }
+        }
     },
 
     // Core Logic
@@ -1014,6 +1011,10 @@ export const NemoPresetManager = {
                 if (!nameSpan.querySelector('.nemo-enabled-count')) {
                     nameSpan.insertAdjacentHTML('beforeend', '<span class="nemo-enabled-count"></span>');
                 }
+                // Add progress bar after the count
+                if (!nameSpan.querySelector('.nemo-section-progress')) {
+                    nameSpan.insertAdjacentHTML('beforeend', '<span class="nemo-section-progress" title="Progress: enabled/total"></span>');
+                }
             }
 
             summary.appendChild(item);
@@ -1251,11 +1252,27 @@ export const NemoPresetManager = {
             if (toggleBtn) {
                 toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
                 toggleBtn.setAttribute('aria-pressed', isSectionsFeatureEnabled);
-                toggleBtn.addEventListener('click', () => {
+                toggleBtn.addEventListener('click', async () => {
                     isSectionsFeatureEnabled = !isSectionsFeatureEnabled;
                     storage.setSectionsEnabled(isSectionsFeatureEnabled);
                     toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
                     toggleBtn.setAttribute('aria-pressed', isSectionsFeatureEnabled);
+
+                    // When disabling sections, we need to revert tray mode first
+                    // and trigger ST to re-render the prompt list (tray removed DOM elements)
+                    if (!isSectionsFeatureEnabled) {
+                        console.log(`${LOG_PREFIX} Disabling sections - reverting tray mode`);
+                        disableTrayMode();
+
+                        // Trigger ST prompt manager to re-render the list
+                        if (promptManager && typeof promptManager.render === 'function') {
+                            console.log(`${LOG_PREFIX} Triggering prompt manager re-render`);
+                            promptManager.render();
+                            // Wait for DOM to update before organizing
+                            await delay(100);
+                        }
+                    }
+
                     this.organizePrompts(true);
                 });
             }

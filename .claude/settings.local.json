@@ -10,7 +10,8 @@
       "Bash(tooltips.json)",
       "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

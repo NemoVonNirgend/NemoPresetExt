@@ -1,0 +1,881 @@
+/* ==========================================================================
+   CYBERPUNK / ARASAKA / CLI THEME FOR SILLYTAVERN
+   A dark terminal aesthetic with neon accents and corporate edge
+   Inspired by Cyberpunk 2077, Arasaka Corp, and classic CLI interfaces
+   ========================================================================== */
+
+/* === CYBERPUNK COLOR VARIABLES === */
+body.nemo-theme-cyberpunk {
+    /* Core backgrounds */
+    --cyber-bg-darkest: #0a0a0f;
+    --cyber-bg-dark: #0d0d14;
+    --cyber-bg-medium: #12121a;
+    --cyber-bg-panel: #161622;
+    --cyber-bg-elevated: #1a1a28;
+
+    /* Arasaka red */
+    --cyber-red: #ff1744;
+    --cyber-red-dark: #b71c1c;
+    --cyber-red-glow: #ff174488;
+
+    /* Terminal cyan */
+    --cyber-cyan: #00fff9;
+    --cyber-cyan-dark: #00b8b3;
+    --cyber-cyan-glow: #00fff944;
+
+    /* Accent colors */
+    --cyber-magenta: #ff00ff;
+    --cyber-yellow: #ffe600;
+    --cyber-green: #39ff14;
+    --cyber-orange: #ff6600;
+
+    /* Text colors */
+    --cyber-text-primary: #e0e0e0;
+    --cyber-text-secondary: #888899;
+    --cyber-text-muted: #555566;
+    --cyber-text-terminal: #00fff9;
+
+    /* Borders and effects */
+    --cyber-border: #2a2a3a;
+    --cyber-border-bright: #3a3a4a;
+    --cyber-scanline: rgba(0, 255, 249, 0.03);
+
+    /* Gradients */
+    --cyber-gradient-red: linear-gradient(135deg, #ff1744 0%, #b71c1c 100%);
+    --cyber-gradient-cyan: linear-gradient(135deg, #00fff9 0%, #00b8b3 100%);
+    --cyber-gradient-header: linear-gradient(90deg, #ff1744 0%, #0d0d14 50%, #00fff9 100%);
+}
+
+/* === FONTS === */
+@font-face {
+    font-family: 'Cyber Terminal';
+    src: local('Consolas'), local('Monaco'), local('Courier New'), local('monospace');
+}
+
+/* === KEYFRAME ANIMATIONS === */
+@keyframes cyber-flicker {
+    0%, 100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.8; }
+    94% { opacity: 1; }
+    97% { opacity: 0.9; }
+}
+
+@keyframes cyber-glow-pulse {
+    0%, 100% { box-shadow: 0 0 5px rgba(0, 255, 249, 0.3), 0 0 10px rgba(0, 255, 249, 0.3); }
+    50% { box-shadow: 0 0 10px rgba(0, 255, 249, 0.3), 0 0 20px rgba(0, 255, 249, 0.3), 0 0 30px rgba(0, 255, 249, 0.3); }
+}
+
+@keyframes cyber-scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+}
+
+@keyframes cyber-text-glitch {
+    0%, 100% { text-shadow: 0 0 5px #00fff9; }
+    25% { text-shadow: -2px 0 #ff00ff, 2px 0 #00fff9; }
+    50% { text-shadow: 0 0 10px #00fff9; }
+    75% { text-shadow: 2px 0 #ff1744, -2px 0 #00fff9; }
+}
+
+@keyframes blink-cursor {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* ==========================================================================
+   BASE STYLES
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk {
+    background: #0a0a0f !important;
+    color: #e0e0e0 !important;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+}
+
+/* === GLOBAL SILLYTAVERN VARIABLE OVERRIDES === */
+/* Force cyberpunk colors on all elements to override user themes */
+body.nemo-theme-cyberpunk,
+body.nemo-theme-cyberpunk * {
+    --SmartThemeBodyColor: #e0e0e0 !important;
+    --SmartThemeBlurTintColor: rgba(10, 10, 15, 0.9) !important;
+    --SmartThemeBorderColor: #2a2a3a !important;
+    --SmartThemeQuoteColor: #00fff9 !important;
+    --SmartThemeChatTintColor: rgba(10, 10, 15, 0.8) !important;
+    --SmartThemeEmColor: #ff00ff !important;
+    --SmartThemeFontScale: 1 !important;
+}
+
+/* Force text colors on all standard elements */
+body.nemo-theme-cyberpunk span,
+body.nemo-theme-cyberpunk div,
+body.nemo-theme-cyberpunk p,
+body.nemo-theme-cyberpunk label,
+body.nemo-theme-cyberpunk h1,
+body.nemo-theme-cyberpunk h2,
+body.nemo-theme-cyberpunk h3,
+body.nemo-theme-cyberpunk h4,
+body.nemo-theme-cyberpunk h5,
+body.nemo-theme-cyberpunk h6,
+body.nemo-theme-cyberpunk strong,
+body.nemo-theme-cyberpunk b,
+body.nemo-theme-cyberpunk i:not(.fa-solid):not(.fa-regular):not(.fa-brands):not([class*="fa-"]),
+body.nemo-theme-cyberpunk em,
+body.nemo-theme-cyberpunk li,
+body.nemo-theme-cyberpunk td,
+body.nemo-theme-cyberpunk th,
+body.nemo-theme-cyberpunk .text_pole {
+    color: #e0e0e0 !important;
+}
+
+/* Scanline overlay effect */
+body.nemo-theme-cyberpunk::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 249, 0.03) 2px,
+        rgba(0, 255, 249, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 99999;
+    opacity: 0.5;
+}
+
+/* Hide SillyTavern backgrounds */
+body.nemo-theme-cyberpunk #bg1,
+body.nemo-theme-cyberpunk #bg2,
+body.nemo-theme-cyberpunk #bg_custom {
+    display: none !important;
+}
+
+/* ==========================================================================
+   TOP BAR - ARASAKA CORPORATE HEADER
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk #top-bar {
+    display: none !important;
+}
+
+/* Position top-settings-holder drawer buttons in header area */
+body.nemo-theme-cyberpunk #top-settings-holder {
+    position: absolute !important;
+    top: 0 !important;
+    left: 200px !important;
+    right: 160px !important;
+    height: 58px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    z-index: 10000 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    gap: 4px !important;
+    margin: 0 !important;
+    overflow: visible !important;
+}
+
+/* Ensure drawer containers don't add extra space */
+body.nemo-theme-cyberpunk #top-settings-holder > .drawer {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Custom Arasaka header bar - created by JS */
+#cyberpunk-header-bar {
+    position: relative !important;
+    width: 100% !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    background: #0d0d14 !important;
+    border-bottom: 1px solid #ff1744 !important;
+    box-shadow: 0 0 20px rgba(255, 23, 68, 0.3) !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 16px !important;
+    font-family: 'Consolas', monospace !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
+}
+
+#cyberpunk-header-bar .cyber-logo {
+    color: #ff1744 !important;
+    font-size: 12px !important;
+    font-weight: bold !important;
+    letter-spacing: 2px !important;
+    padding: 4px 10px !important;
+    border: 1px solid #ff1744 !important;
+    text-shadow: 0 0 10px rgba(255, 23, 68, 0.5) !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+}
+
+#cyberpunk-header-bar .cyber-spacer {
+    flex: 1 !important;
+    min-width: 10px !important;
+}
+
+#cyberpunk-header-bar .cyber-status {
+    color: #39ff14 !important;
+    font-size: 10px !important;
+    letter-spacing: 1px !important;
+    text-shadow: 0 0 5px rgba(57, 255, 20, 0.5) !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    margin-right: 10px !important;
+}
+
+/* Hide CSS ::before - we use JS header bar instead */
+body.nemo-theme-cyberpunk #top-settings-holder::before {
+    content: '' !important;
+    display: none !important;
+}
+
+/* Status indicator - already handled by JS, hide CSS version */
+body.nemo-theme-cyberpunk #top-settings-holder::after {
+    content: '' !important;
+    display: none !important;
+}
+
+/* Drawer buttons as terminal keyboard-style keys */
+body.nemo-theme-cyberpunk #top-settings-holder .drawer-icon {
+    background: linear-gradient(180deg, #252535 0%, #1a1a28 40%, #151520 100%) !important;
+    border: 1px solid #3a3a4a !important;
+    border-bottom: 4px solid #0a0a10 !important;
+    border-radius: 5px !important;
+    padding: 10px 40px !important;
+    height: 44px !important;
+    min-width: 100px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 18px !important;
+    color: #00fff9 !important;
+    cursor: pointer !important;
+    transition: all 0.1s ease !important;
+    text-shadow: 0 0 8px rgba(0, 255, 249, 0.5) !important;
+    flex: 0 0 auto !important;
+    box-shadow:
+        0 3px 0 #0a0a10,
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 0 10px rgba(0, 255, 249, 0.1) !important;
+}
+
+body.nemo-theme-cyberpunk #top-settings-holder .drawer-icon:hover {
+    background: linear-gradient(180deg, #2a2a3a 0%, #1f1f2f 40%, #1a1a28 100%) !important;
+    border-color: #00fff9 !important;
+    color: #00fff9 !important;
+    box-shadow:
+        0 2px 0 #0a0a10,
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 15px rgba(0, 255, 249, 0.3) !important;
+}
+
+body.nemo-theme-cyberpunk #top-settings-holder .drawer-icon:active {
+    background: linear-gradient(180deg, #151520 0%, #1a1a28 100%) !important;
+    border-bottom-width: 1px !important;
+    transform: translateY(2px) !important;
+    box-shadow:
+        0 0 0 #0a0a10,
+        inset 0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 10px rgba(0, 255, 249, 0.2) !important;
+}
+
+/* Active/open drawer state - glowing red key */
+body.nemo-theme-cyberpunk #top-settings-holder .drawer-icon:not(.closedIcon) {
+    background: linear-gradient(180deg, #3a1515 0%, #b71c1c 40%, #8b1515 100%) !important;
+    border-color: #ff1744 !important;
+    border-bottom: 3px solid #5a0a0a !important;
+    color: #ffffff !important;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.5) !important;
+    box-shadow:
+        0 2px 0 #3a0a0a,
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 0 20px rgba(255, 23, 68, 0.5) !important;
+}
+
+/* Drawer content panels */
+body.nemo-theme-cyberpunk #top-settings-holder > .drawer > .drawer-content {
+    position: fixed !important;
+    top: 58px !important;
+    background: #161622 !important;
+    border: 1px solid #3a3a4a !important;
+    border-top: 2px solid #00fff9 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 255, 249, 0.3) !important;
+}
+
+/* ==========================================================================
+   MAIN CONTENT AREA
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk #sheld {
+    margin-top: 0 !important;
+    background: #0a0a0f !important;
+    padding: 0 !important;
+}
+
+/* ==========================================================================
+   SIDE PANELS
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk #left-nav-panel,
+body.nemo-theme-cyberpunk #right-nav-panel {
+    background: #161622 !important;
+    border: 1px solid #2a2a3a !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.nemo-theme-cyberpunk #left-nav-panel {
+    border-right: 2px solid #00fff9 !important;
+    box-shadow: 2px 0 20px rgba(0, 255, 249, 0.3) !important;
+}
+
+body.nemo-theme-cyberpunk #right-nav-panel {
+    border-left: 2px solid #ff1744 !important;
+    box-shadow: -2px 0 20px rgba(255, 23, 68, 0.3) !important;
+}
+
+/* ==========================================================================
+   CHAT AREA - TERMINAL STYLE
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk #chat {
+    background: #0a0a0f !important;
+}
+
+body.nemo-theme-cyberpunk #sheld {
+    background: #0a0a0f !important;
+}
+
+/* Messages styled as terminal output */
+body.nemo-theme-cyberpunk .mes {
+    background: transparent !important;
+    border: none !important;
+    border-left: 2px solid #2a2a3a !important;
+    margin: 4px 0 !important;
+    padding: 8px 16px !important;
+    transition: all 0.2s ease !important;
+}
+
+body.nemo-theme-cyberpunk .mes:hover {
+    background: rgba(0, 255, 249, 0.02) !important;
+    border-left-color: #00fff9 !important;
+}
+
+/* Character (AI) messages */
+body.nemo-theme-cyberpunk .mes:not([is_user="true"]) {
+    border-left-color: #00fff9 !important;
+}
+
+body.nemo-theme-cyberpunk .mes:not([is_user="true"]) .name_text {
+    color: #00fff9 !important;
+    text-shadow: 0 0 10px rgba(0, 255, 249, 0.5) !important;
+    font-family: 'Consolas', monospace !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+body.nemo-theme-cyberpunk .mes:not([is_user="true"]) .name_text::before {
+    content: '> ' !important;
+    color: #00fff9 !important;
+}
+
+/* User messages */
+body.nemo-theme-cyberpunk .mes[is_user="true"] {
+    border-left-color: #ff1744 !important;
+}
+
+body.nemo-theme-cyberpunk .mes[is_user="true"] .name_text {
+    color: #ff1744 !important;
+    text-shadow: 0 0 10px rgba(255, 23, 68, 0.5) !important;
+    font-family: 'Consolas', monospace !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+body.nemo-theme-cyberpunk .mes[is_user="true"] .name_text::before {
+    content: '$ ' !important;
+    color: #ff1744 !important;
+}
+
+/* Message text */
+body.nemo-theme-cyberpunk .mes_text {
+    color: #e0e0e0 !important;
+    font-family: 'Consolas', monospace !important;
+    line-height: 1.6 !important;
+}
+
+body.nemo-theme-cyberpunk .mes_block {
+    background: transparent !important;
+}
+
+/* ==========================================================================
+   INPUT AREA - COMMAND LINE INTERFACE
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk #send_textarea {
+    background: #0d0d14 !important;
+    border: 1px solid #2a2a3a !important;
+    border-radius: 2px !important;
+    color: #00fff9 !important;
+    font-family: 'Consolas', monospace !important;
+    padding: 12px 16px !important;
+    padding-left: 40px !important;
+    caret-color: #00fff9 !important;
+    text-shadow: 0 0 3px rgba(0, 255, 249, 0.3) !important;
+}
+
+body.nemo-theme-cyberpunk #send_textarea:focus {
+    border-color: #00fff9 !important;
+    box-shadow: 0 0 15px rgba(0, 255, 249, 0.3), inset 0 0 30px rgba(0, 255, 249, 0.05) !important;
+    outline: none !important;
+}
+
+body.nemo-theme-cyberpunk #send_textarea::placeholder {
+    color: #555566 !important;
+    font-style: italic !important;
+}
+
+/* Command prompt indicator */
+body.nemo-theme-cyberpunk #send_form {
+    position: relative !important;
+    background: #0a0a0f !important;
+}
+
+body.nemo-theme-cyberpunk #send_form::before {
+    content: '>' !important;
+    position: absolute !important;
+    left: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: #00fff9 !important;
+    font-family: 'Consolas', monospace !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    text-shadow: 0 0 10px rgba(0, 255, 249, 0.5) !important;
+    animation: blink-cursor 1s infinite !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+}
+
+body.nemo-theme-cyberpunk #form_sheld {
+    background: #0a0a0f !important;
+    border-top: 1px solid #2a2a3a !important;
+}
+
+/* ==========================================================================
+   BUTTONS - CYBER CONTROLS
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk .menu_button {
+    background: #1a1a28 !important;
+    border: 1px solid #2a2a3a !important;
+    border-radius: 2px !important;
+    color: #e0e0e0 !important;
+    font-family: 'Consolas', monospace !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    transition: all 0.2s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+body.nemo-theme-cyberpunk .menu_button::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 249, 0.3), transparent) !important;
+    transition: left 0.4s ease !important;
+}
+
+body.nemo-theme-cyberpunk .menu_button:hover {
+    border-color: #00fff9 !important;
+    box-shadow: 0 0 15px rgba(0, 255, 249, 0.3) !important;
+    color: #00fff9 !important;
+}
+
+body.nemo-theme-cyberpunk .menu_button:hover::before {
+    left: 100% !important;
+}
+
+body.nemo-theme-cyberpunk .menu_button:active {
+    background: #00fff9 !important;
+    color: #0a0a0f !important;
+}
+
+/* Primary/accent buttons */
+body.nemo-theme-cyberpunk .menu_button.primary,
+body.nemo-theme-cyberpunk .menu_button[id*="send"],
+body.nemo-theme-cyberpunk #send_but {
+    background: #b71c1c !important;
+    border-color: #ff1744 !important;
+    color: #e0e0e0 !important;
+}
+
+body.nemo-theme-cyberpunk .menu_button.primary:hover,
+body.nemo-theme-cyberpunk .menu_button[id*="send"]:hover,
+body.nemo-theme-cyberpunk #send_but:hover {
+    background: #ff1744 !important;
+    box-shadow: 0 0 20px rgba(255, 23, 68, 0.5) !important;
+}
+
+/* ==========================================================================
+   INPUT FIELDS
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk input[type="text"],
+body.nemo-theme-cyberpunk input[type="number"],
+body.nemo-theme-cyberpunk input[type="password"],
+body.nemo-theme-cyberpunk textarea:not(#send_textarea),
+body.nemo-theme-cyberpunk select {
+    background: #0d0d14 !important;
+    border: 1px solid #2a2a3a !important;
+    border-radius: 2px !important;
+    color: #e0e0e0 !important;
+    font-family: 'Consolas', monospace !important;
+    transition: all 0.2s ease !important;
+}
+
+body.nemo-theme-cyberpunk input[type="text"]:focus,
+body.nemo-theme-cyberpunk input[type="number"]:focus,
+body.nemo-theme-cyberpunk input[type="password"]:focus,
+body.nemo-theme-cyberpunk textarea:not(#send_textarea):focus,
+body.nemo-theme-cyberpunk select:focus {
+    border-color: #00fff9 !important;
+    box-shadow: 0 0 10px rgba(0, 255, 249, 0.3) !important;
+    outline: none !important;
+}
+
+/* Checkboxes and toggles */
+body.nemo-theme-cyberpunk input[type="checkbox"] {
+    accent-color: var(--cyber-cyan) !important;
+}
+
+body.nemo-theme-cyberpunk input[type="range"] {
+    accent-color: var(--cyber-red) !important;
+}
+
+/* ==========================================================================
+   SCROLLBARS - MINIMAL CYBER STYLE
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk ::-webkit-scrollbar {
+    width: 8px !important;
+    height: 8px !important;
+}
+
+body.nemo-theme-cyberpunk ::-webkit-scrollbar-track {
+    background: var(--cyber-bg-dark) !important;
+    border-left: 1px solid var(--cyber-border) !important;
+}
+
+body.nemo-theme-cyberpunk ::-webkit-scrollbar-thumb {
+    background: var(--cyber-border-bright) !important;
+    border-radius: 2px !important;
+}
+
+body.nemo-theme-cyberpunk ::-webkit-scrollbar-thumb:hover {
+    background: var(--cyber-cyan) !important;
+    box-shadow: 0 0 10px var(--cyber-cyan-glow) !important;
+}
+
+/* ==========================================================================
+   POPUPS AND DIALOGS
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk .popup,
+body.nemo-theme-cyberpunk dialog.popup {
+    background: var(--cyber-bg-panel) !important;
+    border: 1px solid var(--cyber-border) !important;
+    border-top: 3px solid var(--cyber-red) !important;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px var(--cyber-red-glow) !important;
+    color: var(--cyber-text-primary) !important;
+    font-family: 'Consolas', monospace !important;
+}
+
+body.nemo-theme-cyberpunk .popup_background {
+    background: rgba(10, 10, 15, 0.95) !important;
+    backdrop-filter: blur(5px) !important;
+}
+
+body.nemo-theme-cyberpunk .popup_title,
+body.nemo-theme-cyberpunk .popup h3 {
+    color: var(--cyber-red) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important;
+    text-shadow: 0 0 10px var(--cyber-red-glow) !important;
+    border-bottom: 1px solid var(--cyber-border) !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 16px !important;
+}
+
+/* ==========================================================================
+   DRAWER PANELS - SYSTEM MODULES
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk .drawer-content {
+    background: var(--cyber-bg-panel) !important;
+    border: 1px solid var(--cyber-border) !important;
+}
+
+body.nemo-theme-cyberpunk .inline-drawer {
+    background: var(--cyber-bg-elevated) !important;
+    border: 1px solid var(--cyber-border) !important;
+    margin: 4px 0 !important;
+}
+
+body.nemo-theme-cyberpunk .inline-drawer-header {
+    background: var(--cyber-bg-dark) !important;
+    border-bottom: 1px solid var(--cyber-border) !important;
+    color: var(--cyber-cyan) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    font-family: 'Consolas', monospace !important;
+}
+
+body.nemo-theme-cyberpunk .inline-drawer-header:hover {
+    background: var(--cyber-bg-medium) !important;
+    border-bottom-color: var(--cyber-cyan) !important;
+}
+
+body.nemo-theme-cyberpunk .inline-drawer-header::before {
+    content: '[+] ';
+    color: var(--cyber-cyan) !important;
+}
+
+body.nemo-theme-cyberpunk .inline-drawer.open .inline-drawer-header::before {
+    content: '[-] ';
+}
+
+/* ==========================================================================
+   CHARACTER CARDS AND LISTS
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk .character_select,
+body.nemo-theme-cyberpunk .ch_avatar {
+    border: 1px solid var(--cyber-border) !important;
+    background: var(--cyber-bg-elevated) !important;
+    transition: all 0.2s ease !important;
+}
+
+body.nemo-theme-cyberpunk .character_select:hover,
+body.nemo-theme-cyberpunk .ch_avatar:hover {
+    border-color: var(--cyber-cyan) !important;
+    box-shadow: 0 0 20px var(--cyber-cyan-glow) !important;
+    transform: translateY(-2px) !important;
+}
+
+body.nemo-theme-cyberpunk .ch_name {
+    color: var(--cyber-text-primary) !important;
+    font-family: 'Consolas', monospace !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+/* ==========================================================================
+   WORLD INFO AND LOREBOOK STYLING
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk .world_info_entry {
+    background: var(--cyber-bg-elevated) !important;
+    border: 1px solid var(--cyber-border) !important;
+    border-left: 3px solid var(--cyber-magenta) !important;
+}
+
+body.nemo-theme-cyberpunk .world_info_entry:hover {
+    border-left-color: var(--cyber-cyan) !important;
+    box-shadow: 0 0 10px var(--cyber-cyan-glow) !important;
+}
+
+/* ==========================================================================
+   TABS AND NAVIGATION
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk .nav-toggle,
+body.nemo-theme-cyberpunk .tab {
+    background: var(--cyber-bg-elevated) !important;
+    border: 1px solid var(--cyber-border) !important;
+    color: var(--cyber-text-secondary) !important;
+    font-family: 'Consolas', monospace !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    transition: all 0.2s ease !important;
+}
+
+body.nemo-theme-cyberpunk .nav-toggle:hover,
+body.nemo-theme-cyberpunk .tab:hover {
+    border-color: var(--cyber-cyan) !important;
+    color: var(--cyber-cyan) !important;
+}
+
+body.nemo-theme-cyberpunk .nav-toggle.selected,
+body.nemo-theme-cyberpunk .tab.active {
+    background: var(--cyber-bg-dark) !important;
+    border-color: var(--cyber-red) !important;
+    border-bottom: 2px solid var(--cyber-red) !important;
+    color: var(--cyber-red) !important;
+    box-shadow: 0 2px 10px var(--cyber-red-glow) !important;
+}
+
+/* ==========================================================================
+   AVATARS
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk .avatar img,
+body.nemo-theme-cyberpunk .mesAvatarWrapper img {
+    border: 2px solid var(--cyber-border) !important;
+    border-radius: 2px !important;
+    transition: all 0.2s ease !important;
+}
+
+body.nemo-theme-cyberpunk .mes:not([is_user="true"]) .avatar img,
+body.nemo-theme-cyberpunk .mes:not([is_user="true"]) .mesAvatarWrapper img {
+    border-color: var(--cyber-cyan) !important;
+    box-shadow: 0 0 10px var(--cyber-cyan-glow) !important;
+}
+
+body.nemo-theme-cyberpunk .mes[is_user="true"] .avatar img,
+body.nemo-theme-cyberpunk .mes[is_user="true"] .mesAvatarWrapper img {
+    border-color: var(--cyber-red) !important;
+    box-shadow: 0 0 10px var(--cyber-red-glow) !important;
+}
+
+/* ==========================================================================
+   CODE BLOCKS - TERMINAL OUTPUT
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk pre,
+body.nemo-theme-cyberpunk code {
+    background: var(--cyber-bg-darkest) !important;
+    border: 1px solid var(--cyber-border) !important;
+    color: var(--cyber-green) !important;
+    font-family: 'Consolas', monospace !important;
+}
+
+body.nemo-theme-cyberpunk pre {
+    padding: 12px !important;
+    border-left: 3px solid var(--cyber-green) !important;
+}
+
+/* ==========================================================================
+   TOOLTIPS
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk [data-tooltip]::after,
+body.nemo-theme-cyberpunk .tooltip {
+    background: var(--cyber-bg-dark) !important;
+    border: 1px solid var(--cyber-cyan) !important;
+    color: var(--cyber-text-terminal) !important;
+    font-family: 'Consolas', monospace !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    box-shadow: 0 0 15px var(--cyber-cyan-glow) !important;
+}
+
+/* ==========================================================================
+   SPECIAL EFFECTS - OPTIONAL ENHANCEMENTS
+   ========================================================================== */
+
+/* Glitch effect on important headings */
+body.nemo-theme-cyberpunk h1,
+body.nemo-theme-cyberpunk h2,
+body.nemo-theme-cyberpunk h3 {
+    color: var(--cyber-text-primary) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important;
+    font-family: 'Consolas', monospace !important;
+}
+
+/* Data stream decoration for section headers */
+body.nemo-theme-cyberpunk .mes_text h1::before,
+body.nemo-theme-cyberpunk .mes_text h2::before,
+body.nemo-theme-cyberpunk .mes_text h3::before {
+    content: '// ';
+    color: var(--cyber-cyan) !important;
+    opacity: 0.7;
+}
+
+/* Horizontal rules as data dividers */
+body.nemo-theme-cyberpunk hr {
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(90deg,
+        transparent,
+        var(--cyber-cyan) 20%,
+        var(--cyber-cyan) 80%,
+        transparent
+    ) !important;
+    box-shadow: 0 0 10px var(--cyber-cyan-glow) !important;
+}
+
+/* Links */
+body.nemo-theme-cyberpunk a {
+    color: var(--cyber-cyan) !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+}
+
+body.nemo-theme-cyberpunk a:hover {
+    color: var(--cyber-magenta) !important;
+    text-shadow: 0 0 10px var(--cyber-magenta) !important;
+}
+
+/* ==========================================================================
+   MOBILE/RESPONSIVE ADJUSTMENTS
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    body.nemo-theme-cyberpunk #top-settings-holder::before {
+        content: 'NEMONET';
+        font-size: 12px !important;
+        letter-spacing: 1px !important;
+    }
+
+    body.nemo-theme-cyberpunk #top-settings-holder::after {
+        content: 'ONLINE';
+        font-size: 9px !important;
+    }
+}
+
+/* ==========================================================================
+   LOADING STATES
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk .typing_indicator,
+body.nemo-theme-cyberpunk .mes.loading {
+    border-left-color: var(--cyber-yellow) !important;
+}
+
+body.nemo-theme-cyberpunk .typing_indicator::after {
+    content: 'PROCESSING_DATA...';
+    color: var(--cyber-yellow) !important;
+    font-family: 'Consolas', monospace !important;
+    text-transform: uppercase !important;
+    animation: cyber-flicker 0.5s infinite !important;
+}
+
+/* ==========================================================================
+   CYBERPUNK TERMINAL FOOTER BAR
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk #form_sheld {
+    background: var(--cyber-bg-dark) !important;
+    border-top: 1px solid var(--cyber-border) !important;
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5) !important;
+}

@@ -9,6 +9,16 @@ import { RobustReasoningParser } from './robust-reasoning-parser.js';
 import { getContext } from '../../../../extensions.js';
 import { updateReasoningUI } from '../../../../reasoning.js';
 
+// Debug flag - set to true for verbose logging during development
+const DEBUG_REASONING = false;
+
+// Conditional logging helper
+function debugLog(...args) {
+    if (DEBUG_REASONING) {
+        debugLog('', ...args);
+    }
+}
+
 // These will be imported from script.js
 let eventSource, messageFormatting, addCopyToCodeBlocks;
 
@@ -370,19 +380,19 @@ export function applyNemoNetReasoning() {
                 return;
             }
 
-            console.log('NemoNet: eventSource imported, registering hooks...');
-            console.log('NemoNet: chat length:', getContext().chat?.length);
-            console.log('NemoNet: eventSource type:', typeof eventSource, 'has .on?', typeof eventSource?.on);
+            debugLog(' eventSource imported, registering hooks...');
+            debugLog(' chat length:', getContext().chat?.length);
+            debugLog(' eventSource type:', typeof eventSource, 'has .on?', typeof eventSource?.on);
 
             // Hook MESSAGE_RECEIVED - process BEFORE rendering
             const messageReceivedHandler = (messageId, type) => {
-                console.log('NemoNet: 📨 MESSAGE_RECEIVED event fired for message', messageId, 'type:', type);
+                debugLog(' 📨 MESSAGE_RECEIVED event fired for message', messageId, 'type:', type);
                 // Process immediately BEFORE SillyTavern renders (no delay)
                 const chat = getContext().chat;
                 const message = chat?.[messageId];
 
                 if (message && message.mes && message.mes.includes('<think>')) {
-                    console.log('NemoNet: Pre-processing message BEFORE render');
+                    debugLog(' Pre-processing message BEFORE render');
                     const result = parser.parse(message.mes);
 
                     if (result.confidence >= 65 && result.reasoning.length > 50) {
@@ -391,21 +401,21 @@ export function applyNemoNetReasoning() {
                         if (!message.extra) message.extra = {};
                         message.extra.reasoning = result.reasoning;
                         message.extra.reasoning_type = 'parsed';
-                        console.log('NemoNet: ✅ Pre-render data update complete');
+                        debugLog(' ✅ Pre-render data update complete');
                     }
                 }
             };
 
             eventSource.on('MESSAGE_RECEIVED', messageReceivedHandler);
-            console.log('NemoNet: Registered MESSAGE_RECEIVED handler');
+            debugLog(' Registered MESSAGE_RECEIVED handler');
 
             // Hook GENERATION_ENDED for streaming responses
             eventSource.on('GENERATION_ENDED', () => {
-                console.log('NemoNet: ⏹️ GENERATION_ENDED event fired');
+                debugLog(' ⏹️ GENERATION_ENDED event fired');
                 setTimeout(() => {
                     const chat = getContext().chat;
                     const lastMessageId = chat?.length - 1;
-                    console.log('NemoNet: GENERATION_ENDED - Processing last message:', lastMessageId);
+                    debugLog(' GENERATION_ENDED - Processing last message:', lastMessageId);
                     if (lastMessageId >= 0) {
                         forceProcessMessage(lastMessageId, parser);
                     }
@@ -414,7 +424,7 @@ export function applyNemoNetReasoning() {
 
             // Hook character_message_rendered - this fires AFTER ST finishes rendering
             eventSource.on('character_message_rendered', (messageId) => {
-                console.log('NemoNet: 📝 character_message_rendered fired for message', messageId);
+                debugLog(' 📝 character_message_rendered fired for message', messageId);
                 setTimeout(() => {
                     forceProcessMessage(messageId, parser);
                 }, 100);
@@ -422,7 +432,7 @@ export function applyNemoNetReasoning() {
 
             console.log('NemoNet Reasoning Parser: ✅ Active (works independently of prefix/suffix settings)');
             console.log('NemoNet Reasoning Parser: ✅ Post-processing hooks registered');
-            console.log('NemoNet: Registered events:', ['CHARACTER_MESSAGE_RENDERED', 'MESSAGE_RECEIVED', 'GENERATION_ENDED']);
+            debugLog(' Registered events:', ['CHARACTER_MESSAGE_RENDERED', 'MESSAGE_RECEIVED', 'GENERATION_ENDED']);
 
             // BACKUP: Also use MutationObserver to catch new messages
             setupMessageObserver(parser);
@@ -443,7 +453,7 @@ export function applyNemoNetReasoning() {
  * Setup MutationObserver to watch for new messages
  */
 function setupMessageObserver(parser) {
-    console.log('NemoNet: Setting up MutationObserver for message detection...');
+    debugLog(' Setting up MutationObserver for message detection...');
 
     let lastProcessedMessageId = -1;
 
@@ -458,7 +468,7 @@ function setupMessageObserver(parser) {
                     // Only process if it's a new message we haven't seen
                     if (mesId !== null && numericMesId > lastProcessedMessageId) {
                         lastProcessedMessageId = numericMesId;
-                        console.log('NemoNet: 🔍 New message detected via observer:', mesId);
+                        debugLog(' 🔍 New message detected via observer:', mesId);
 
                         // CRITICAL FIX: Process data IMMEDIATELY before DOM is fully rendered
                         // Don't wait - update the message data right now
@@ -466,7 +476,7 @@ function setupMessageObserver(parser) {
                         const message = chat?.[numericMesId];
 
                         if (message && message.mes && message.mes.includes('<think>')) {
-                            console.log('NemoNet: ⚡ IMMEDIATE pre-render processing');
+                            debugLog(' ⚡ IMMEDIATE pre-render processing');
                             const result = parser.parse(message.mes);
 
                             if (result.confidence >= 65 && result.reasoning.length > 50) {
@@ -482,7 +492,7 @@ function setupMessageObserver(parser) {
                                 if (!message.extra) message.extra = {};
                                 message.extra.reasoning = result.reasoning;
                                 message.extra.reasoning_type = 'parsed';
-                                console.log('NemoNet: ⚡ Pre-render update complete, forcing re-render...');
+                                debugLog(' ⚡ Pre-render update complete, forcing re-render...');
 
                                 // Save immediately
                                 getContext().saveChat();
@@ -492,7 +502,7 @@ function setupMessageObserver(parser) {
                                 setTimeout(() => {
                                     const mesText = node.querySelector('.mes_text');
                                     if (mesText) {
-                                        console.log('NemoNet: 🔄 Forcing message re-render');
+                                        debugLog(' 🔄 Forcing message re-render');
                                         // Clear and re-render
                                         const context = getContext();
                                         if (typeof messageFormatting === 'function') {
@@ -506,7 +516,7 @@ function setupMessageObserver(parser) {
                                             if (typeof addCopyToCodeBlocks === 'function') {
                                                 addCopyToCodeBlocks(mesText);
                                             }
-                                            console.log('NemoNet: 🔄 Message re-rendered successfully');
+                                            debugLog(' 🔄 Message re-rendered successfully');
                                         }
 
                                         // Create reasoning box
@@ -520,10 +530,10 @@ function setupMessageObserver(parser) {
                         setTimeout(() => {
                             const mesText = node.querySelector('.mes_text');
                             if (mesText && mesText.innerHTML) {
-                                console.log('NemoNet: Message DOM is ready, doing backup DOM update...');
+                                debugLog(' Message DOM is ready, doing backup DOM update...');
                                 processMessageReasoning(numericMesId, parser);
                             } else {
-                                console.log('NemoNet: .mes_text not ready yet, waiting longer...');
+                                debugLog(' .mes_text not ready yet, waiting longer...');
                                 setTimeout(() => processMessageReasoning(numericMesId, parser), 300);
                             }
                         }, 200);
@@ -540,9 +550,9 @@ function setupMessageObserver(parser) {
             childList: true,
             subtree: true
         });
-        console.log('NemoNet: ✅ MutationObserver active on #chat');
+        debugLog(' ✅ MutationObserver active on #chat');
     } else {
-        console.log('NemoNet: ⚠️ #chat not found, retrying in 1s...');
+        debugLog(' ⚠️ #chat not found, retrying in 1s...');
         setTimeout(() => setupMessageObserver(parser), 1000);
     }
 }
@@ -556,11 +566,11 @@ function forceProcessMessage(messageId, parser) {
     const message = chat?.[messageId];
 
     if (!message || !message.mes) {
-        console.log('NemoNet: Force process - message not found:', messageId);
+        debugLog(' Force process - message not found:', messageId);
         return;
     }
 
-    console.log('NemoNet: 💪 FORCE processing message', messageId);
+    debugLog(' 💪 FORCE processing message', messageId);
 
     // Check if message has <think> tags in the CURRENT displayed content
     const messageElement = document.querySelector(`[mesid="${messageId}"]`);
@@ -568,12 +578,12 @@ function forceProcessMessage(messageId, parser) {
 
     if (mesText) {
         const displayedText = mesText.textContent || '';
-        console.log('NemoNet: Displayed text length:', displayedText.length);
-        console.log('NemoNet: Contains think tags in display?', displayedText.includes('STORY SECTION'));
+        debugLog(' Displayed text length:', displayedText.length);
+        debugLog(' Contains think tags in display?', displayedText.includes('STORY SECTION'));
 
         // If the displayed text contains reasoning markers, we need to fix it
         if (displayedText.includes('STORY SECTION') || displayedText.includes('NEMONET') || displayedText.includes('Council of Vex')) {
-            console.log('NemoNet: ⚠️ Reasoning detected in displayed message! Fixing...');
+            debugLog(' ⚠️ Reasoning detected in displayed message! Fixing...');
 
             // Re-parse the ORIGINAL message data (which should still have <think> tags)
             const originalMes = message.mes;
@@ -581,7 +591,7 @@ function forceProcessMessage(messageId, parser) {
             // If message.mes doesn't have tags anymore, check if it's in message text
             let textToParse = originalMes;
             if (!originalMes.includes('<think>') && mesText.innerHTML.includes('<think>')) {
-                console.log('NemoNet: Getting text from innerHTML instead');
+                debugLog(' Getting text from innerHTML instead');
                 // Extract text from innerHTML
                 textToParse = mesText.innerHTML;
             }
@@ -590,8 +600,8 @@ function forceProcessMessage(messageId, parser) {
                 const result = parser.parse(textToParse);
 
                 if (result.confidence >= 65 && result.reasoning.length > 50) {
-                    console.log(`NemoNet: 💪 FORCE extracted reasoning (${result.reasoning.length} chars)`);
-                    console.log(`NemoNet: Content length after extraction: ${result.content.length} chars`);
+                    debugLog(` 💪 FORCE extracted reasoning (${result.reasoning.length} chars)`);
+                    debugLog(` Content length after extraction: ${result.content.length} chars`);
 
                     // CRITICAL SAFETY CHECK: Ensure content is not empty
                     if (!result.content || result.content.trim().length < 100) {
@@ -605,11 +615,11 @@ function forceProcessMessage(messageId, parser) {
                         console.warn(`NemoNet: Content returned: "${result.content}"`);
 
                         // ATTEMPT RECOVERY: Try to extract narrative from the reasoning that was extracted
-                        console.log('NemoNet: 🔧 Attempting RECOVERY - Extracting narrative from reasoning...');
+                        debugLog(' 🔧 Attempting RECOVERY - Extracting narrative from reasoning...');
                         const recovered = recoverNarrativeFromReasoning(result.reasoning);
 
                         if (recovered && recovered.content && recovered.content.length > 100) {
-                            console.log(`NemoNet: ✅ RECOVERY SUCCESSFUL! Extracted ${recovered.content.length} chars of narrative from reasoning`);
+                            debugLog(` ✅ RECOVERY SUCCESSFUL! Extracted ${recovered.content.length} chars of narrative from reasoning`);
 
                             // Update message data with recovered content
                             message.mes = recovered.content;
@@ -621,13 +631,13 @@ function forceProcessMessage(messageId, parser) {
                             updateMessageDOM(messageId, message);
 
                             // Update reasoning UI
-                            console.log('NemoNet: Calling updateReasoningUI to show recovered reasoning box...');
+                            debugLog(' Calling updateReasoningUI to show recovered reasoning box...');
                             updateReasoningUI(messageId);
 
                             // Save
                             getContext().saveChat();
 
-                            console.log('NemoNet: 💪 RECOVERY processing complete!');
+                            debugLog(' 💪 RECOVERY processing complete!');
                             return;
                         } else {
                             console.error('NemoNet: ❌ RECOVERY FAILED - Could not extract narrative from reasoning');
@@ -647,20 +657,20 @@ function forceProcessMessage(messageId, parser) {
                     updateMessageDOM(messageId, message);
 
                     // CRITICAL: Use SillyTavern's own function to update reasoning UI
-                    console.log('NemoNet: Calling updateReasoningUI to show reasoning box...');
+                    debugLog(' Calling updateReasoningUI to show reasoning box...');
                     updateReasoningUI(messageId);
 
                     // Save
                     getContext().saveChat();
 
-                    console.log('NemoNet: 💪 FORCE processing complete!');
+                    debugLog(' 💪 FORCE processing complete!');
                     return;
                 }
             }
         }
     }
 
-    console.log('NemoNet: Force process - no reasoning found or already clean');
+    debugLog(' Force process - no reasoning found or already clean');
 }
 
 /**
@@ -669,10 +679,10 @@ function forceProcessMessage(messageId, parser) {
 function processMessageReasoning(messageId, parser) {
     // Get the message from chat array using getContext()
     const chat = getContext().chat;
-    console.log('NemoNet: Looking for message', messageId, 'in chat of length', chat?.length);
+    debugLog(' Looking for message', messageId, 'in chat of length', chat?.length);
     const message = chat?.[messageId];
     if (!message) {
-        console.log('NemoNet: Message not found:', messageId, 'chat exists:', !!chat);
+        debugLog(' Message not found:', messageId, 'chat exists:', !!chat);
         return;
     }
 
@@ -681,7 +691,7 @@ function processMessageReasoning(messageId, parser) {
 
     // Skip if already has reasoning extracted or if message is too short (unless it's the latest message)
     if (!isLatestMessage && (message.extra?.reasoning || !message.mes || message.mes.length < 50)) {
-        console.log('NemoNet: Skipping message', messageId, '- Already has reasoning or too short');
+        debugLog(' Skipping message', messageId, '- Already has reasoning or too short');
         return;
     }
 
@@ -692,7 +702,7 @@ function processMessageReasoning(messageId, parser) {
 
     // Skip if message doesn't contain <think> tags (quick pre-check)
     if (!message.mes.includes('<think>')) {
-        console.log('NemoNet: Skipping message', messageId, '- No <think> tag found');
+        debugLog(' Skipping message', messageId, '- No <think> tag found');
         return;
     }
 
@@ -700,16 +710,16 @@ function processMessageReasoning(messageId, parser) {
     const result = parser.parse(message.mes);
 
     // Log the parse result for debugging
-    console.log(`NemoNet: Parse result - Strategy: ${result.strategy}, Confidence: ${result.confidence}, Reasoning: ${result.reasoning.length} chars, Content: ${result.content.length} chars`);
+    debugLog(` Parse result - Strategy: ${result.strategy}, Confidence: ${result.confidence}, Reasoning: ${result.reasoning.length} chars, Content: ${result.content.length} chars`);
 
     // CRITICAL DEBUG: Log first 200 chars of reasoning and content
-    console.log(`NemoNet: Reasoning preview: "${result.reasoning.substring(0, 200)}..."`);
-    console.log(`NemoNet: Content preview: "${result.content.substring(0, 200)}..."`);
+    debugLog(` Reasoning preview: "${result.reasoning.substring(0, 200)}..."`);
+    debugLog(` Content preview: "${result.content.substring(0, 200)}..."`);
 
     // If we found reasoning with decent confidence, extract it (lowered to 65%)
     if (result.confidence >= 65 && result.reasoning.length > 50) {
-        console.log(`NemoNet Reasoning Parser: ✅ Captured reasoning using ${result.strategy} (confidence: ${result.confidence})`);
-        console.log(`NemoNet: Reasoning length: ${result.reasoning.length}, Content length: ${result.content.length}`);
+        debugLog(`Reasoning Parser: ✅ Captured reasoning using ${result.strategy} (confidence: ${result.confidence})`);
+        debugLog(` Reasoning length: ${result.reasoning.length}, Content length: ${result.content.length}`);
 
         // CRITICAL FIX: Check if content is empty or too short
         if (!result.content || result.content.trim().length < 100) {
@@ -727,48 +737,55 @@ function processMessageReasoning(messageId, parser) {
         message.extra.reasoning = result.reasoning;
         message.extra.reasoning_type = 'parsed';
 
-        console.log('NemoNet: ✅ Message data updated - forcing multiple DOM updates...');
+        debugLog(' ✅ Message data updated - scheduling DOM updates...');
 
         // Save chat first so data is persisted
         getContext().saveChat();
 
-        // CRITICAL: Update DOM multiple times to catch different render stages
-        // Immediate update (might be too early but worth trying)
-        setTimeout(() => {
-            console.log('NemoNet: DOM update attempt 1 (immediate)');
-            updateMessageDOM(messageId, message);
-            updateReasoningDOM(messageId, result.reasoning);
-        }, 0);
-
-        // Second update after 100ms
-        setTimeout(() => {
-            console.log('NemoNet: DOM update attempt 2 (100ms)');
-            updateMessageDOM(messageId, message);
-            updateReasoningDOM(messageId, result.reasoning);
-        }, 100);
-
-        // Third update after 300ms
-        setTimeout(() => {
-            console.log('NemoNet: DOM update attempt 3 (300ms)');
-            updateMessageDOM(messageId, message);
-            updateReasoningDOM(messageId, result.reasoning);
-        }, 300);
-
-        // Fourth update after 600ms - catches late ST re-renders
-        setTimeout(() => {
-            console.log('NemoNet: DOM update attempt 4 (600ms)');
-            updateReasoningDOM(messageId, result.reasoning);
-        }, 600);
-
-        // Final update after 1000ms - ensures visibility after all ST operations
-        setTimeout(() => {
-            console.log('NemoNet: DOM update attempt 5 (1000ms - final)');
-            updateReasoningDOM(messageId, result.reasoning);
-            console.log('NemoNet: ✅ All DOM updates complete');
-        }, 1000);
+        // Use a retry mechanism that consolidates multiple update attempts
+        retryDOMUpdate(messageId, message, result.reasoning);
     } else {
-        console.log(`NemoNet: No reasoning detected (confidence: ${result.confidence})`);
+        debugLog(` No reasoning detected (confidence: ${result.confidence})`);
     }
+}
+
+/**
+ * Retry DOM updates with exponential backoff until successful or max attempts reached
+ * Consolidates multiple update attempts into a single retry mechanism
+ */
+function retryDOMUpdate(messageId, messageData, reasoning, attempt = 1, maxAttempts = 5) {
+    const delays = [0, 100, 300, 600, 1000]; // Backoff delays in ms
+    const delay = delays[attempt - 1] || delays[delays.length - 1];
+
+    setTimeout(() => {
+        debugLog(` DOM update attempt ${attempt}/${maxAttempts}`);
+
+        const messageElement = document.querySelector(`[mesid="${messageId}"]`);
+        const reasoningBox = messageElement?.querySelector('.mes_reasoning_details');
+
+        // Update message DOM on first 3 attempts
+        if (attempt <= 3) {
+            updateMessageDOM(messageId, messageData);
+        }
+
+        // Always try to update reasoning DOM
+        updateReasoningDOM(messageId, reasoning);
+
+        // Check if reasoning box exists and is visible
+        const isComplete = reasoningBox && reasoningBox.offsetParent !== null;
+
+        if (isComplete) {
+            debugLog(' ✅ DOM updates complete - reasoning box visible');
+            return;
+        }
+
+        // Retry if not complete and attempts remaining
+        if (attempt < maxAttempts) {
+            retryDOMUpdate(messageId, messageData, reasoning, attempt + 1, maxAttempts);
+        } else {
+            debugLog(' ✅ All DOM update attempts complete');
+        }
+    }, delay);
 }
 
 /**
@@ -776,12 +793,12 @@ function processMessageReasoning(messageId, parser) {
  * This updates the displayed message to remove reasoning from visible content
  */
 function updateMessageDOM(messageId, messageData) {
-    console.log(`NemoNet: updateMessageDOM called for message ${messageId}`);
+    debugLog(` updateMessageDOM called for message ${messageId}`);
 
     const messageElement = document.querySelector(`[mesid="${messageId}"]`);
     if (!messageElement) {
         console.error('NemoNet: ❌ Message element not found for DOM update:', messageId);
-        console.log('NemoNet: Available message IDs:', Array.from(document.querySelectorAll('[mesid]')).map(el => el.getAttribute('mesid')));
+        debugLog(' Available message IDs:', Array.from(document.querySelectorAll('[mesid]')).map(el => el.getAttribute('mesid')));
         return;
     }
 
@@ -789,19 +806,19 @@ function updateMessageDOM(messageId, messageData) {
     const mesText = messageElement.querySelector('.mes_text');
     if (!mesText) {
         console.error('NemoNet: ❌ .mes_text not found in message', messageId);
-        console.log('NemoNet: Message element children:', messageElement.children);
+        debugLog(' Message element children:', messageElement.children);
         return;
     }
 
-    console.log('NemoNet: Found .mes_text element, current length:', mesText.innerHTML.length);
-    console.log('NemoNet: New content length:', messageData.mes.length);
+    debugLog(' Found .mes_text element, current length:', mesText.innerHTML.length);
+    debugLog(' New content length:', messageData.mes.length);
 
     // Use SillyTavern's messageFormatting to properly format the content
     // This is the CRITICAL pattern from rewrite extension (see rewrite/index.js:448)
     if (typeof messageFormatting === 'function') {
         try {
             const context = getContext();
-            console.log('NemoNet: Formatting message with name2:', context.name2);
+            debugLog(' Formatting message with name2:', context.name2);
 
             const formattedMessage = messageFormatting(
                 messageData.mes,
@@ -811,7 +828,7 @@ function updateMessageDOM(messageId, messageData) {
                 messageId
             );
 
-            console.log('NemoNet: Formatted message length:', formattedMessage.length);
+            debugLog(' Formatted message length:', formattedMessage.length);
             mesText.innerHTML = formattedMessage;
 
             // Apply code block formatting if available
@@ -819,7 +836,7 @@ function updateMessageDOM(messageId, messageData) {
                 addCopyToCodeBlocks(mesText);
             }
 
-            console.log('NemoNet: ✅ DOM updated with formatted message (reasoning removed from display)');
+            debugLog(' ✅ DOM updated with formatted message (reasoning removed from display)');
         } catch (error) {
             console.error('NemoNet: ❌ Error during messageFormatting:', error);
             // Fallback on error
@@ -836,7 +853,7 @@ function updateMessageDOM(messageId, messageData) {
  * Manually update the DOM to show reasoning block
  */
 function updateReasoningDOM(messageId, reasoningText) {
-    console.log(`NemoNet: updateReasoningDOM called for message ${messageId}, reasoning length: ${reasoningText.length}`);
+    debugLog(` updateReasoningDOM called for message ${messageId}, reasoning length: ${reasoningText.length}`);
 
     // Find the message element
     const messageElement = document.querySelector(`[mesid="${messageId}"]`);
@@ -932,11 +949,11 @@ function updateReasoningDOM(messageId, reasoningText) {
             void reasoningDetails.offsetHeight;
             reasoningDetails.style.display = originalDisplay || '';
 
-            console.log('NemoNet: ✅ Reasoning box forced visible for message', messageId);
+            debugLog(' ✅ Reasoning box forced visible for message', messageId);
         });
     }
 
-    console.log('NemoNet: Reasoning DOM updated for message', messageId, '- Content length:', reasoningText.length);
+    debugLog(' Reasoning DOM updated for message', messageId, '- Content length:', reasoningText.length);
 }
 
 /**
@@ -944,15 +961,15 @@ function updateReasoningDOM(messageId, reasoningText) {
  * This happens when the AI puts everything inside <think> tags
  */
 function recoverNarrativeFromReasoning(reasoningText) {
-    console.log('NemoNet: 🔍 Analyzing reasoning to find narrative content...');
-    console.log(`NemoNet: Total reasoning text length: ${reasoningText.length} chars`);
-    console.log(`NemoNet: First 300 chars: "${reasoningText.substring(0, 300)}..."`);
-    console.log(`NemoNet: Last 300 chars: "...${reasoningText.substring(reasoningText.length - 300)}"`);
+    debugLog(' 🔍 Analyzing reasoning to find narrative content...');
+    debugLog(` Total reasoning text length: ${reasoningText.length} chars`);
+    debugLog(` First 300 chars: "${reasoningText.substring(0, 300)}..."`);
+    debugLog(` Last 300 chars: "...${reasoningText.substring(reasoningText.length - 300)}"`);
 
     // PRIORITY STRATEGY 1: Look for the "no-space quirk" pattern FIRST
     // This is when reasoning ends with a period and narrative immediately starts with capital letter
     // Example: "...plan is set. Time to write.The rain-slicked streets..."
-    console.log('NemoNet: Checking for no-space quirk pattern in full text...');
+    debugLog(' Checking for no-space quirk pattern in full text...');
 
     const noSpacePattern = /\.\s*([A-Z][a-z]{2,}\s+.{50,})/;
     const noSpaceMatch = reasoningText.match(noSpacePattern);
@@ -971,14 +988,14 @@ function recoverNarrativeFromReasoning(reasoningText) {
             const periodPosition = noSpaceMatch.index; // Position of the period
             const narrativeStart = periodPosition + 1 + (noSpaceMatch[0].match(/^\.\s*/)[0].length - 1); // Skip period and whitespace
 
-            console.log('NemoNet: ✅ Found no-space quirk at position', periodPosition);
-            console.log('NemoNet: Captured text preview:', capturedText.substring(0, 100));
+            debugLog(' ✅ Found no-space quirk at position', periodPosition);
+            debugLog(' Captured text preview:', capturedText.substring(0, 100));
 
             // Reasoning EXCLUDES the period, content starts fresh
             const reasoning = reasoningText.substring(0, periodPosition).trim();
             const content = reasoningText.substring(narrativeStart).trim();
 
-            console.log(`NemoNet: No-space split - Reasoning: ${reasoning.length} chars, Content: ${content.length} chars`);
+            debugLog(` No-space split - Reasoning: ${reasoning.length} chars, Content: ${content.length} chars`);
 
             if (content.length > 100) {
                 return { reasoning, content };
@@ -986,14 +1003,14 @@ function recoverNarrativeFromReasoning(reasoningText) {
         }
     }
 
-    console.log('NemoNet: No-space pattern not found, trying structural detection...');
+    debugLog(' No-space pattern not found, trying structural detection...');
 
     // STRATEGY 2: Detect transition from reasoning to narrative based on STRUCTURE
     // Reasoning has: lists, meta-commentary, planning, bullet points, "Council of Vex", strong tags
     // Narrative has: past/present tense prose, sensory details, dialogue, longer paragraphs
 
     // Look for structural transition: where reasoning patterns end and prose patterns begin
-    console.log('NemoNet: Looking for structural transition from reasoning to narrative...');
+    debugLog(' Looking for structural transition from reasoning to narrative...');
 
     // Split into paragraphs
     const paragraphs = reasoningText.split(/\n\n+/);
@@ -1029,8 +1046,8 @@ function recoverNarrativeFromReasoning(reasoningText) {
             /\b(you|You|your|Your)\b.{30,}/.test(para) && !para.includes('**'); // Second-person prose
 
         if (!isReasoning && isNarrative && transitionIndex === -1) {
-            console.log(`NemoNet: ✅ Found narrative transition at paragraph ${i}`);
-            console.log(`NemoNet: Paragraph preview: "${para.substring(0, 100)}..."`);
+            debugLog(` ✅ Found narrative transition at paragraph ${i}`);
+            debugLog(` Paragraph preview: "${para.substring(0, 100)}..."`);
             transitionIndex = i;
             // Calculate position in original text
             narrativeStartPosition = paragraphs.slice(0, i).join('\n\n').length + (i > 0 ? 2 : 0); // +2 for the \n\n
@@ -1042,7 +1059,7 @@ function recoverNarrativeFromReasoning(reasoningText) {
         const reasoning = reasoningText.substring(0, narrativeStartPosition).trim();
         const content = reasoningText.substring(narrativeStartPosition).trim();
 
-        console.log(`NemoNet: Structural split - Reasoning: ${reasoning.length} chars, Content: ${content.length} chars`);
+        debugLog(` Structural split - Reasoning: ${reasoning.length} chars, Content: ${content.length} chars`);
 
         // Validate the split makes sense
         if (content.length > 100) {
@@ -1052,7 +1069,7 @@ function recoverNarrativeFromReasoning(reasoningText) {
         }
     }
 
-    console.log('NemoNet: No structural transition found, trying marker-based approach...');
+    debugLog(' No structural transition found, trying marker-based approach...');
 
     // FALLBACK STRATEGY: Look for the transition from reasoning to narrative
     // Find the last occurrence of clear reasoning markers
@@ -1078,7 +1095,7 @@ function recoverNarrativeFromReasoning(reasoningText) {
     }
 
     if (lastReasoningIndex === -1) {
-        console.log('NemoNet: Could not find reasoning end marker, trying alternative approach...');
+        debugLog(' Could not find reasoning end marker, trying alternative approach...');
         // Alternative: Look for </ol> or </ul> which marks end of Plan Execution
         const listEndIndex = Math.max(
             reasoningText.lastIndexOf('</ol>'),
@@ -1087,9 +1104,9 @@ function recoverNarrativeFromReasoning(reasoningText) {
         if (listEndIndex > -1) {
             lastReasoningIndex = listEndIndex;
             usedMarker = reasoningText[listEndIndex + 1] === 'o' ? '</ol>' : '</ul>';
-            console.log(`NemoNet: Found list end marker at index ${lastReasoningIndex}`);
+            debugLog(` Found list end marker at index ${lastReasoningIndex}`);
         } else {
-            console.log('NemoNet: No reasoning markers found at all');
+            debugLog(' No reasoning markers found at all');
             return null;
         }
     }
@@ -1107,14 +1124,14 @@ function recoverNarrativeFromReasoning(reasoningText) {
 
     // Strategy 2: Look for narrative WITHOUT <p> tags (no-space quirk in stored data)
     if (!narrativeMatch) {
-        console.log('NemoNet: Standard narrative pattern not found, trying no-space pattern...');
+        debugLog(' Standard narrative pattern not found, trying no-space pattern...');
         // The narrative might run directly into reasoning with no space or tag
         // Look for sentences starting with "The", "A", etc. that mark prose
         const noSpacePattern = /\.(?:The |A |An |That |He |She |They |It was |There )/i;
         narrativeMatch = afterMarker.match(noSpacePattern);
 
         if (narrativeMatch) {
-            console.log('NemoNet: Found no-space narrative transition!');
+            debugLog(' Found no-space narrative transition!');
             // Adjust index to include the period but skip to start of narrative
             narrativeMatch.index = narrativeMatch.index + 1; // Skip the period
         }
@@ -1122,7 +1139,7 @@ function recoverNarrativeFromReasoning(reasoningText) {
 
     // Strategy 3: Look for ANY <p> tag after the reasoning marker
     if (!narrativeMatch) {
-        console.log('NemoNet: No-space pattern not found, trying broader match...');
+        debugLog(' No-space pattern not found, trying broader match...');
         // Look for first <p> tag that's NOT followed by <strong> or <em> (which are used in reasoning)
         const broadPattern = /<p>(?!<strong>|<em>|The user |Council of Vex|Plan Execution)/i;
         narrativeMatch = afterMarker.match(broadPattern);
@@ -1130,7 +1147,7 @@ function recoverNarrativeFromReasoning(reasoningText) {
 
     // Strategy 4: Look for common narrative opening phrases
     if (!narrativeMatch) {
-        console.log('NemoNet: Broad pattern not found, trying narrative opening phrases...');
+        debugLog(' Broad pattern not found, trying narrative opening phrases...');
         const openingPhrases = [
             /The first thing (?:you |that )?(?:perceive|notice|see|hear|feel|register)/i,
             /(?:A |The )?(?:low|soft|sharp|sudden|faint|gentle) .{10,50}(?:is|was) the first/i,
@@ -1141,7 +1158,7 @@ function recoverNarrativeFromReasoning(reasoningText) {
         for (const phrase of openingPhrases) {
             const match = afterMarker.match(phrase);
             if (match) {
-                console.log('NemoNet: Found narrative opening phrase:', match[0]);
+                debugLog(' Found narrative opening phrase:', match[0]);
                 narrativeMatch = match;
                 break;
             }
@@ -1150,7 +1167,7 @@ function recoverNarrativeFromReasoning(reasoningText) {
 
     // Strategy 5: Last resort - find first <p> tag after all reasoning lists/plans
     if (!narrativeMatch) {
-        console.log('NemoNet: No opening phrase found, trying to find first prose paragraph...');
+        debugLog(' No opening phrase found, trying to find first prose paragraph...');
         // Find the first <p> that contains at least 50 characters of continuous text
         const paragraphs = afterMarker.match(/<p>[^<]{50,}/gi);
         if (paragraphs && paragraphs.length > 0) {
@@ -1162,8 +1179,8 @@ function recoverNarrativeFromReasoning(reasoningText) {
     }
 
     if (!narrativeMatch) {
-        console.log('NemoNet: Could not find narrative start pattern with any strategy');
-        console.log('NemoNet: After marker preview (first 500 chars):', afterMarker.substring(0, 500));
+        debugLog(' Could not find narrative start pattern with any strategy');
+        debugLog(' After marker preview (first 500 chars):', afterMarker.substring(0, 500));
         return null;
     }
 
@@ -1173,14 +1190,14 @@ function recoverNarrativeFromReasoning(reasoningText) {
     const reasoning = reasoningText.substring(0, narrativeStartIndex).trim();
     const content = reasoningText.substring(narrativeStartIndex).trim();
 
-    console.log(`NemoNet: Split at marker "${usedMarker}"`);
-    console.log(`NemoNet: Reasoning ends at char ${narrativeStartIndex}`);
-    console.log(`NemoNet: Found ${reasoning.length} chars of reasoning, ${content.length} chars of content`);
-    console.log(`NemoNet: Content preview: "${content.substring(0, 200)}..."`);
+    debugLog(` Split at marker "${usedMarker}"`);
+    debugLog(` Reasoning ends at char ${narrativeStartIndex}`);
+    debugLog(` Found ${reasoning.length} chars of reasoning, ${content.length} chars of content`);
+    debugLog(` Content preview: "${content.substring(0, 200)}..."`);
 
     // Validate the split
     if (content.length < 200) {
-        console.log('NemoNet: Content too short, split probably failed');
+        debugLog(' Content too short, split probably failed');
         return null;
     }
 
@@ -1195,11 +1212,11 @@ function recoverNarrativeFromReasoning(reasoningText) {
  * This catches cases where reasoning wasn't extracted properly
  */
 function reprocessLatestMessage(parser) {
-    console.log('NemoNet: 🔄 Reprocessing latest message on page load...');
+    debugLog(' 🔄 Reprocessing latest message on page load...');
 
     const chat = getContext().chat;
     if (!chat || chat.length === 0) {
-        console.log('NemoNet: No messages to reprocess (empty chat)');
+        debugLog(' No messages to reprocess (empty chat)');
         return;
     }
 
@@ -1213,25 +1230,25 @@ function reprocessLatestMessage(parser) {
     }
 
     if (latestMessageId === -1) {
-        console.log('NemoNet: No assistant messages found to reprocess');
+        debugLog(' No assistant messages found to reprocess');
         return;
     }
 
     const message = chat[latestMessageId];
-    console.log(`NemoNet: Found latest assistant message at index ${latestMessageId}`);
-    console.log(`NemoNet: Message length: ${message.mes?.length || 0} chars`);
-    console.log(`NemoNet: Has existing reasoning: ${!!message.extra?.reasoning}`);
-    console.log(`NemoNet: Contains <think> tag: ${message.mes?.includes('<think>') || false}`);
+    debugLog(` Found latest assistant message at index ${latestMessageId}`);
+    debugLog(` Message length: ${message.mes?.length || 0} chars`);
+    debugLog(` Has existing reasoning: ${!!message.extra?.reasoning}`);
+    debugLog(` Contains <think> tag: ${message.mes?.includes('<think>') || false}`);
 
     // Check if the message needs reprocessing
     const needsReprocessing = message.mes?.includes('<think>') &&
                               (!message.extra?.reasoning || message.extra.reasoning.length < 100);
 
     if (needsReprocessing) {
-        console.log('NemoNet: ✅ Latest message needs reprocessing - extracting reasoning...');
+        debugLog(' ✅ Latest message needs reprocessing - extracting reasoning...');
         forceProcessMessage(latestMessageId, parser);
     } else if (message.extra?.reasoning) {
-        console.log('NemoNet: Latest message already has reasoning extracted, checking validity...');
+        debugLog(' Latest message already has reasoning extracted, checking validity...');
 
         // CRITICAL FIX: Check if message content is empty but reasoning contains narrative
         const messageEmpty = !message.mes || message.mes.trim().length < 100;
@@ -1241,13 +1258,13 @@ function reprocessLatestMessage(parser) {
 
         if (messageEmpty && reasoningHasNarrative) {
             console.error('NemoNet: 🔧 RECOVERY MODE - Message content is empty but reasoning contains HTML/narrative!');
-            console.log('NemoNet: Attempting to split reasoning and narrative...');
+            debugLog(' Attempting to split reasoning and narrative...');
 
             // Try to separate reasoning from narrative
             const recovered = recoverNarrativeFromReasoning(message.extra.reasoning);
 
             if (recovered && recovered.content.length > 100) {
-                console.log(`NemoNet: ✅ Recovery successful! Extracted ${recovered.reasoning.length} chars of reasoning and ${recovered.content.length} chars of narrative`);
+                debugLog(` ✅ Recovery successful! Extracted ${recovered.reasoning.length} chars of reasoning and ${recovered.content.length} chars of narrative`);
 
                 // Update message data
                 message.mes = recovered.content;
@@ -1264,7 +1281,7 @@ function reprocessLatestMessage(parser) {
                 // Save the fix
                 getContext().saveChat();
 
-                console.log('NemoNet: ✅ Message recovered and saved!');
+                debugLog(' ✅ Message recovered and saved!');
                 return;
             } else {
                 console.error('NemoNet: ❌ Recovery failed - could not separate reasoning from narrative');
@@ -1276,16 +1293,16 @@ function reprocessLatestMessage(parser) {
         const reasoningBox = messageElement?.querySelector('.mes_reasoning_details');
 
         if (!reasoningBox) {
-            console.log('NemoNet: Reasoning data exists but box not displayed - forcing display update...');
+            debugLog(' Reasoning data exists but box not displayed - forcing display update...');
             // Call SillyTavern's function to update reasoning UI
             if (typeof updateReasoningUI === 'function') {
                 updateReasoningUI(latestMessageId);
             }
         } else {
-            console.log('NemoNet: ✅ Latest message already properly processed');
+            debugLog(' ✅ Latest message already properly processed');
         }
     } else {
-        console.log('NemoNet: Latest message does not contain reasoning');
+        debugLog(' Latest message does not contain reasoning');
     }
 }
 

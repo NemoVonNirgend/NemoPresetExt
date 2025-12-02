@@ -714,61 +714,7 @@ export class RobustReasoningParser {
     }
 
     /**
-     * Strategy 1: Perfect Match (prefix + suffix both present)
-     */
-    strategyPerfectMatch(text) {
-        const { prefix, suffix } = this.config;
-
-        // Try exact match first
-        const exactRegex = new RegExp(
-            `${this.escapeRegex(prefix)}(.*?)${this.escapeRegex(suffix)}`,
-            's'
-        );
-
-        const match = text.match(exactRegex);
-        if (match) {
-            const reasoning = match[1].trim();
-            const beforeReasoning = text.substring(0, match.index);
-            const afterReasoning = text.substring(match.index + match[0].length);
-            const content = (beforeReasoning + afterReasoning).trim();
-
-            return {
-                reasoning,
-                content,
-                strategy: 'perfectMatch',
-                confidence: this.config.strategyWeights.perfectMatch
-            };
-        }
-
-        // Try alternative prefixes/suffixes
-        for (const altPrefix of this.config.alternativePrefixes) {
-            for (const altSuffix of this.config.alternativeSuffixes) {
-                const altRegex = new RegExp(
-                    `${this.escapeRegex(altPrefix)}(.*?)${this.escapeRegex(altSuffix)}`,
-                    's'
-                );
-                const altMatch = text.match(altRegex);
-                if (altMatch) {
-                    const reasoning = altMatch[1].trim();
-                    const beforeReasoning = text.substring(0, altMatch.index);
-                    const afterReasoning = text.substring(altMatch.index + altMatch[0].length);
-                    const content = (beforeReasoning + afterReasoning).trim();
-
-                    return {
-                        reasoning,
-                        content,
-                        strategy: 'perfectMatch-alternative',
-                        confidence: this.config.strategyWeights.perfectMatch - 5
-                    };
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Strategy 2: Partial Suffix (has prefix, suffix is incomplete)
+     * Strategy: Partial Suffix (has prefix, suffix is incomplete)
      */
     strategyPartialSuffix(text) {
         const { prefix, suffix } = this.config;

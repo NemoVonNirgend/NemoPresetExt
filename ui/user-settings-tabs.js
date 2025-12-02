@@ -2,6 +2,7 @@
 // Overhauls the User Settings tab to use a tabbed interface
 
 import { LOG_PREFIX, NEMO_EXTENSION_NAME } from '../core/utils.js';
+import logger from '../core/logger.js';
 
 export const UserSettingsTabs = {
     initialized: false,
@@ -27,7 +28,7 @@ export const UserSettingsTabs = {
                 setTimeout(() => {
                     this.createTabbedInterface();
                     this.initialized = true;
-                    console.log(`${LOG_PREFIX} User Settings Tabs initialized`);
+                    logger.info('User Settings Tabs initialized');
                 }, 100);
             }
         }, 500);
@@ -37,7 +38,7 @@ export const UserSettingsTabs = {
         try {
             const userSettingsContent = document.getElementById('user-settings-block-content');
             if (!userSettingsContent) {
-                console.error(`${LOG_PREFIX} Could not find user-settings-block-content`);
+                logger.error('Could not find user-settings-block-content');
                 return;
             }
 
@@ -70,10 +71,8 @@ export const UserSettingsTabs = {
             
             // Add search functionality
             this.addSearchHandler();
-            
-            console.log(`${LOG_PREFIX} Tabbed interface created successfully`);
         } catch (error) {
-            console.error(`${LOG_PREFIX} Error creating tabbed interface:`, error);
+            logger.error('Error creating tabbed interface', error);
         }
     },
 
@@ -127,7 +126,6 @@ export const UserSettingsTabs = {
                     customCSSBlock.remove();
                     // Add to right column of main wrapper
                     mainContentWrapper.appendChild(customCSSBlock);
-                    console.log(`${LOG_PREFIX} Moved Custom CSS to UI Theme tab`);
                 }
             }
             
@@ -160,8 +158,6 @@ export const UserSettingsTabs = {
         userSettingsContent.appendChild(uiThemeTab);
         userSettingsContent.appendChild(characterHandlingTab);
         userSettingsContent.appendChild(chatMessagesTab);
-        
-        console.log(`${LOG_PREFIX} Content reorganized into tabs`);
     },
 
     addTabHandlers: function() {
@@ -196,7 +192,6 @@ export const UserSettingsTabs = {
         });
 
         this.activeTab = tabName;
-        console.log(`${LOG_PREFIX} Switched to tab: ${tabName}`);
     },
 
     addCustomInputHandlers: function() {
@@ -233,8 +228,6 @@ export const UserSettingsTabs = {
             chatTruncationCounter.addEventListener('input', updateDisplay);
             chatTruncationCounter.addEventListener('focus', handleFocus);
             chatTruncationCounter.addEventListener('blur', handleBlur);
-            
-            console.log(`${LOG_PREFIX} Added custom input handlers for chat truncation`);
         }
     },
 
@@ -285,8 +278,6 @@ export const UserSettingsTabs = {
                         handleSearch(e.target.value);
                     }
                 });
-                
-                console.log(`${LOG_PREFIX} Added search handler for user settings tabs`);
             } else {
                 // If no search input exists, create one
                 this.createSearchInput();
@@ -335,8 +326,6 @@ export const UserSettingsTabs = {
                         handleSearch(e.target.value);
                     }
                 });
-                
-                console.log(`${LOG_PREFIX} Created search input for user settings tabs`);
             }
         }
     },
@@ -439,8 +428,6 @@ export const UserSettingsTabs = {
                 this.makeCloneInteractive(clone, element);
             });
         }
-        
-        console.log(`${LOG_PREFIX} Applied search filter for: "${searchTerm}" (${matchingElements.length} results)`);
     },
 
     clearSearchFilter: function() {
@@ -458,8 +445,6 @@ export const UserSettingsTabs = {
         if (activeTabContent) {
             activeTabContent.style.display = 'block';
         }
-        
-        console.log(`${LOG_PREFIX} Cleared search filter`);
     },
 
     isRelevantElement: function(element) {
@@ -593,9 +578,8 @@ export const UserSettingsTabs = {
                 tab.remove();
             });
         }
-        
+
         this.initialized = false;
-        console.log(`${LOG_PREFIX} Original layout restored`);
     },
 
     // Method to cleanup existing tab interface

@@ -622,15 +622,17 @@ export class PresetNavigator {
         }
         menu.innerHTML = itemsHTML;
 
-        const popupContainer = item.closest('.popup');
+        // Find the popup container - ST uses .popup_outer or dialog.popup
+        const popupContainer = item.closest('.popup_outer, dialog.popup, .popup');
         if (popupContainer) {
             popupContainer.appendChild(menu);
             const popupRect = popupContainer.getBoundingClientRect();
             menu.style.left = `${e.clientX - popupRect.left}px`;
             menu.style.top = `${e.clientY - popupRect.top}px`;
         } else {
-            // Fallback if not in a popup (should not happen with callGenericPopup)
+            // Fallback - append to body with fixed positioning
             document.body.appendChild(menu);
+            menu.style.position = 'fixed';
             menu.style.left = `${e.clientX}px`;
             menu.style.top = `${e.clientY}px`;
         }
@@ -758,7 +760,6 @@ export class PresetNavigator {
         // Fallback cleanup after timeout (in case user cancels)
         const timeoutId = setTimeout(() => {
             if (document.body.contains(input) && !input.files.length) {
-                console.log(`${LOG_PREFIX} Cleaning up abandoned file input`);
                 cleanup();
             }
         }, CONSTANTS.TIMEOUTS.FILE_INPUT_CLEANUP);
@@ -900,12 +901,22 @@ export class PresetNavigator {
         });
     }
     showMiniMenu(anchor, menu) {
-        const popupContainer = anchor.closest('.popup');
-        popupContainer.appendChild(menu);
-        const anchorRect = anchor.getBoundingClientRect();
-        const popupRect = popupContainer.getBoundingClientRect();
-        menu.style.left = `${anchorRect.left - popupRect.left}px`;
-        menu.style.top = `${anchorRect.bottom - popupRect.top + 5}px`;
+        // Find the popup container - ST uses .popup_outer or dialog.popup
+        const popupContainer = anchor.closest('.popup_outer, dialog.popup, .popup');
+        if (popupContainer) {
+            popupContainer.appendChild(menu);
+            const anchorRect = anchor.getBoundingClientRect();
+            const popupRect = popupContainer.getBoundingClientRect();
+            menu.style.left = `${anchorRect.left - popupRect.left}px`;
+            menu.style.top = `${anchorRect.bottom - popupRect.top + 5}px`;
+        } else {
+            // Fallback - append to body with fixed positioning
+            document.body.appendChild(menu);
+            menu.style.position = 'fixed';
+            const anchorRect = anchor.getBoundingClientRect();
+            menu.style.left = `${anchorRect.left}px`;
+            menu.style.top = `${anchorRect.bottom + 5}px`;
+        }
         menu.style.display = 'block';
     }
     async importPreset() {
@@ -1084,12 +1095,6 @@ export class PresetNavigator {
 
         favorites.forEach(presetName => {
             const preset = this.allPresets.find(p => p.name === presetName);
-            console.log(`${LOG_PREFIX} Looking for preset:`, {
-                presetName: presetName,
-                found: !!preset,
-                allPresetsCount: this.allPresets.length,
-                samplePreset: this.allPresets[0]
-            });
             if (preset) {
                 const favoriteItem = document.createElement('div');
                 favoriteItem.className = 'navigator-favorite-item';
