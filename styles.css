@@ -1976,6 +1976,11 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     display: none !important;
 }
 
+/* Hide individual prompts in tray mode (preserves DOM for mode switching) */
+.nemo-tray-hidden-prompt {
+    display: none !important;
+}
+
 /* Sub-section headers in tray mode get a folder indicator */
 .nemo-tray-section > summary::after {
     content: '📁';
@@ -1997,6 +2002,9 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     padding: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     animation: nemo-tray-open 0.25s ease-out;
+    position: relative;
+    z-index: 10;
+    overflow: visible; /* Allow drag clone to escape */
 }
 
 @keyframes nemo-tray-open {
@@ -2107,42 +2115,187 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    padding: 14px;
+    padding: 8px 10px;
     cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    gap: 8px;
+    overflow: hidden;
+    align-items: stretch;
 }
 
 .nemo-prompt-card:hover {
     background: rgba(74, 158, 255, 0.1);
     border-color: rgba(74, 158, 255, 0.4);
-    transform: translateY(-1px);
+}
+
+/* Drag handle */
+.nemo-prompt-card-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    min-width: 20px;
+    color: rgba(255, 255, 255, 0.3);
+    cursor: grab;
+    font-size: 12px;
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.nemo-prompt-card-drag-handle:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.nemo-prompt-card-drag-handle:active {
+    cursor: grabbing;
+}
+
+.nemo-prompt-card-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Drag states for tray cards - kept minimal for performance */
+.nemo-tray-card-ghost {
+    opacity: 0.3 !important;
+    visibility: hidden !important; /* Hide ghost to reduce visual clutter */
+}
+
+/* Style for the card being dragged (native drag) */
+.nemo-prompt-card.sortable-chosen {
+    opacity: 0.5;
+    cursor: grabbing !important;
+}
+
+/* Sortable drag class */
+.nemo-prompt-card.sortable-drag {
+    opacity: 0.9;
+    z-index: 99999 !important;
+}
+
+/* Prevent tray layout from shifting during drag */
+.nemo-tray-grid {
+    min-height: 50px;
+}
+
+/* Drop target indicator for section headers */
+.nemo-drop-target-active {
+    background: rgba(74, 158, 255, 0.2) !important;
+    outline: 2px dashed rgba(74, 158, 255, 0.7) !important;
+    outline-offset: -2px;
+}
+
+.nemo-drop-target-active::after {
+    content: ' (drop here)';
+    color: rgba(74, 158, 255, 0.9);
+    font-size: 0.8em;
+    font-style: italic;
+}
+
+/* Top-level prompts section */
+.nemo-top-level-section {
+    border-left: 3px solid #f39c12 !important;
+    margin-bottom: 8px;
+}
+
+.nemo-top-level-section > summary {
+    background: linear-gradient(90deg, rgba(243, 156, 18, 0.1) 0%, transparent 50%);
+}
+
+.nemo-top-level-section > summary .completion_prompt_manager_prompt_name a {
+    color: #f39c12 !important;
+    font-weight: 600;
+}
+
+/* Top-level drop zone for moving prompts outside sections */
+.nemo-top-level-drop-zone {
+    padding: 12px 16px;
+    margin: 8px 0;
+    border: 2px dashed rgba(74, 158, 255, 0.4);
+    border-radius: 8px;
+    background: rgba(74, 158, 255, 0.05);
+    text-align: center;
+    cursor: pointer;
+}
+
+.nemo-top-level-drop-zone .nemo-drop-zone-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: rgba(74, 158, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+.nemo-top-level-drop-zone .nemo-drop-zone-content i {
+    font-size: 1rem;
+}
+
+.nemo-top-level-drop-zone.nemo-drop-zone-active {
+    border-color: rgba(74, 158, 255, 0.8);
+    background: rgba(74, 158, 255, 0.15);
+}
+
+.nemo-top-level-drop-zone.nemo-drop-zone-active .nemo-drop-zone-content {
+    color: rgba(74, 158, 255, 1);
 }
 
 .nemo-prompt-card-enabled {
-    background: rgba(81, 207, 102, 0.1);
-    border-color: rgba(81, 207, 102, 0.4);
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.22), rgba(39, 174, 96, 0.15));
+    border: 2px solid #2ecc71;
+    border-left: 5px solid #2ecc71;
+    box-shadow: 0 2px 8px rgba(46, 204, 113, 0.25);
+}
+
+/* Enabled card title gets green tint */
+.nemo-prompt-card-enabled .nemo-prompt-card-name {
+    color: #5ddb8a !important;
+}
+
+/* Style the existing status checkmark */
+.nemo-prompt-card-enabled .nemo-prompt-card-status {
+    color: #2ecc71 !important;
+    font-size: 18px;
 }
 
 .nemo-prompt-card-enabled:hover {
-    background: rgba(81, 207, 102, 0.2);
-    border-color: rgba(81, 207, 102, 0.6);
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.3), rgba(39, 174, 96, 0.2));
+    border-color: #3de07d;
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+}
+
+/* Disabled card styling for better contrast */
+.nemo-prompt-card:not(.nemo-prompt-card-enabled) {
+    opacity: 0.6;
+    border-left: 3px solid rgba(255, 255, 255, 0.08);
+}
+
+.nemo-prompt-card:not(.nemo-prompt-card-enabled):hover {
+    opacity: 0.9;
 }
 
 .nemo-prompt-card-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-    gap: 8px;
+    align-items: center;
+    gap: 6px;
+    min-height: 20px;
 }
 
 .nemo-prompt-card-name {
     font-weight: 600;
-    font-size: 15px;
+    font-size: 13px;
     color: var(--nemo-text-high-contrast, #fff);
-    white-space: normal;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     line-height: 1.3;
+    flex: 1;
+    min-width: 0;
 }
 
 .nemo-prompt-card-status {
@@ -2244,13 +2397,6 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     background: rgba(74, 158, 255, 0.5);
 }
 
-/* Prompt card header layout */
-.nemo-prompt-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-}
-
 .nemo-prompt-card-actions {
     display: flex;
     align-items: center;
@@ -2258,17 +2404,79 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     flex-shrink: 0;
 }
 
-.nemo-prompt-card-edit {
+.nemo-prompt-card-edit,
+.nemo-prompt-card-move {
     color: var(--nemo-text-muted, #888);
     cursor: pointer;
-    padding: 2px 4px;
+    padding: 3px 5px;
     border-radius: 3px;
-    transition: all 0.2s;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
 }
 
 .nemo-prompt-card-edit:hover {
     color: #4a9eff;
     background: rgba(74, 158, 255, 0.15);
+}
+
+.nemo-prompt-card-move:hover {
+    color: #f39c12;
+    background: rgba(243, 156, 18, 0.15);
+}
+
+/* Prompt card meta section (tokens, tooltip) */
+.nemo-prompt-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--nemo-text-muted, #888);
+    margin-top: 6px;
+}
+
+.nemo-prompt-card-tokens {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--monoFontFamily, monospace);
+    font-size: 10px;
+    white-space: nowrap;
+    width: fit-content;
+}
+
+.nemo-prompt-card-tokens i {
+    color: #f1c40f;
+    opacity: 0.8;
+    font-size: 9px;
+}
+
+.nemo-token-value {
+    min-width: 20px;
+}
+
+.nemo-prompt-card-tooltip-text {
+    font-size: 11px;
+    line-height: 1.4;
+    opacity: 0.75;
+    color: var(--nemo-text-muted, #aaa);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Compact mode adjustments for meta */
+.nemo-tray-compact .nemo-prompt-card-meta {
+    margin-top: 2px;
+}
+
+.nemo-tray-compact .nemo-prompt-card-tokens {
+    padding: 1px 4px;
+    font-size: 9px;
 }
 
 /* ========================================
@@ -2861,6 +3069,150 @@ details.nemo-engine-section .nemo-enabled-count {
     color: var(--nemo-text-muted, #888);
     margin-left: 8px;
     font-weight: normal;
+}
+
+/* ============================================
+   ACCORDION MODE STYLES
+   ============================================ */
+
+/* Accordion section styling */
+.nemo-accordion-section {
+    margin-bottom: 4px;
+}
+
+.nemo-accordion-section > summary {
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.08), rgba(147, 112, 219, 0.05));
+    border: 1px solid rgba(74, 158, 255, 0.15);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.nemo-accordion-section > summary:hover {
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.15), rgba(147, 112, 219, 0.1));
+    border-color: rgba(74, 158, 255, 0.3);
+}
+
+.nemo-accordion-section[open] > summary {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-color: transparent;
+}
+
+.nemo-accordion-section[open] > .nemo-section-content {
+    border: 1px solid rgba(74, 158, 255, 0.15);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.15);
+    animation: nemo-accordion-expand 0.2s ease-out;
+}
+
+@keyframes nemo-accordion-expand {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 1000px;
+    }
+}
+
+/* Accordion prompt item styling */
+.nemo-accordion-prompt {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.nemo-accordion-prompt .drag-handle {
+    cursor: grab;
+    opacity: 0.5;
+    margin-right: 8px;
+    font-size: 14px;
+    transition: opacity 0.2s ease;
+}
+
+.nemo-accordion-prompt:hover .drag-handle {
+    opacity: 1;
+}
+
+.nemo-accordion-prompt .drag-handle:active {
+    cursor: grabbing;
+}
+
+/* ENABLED state - prominent visual indication */
+.nemo-accordion-prompt-enabled {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(39, 174, 96, 0.12));
+    border: 2px solid rgba(46, 204, 113, 0.5);
+    border-left: 5px solid #2ecc71;
+    box-shadow: 0 2px 6px rgba(46, 204, 113, 0.15);
+}
+
+.nemo-accordion-prompt-enabled:hover {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(39, 174, 96, 0.18));
+    border-color: rgba(46, 204, 113, 0.7);
+}
+
+.nemo-accordion-prompt-enabled .prompt-manager-toggle-action {
+    color: #2ecc71 !important;
+}
+
+.nemo-accordion-prompt-enabled .completion_prompt_manager_prompt_name a {
+    color: #5ddb8a !important;
+}
+
+/* DISABLED state - subtle but clear */
+.nemo-accordion-prompt-disabled {
+    background: rgba(0, 0, 0, 0.12);
+    border-color: rgba(255, 255, 255, 0.05);
+    opacity: 0.55;
+}
+
+.nemo-accordion-prompt-disabled:hover {
+    opacity: 0.85;
+    background: rgba(0, 0, 0, 0.18);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.nemo-accordion-prompt-disabled .prompt-manager-toggle-action {
+    color: #888 !important;
+}
+
+/* Drag and drop styles for accordion - kept minimal for performance */
+.nemo-accordion-drag-ghost {
+    opacity: 0.3;
+}
+
+.nemo-accordion-drag-active {
+    cursor: grabbing !important;
+}
+
+/* Select control styling in settings */
+.nemo-select-control {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+    color: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    min-width: 140px;
+}
+
+.nemo-select-control:hover {
+    border-color: rgba(74, 158, 255, 0.3);
+}
+
+.nemo-select-control:focus {
+    outline: none;
+    border-color: rgba(74, 158, 255, 0.5);
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
 }
 
 /* Prompt Preview Modal */
@@ -6910,6 +7262,46 @@ small[data-i18n="(0 = All)"],
     height: 1px;
     background-color: var(--nemo-border-color);
     margin: 6px 0;
+}
+
+/* Tray Context Menu (Move prompts) */
+.nemo-tray-context-menu {
+    position: fixed;
+    z-index: 10000;
+    min-width: 180px;
+    max-width: 280px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.nemo-context-menu-header {
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--SmartThemeQuoteColor, #888);
+    border-bottom: 1px solid var(--nemo-border-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    background: var(--nemo-secondary-bg);
+}
+
+.nemo-context-menu-header i {
+    font-size: 0.9em;
+    opacity: 0.7;
+}
+
+.nemo-tray-context-menu .nemo-context-menu-item {
+    padding: 10px 14px;
+}
+
+.nemo-tray-context-menu .nemo-context-menu-item span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
 }
 
 /* Dialog Overlay */

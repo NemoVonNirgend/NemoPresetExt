@@ -258,6 +258,16 @@ export const storage = {
     saveOpenSectionStates(states) {
         extension_settings[NEMO_EXTENSION_NAME].openSectionStates = states;
         saveSettingsDebounced();
+    },
+
+    // Dropdown style mode: 'tray' (floating overlay) or 'accordion' (inline expand)
+    getDropdownStyle() {
+        return extension_settings[NEMO_EXTENSION_NAME]?.dropdownStyle || 'tray';
+    },
+
+    setDropdownStyle(style) {
+        extension_settings[NEMO_EXTENSION_NAME].dropdownStyle = style;
+        saveSettingsDebounced();
     }
 };
 

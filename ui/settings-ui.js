@@ -74,6 +74,20 @@ export const NemoSettingsUI = {
                     });
                 }
 
+                // Dropdown Style Setting (tray vs accordion)
+                const dropdownStyleSelect = /** @type {HTMLSelectElement} */ (document.getElementById('nemoDropdownStyle'));
+                if (dropdownStyleSelect) {
+                    dropdownStyleSelect.value = extension_settings[NEMO_EXTENSION_NAME]?.dropdownStyle || 'tray';
+                    dropdownStyleSelect.addEventListener('change', () => {
+                        extension_settings[NEMO_EXTENSION_NAME].dropdownStyle = dropdownStyleSelect.value;
+                        saveSettingsDebounced();
+                        // Emit event for live update without requiring refresh
+                        document.dispatchEvent(new CustomEvent('nemo-dropdown-style-changed', {
+                            detail: { style: dropdownStyleSelect.value }
+                        }));
+                    });
+                }
+
                 const presetNavigatorToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnablePresetNavigator'));
                 if (presetNavigatorToggle) {
                     presetNavigatorToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enablePresetNavigator ?? true;

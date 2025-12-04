@@ -448,14 +448,80 @@ export const NemoPresetManager = {
         });
     },
 
+    /**
+     * Get counts for a section (prompts only, not including sub-sections)
+     * @param {HTMLElement} sectionElement - The section to count
+     * @returns {{enabled: number, total: number}} The counts
+     */
+    getSectionDirectCounts: function(sectionElement) {
+        const content = sectionElement.querySelector('.nemo-section-content');
+        if (!content) return { enabled: 0, total: 0 };
+
+        let totalCount = 0;
+        let enabledCount = 0;
+
+        // Check if section is in tray mode (prompts hidden from DOM)
+        if (sectionElement._nemoPromptIds && sectionElement._nemoPromptIds.length > 0) {
+            // Tray mode: get counts from stored prompt IDs using promptManager
+            const storedPromptIds = sectionElement._nemoPromptIds;
+            totalCount = storedPromptIds.length;
+
+            if (promptManager) {
+                const activeCharacter = promptManager.activeCharacter;
+                storedPromptIds.forEach(({ identifier }) => {
+                    try {
+                        const promptOrderEntry = promptManager.getPromptOrderEntry(activeCharacter, identifier);
+                        if (promptOrderEntry?.enabled) {
+                            enabledCount++;
+                        }
+                    } catch (e) {
+                        // Ignore errors for individual prompts
+                    }
+                });
+            }
+        } else {
+            // Standard mode: count from DOM elements (only prompt items, not sub-sections)
+            const promptItems = content.querySelectorAll(`:scope > ${SELECTORS.promptItemRow}:not(.nemo-tray-hidden-prompt)`);
+            totalCount = promptItems.length;
+            enabledCount = content.querySelectorAll(`:scope > ${SELECTORS.promptItemRow}:not(.nemo-tray-hidden-prompt) .${SELECTORS.enabledToggleClass}`).length;
+        }
+
+        return { enabled: enabledCount, total: totalCount };
+    },
+
+    /**
+     * Recursively get aggregated counts for a section including all sub-sections
+     * @param {HTMLElement} sectionElement - The section to count
+     * @returns {{enabled: number, total: number}} The aggregated counts
+     */
+    getAggregatedCounts: function(sectionElement) {
+        // Get direct counts for this section
+        const directCounts = this.getSectionDirectCounts(sectionElement);
+        let totalEnabled = directCounts.enabled;
+        let totalCount = directCounts.total;
+
+        // Find all direct child sub-sections and add their aggregated counts
+        const content = sectionElement.querySelector('.nemo-section-content');
+        if (content) {
+            const subSections = content.querySelectorAll(':scope > details.nemo-engine-section');
+            subSections.forEach(subSection => {
+                const subCounts = this.getAggregatedCounts(subSection);
+                totalEnabled += subCounts.enabled;
+                totalCount += subCounts.total;
+            });
+        }
+
+        return { enabled: totalEnabled, total: totalCount };
+    },
+
     updateSectionCount: function(sectionElement) {
         if (!sectionElement || !sectionElement.matches('details.nemo-engine-section')) return;
 
         const content = sectionElement.querySelector('.nemo-section-content');
         if (!content) return;
 
-        const totalCount = content.children.length;
-        const enabledCount = content.querySelectorAll(`:scope > ${SELECTORS.promptItemRow} .${SELECTORS.enabledToggleClass}`).length;
+        // Get aggregated counts (includes all sub-sections recursively)
+        const { enabled: enabledCount, total: totalCount } = this.getAggregatedCounts(sectionElement);
 
         const countSpan = sectionElement.querySelector('summary .nemo-enabled-count');
         if (countSpan) countSpan.textContent = ` (${enabledCount}/${totalCount})`;
