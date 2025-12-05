@@ -2290,12 +2290,11 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     font-weight: 600;
     font-size: 13px;
     color: var(--nemo-text-high-contrast, #fff);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
     line-height: 1.3;
     flex: 1;
-    min-width: 50px;
+    min-width: 0;
 }
 
 .nemo-prompt-card-status {
