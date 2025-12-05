@@ -2295,7 +2295,7 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     text-overflow: ellipsis;
     line-height: 1.3;
     flex: 1;
-    min-width: 0;
+    min-width: 50px;
 }
 
 .nemo-prompt-card-status {
@@ -2304,6 +2304,7 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     flex-shrink: 0;
 }
 
+/* Legacy class - keep for backwards compatibility */
 .nemo-prompt-card-tooltip {
     font-size: 13px;
     color: var(--nemo-text-muted, #bbb);
@@ -2502,7 +2503,8 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     font-size: 13px;
 }
 
-.nemo-tray-compact .nemo-prompt-card-tooltip {
+.nemo-tray-compact .nemo-prompt-card-tooltip,
+.nemo-tray-compact .nemo-prompt-card-tooltip-text {
     display: none;
 }
 
@@ -3433,6 +3435,52 @@ details.nemo-engine-section .nemo-enabled-count {
 }
 
 /* ============================================
+   BASE MOBILE STYLES - Always Applied
+   ============================================
+   These basic mobile fixes apply to all users regardless of
+   the mobile enhancements setting.
+*/
+
+@media (max-width: 768px) {
+    /* Ensure prompt card names are always visible on mobile */
+    .nemo-prompt-card-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .nemo-prompt-card-name {
+        white-space: normal;
+        text-align: center;
+        width: 100%;
+        overflow: visible;
+        word-wrap: break-word;
+    }
+
+    .nemo-prompt-card-actions {
+        justify-content: center;
+    }
+
+    .nemo-prompt-card-meta {
+        align-items: center;
+        text-align: center;
+    }
+
+    .nemo-prompt-card-tokens {
+        margin: 0 auto;
+    }
+
+    .nemo-prompt-card-tooltip-text {
+        text-align: center;
+    }
+
+    .nemo-prompt-card-content {
+        align-items: center;
+        text-align: center;
+    }
+}
+
+/* ============================================
    MOBILE STYLES - Category Tray & Preview
    ============================================
 
@@ -3473,16 +3521,45 @@ details.nemo-engine-section .nemo-enabled-count {
         word-break: break-word;
         line-height: 1.4;
         color: #fff;
+        text-align: center;
+        width: 100%;
+        overflow: visible;
     }
 
     /* Show full tooltip without truncation */
-    .nemo-mobile-enhanced .nemo-prompt-card-tooltip {
+    .nemo-mobile-enhanced .nemo-prompt-card-tooltip-text {
         font-size: 14px;
         line-height: 1.5;
         color: rgba(255, 255, 255, 0.8);
         -webkit-line-clamp: unset;
         display: block;
         margin-top: 8px;
+        text-align: center;
+    }
+
+    /* Center card content on tablet */
+    .nemo-mobile-enhanced .nemo-prompt-card-content {
+        align-items: center;
+        text-align: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-meta {
+        align-items: center;
+        text-align: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-tokens {
+        margin: 0 auto;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-actions {
+        justify-content: center;
     }
 
     /* Larger edit button for touch */
@@ -3600,34 +3677,41 @@ details.nemo-engine-section .nemo-enabled-count {
     }
 
     .nemo-mobile-enhanced .nemo-prompt-card-header {
-        flex-wrap: nowrap;
-        align-items: flex-start;
+        flex-direction: column;
+        align-items: center;
         margin-bottom: 6px;
+        gap: 8px;
     }
 
     /* Large readable title on phones */
     .nemo-mobile-enhanced .nemo-prompt-card-name {
         font-size: 16px;
         font-weight: 600;
-        flex: 1;
-        margin-right: 10px;
+        flex: none;
+        width: 100%;
+        text-align: center;
         line-height: 1.3;
         color: #fff;
+        white-space: normal;
+        word-wrap: break-word;
+        overflow: visible;
     }
 
     /* Full tooltip text - no truncation on phones */
-    .nemo-mobile-enhanced .nemo-prompt-card-tooltip {
+    .nemo-mobile-enhanced .nemo-prompt-card-tooltip-text {
         font-size: 14px;
         line-height: 1.5;
         color: rgba(255, 255, 255, 0.75);
         -webkit-line-clamp: unset;
         display: block;
         margin-top: 8px;
+        text-align: center;
     }
 
     .nemo-mobile-enhanced .nemo-prompt-card-actions {
         gap: 12px;
         flex-shrink: 0;
+        justify-content: center;
     }
 
     .nemo-mobile-enhanced .nemo-prompt-card-edit {
@@ -3638,6 +3722,22 @@ details.nemo-engine-section .nemo-enabled-count {
     .nemo-mobile-enhanced .nemo-prompt-card-status {
         font-size: 20px;
         min-width: 28px;
+        text-align: center;
+    }
+
+    /* Center meta section on mobile */
+    .nemo-mobile-enhanced .nemo-prompt-card-meta {
+        align-items: center;
+        text-align: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-tokens {
+        margin: 0 auto;
+    }
+
+    /* Center card content on mobile */
+    .nemo-mobile-enhanced .nemo-prompt-card-content {
+        align-items: center;
         text-align: center;
     }
 
@@ -3768,10 +3868,12 @@ details.nemo-engine-section .nemo-enabled-count {
     .nemo-mobile-enhanced .nemo-prompt-card-name {
         font-size: 15px;
         font-weight: 600;
+        text-align: center;
     }
 
-    .nemo-mobile-enhanced .nemo-prompt-card-tooltip {
+    .nemo-mobile-enhanced .nemo-prompt-card-tooltip-text {
         font-size: 13px;
+        text-align: center;
     }
 
     .nemo-mobile-enhanced .nemo-tray-title {
