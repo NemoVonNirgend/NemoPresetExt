@@ -1067,7 +1067,8 @@ export const NemoPresetManager = {
 
             const details = document.createElement('details');
             details.className = dividerInfo.isSubHeader ? 'nemo-engine-section nemo-sub-section' : 'nemo-engine-section';
-            details.open = openSectionStates[dividerInfo.originalText] || false;
+            // Default to open (true) unless explicitly saved as closed
+            details.open = openSectionStates[dividerInfo.originalText] !== false;
 
             const summary = document.createElement('summary');
             const nameSpan = item.querySelector('span.completion_prompt_manager_prompt_name');
