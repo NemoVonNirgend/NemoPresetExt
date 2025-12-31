@@ -2741,18 +2741,10 @@ function enhancePromptItemForAccordion(item) {
     item.dataset.accordionEnhanced = 'true';
     item.classList.add('nemo-accordion-prompt');
 
-    // Check current enabled state and update styling
+    // CSS :has() selector now handles enabled/disabled styling automatically
+    // No JavaScript toggle handler needed - styling updates instantly via CSS
+    // Legacy class-based fallback for browsers without :has() support
     updateAccordionItemEnabledState(item);
-
-    // Watch for toggle changes
-    const toggleBtn = item.querySelector('.prompt-manager-toggle-action');
-    if (toggleBtn) {
-        const updateHandler = () => {
-            setTimeout(() => updateAccordionItemEnabledState(item), 50);
-        };
-        toggleBtn.addEventListener('click', updateHandler);
-        item._accordionToggleHandler = updateHandler;
-    }
 }
 
 /**
