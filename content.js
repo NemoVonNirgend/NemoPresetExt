@@ -62,37 +62,27 @@ const MAIN_SELECTORS = {
     promptEditorPopup: '.completion_prompt_manager_popup_entry',
 };
 
-// 🔧 EMERGENCY: Try immediate initialization first
-console.log('🚨 [NemoPresetExt] Starting initialization check...');
-console.log('🚨 [NemoPresetExt] Left nav panel exists?:', document.querySelector('#left-nav-panel'));
-
-// Immediate execution if element already exists
+// Initialize when left nav panel is ready
 const leftNavPanel = document.querySelector('#left-nav-panel');
 if (leftNavPanel) {
-    console.log('🚨 [NemoPresetExt] Left nav panel found immediately, initializing...');
     initializeExtension();
 } else {
-    console.log('🚨 [NemoPresetExt] Waiting for left nav panel...');
     // Use waitForElement with increased timeout as fallback
     waitForElement('#left-nav-panel', async () => {
-        console.log('🚨 [NemoPresetExt] Left nav panel found via waitForElement');
         initializeExtension();
-    }, 10000); // Increased to 10 seconds
+    }, 10000);
 }
 
 async function initializeExtension() {
     // Prevent double initialization
     if (extensionInitialized) {
-        console.warn('🚨 [NemoPresetExt] Already initialized, skipping duplicate call');
         return;
     }
     extensionInitialized = true;
 
     try {
-        console.log('🔧 NemoNet: initializeExtension() called');
         logger.info('Initializing NemoPresetExt...');
 
-        console.log('🔧 NemoNet: Ensuring settings namespace...');
         ensureSettingsNamespace();
 
         // Initialize storage and run one-time migration from localStorage
@@ -100,17 +90,13 @@ async function initializeExtension() {
         migrateFromLocalStorage();
 
         // Initialize UI themes early (before other UI elements load)
-        console.log('🔧 NemoNet: Initializing UI themes...');
         await initializeThemes();
 
         await loadAndSetDividerRegex();
 
         // Initialize all modules
-        console.log('🔧 NemoNet: Initializing modules...');
         NemoCharacterManager.initialize();
-        console.log('🔧 NemoNet: Calling NemoSettingsUI.initialize()...');
         NemoSettingsUI.initialize();
-        console.log('🔧 NemoNet: NemoSettingsUI.initialize() returned');
 
         // Initialize theme selector UI handlers (after settings UI is loaded)
         initThemeSelector();
@@ -137,10 +123,8 @@ async function initializeExtension() {
 
         // Initialize directive cache for performance (parse once, use everywhere)
         // This caches all prompt directives so we don't re-parse content repeatedly
-        console.log('🔧 NemoNet: Initializing directive cache...');
         setTimeout(() => {
             initializeDirectiveCache();
-            console.log('🔧 NemoNet: Directive cache initialized');
         }, 1000); // Delay to ensure promptManager is ready
 
         // Initialize directive system
@@ -194,21 +178,15 @@ async function initializeExtension() {
         logger.debug('Extensions Tab Overhaul setting check', { isEnabled, fullValue: extension_settings.NemoPresetExt?.nemoEnableExtensionsTabOverhaul });
 
         if (isEnabled) {
-            logger.info('Initializing Extensions Tab Overhaul...');
             ExtensionsTabOverhaul.initialize();
-        } else {
-            logger.info('Extensions Tab Overhaul is disabled, skipping initialization');
         }
 
         // Initialize Wide Panels setting - Add or remove CSS that makes panels take 50% width
         const widePanelsEnabled = extension_settings.NemoPresetExt?.nemoEnableWidePanels !== false;
-        logger.debug('Wide Panels setting check', { widePanelsEnabled, fullValue: extension_settings.NemoPresetExt?.nemoEnableWidePanels });
 
         if (widePanelsEnabled) {
-            logger.info('Wide Panels enabled, applying 50% width CSS');
             applyWidePanelsStyles();
         } else {
-            logger.info('Wide Panels disabled, using SillyTavern default width');
             removeWidePanelsStyles();
         }
 
@@ -216,13 +194,10 @@ async function initializeExtension() {
         eventSource.on(event_types.SETTINGS_UPDATED, () => {
             setTimeout(() => {
                 const newWidePanelsEnabled = extension_settings.NemoPresetExt?.nemoEnableWidePanels !== false;
-                logger.debug('Wide Panels setting changed', { newWidePanelsEnabled });
 
                 if (newWidePanelsEnabled) {
-                    logger.info('Wide Panels setting enabled, applying 50% width CSS');
                     applyWidePanelsStyles();
                 } else {
-                    logger.info('Wide Panels setting disabled, using SillyTavern default width');
                     removeWidePanelsStyles();
                 }
 

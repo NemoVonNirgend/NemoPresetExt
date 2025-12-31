@@ -302,7 +302,6 @@ export function initCategoryTray() {
         subtree: true
     });
 
-    console.log('[NemoTray] Observer attached to document.body');
     logger.info('Category tray system initialized - watching for sections');
 }
 
@@ -336,7 +335,7 @@ function convertTopLevelPrompts() {
         return 0;
     }
 
-    console.log('[NemoTray] Found top-level prompts:', topLevelPrompts.length);
+    logger.debug(`Found ${topLevelPrompts.length} top-level prompts`);
 
     // Check for cached data
     let topLevelPromptIds = sectionPromptIdsCache.get(TOP_LEVEL_SECTION_ID);
@@ -357,7 +356,7 @@ function convertTopLevelPrompts() {
 
         // Cache the data
         sectionPromptIdsCache.set(TOP_LEVEL_SECTION_ID, topLevelPromptIds);
-        console.log('[NemoTray] Cached', topLevelPromptIds.length, 'top-level prompt IDs');
+        logger.debug(`Cached ${topLevelPromptIds.length} top-level prompt IDs`);
     }
 
     // Create or update the top-level container if we have prompts
@@ -430,7 +429,7 @@ function createTopLevelContainer(promptList, promptIds) {
     // Update progress bar
     updateSectionProgressFromStoredIds(topLevelPromptsContainer);
 
-    console.log('[NemoTray] Created top-level prompts container');
+    logger.debug('Created top-level prompts container');
 }
 
 /**
@@ -441,14 +440,14 @@ function createTopLevelContainer(promptList, promptIds) {
 function convertToTrayMode() {
     // Don't convert if sections feature is disabled
     if (!storage.getSectionsEnabled()) {
-        console.log('[NemoTray] Sections disabled, skipping tray conversion');
+        logger.debug('Sections disabled, skipping tray conversion');
         return 0;
     }
 
     // Target ALL sections (both main and sub-sections)
     const allSections = document.querySelectorAll('details.nemo-engine-section');
 
-    console.log('[NemoTray] Found sections:', allSections.length);
+    logger.debug(`Found ${allSections.length} sections`);
 
     let converted = 0;
 
@@ -462,7 +461,7 @@ function convertToTrayMode() {
         const summary = section.querySelector('summary');
         const content = section.querySelector('.nemo-section-content');
         if (!summary || !content) {
-            console.log('[NemoTray] Missing summary or content for:', getSectionId(section));
+            logger.debug(`Missing summary or content for: ${getSectionId(section)}`);
             return;
         }
 
@@ -484,7 +483,7 @@ function convertToTrayMode() {
         // If no prompts in DOM and no cache, this section has no direct prompts
         // But still mark it as converted and set up basic structure for parent sections
         if (!hasPromptsInDOM && !cachedPromptIds) {
-            console.log('[NemoTray] No direct prompts in section (parent with sub-sections only):', sectionName);
+            logger.debug(`No direct prompts in section (parent): ${sectionName}`);
 
             // Mark as converted but with empty prompts
             section.dataset.trayConverted = 'true';
@@ -497,7 +496,7 @@ function convertToTrayMode() {
             return;
         }
 
-        console.log('[NemoTray] Processing section:', sectionName, { hasPromptsInDOM, hasCachedData: !!cachedPromptIds });
+        // Processing section with prompts
 
         let sectionPromptIds;
 
@@ -517,12 +516,9 @@ function convertToTrayMode() {
 
             // Store in persistent cache (survives DOM refreshes)
             sectionPromptIdsCache.set(sectionName, sectionPromptIds);
-            console.log(`[NemoTray] Cached ${sectionPromptIds.length} prompt IDs for section:`, sectionName);
-            console.log(`[NemoTray] Hidden ${promptElements.length} prompt DOM elements in:`, sectionName);
         } else if (cachedPromptIds) {
             // Restore from cache (DOM was refreshed by SillyTavern)
             sectionPromptIds = cachedPromptIds;
-            console.log(`[NemoTray] Restored ${sectionPromptIds.length} prompt IDs from cache for:`, sectionName);
         } else {
             sectionPromptIds = [];
         }
@@ -545,7 +541,6 @@ function convertToTrayMode() {
         const clickHandler = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('[NemoTray] Clicked section:', getSectionId(section));
             toggleTray(section);
         };
 
@@ -555,7 +550,6 @@ function convertToTrayMode() {
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                console.log('[NemoTray] Keyboard activated section:', getSectionId(section));
                 toggleTray(section);
             }
         };
@@ -582,13 +576,13 @@ function convertToTrayMode() {
     });
 
     if (converted > 0) {
-        console.log('[NemoTray] Converted', converted, 'sections to tray mode');
+        logger.debug(`Converted ${converted} sections to tray mode`);
     }
 
     // Also convert top-level prompts (outside sections) to prevent lag
     const topLevelCount = convertTopLevelPrompts();
     if (topLevelCount > 0) {
-        console.log('[NemoTray] Converted', topLevelCount, 'top-level prompts');
+        logger.debug(`Converted ${topLevelCount} top-level prompts`);
     }
 
     return converted + topLevelCount;
@@ -670,7 +664,7 @@ function setupSectionDropZone(section, summary) {
  */
 async function movePromptToSectionTop(identifier, promptData, fromSection, toSection, fromTray) {
     if (!promptManager || !promptManager.activeCharacter) {
-        console.warn('[NemoTray] Cannot move prompt: no active character');
+        logger.warn('Cannot move prompt: no active character');
         return;
     }
 
@@ -679,14 +673,14 @@ async function movePromptToSectionTop(identifier, promptData, fromSection, toSec
         const promptOrder = promptManager.getPromptOrderForCharacter(activeCharacter);
 
         if (!promptOrder || !Array.isArray(promptOrder)) {
-            console.warn('[NemoTray] Cannot move prompt: invalid prompt order');
+            logger.warn('Cannot move prompt: invalid prompt order');
             return;
         }
 
         // Find and remove the prompt from its current position
         const currentIdx = promptOrder.findIndex(entry => entry.identifier === identifier);
         if (currentIdx === -1) {
-            console.warn('[NemoTray] Cannot find prompt in order:', identifier);
+            logger.warn(`Cannot find prompt in order: ${identifier}`);
             return;
         }
 
@@ -755,7 +749,7 @@ async function movePromptToSectionTop(identifier, promptData, fromSection, toSec
             setTimeout(() => openTray(toSection), 50);
         }
 
-        console.log('[NemoTray] Moved prompt', identifier, 'to top of', getSectionId(toSection));
+        logger.debug(`Moved prompt ${identifier} to top of ${getSectionId(toSection)}`);
     } catch (error) {
         console.error('[NemoTray] Error moving prompt to section top:', error);
     }
@@ -805,7 +799,6 @@ function showTopLevelDropZone() {
         topLevelDropZone.classList.remove('nemo-drop-zone-active');
 
         if (currentlyDraggedPrompt && currentlyDraggedFromSection) {
-            console.log('[NemoTray] Drop on top-level zone detected');
             // The actual move is handled in Sortable's onEnd
             // Just ensure the flag is set
             isOverTopLevelDropZone = true;
@@ -819,8 +812,6 @@ function showTopLevelDropZone() {
     } else {
         promptList.insertBefore(topLevelDropZone, promptList.firstChild);
     }
-
-    console.log('[NemoTray] Top-level drop zone shown');
 }
 
 /**
@@ -849,13 +840,12 @@ function hideTopLevelDropZone() {
  */
 async function movePromptToTopLevel(identifier, promptData, fromSection, fromTray) {
     if (!promptManager || !promptManager.activeCharacter) {
-        console.warn('[NemoTray] Cannot move prompt: no active character');
+        logger.warn('Cannot move prompt: no active character');
         return;
     }
 
     // Don't move if already in top-level
     if (fromSection === topLevelPromptsContainer || getSectionId(fromSection) === TOP_LEVEL_SECTION_ID) {
-        console.log('[NemoTray] Prompt already in top-level, skipping move');
         return;
     }
 
@@ -872,8 +862,6 @@ async function movePromptToTopLevel(identifier, promptData, fromSection, fromTra
         if (!alreadyExists) {
             topLevelPrompts.unshift({ identifier: promptData.identifier, name: promptData.name });
             sectionPromptIdsCache.set(TOP_LEVEL_SECTION_ID, topLevelPrompts);
-        } else {
-            console.log('[NemoTray] Prompt already exists in top-level cache, skipping add');
         }
 
         // Update the top-level container
@@ -917,12 +905,9 @@ async function movePromptToTopLevel(identifier, promptData, fromSection, fromTra
             }
         }
 
-        console.log('[NemoTray] Moved prompt', identifier, 'to top-level');
-
-        // Trigger a UI refresh to show the prompt in the list
-        // The prompt should now appear as a top-level item after ST refreshes
+        logger.debug(`Moved prompt ${identifier} to top-level`);
     } catch (error) {
-        console.error('[NemoTray] Error moving prompt to top-level:', error);
+        logger.error('Error moving prompt to top-level:', error);
     }
 }
 
@@ -955,22 +940,15 @@ function getSectionId(section) {
  */
 function openTray(section) {
     const sectionId = getSectionId(section);
-    console.log('[NemoTray] openTray called for:', sectionId);
 
     // Prevent duplicate trays - check if one already exists or is closing
-    if (section._nemoCategoryTray) {
-        console.log('[NemoTray] Tray already exists for:', sectionId);
-        return;
-    }
-    if (section._nemoTrayClosing) {
-        console.log('[NemoTray] Tray is closing for:', sectionId);
+    if (section._nemoCategoryTray || section._nemoTrayClosing) {
         return;
     }
 
     // Get prompts from stored mapping (DOM elements were removed for performance)
     const storedPromptIds = section._nemoPromptIds;
     if (!storedPromptIds || storedPromptIds.length === 0) {
-        console.log('[NemoTray] No stored prompt IDs for section:', sectionId);
         return;
     }
 
@@ -1175,8 +1153,6 @@ function openTray(section) {
 
                 // Show top-level drop zone
                 showTopLevelDropZone();
-
-                console.log('[NemoTray] Started dragging:', identifier);
             },
             onEnd: async (evt) => {
                 const { from, to, oldIndex, newIndex, item } = evt;
@@ -1196,7 +1172,6 @@ function openTray(section) {
 
                 // Check if dropped on top-level drop zone
                 if (isOverTopLevelDropZone && currentlyDraggedPrompt) {
-                    console.log('[NemoTray] Dropping to top-level');
 
                     await movePromptToTopLevel(
                         currentlyDraggedPrompt.identifier,
@@ -1220,7 +1195,6 @@ function openTray(section) {
 
                 // Check if dropped on a section header (via mouse hover)
                 if (currentDropTarget && currentlyDraggedPrompt && currentlyDraggedFromSection !== currentDropTarget) {
-                    console.log('[NemoTray] Dropping on section header:', getSectionId(currentDropTarget));
 
                     // Move to top of target section
                     await movePromptToSectionTop(
@@ -1261,7 +1235,6 @@ function openTray(section) {
 
                 if (fromTray !== toTray && fromSection && toSection && identifier) {
                     // Cross-tray move - update both sections
-                    console.log('[NemoTray] Cross-tray move:', identifier, 'from', getSectionId(fromSection), 'to', getSectionId(toSection));
 
                     // Find the prompt data
                     const movedPromptData = fromPrompts?.find(p => p.identifier === identifier);
@@ -1306,8 +1279,6 @@ function openTray(section) {
 
                     // Update SillyTavern's prompt order
                     reorderPromptsInSection(fromSection, fromPrompts.map(p => p.identifier));
-
-                    console.log('[NemoTray] Reordered prompt from', oldIndex, 'to', newIndex);
                 }
 
                 // Update data-index attributes in the destination tray
@@ -1721,8 +1692,6 @@ function openTray(section) {
     // Focus tray for keyboard navigation
     tray.focus();
 
-    console.log('[NemoTray] Tray inserted after section, tray element:', tray);
-
     // Add click-outside handler to close tray
     // Note: Don't close if clicking on another tray (for cross-tray dragging)
     const closeOnOutsideClick = (e) => {
@@ -1745,7 +1714,6 @@ function openTray(section) {
     tray._closeHandler = closeOnOutsideClick;
 
     trayModeEnabled.add(sectionId);
-    logger.info(`Opened tray for: ${sectionId}`);
 }
 
 /**
@@ -1874,7 +1842,7 @@ function performToggle(identifier, enabled) {
  */
 function reorderPromptsInSection(section, newOrder) {
     if (!promptManager || !promptManager.activeCharacter) {
-        console.warn('[NemoTray] Cannot reorder: no active character');
+        logger.warn('Cannot reorder: no active character');
         return;
     }
 
@@ -1883,7 +1851,7 @@ function reorderPromptsInSection(section, newOrder) {
         const promptOrder = promptManager.getPromptOrderForCharacter(activeCharacter);
 
         if (!promptOrder || !Array.isArray(promptOrder)) {
-            console.warn('[NemoTray] Cannot reorder: invalid prompt order');
+            logger.warn('Cannot reorder: invalid prompt order');
             return;
         }
 
@@ -1929,10 +1897,9 @@ function reorderPromptsInSection(section, newOrder) {
                 sectionPromptIdsCache.set(getSectionId(section), section._nemoPromptIds);
             }
 
-            console.log('[NemoTray] Successfully reordered prompts in section');
         }
     } catch (error) {
-        console.error('[NemoTray] Error reordering prompts:', error);
+        logger.error('Error reordering prompts:', error);
     }
 }
 
@@ -1946,7 +1913,7 @@ function reorderPromptsInSection(section, newOrder) {
  */
 async function movePromptBetweenSectionsFromTray(identifier, fromSection, toSection, newIndex, destPrompts) {
     if (!promptManager || !promptManager.activeCharacter) {
-        console.warn('[NemoTray] Cannot move prompt: no active character');
+        logger.warn('Cannot move prompt: no active character');
         return;
     }
 
@@ -1955,14 +1922,14 @@ async function movePromptBetweenSectionsFromTray(identifier, fromSection, toSect
         const promptOrder = promptManager.getPromptOrderForCharacter(activeCharacter);
 
         if (!promptOrder || !Array.isArray(promptOrder)) {
-            console.warn('[NemoTray] Cannot move prompt: invalid prompt order');
+            logger.warn('Cannot move prompt: invalid prompt order');
             return;
         }
 
         // Find the prompt's current position and remove it
         const currentIdx = promptOrder.findIndex(entry => entry.identifier === identifier);
         if (currentIdx === -1) {
-            console.warn('[NemoTray] Cannot find prompt in order:', identifier);
+            logger.warn(`Cannot find prompt in order: ${identifier}`);
             return;
         }
 
@@ -2005,9 +1972,9 @@ async function movePromptBetweenSectionsFromTray(identifier, fromSection, toSect
         // Save the changes
         promptManager.saveServiceSettings();
 
-        console.log('[NemoTray] Moved prompt', identifier, 'from', getSectionId(fromSection), 'to', getSectionId(toSection), 'at index', insertIdx);
+        logger.debug(`Moved prompt ${identifier} from ${getSectionId(fromSection)} to ${getSectionId(toSection)}`);
     } catch (error) {
-        console.error('[NemoTray] Error moving prompt between sections:', error);
+        logger.error('Error moving prompt between sections:', error);
     }
 }
 
@@ -2101,7 +2068,6 @@ function showPromptMoveContextMenu(e, promptData, fromSection, fromTray, card) {
     const availableSections = sections.filter(s => s.id !== currentSectionId);
 
     if (availableSections.length === 0) {
-        console.log('[NemoTray] No other sections available for move');
         return;
     }
 
@@ -2166,7 +2132,7 @@ function showPromptMoveContextMenu(e, promptData, fromSection, fromTray, card) {
                 updateTrayFooter(fromTray, fromPrompts);
             }
 
-            console.log('[NemoTray] Moved prompt via context menu:', promptData.identifier, 'to', name);
+            logger.debug(`Moved prompt ${promptData.identifier} to ${name}`);
         });
 
         menu.appendChild(item);
@@ -2243,7 +2209,7 @@ async function loadPromptTokenCount(identifier) {
 
         return count;
     } catch (error) {
-        console.warn('[NemoTray] Failed to get token count for:', identifier, error);
+        logger.warn(`Failed to get token count for: ${identifier}`, error);
         return null;
     }
 }
@@ -2829,7 +2795,6 @@ function initAccordionDragDrop(section) {
 
                 if (fromSection !== toSection && identifier) {
                     // Moving between sections - update SillyTavern's prompt order
-                    console.log('[NemoTray] Moving prompt between sections:', identifier);
                     await movePromptBetweenSections(item, fromSection, toSection, evt.newIndex);
                 }
 
@@ -2848,10 +2813,8 @@ function initAccordionDragDrop(section) {
                         }
                     }
                 } catch (e) {
-                    console.warn('[NemoTray] Could not update section counts after drag:', e);
+                    logger.warn('Could not update section counts after drag:', e);
                 }
-
-                console.log('[NemoTray] Accordion item reordered/moved');
             },
             onAdd: (evt) => {
                 // Item was added from another section - enhance it for accordion mode
@@ -2861,7 +2824,6 @@ function initAccordionDragDrop(section) {
                 }
             }
         });
-        console.log('[NemoTray] Initialized accordion drag-drop for section:', getSectionId(section));
     }
 }
 
@@ -2874,7 +2836,7 @@ function initAccordionDragDrop(section) {
  */
 async function movePromptBetweenSections(item, fromSection, toSection, newIndex) {
     if (!promptManager || !promptManager.activeCharacter) {
-        console.warn('[NemoTray] Cannot move prompt: no active character');
+        logger.warn('Cannot move prompt: no active character');
         return;
     }
 
@@ -2884,14 +2846,14 @@ async function movePromptBetweenSections(item, fromSection, toSection, newIndex)
         const promptOrder = promptManager.getPromptOrderForCharacter(activeCharacter);
 
         if (!promptOrder || !Array.isArray(promptOrder)) {
-            console.warn('[NemoTray] Cannot move prompt: invalid prompt order');
+            logger.warn('Cannot move prompt: invalid prompt order');
             return;
         }
 
         // Find the prompt's current position
         const currentIdx = promptOrder.findIndex(entry => entry.identifier === identifier);
         if (currentIdx === -1) {
-            console.warn('[NemoTray] Cannot find prompt in order:', identifier);
+            logger.warn(`Cannot find prompt in order: ${identifier}`);
             return;
         }
 
@@ -2941,10 +2903,8 @@ async function movePromptBetweenSections(item, fromSection, toSection, newIndex)
 
         // Save the changes
         promptManager.saveServiceSettings();
-
-        console.log('[NemoTray] Moved prompt', identifier, 'to index', insertIdx);
     } catch (error) {
-        console.error('[NemoTray] Error moving prompt between sections:', error);
+        logger.error('Error moving prompt between sections:', error);
     }
 }
 
@@ -2963,7 +2923,7 @@ async function updateParentSectionCounts(section) {
             parent = parent.parentElement?.closest('details.nemo-engine-section');
         }
     } catch (e) {
-        console.warn('[NemoTray] Could not update parent section counts:', e);
+        logger.warn('Could not update parent section counts:', e);
     }
 }
 

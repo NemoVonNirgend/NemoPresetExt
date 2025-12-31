@@ -1462,7 +1462,7 @@ export const NemoPresetManager = {
             const originalInput = document.getElementById(originalInputId);
 
             if (!slider || !counter) {
-                console.warn(`${LOG_PREFIX} Range slider elements not found: ${sliderId}`);
+                logger.debug(`Range slider elements not found: ${sliderId}`);
                 return;
             }
 
@@ -1503,7 +1503,7 @@ export const NemoPresetManager = {
             const originalCheckbox = document.getElementById(originalCheckboxId);
 
             if (!checkbox) {
-                console.warn(`${LOG_PREFIX} Checkbox not found: ${checkboxId}`);
+                logger.debug(`Checkbox not found: ${checkboxId}`);
                 return;
             }
 
@@ -1539,7 +1539,7 @@ export const NemoPresetManager = {
             const originalInput = document.getElementById(originalInputId);
 
             if (!input) {
-                console.warn(`${LOG_PREFIX} Number input not found: ${inputId}`);
+                logger.debug(`Number input not found: ${inputId}`);
                 return;
             }
 
@@ -1575,7 +1575,7 @@ export const NemoPresetManager = {
             const originalSelect = document.getElementById(originalSelectId);
 
             if (!select) {
-                console.warn(`${LOG_PREFIX} Select not found: ${selectId}`);
+                logger.debug(`Select not found: ${selectId}`);
                 return;
             }
 
@@ -1611,7 +1611,7 @@ export const NemoPresetManager = {
             const originalTextarea = document.getElementById(originalTextareaId);
 
             if (!textarea) {
-                console.warn(`${LOG_PREFIX} Textarea not found: ${textareaId}`);
+                logger.debug(`Textarea not found: ${textareaId}`);
                 return;
             }
 
@@ -1649,7 +1649,7 @@ export const NemoPresetManager = {
             const originalCheckbox = document.getElementById('chat-show-reply-prefix-checkbox');
 
             if (!nemoTextarea || !nemoCheckbox) {
-                console.warn(`${LOG_PREFIX} Nemo Start Reply With elements not found`);
+                logger.debug('Nemo Start Reply With elements not found');
                 return;
             }
 
