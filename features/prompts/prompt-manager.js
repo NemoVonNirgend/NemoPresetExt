@@ -54,6 +54,24 @@ function captureCurrentSectionStates() {
     });
 }
 
+/**
+ * Apply accordion enhancements to a prompt item immediately
+ * This prevents flicker by applying styling before the MutationObserver fires
+ * @param {HTMLElement} item - The prompt item element
+ */
+function applyAccordionEnhancement(item) {
+    if (!item || item.dataset.accordionEnhanced === 'true') return;
+
+    item.dataset.accordionEnhanced = 'true';
+    item.classList.add('nemo-accordion-prompt');
+
+    // Apply enabled/disabled styling
+    const toggleBtn = item.querySelector('.prompt-manager-toggle-action');
+    const isEnabled = toggleBtn?.classList.contains('fa-toggle-on');
+    item.classList.toggle('nemo-accordion-prompt-enabled', isEnabled);
+    item.classList.toggle('nemo-accordion-prompt-disabled', !isEnabled);
+}
+
 // 2. MODULE-SPECIFIC HELPERS
 export async function loadAndSetDividerRegex() {
     let finalPatterns = [...NEMO_BUILT_IN_PATTERNS];
@@ -1091,7 +1109,14 @@ export const NemoPresetManager = {
             item.draggable = false;
 
             const details = document.createElement('details');
-            details.className = dividerInfo.isSubHeader ? 'nemo-engine-section nemo-sub-section' : 'nemo-engine-section';
+            // Build class list - include accordion class immediately if in accordion mode
+            const isAccordionMode = storage.getDropdownStyle() === 'accordion';
+            let className = dividerInfo.isSubHeader ? 'nemo-engine-section nemo-sub-section' : 'nemo-engine-section';
+            if (isAccordionMode) {
+                className += ' nemo-accordion-section';
+                details.dataset.accordionConverted = 'true';
+            }
+            details.className = className;
             // Default to open (true) unless explicitly saved as closed
             details.open = openSectionStates[dividerInfo.originalText] !== false;
 
@@ -1130,6 +1155,12 @@ export const NemoPresetManager = {
             this.updateSectionCount(details);
             return details;
         } else {
+            // Apply accordion enhancement immediately if in accordion mode
+            const isAccordionMode = storage.getDropdownStyle() === 'accordion';
+            if (isAccordionMode) {
+                applyAccordionEnhancement(item);
+            }
+
             // Check if there's a sub-section to add to first, then main section
             const lastSubSection = this.findLastSubSection(container);
             if (lastSubSection) {
