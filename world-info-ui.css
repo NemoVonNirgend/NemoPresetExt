@@ -1,0 +1,7 @@
+/* --- Nemo World Info Redesign --- */
+/* All styles have been moved to styles.css to consolidate UI styling. */
+/* This file is kept for legacy purposes and can be removed in the future. */
+/* Hide the original pagination container as it's no longer needed visually */
+#world_info_pagination {
+    display: none !important;
+}
