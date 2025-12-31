@@ -3150,44 +3150,44 @@ details.nemo-engine-section .nemo-enabled-count {
 /*
  * CSS-only enabled/disabled states using :has() selector
  * This applies INSTANTLY without waiting for JavaScript, eliminating flash
- * Works for both accordion mode prompts AND regular list view
+ * Uses .nemo-engine-section which exists from initial render (not .nemo-accordion-section which is added later)
  */
 
 /* ENABLED state - CSS-only using :has() - instant, no JS needed */
-.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) {
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) {
     background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(39, 174, 96, 0.12));
     border: 2px solid rgba(46, 204, 113, 0.5);
     border-left: 5px solid #2ecc71;
     box-shadow: 0 2px 6px rgba(46, 204, 113, 0.15);
 }
 
-.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on):hover {
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on):hover {
     background: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(39, 174, 96, 0.18));
     border-color: rgba(46, 204, 113, 0.7);
 }
 
-.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .prompt-manager-toggle-action {
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .prompt-manager-toggle-action {
     color: #2ecc71 !important;
 }
 
-.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .completion_prompt_manager_prompt_name a {
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .completion_prompt_manager_prompt_name a {
     color: #5ddb8a !important;
 }
 
 /* DISABLED state - CSS-only using :has() - instant, no JS needed */
-.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-off) {
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-off) {
     background: rgba(0, 0, 0, 0.12);
     border-color: rgba(255, 255, 255, 0.05);
     opacity: 0.55;
 }
 
-.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-off):hover {
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-off):hover {
     opacity: 0.85;
     background: rgba(0, 0, 0, 0.18);
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-off) .prompt-manager-toggle-action {
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-off) .prompt-manager-toggle-action {
     color: #888 !important;
 }
 

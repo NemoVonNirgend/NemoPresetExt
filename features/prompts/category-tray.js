@@ -231,17 +231,15 @@ function applyCurrentMode() {
         disableTrayMode();
         // Then apply accordion mode
         convertToAccordionMode();
-        // Refresh counts with delays to catch late DOM updates
-        setTimeout(() => updateAllAccordionSectionCounts(), 100);
-        setTimeout(() => updateAllAccordionSectionCounts(), 300);
+        // Update counts once
+        updateAllAccordionSectionCounts();
     } else {
         // First disable accordion mode if it was active
         disableAccordionMode();
         // Then apply tray mode
         convertToTrayMode();
-        // Refresh progress bars
-        setTimeout(() => refreshAllSectionProgressBars(), 100);
-        setTimeout(() => refreshAllSectionProgressBars(), 300);
+        // Refresh progress bars once
+        refreshAllSectionProgressBars();
     }
 }
 
@@ -257,30 +255,33 @@ export function initCategoryTray() {
         applyCurrentMode();
     });
 
-    // Try multiple times with increasing delays to catch sections
-    const delays = [500, 1000, 2000, 3000, 5000];
-    delays.forEach(delay => {
-        setTimeout(() => {
-            logger.debug(`Checking for sections after ${delay}ms...`);
-            applyCurrentMode();
-            // Also refresh progress bars to catch any ST overwrites
-            refreshAllSectionProgressBars();
-        }, delay);
-    });
+    // Apply mode once after a short delay to catch initial sections
+    setTimeout(() => {
+        applyCurrentMode();
+        refreshAllSectionProgressBars();
+    }, 500);
 
-    // Additional delayed refresh to catch late ST updates
-    setTimeout(() => refreshAllSectionProgressBars(), 6000);
-    setTimeout(() => refreshAllSectionProgressBars(), 8000);
+    // One additional check for late-loading sections
+    setTimeout(() => {
+        applyCurrentMode();
+        refreshAllSectionProgressBars();
+    }, 2000);
 
     // Watch for prompt manager re-renders
     const observer = new MutationObserver((mutations) => {
         // Skip updates during drag to prevent flickering
         if (isDragging) return;
 
-        // Only run if we see relevant changes
+        // Only run if we see relevant changes (new sections or prompts added)
         const hasRelevantChanges = mutations.some(m =>
-            m.addedNodes.length > 0 ||
-            (m.target.classList && m.target.classList.contains('nemo-engine-section'))
+            m.addedNodes.length > 0 &&
+            Array.from(m.addedNodes).some(node =>
+                node.nodeType === 1 && (
+                    node.matches?.('details.nemo-engine-section') ||
+                    node.matches?.('li.completion_prompt_manager_prompt') ||
+                    node.querySelector?.('details.nemo-engine-section')
+                )
+            )
         );
 
         if (hasRelevantChanges) {
@@ -289,10 +290,8 @@ export function initCategoryTray() {
                 // Double-check we're not dragging
                 if (isDragging) return;
                 applyCurrentMode();
-                // Refresh progress bars after conversion
-                setTimeout(() => refreshAllSectionProgressBars(), 100);
-                setTimeout(() => refreshAllSectionProgressBars(), 300);
-            }, 200);
+                refreshAllSectionProgressBars();
+            }, 50); // Reduced from 200ms to 50ms
         }
     });
 
