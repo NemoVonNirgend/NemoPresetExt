@@ -1014,6 +1014,14 @@ export const NemoPresetManager = {
 
         isSectionsFeatureEnabled = storage.getSectionsEnabled();
 
+        // Add persistent class for CSS to hide flat prompts when sections mode is active
+        // This prevents flash when ST rebuilds DOM before we reorganize
+        if (isSectionsFeatureEnabled) {
+            promptsContainer.classList.add('nemo-sections-mode');
+        } else {
+            promptsContainer.classList.remove('nemo-sections-mode');
+        }
+
         // --- Start: Robust Flattening Logic ---
         const allPromptsInOrder = [];
         const allCurrentItems = Array.from(promptsContainer.querySelectorAll('li.completion_prompt_manager_prompt'));
@@ -1281,6 +1289,12 @@ export const NemoPresetManager = {
     initialize: function(container) {
         if (container.dataset.nemoPromptsInitialized) return;
         container.dataset.nemoPromptsInitialized = 'true';
+
+        // Add persistent class immediately if sections mode is enabled
+        // This allows CSS to hide flat prompts during rebuilds, preventing flash
+        if (storage.getSectionsEnabled()) {
+            container.classList.add('nemo-sections-mode');
+        }
 
         this.createSearchAndStatusUI(container);
 
@@ -2161,6 +2175,8 @@ export const NemoPresetManager = {
             }
 
             if (needsReorg) {
+                // Set organizing flag IMMEDIATELY to hide flat list via CSS
+                container.dataset.nemoOrganizing = 'true';
                 this.organizePrompts(true);
             }
 

@@ -3148,6 +3148,29 @@ details.nemo-engine-section .nemo-enabled-count {
 }
 
 /*
+ * Hide flat prompt list during reorganization to prevent flash
+ * When sections mode is active, hide orphan prompts that aren't in sections
+ * The .nemo-sections-mode class is added at initialization and persists
+ */
+
+/* Hide content during active reorganization */
+#completion_prompt_manager_list[data-nemo-organizing="true"] {
+    visibility: hidden;
+    min-height: 100px; /* Prevent layout jump */
+}
+
+/* When sections mode is active, hide any prompts that are direct children (not in sections) */
+/* This prevents flash when ST rebuilds flat list before we reorganize */
+#completion_prompt_manager_list.nemo-sections-mode > li.completion_prompt_manager_prompt {
+    display: none !important;
+}
+
+/* But show prompts inside sections normally */
+#completion_prompt_manager_list.nemo-sections-mode details.nemo-engine-section li.completion_prompt_manager_prompt {
+    display: flex !important;
+}
+
+/*
  * CSS-only enabled/disabled states using :has() selector
  * This applies INSTANTLY without waiting for JavaScript, eliminating flash
  * Uses .nemo-engine-section which exists from initial render (not .nemo-accordion-section which is added later)
