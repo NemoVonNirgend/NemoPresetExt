@@ -5575,22 +5575,22 @@ body.sortable-dragging .nemo-engine-section summary::before {
 }
 
 /* Visual state when panel is hidden - peek from left edge without covering content */
-.nemo-extension .nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel {
-    left: 0;
-    width: 16px;
+/* Note: .nemo-extension and .nemo-world-info-container are on the SAME element */
+.nemo-extension.nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel {
+    left: 0 !important;
+    width: 24px;
     color: white;
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-left: none;
-    opacity: 0.6;
+    opacity: 0.8;
     border-radius: 0 4px 4px 0;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
-    font-size: 11px;
 }
 
-.nemo-extension .nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel:hover {
+.nemo-extension.nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel:hover {
     opacity: 1;
-    width: 24px;
+    width: 28px;
     color: #ffffff;
     background: rgba(0, 0, 0, 0.8);
     border-color: var(--SmartThemeQuoteColor, #4a9eff);
@@ -5598,14 +5598,14 @@ body.sortable-dragging .nemo-engine-section summary::before {
 }
 
 /* When panel is visible, position button on the panel edge with subtle styling */
-.nemo-extension .nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel {
+.nemo-extension.nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel {
     left: var(--wi-toggle-offset);
     opacity: 0.7;
     background: rgba(0, 0, 0, 0.3);
     border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.nemo-extension .nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel:hover {
+.nemo-extension.nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel:hover {
     opacity: 1;
     background: rgba(0, 0, 0, 0.5);
     border-right-color: var(--SmartThemeQuoteColor, #4a9eff);
