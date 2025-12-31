@@ -5,130 +5,291 @@
             <div class="nemo-world-info-mobile-header">
                 <button id="nemo-world-info-close-left-panel" class="menu_button menu_button_icon fa-solid fa-times" title="Close Panel"></button>
             </div>
+
+            <!-- Active Lorebooks Section -->
             <div class="nemo-world-info-active-section">
-                <div class="nemo-world-info-active-header">Active Lorebooks</div>
+                <div class="nemo-wi-section-header">
+                    <span class="nemo-wi-section-title">
+                        <i class="fa-solid fa-book-open"></i>
+                        Active Lorebooks
+                    </span>
+                    <span class="nemo-wi-section-badge" id="nemo-active-count">0</span>
+                </div>
                 <div id="nemo-world-info-active-list" class="nemo-world-info-active-list">
-                    <!-- Active lorebooks will be dynamically inserted here -->
+                    <div class="nemo-wi-empty-state">No active lorebooks</div>
                 </div>
             </div>
-            <div class="nemo-world-info-preset-section">
-                <div class="nemo-world-info-preset-header">Presets</div>
-                <div class="nemo-world-info-preset-controls">
-                    <select id="nemo-world-info-preset-select" class="text_pole"></select>
-                    <div id="nemo-world-info-preset-rename" class="menu_button menu_button_icon fa-solid fa-pencil" title="Rename Preset"></div>
-                    <div id="nemo-world-info-preset-update" class="menu_button menu_button_icon fa-solid fa-save" title="Update Preset"></div>
-                    <div id="nemo-world-info-preset-new" class="menu_button menu_button_icon fa-solid fa-file-circle-plus" title="New Preset"></div>
-                    <div id="nemo-world-info-preset-import" class="menu_button menu_button_icon fa-solid fa-file-import" title="Import Preset"></div>
-                    <div id="nemo-world-info-preset-export" class="menu_button menu_button_icon fa-solid fa-file-export" title="Export Preset"></div>
-                    <div id="nemo-world-info-preset-delete" class="menu_button menu_button_icon fa-solid fa-trash-can redWarningBG" title="Delete Preset"></div>
+
+            <!-- Presets Section - Collapsible -->
+            <details class="nemo-wi-presets-details">
+                <summary class="nemo-wi-section-header nemo-wi-collapsible">
+                    <span class="nemo-wi-section-title">
+                        <i class="fa-solid fa-layer-group"></i>
+                        Presets
+                    </span>
+                    <i class="fa-solid fa-chevron-down nemo-wi-collapse-icon"></i>
+                </summary>
+                <div class="nemo-world-info-preset-content">
+                    <div class="nemo-wi-preset-select-row">
+                        <select id="nemo-world-info-preset-select" class="text_pole nemo-wi-preset-dropdown">
+                            <option value="">-- Select Preset --</option>
+                        </select>
+                    </div>
+                    <div class="nemo-wi-preset-actions">
+                        <button id="nemo-world-info-preset-new" class="nemo-wi-btn nemo-wi-btn-sm" title="New Preset">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                        <button id="nemo-world-info-preset-update" class="nemo-wi-btn nemo-wi-btn-sm" title="Save Current">
+                            <i class="fa-solid fa-save"></i>
+                        </button>
+                        <button id="nemo-world-info-preset-rename" class="nemo-wi-btn nemo-wi-btn-sm" title="Rename">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <div class="nemo-wi-btn-divider"></div>
+                        <button id="nemo-world-info-preset-import" class="nemo-wi-btn nemo-wi-btn-sm" title="Import">
+                            <i class="fa-solid fa-file-import"></i>
+                        </button>
+                        <button id="nemo-world-info-preset-export" class="nemo-wi-btn nemo-wi-btn-sm" title="Export">
+                            <i class="fa-solid fa-file-export"></i>
+                        </button>
+                        <div class="nemo-wi-btn-divider"></div>
+                        <button id="nemo-world-info-preset-delete" class="nemo-wi-btn nemo-wi-btn-sm nemo-wi-btn-danger" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div class="nemo-world-info-list-header">
-                <input type="search" id="nemo-world-info-search" placeholder="Search lorebooks..." class="text_pole">
-                <div id="nemo-world-info-new-button" class="menu_button interactable" tabindex="0">New</div>
-                <div id="nemo-world-info-import-button" class="menu_button interactable" tabindex="0">Import</div>
-                <div id="nemo-world-info-new-folder-button" class="menu_button interactable" tabindex="0">New Folder</div>
-                <div class="nemo-move-toggle-container">
+            </details>
+
+            <!-- Lorebook Actions Bar -->
+            <div class="nemo-wi-actions-bar">
+                <div class="nemo-wi-search-wrapper">
+                    <i class="fa-solid fa-search nemo-wi-search-icon"></i>
+                    <input type="search" id="nemo-world-info-search" placeholder="Search lorebooks..." class="text_pole nemo-wi-search-input">
+                </div>
+                <div class="nemo-wi-action-buttons">
+                    <button id="nemo-world-info-new-button" class="nemo-wi-btn" title="Create new lorebook">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>New</span>
+                    </button>
+                    <button id="nemo-world-info-import-button" class="nemo-wi-btn" title="Import lorebook">
+                        <i class="fa-solid fa-file-import"></i>
+                        <span>Import</span>
+                    </button>
+                    <button id="nemo-world-info-new-folder-button" class="nemo-wi-btn" title="Create folder">
+                        <i class="fa-solid fa-folder-plus"></i>
+                    </button>
+                </div>
+                <label class="nemo-wi-move-toggle" title="Enable drag to move lorebooks">
                     <input type="checkbox" id="nemo-world-info-move-toggle">
-                    <label for="nemo-world-info-move-toggle">Move</label>
-                </div>
+                    <span class="nemo-wi-toggle-slider"></span>
+                    <span class="nemo-wi-toggle-label">Move</span>
+                </label>
             </div>
+
+            <!-- Lorebook List -->
             <div id="nemo-world-info-list" class="nemo-world-info-list">
                 <!-- Lorebooks will be dynamically inserted here -->
             </div>
         </div>
 
         <!-- Fixed Toggle Button -->
-        <button id="nemo-world-info-toggle-left-panel" class="menu_button menu_button_icon fa-solid fa-sidebar" title="Toggle Left Panel"></button>
-        
+        <button id="nemo-world-info-toggle-left-panel" class="menu_button menu_button_icon fa-solid fa-angles-left" title="Toggle Left Panel"></button>
+
         <!-- Right Column: Workspace (Entries and Settings) -->
         <div class="nemo-world-info-right-column">
             <div class="navigator-main-panel">
-                <div id="navigator-grid-header">
-                <div class="nemo-world-info-tabs">
-                    <div id="nemo-world-info-entries-tab" class="nemo-world-info-tab active">Entries</div>
-                    <div id="nemo-world-info-active-entries-tab" class="nemo-world-info-tab">Active Entries</div>
-                    <div id="nemo-world-info-order-helper-tab" class="nemo-world-info-tab">Order Helper</div>
-                    <div id="nemo-world-info-lore-simulator-tab" class="nemo-world-info-tab">Lore Simulator</div>
-                    <div id="nemo-world-info-settings-tab" class="nemo-world-info-tab">Settings</div>
-                </div>
-            </div>
-            <div id="nemo-world-info-entries-panel" class="nemo-world-info-panel active">
-                <div class="nemo-panel-content-wrapper">
-                    <div class="nemo-world-info-entries-header">
-                        <div id="nemo-world-info-entry-new" class="menu_button menu_button_icon fa-solid fa-plus interactable" title="New Entry" data-i18n="[title]New Entry" tabindex="0"></div>
-                        <div id="nemo-world-info-entry-rename" class="menu_button menu_button_icon fa-solid fa-pencil interactable" title="Rename World Info" data-i18n="[title]Rename World Info" tabindex="0"></div>
-                    <div id="nemo-world-info-entry-duplicate" class="menu_button menu_button_icon fa-solid fa-paste interactable" title="Duplicate World Info" data-i18n="[title]Duplicate World Info" tabindex="0"></div>
-                    <div id="nemo-world-info-entry-export" class="menu_button menu_button_icon fa-solid fa-file-export interactable" title="Export World Info" data-i18n="[title]Export World Info" tabindex="0"></div>
-                    <div id="nemo-world-info-entry-delete" class="menu_button menu_button_icon fa-solid fa-trash-can redWarningBG interactable" title="Delete World Info" data-i18n="[title]Delete World Info" tabindex="0"></div>
-                    <div id="nemo-world-info-entry-open-all" class="menu_button menu_button_icon fa-solid fa-expand interactable" title="Open all Entries" data-i18n="[title]Open all Entries" tabindex="0"></div>
-                    <div id="nemo-world-info-entry-close-all" class="menu_button menu_button_icon fa-solid fa-compress interactable" title="Close all Entries" data-i18n="[title]Close all Entries" tabindex="0"></div>
-                    <div id="nemo-world-info-entry-fill-memos" class="menu_button menu_button_icon fa-solid fa-notes-medical interactable" title="Fill empty Memo/Titles with Keywords" data-i18n="[title]Fill empty Memo/Titles with Keywords" tabindex="0"></div>
-                    <div id="nemo-world-info-entry-apply-sort" class="menu_button menu_button_icon fa-solid fa-arrow-down-9-1 interactable" title="Apply current sorting as Order" data-i18n="[title]Apply current sorting as Order" tabindex="0"></div>
-                    <div id="nemo-world-info-entry-macro-picker" class="menu_button menu_button_icon fa-solid fa-code interactable" title="Macro Picker" data-i18n="[title]Macro Picker" tabindex="0"></div>
-                    <input type="search" class="text_pole textarea_compact" data-i18n="[placeholder]Search..." id="nemo-world-info-entry-search" placeholder="Search...">
-                    <select id="nemo-world-info-entry-sort" class="text_pole margin0"></select>
-                    <div id="nemo-world-info-entry-refresh" class="menu_button menu_button_icon fa-solid fa-arrows-rotate interactable" title="Refresh" data-i18n="[title]Refresh" tabindex="0"></div>
-                    <select id="nemo-world-info-buffer-size" class="text_pole">
-                        <option value="60">60 (Default)</option>
-                        <option value="100">100</option>
-                        <option value="200">200</option>
-                        <option value="500">500</option>
-                        <option value="1000">1000</option>
-                    </select>
-                </div>
-                <div id="world_info_pagination" class="pagination-container"></div>
-                    <div id="world_popup_entries_list" class="list-group">
-                        <!-- Entries will be dynamically inserted here -->
+                <!-- Tab Navigation -->
+                <div class="nemo-wi-tab-bar">
+                    <div id="nemo-world-info-entries-tab" class="nemo-wi-tab active" data-tab="entries">
+                        <i class="fa-solid fa-list"></i>
+                        <span>Entries</span>
+                    </div>
+                    <div id="nemo-world-info-active-entries-tab" class="nemo-wi-tab" data-tab="active">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Active</span>
+                    </div>
+                    <div id="nemo-world-info-order-helper-tab" class="nemo-wi-tab" data-tab="order">
+                        <i class="fa-solid fa-sort"></i>
+                        <span>Order</span>
+                    </div>
+                    <div id="nemo-world-info-lore-simulator-tab" class="nemo-wi-tab" data-tab="simulator">
+                        <i class="fa-solid fa-flask"></i>
+                        <span>Simulator</span>
+                    </div>
+                    <div id="nemo-world-info-settings-tab" class="nemo-wi-tab" data-tab="settings">
+                        <i class="fa-solid fa-cog"></i>
+                        <span>Settings</span>
                     </div>
                 </div>
-            </div>
-            <div id="nemo-macro-picker-modal" class="nemo-modal" style="display: none;">
-                <div class="nemo-modal-content">
-                    <span class="nemo-modal-close">&times;</span>
-                    <h2>World Info Macro Picker</h2>
-                    <div id="nemo-macro-picker-list"></div>
-                </div>
-            </div>
-            <div id="nemo-world-info-settings-panel" class="nemo-world-info-panel">
-                <div class="nemo-panel-content-wrapper">
-                    <!-- Global activation settings will be placed here -->
-                </div>
-            </div>
-            <div id="nemo-world-info-active-entries-panel" class="nemo-world-info-panel">
-                <div class="nemo-panel-content-wrapper">
-                    <p>This panel displays the currently active World Info entries, which will be injected into the prompt.</p>
-                    <div class="nemo-world-info-active-entries-header">
-                        <label><input type="checkbox" id="nemo-active-entries-group-by-book"> Group by Book</label>
-                        <label><input type="checkbox" id="nemo-active-entries-show-in-order"> Show in Order</label>
+
+                <!-- Entries Panel -->
+                <div id="nemo-world-info-entries-panel" class="nemo-world-info-panel active">
+                    <div class="nemo-panel-content-wrapper">
+                        <!-- Toolbar -->
+                        <div class="nemo-wi-toolbar">
+                            <div class="nemo-wi-toolbar-group">
+                                <button id="nemo-world-info-entry-new" class="nemo-wi-toolbar-btn" title="New Entry">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                                <button id="nemo-world-info-entry-rename" class="nemo-wi-toolbar-btn" title="Rename Lorebook">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button id="nemo-world-info-entry-duplicate" class="nemo-wi-toolbar-btn" title="Duplicate Lorebook">
+                                    <i class="fa-solid fa-copy"></i>
+                                </button>
+                                <button id="nemo-world-info-entry-export" class="nemo-wi-toolbar-btn" title="Export Lorebook">
+                                    <i class="fa-solid fa-download"></i>
+                                </button>
+                                <button id="nemo-world-info-entry-delete" class="nemo-wi-toolbar-btn nemo-wi-toolbar-btn-danger" title="Delete Lorebook">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+
+                            <div class="nemo-wi-toolbar-divider"></div>
+
+                            <div class="nemo-wi-toolbar-group">
+                                <button id="nemo-world-info-entry-open-all" class="nemo-wi-toolbar-btn" title="Expand All Entries">
+                                    <i class="fa-solid fa-angles-down"></i>
+                                </button>
+                                <button id="nemo-world-info-entry-close-all" class="nemo-wi-toolbar-btn" title="Collapse All Entries">
+                                    <i class="fa-solid fa-angles-up"></i>
+                                </button>
+                                <button id="nemo-world-info-entry-fill-memos" class="nemo-wi-toolbar-btn" title="Auto-fill Empty Memos">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                </button>
+                                <button id="nemo-world-info-entry-apply-sort" class="nemo-wi-toolbar-btn" title="Apply Sort Order">
+                                    <i class="fa-solid fa-arrow-down-a-z"></i>
+                                </button>
+                            </div>
+
+                            <div class="nemo-wi-toolbar-divider"></div>
+
+                            <div class="nemo-wi-toolbar-group">
+                                <button id="nemo-world-info-entry-macro-picker" class="nemo-wi-toolbar-btn" title="Insert Macro">
+                                    <i class="fa-solid fa-code"></i>
+                                </button>
+                            </div>
+
+                            <div class="nemo-wi-toolbar-spacer"></div>
+
+                            <div class="nemo-wi-toolbar-group nemo-wi-toolbar-search">
+                                <div class="nemo-wi-inline-search">
+                                    <i class="fa-solid fa-search"></i>
+                                    <input type="search" id="nemo-world-info-entry-search" placeholder="Search entries..." class="text_pole">
+                                </div>
+                                <select id="nemo-world-info-entry-sort" class="text_pole nemo-wi-sort-select" title="Sort Order">
+                                </select>
+                                <button id="nemo-world-info-entry-refresh" class="nemo-wi-toolbar-btn" title="Refresh">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                            </div>
+
+                            <div class="nemo-wi-toolbar-group">
+                                <select id="nemo-world-info-buffer-size" class="text_pole nemo-wi-buffer-select" title="Entries per page">
+                                    <option value="60">60</option>
+                                    <option value="100">100</option>
+                                    <option value="200">200</option>
+                                    <option value="500">500</option>
+                                    <option value="1000">1000</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div id="world_info_pagination" class="pagination-container"></div>
+
+                        <!-- Entries List -->
+                        <div id="world_popup_entries_list" class="list-group nemo-wi-entries-list">
+                            <div class="nemo-wi-empty-state nemo-wi-empty-state-large">
+                                <i class="fa-solid fa-book"></i>
+                                <p>Select a lorebook to view entries</p>
+                            </div>
+                        </div>
                     </div>
-                    <div id="nemo-world-info-active-entries-list" class="list-group"></div>
                 </div>
-            </div>
-            <div id="nemo-world-info-order-helper-panel" class="nemo-world-info-panel">
-                <div class="nemo-panel-content-wrapper">
-                    <p>This tool helps to re-order entries across all active lorebooks. Drag and drop the entries to re-order them, then click "Apply" to set the new order values.</p>
-                    <div class="nemo-world-info-order-helper-header">
-                        <label>Start: <input type="number" id="nemo-order-helper-start" value="100"></label>
-                        <label>Step: <input type="number" id="nemo-order-helper-step" value="10"></label>
-                        <label><input type="checkbox" id="nemo-order-helper-descending"> Descending</label>
-                        <button id="nemo-order-helper-apply" class="menu_button">Apply</button>
+
+                <!-- Macro Picker Modal -->
+                <div id="nemo-macro-picker-modal" class="nemo-modal" style="display: none;">
+                    <div class="nemo-modal-content">
+                        <span class="nemo-modal-close">&times;</span>
+                        <h2>World Info Macros</h2>
+                        <div id="nemo-macro-picker-list"></div>
                     </div>
-                    <div id="nemo-world-info-order-helper-list" class="list-group"></div>
                 </div>
-            </div>
-            <div id="nemo-world-info-lore-simulator-panel" class="nemo-world-info-panel">
-                <div class="nemo-panel-content-wrapper">
-                    <p>Enter text below to see which lorebook entries would be activated. This uses the currently selected active lorebooks.</p>
-                    <textarea id="nemo-lore-simulator-input" class="text_pole" rows="10" placeholder="Type your test message here..."></textarea>
-                    <div id="nemo-lore-simulator-results-header">
-                        <h4>Activated Entries:</h4>
+
+                <!-- Settings Panel -->
+                <div id="nemo-world-info-settings-panel" class="nemo-world-info-panel">
+                    <div class="nemo-panel-content-wrapper">
+                        <!-- Global activation settings will be placed here -->
                     </div>
-                    <div id="nemo-lore-simulator-results" class="list-group"></div>
                 </div>
-            </div>
+
+                <!-- Active Entries Panel -->
+                <div id="nemo-world-info-active-entries-panel" class="nemo-world-info-panel">
+                    <div class="nemo-panel-content-wrapper">
+                        <div class="nemo-wi-panel-header">
+                            <p class="nemo-wi-panel-description">Entries currently active and being injected into the prompt.</p>
+                            <div class="nemo-wi-panel-options">
+                                <label class="nemo-wi-checkbox">
+                                    <input type="checkbox" id="nemo-active-entries-group-by-book">
+                                    <span>Group by Book</span>
+                                </label>
+                                <label class="nemo-wi-checkbox">
+                                    <input type="checkbox" id="nemo-active-entries-show-in-order">
+                                    <span>Show in Order</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="nemo-world-info-active-entries-list" class="list-group"></div>
+                    </div>
+                </div>
+
+                <!-- Order Helper Panel -->
+                <div id="nemo-world-info-order-helper-panel" class="nemo-world-info-panel">
+                    <div class="nemo-panel-content-wrapper">
+                        <div class="nemo-wi-panel-header">
+                            <p class="nemo-wi-panel-description">Drag entries to reorder, then apply new order values.</p>
+                            <div class="nemo-wi-order-controls">
+                                <label class="nemo-wi-inline-label">
+                                    <span>Start:</span>
+                                    <input type="number" id="nemo-order-helper-start" value="100" class="text_pole nemo-wi-number-input">
+                                </label>
+                                <label class="nemo-wi-inline-label">
+                                    <span>Step:</span>
+                                    <input type="number" id="nemo-order-helper-step" value="10" class="text_pole nemo-wi-number-input">
+                                </label>
+                                <label class="nemo-wi-checkbox">
+                                    <input type="checkbox" id="nemo-order-helper-descending">
+                                    <span>Descending</span>
+                                </label>
+                                <button id="nemo-order-helper-apply" class="nemo-wi-btn nemo-wi-btn-primary">
+                                    <i class="fa-solid fa-check"></i>
+                                    Apply Order
+                                </button>
+                            </div>
+                        </div>
+                        <div id="nemo-world-info-order-helper-list" class="list-group"></div>
+                    </div>
+                </div>
+
+                <!-- Lore Simulator Panel -->
+                <div id="nemo-world-info-lore-simulator-panel" class="nemo-world-info-panel">
+                    <div class="nemo-panel-content-wrapper">
+                        <div class="nemo-wi-panel-header">
+                            <p class="nemo-wi-panel-description">Test which entries would activate for given text.</p>
+                        </div>
+                        <div class="nemo-wi-simulator-input-wrapper">
+                            <textarea id="nemo-lore-simulator-input" class="text_pole nemo-wi-simulator-textarea" rows="6" placeholder="Enter test message to see which entries activate..."></textarea>
+                        </div>
+                        <div class="nemo-wi-simulator-results-header">
+                            <i class="fa-solid fa-bolt"></i>
+                            <span>Activated Entries</span>
+                            <span class="nemo-wi-results-count" id="nemo-simulator-count">0</span>
+                        </div>
+                        <div id="nemo-lore-simulator-results" class="list-group"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 </div>

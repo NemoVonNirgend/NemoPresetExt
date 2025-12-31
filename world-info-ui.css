@@ -1,7 +1,721 @@
-/* --- Nemo World Info Redesign --- */
-/* All styles have been moved to styles.css to consolidate UI styling. */
-/* This file is kept for legacy purposes and can be removed in the future. */
-/* Hide the original pagination container as it's no longer needed visually */
+/* --- Nemo World Info Redesign CSS --- */
+/* Comprehensive styling for the redesigned World Info UI */
+
+/* ===== CSS Variables ===== */
+:root {
+    --wi-left-panel-width: 300px;
+    --wi-toggle-offset: 280px;
+    --wi-ui-chrome-height: 200px;
+    --wi-tab-height: 44px;
+    --wi-toolbar-height: 48px;
+    --wi-section-gap: 12px;
+    --wi-btn-radius: 6px;
+    --wi-transition-fast: 0.15s ease;
+    --wi-transition-normal: 0.25s ease;
+}
+
+/* ===== Section Headers ===== */
+.nemo-wi-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.03), transparent);
+    border-bottom: 1px solid var(--nemo-border-color, rgba(255,255,255,0.1));
+    user-select: none;
+}
+
+.nemo-wi-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--nemo-text-color-secondary, rgba(255,255,255,0.7));
+}
+
+.nemo-wi-section-title i {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.nemo-wi-section-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--nemo-primary-accent, #6eb5ff);
+    color: var(--nemo-bg-color, #1a1a2e);
+    border-radius: 10px;
+}
+
+/* ===== Collapsible Presets Section ===== */
+.nemo-wi-presets-details {
+    border-bottom: 1px solid var(--nemo-border-color, rgba(255,255,255,0.1));
+}
+
+.nemo-wi-presets-details summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.nemo-wi-presets-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.nemo-wi-collapsible {
+    transition: background-color var(--wi-transition-fast);
+}
+
+.nemo-wi-collapsible:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.nemo-wi-collapse-icon {
+    font-size: 10px;
+    transition: transform var(--wi-transition-normal);
+    opacity: 0.6;
+}
+
+.nemo-wi-presets-details[open] .nemo-wi-collapse-icon {
+    transform: rotate(180deg);
+}
+
+.nemo-world-info-preset-content {
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.15);
+}
+
+.nemo-wi-preset-select-row {
+    margin-bottom: 8px;
+}
+
+.nemo-wi-preset-dropdown {
+    width: 100%;
+    font-size: 13px;
+}
+
+.nemo-wi-preset-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.nemo-wi-btn-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--nemo-border-color, rgba(255,255,255,0.15));
+    margin: 0 4px;
+}
+
+/* ===== Button Styles ===== */
+.nemo-wi-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--nemo-btn-bg, rgba(255,255,255,0.08));
+    color: var(--nemo-text-color, #e0e0e0);
+    border: 1px solid var(--nemo-border-color, rgba(255,255,255,0.12));
+    border-radius: var(--wi-btn-radius);
+    cursor: pointer;
+    transition: all var(--wi-transition-fast);
+    white-space: nowrap;
+}
+
+.nemo-wi-btn:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.2);
+}
+
+.nemo-wi-btn:active {
+    transform: scale(0.96);
+}
+
+.nemo-wi-btn i {
+    font-size: 11px;
+}
+
+.nemo-wi-btn-sm {
+    padding: 5px 8px;
+    font-size: 11px;
+}
+
+.nemo-wi-btn-sm i {
+    font-size: 10px;
+}
+
+.nemo-wi-btn-primary {
+    background: var(--nemo-primary-accent, #6eb5ff);
+    color: var(--nemo-bg-color, #1a1a2e);
+    border-color: transparent;
+}
+
+.nemo-wi-btn-primary:hover {
+    background: var(--nemo-primary-accent-light, #8ec5ff);
+    border-color: transparent;
+}
+
+.nemo-wi-btn-danger {
+    color: var(--nemo-error-color, #ff6b6b);
+}
+
+.nemo-wi-btn-danger:hover {
+    background: rgba(255, 107, 107, 0.15);
+    border-color: rgba(255, 107, 107, 0.3);
+}
+
+/* ===== Actions Bar ===== */
+.nemo-wi-actions-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.1);
+    border-bottom: 1px solid var(--nemo-border-color, rgba(255,255,255,0.1));
+}
+
+.nemo-wi-search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.nemo-wi-search-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 12px;
+    color: var(--nemo-text-color-secondary, rgba(255,255,255,0.5));
+    pointer-events: none;
+}
+
+.nemo-wi-search-input {
+    width: 100%;
+    padding-left: 32px !important;
+    font-size: 13px;
+}
+
+.nemo-wi-action-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* ===== Move Toggle Switch ===== */
+.nemo-wi-move-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    margin-left: auto;
+}
+
+.nemo-wi-move-toggle input {
+    display: none;
+}
+
+.nemo-wi-toggle-slider {
+    position: relative;
+    width: 36px;
+    height: 18px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 9px;
+    transition: background var(--wi-transition-fast);
+}
+
+.nemo-wi-toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--nemo-text-color, #e0e0e0);
+    border-radius: 50%;
+    transition: transform var(--wi-transition-fast);
+}
+
+.nemo-wi-move-toggle input:checked + .nemo-wi-toggle-slider {
+    background: var(--nemo-primary-accent, #6eb5ff);
+}
+
+.nemo-wi-move-toggle input:checked + .nemo-wi-toggle-slider::after {
+    transform: translateX(18px);
+}
+
+.nemo-wi-toggle-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--nemo-text-color-secondary, rgba(255,255,255,0.6));
+}
+
+/* ===== Tab Bar ===== */
+.nemo-wi-tab-bar {
+    display: flex;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.2), transparent);
+    border-bottom: 1px solid var(--nemo-border-color, rgba(255,255,255,0.1));
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.nemo-wi-tab-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.nemo-wi-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--nemo-text-color-secondary, rgba(255,255,255,0.6));
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all var(--wi-transition-fast);
+    white-space: nowrap;
+}
+
+.nemo-wi-tab i {
+    font-size: 13px;
+}
+
+.nemo-wi-tab:hover {
+    color: var(--nemo-text-color, #e0e0e0);
+    background: rgba(255,255,255,0.03);
+}
+
+.nemo-wi-tab.active {
+    color: var(--nemo-primary-accent, #6eb5ff);
+    border-bottom-color: var(--nemo-primary-accent, #6eb5ff);
+}
+
+/* ===== Toolbar ===== */
+.nemo-wi-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.15);
+    border-bottom: 1px solid var(--nemo-border-color, rgba(255,255,255,0.08));
+    flex-wrap: wrap;
+}
+
+.nemo-wi-toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.nemo-wi-toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    color: var(--nemo-text-color-secondary, rgba(255,255,255,0.6));
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all var(--wi-transition-fast);
+}
+
+.nemo-wi-toolbar-btn:hover {
+    background: rgba(255,255,255,0.08);
+    color: var(--nemo-text-color, #e0e0e0);
+    border-color: rgba(255,255,255,0.12);
+}
+
+.nemo-wi-toolbar-btn:active {
+    transform: scale(0.92);
+}
+
+.nemo-wi-toolbar-btn i {
+    font-size: 13px;
+}
+
+.nemo-wi-toolbar-btn-danger:hover {
+    color: var(--nemo-error-color, #ff6b6b);
+    background: rgba(255, 107, 107, 0.1);
+    border-color: rgba(255, 107, 107, 0.2);
+}
+
+.nemo-wi-toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--nemo-border-color, rgba(255,255,255,0.1));
+    margin: 0 4px;
+}
+
+.nemo-wi-toolbar-spacer {
+    flex: 1;
+    min-width: 8px;
+}
+
+.nemo-wi-toolbar-search {
+    flex: 1;
+    min-width: 200px;
+    max-width: 400px;
+}
+
+.nemo-wi-inline-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.nemo-wi-inline-search i {
+    position: absolute;
+    left: 10px;
+    font-size: 12px;
+    color: var(--nemo-text-color-secondary, rgba(255,255,255,0.4));
+    pointer-events: none;
+}
+
+.nemo-wi-inline-search input {
+    padding-left: 32px !important;
+    font-size: 12px;
+    height: 32px;
+}
+
+.nemo-wi-sort-select,
+.nemo-wi-buffer-select {
+    height: 32px;
+    font-size: 12px;
+    min-width: 80px;
+}
+
+/* ===== Entries List ===== */
+.nemo-wi-entries-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* ===== Empty States ===== */
+.nemo-wi-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    font-size: 12px;
+    color: var(--nemo-text-color-secondary, rgba(255,255,255,0.4));
+    font-style: italic;
+}
+
+.nemo-wi-empty-state-large {
+    flex-direction: column;
+    gap: 12px;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.nemo-wi-empty-state-large i {
+    font-size: 32px;
+    opacity: 0.3;
+}
+
+.nemo-wi-empty-state-large p {
+    margin: 0;
+    font-size: 14px;
+    font-style: normal;
+}
+
+/* ===== Panel Headers ===== */
+.nemo-wi-panel-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(0,0,0,0.1);
+    border-bottom: 1px solid var(--nemo-border-color, rgba(255,255,255,0.08));
+}
+
+.nemo-wi-panel-description {
+    margin: 0;
+    font-size: 13px;
+    color: var(--nemo-text-color-secondary, rgba(255,255,255,0.6));
+    line-height: 1.5;
+}
+
+.nemo-wi-panel-options {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+/* ===== Checkbox Style ===== */
+.nemo-wi-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--nemo-text-color, #e0e0e0);
+    user-select: none;
+}
+
+.nemo-wi-checkbox input {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--nemo-border-color, rgba(255,255,255,0.15));
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+    transition: all var(--wi-transition-fast);
+}
+
+.nemo-wi-checkbox input:checked {
+    background: var(--nemo-primary-accent, #6eb5ff);
+    border-color: var(--nemo-primary-accent, #6eb5ff);
+}
+
+.nemo-wi-checkbox input:checked::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid var(--nemo-bg-color, #1a1a2e);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* ===== Order Controls ===== */
+.nemo-wi-order-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.nemo-wi-inline-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--nemo-text-color-secondary, rgba(255,255,255,0.7));
+}
+
+.nemo-wi-number-input {
+    width: 70px;
+    height: 32px;
+    font-size: 12px;
+    text-align: center;
+}
+
+/* ===== Simulator ===== */
+.nemo-wi-simulator-input-wrapper {
+    padding: 12px 16px;
+}
+
+.nemo-wi-simulator-textarea {
+    width: 100%;
+    min-height: 120px;
+    resize: vertical;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.nemo-wi-simulator-results-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(0,0,0,0.15);
+    border-top: 1px solid var(--nemo-border-color, rgba(255,255,255,0.08));
+    border-bottom: 1px solid var(--nemo-border-color, rgba(255,255,255,0.08));
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--nemo-text-color-secondary, rgba(255,255,255,0.7));
+}
+
+.nemo-wi-simulator-results-header i {
+    color: var(--nemo-primary-accent, #6eb5ff);
+}
+
+.nemo-wi-results-count {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 20px;
+    padding: 0 6px;
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--nemo-primary-accent, #6eb5ff);
+    color: var(--nemo-bg-color, #1a1a2e);
+    border-radius: 10px;
+}
+
+/* ===== Modal ===== */
+.nemo-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+}
+
+.nemo-modal-content {
+    background: var(--nemo-bg-color, #1a1a2e);
+    border: 1px solid var(--nemo-border-color, rgba(255,255,255,0.15));
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.nemo-modal-content h2 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--nemo-text-color, #e0e0e0);
+}
+
+.nemo-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--nemo-text-color-secondary, rgba(255,255,255,0.5));
+    transition: color var(--wi-transition-fast);
+    line-height: 1;
+}
+
+.nemo-modal-close:hover {
+    color: var(--nemo-text-color, #e0e0e0);
+}
+
+/* ===== Active Lorebooks Section ===== */
+.nemo-world-info-active-section {
+    border-bottom: 1px solid var(--nemo-border-color, rgba(255,255,255,0.1));
+}
+
+.nemo-world-info-active-list {
+    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 40px;
+}
+
+/* ===== Pagination Container Override ===== */
 #world_info_pagination {
     display: none !important;
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 768px) {
+    .nemo-wi-tab span {
+        display: none;
+    }
+
+    .nemo-wi-tab {
+        padding: 12px;
+    }
+
+    .nemo-wi-toolbar {
+        padding: 6px 8px;
+    }
+
+    .nemo-wi-toolbar-search {
+        min-width: 150px;
+        max-width: none;
+        order: 10;
+        flex-basis: 100%;
+    }
+
+    .nemo-wi-btn span {
+        display: none;
+    }
+
+    .nemo-wi-btn {
+        padding: 8px;
+    }
+
+    .nemo-wi-panel-header {
+        padding: 10px 12px;
+    }
+
+    .nemo-wi-order-controls {
+        gap: 8px;
+    }
+
+    .nemo-wi-inline-label span {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .nemo-wi-actions-bar {
+        padding: 8px;
+    }
+
+    .nemo-wi-action-buttons {
+        flex-wrap: wrap;
+    }
+
+    .nemo-wi-move-toggle {
+        margin-left: 0;
+        margin-top: 8px;
+    }
+
+    .nemo-world-info-preset-content {
+        padding: 8px;
+    }
+
+    .nemo-wi-preset-actions {
+        justify-content: space-between;
+    }
+}
+
+/* ===== Accessibility ===== */
+.nemo-wi-btn:focus-visible,
+.nemo-wi-toolbar-btn:focus-visible,
+.nemo-wi-tab:focus-visible {
+    outline: 2px solid var(--nemo-primary-accent, #6eb5ff);
+    outline-offset: 2px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    .nemo-wi-collapse-icon,
+    .nemo-wi-toggle-slider::after,
+    .nemo-wi-btn,
+    .nemo-wi-toolbar-btn,
+    .nemo-wi-tab {
+        transition: none;
+    }
 }
