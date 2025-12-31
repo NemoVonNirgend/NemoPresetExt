@@ -224,7 +224,7 @@ function getDropdownStyle() {
  */
 function applyCurrentMode() {
     const style = getDropdownStyle();
-    console.log(`[NemoTray] Applying mode: ${style}`);
+    logger.debug(`Applying tray mode: ${style}`);
 
     if (style === 'accordion') {
         // First disable tray mode if it was active
@@ -249,12 +249,11 @@ function applyCurrentMode() {
  * Initialize the category tray system
  */
 export function initCategoryTray() {
-    console.log('[NemoTray] ====== INIT CALLED ======');
     logger.info('Initializing category tray system');
 
     // Listen for dropdown style changes
     document.addEventListener('nemo-dropdown-style-changed', (e) => {
-        console.log('[NemoTray] Dropdown style changed:', e.detail?.style);
+        logger.debug('Dropdown style changed:', e.detail?.style);
         applyCurrentMode();
     });
 
@@ -262,7 +261,7 @@ export function initCategoryTray() {
     const delays = [500, 1000, 2000, 3000, 5000];
     delays.forEach(delay => {
         setTimeout(() => {
-            console.log(`[NemoTray] Checking for sections after ${delay}ms...`);
+            logger.debug(`Checking for sections after ${delay}ms...`);
             applyCurrentMode();
             // Also refresh progress bars to catch any ST overwrites
             refreshAllSectionProgressBars();
@@ -2597,7 +2596,7 @@ function escapeHtml(text) {
  * This removes tray conversion flags and handlers so sections can be properly flattened
  */
 export function disableTrayMode() {
-    console.log('[NemoTray] Disabling tray mode for all sections');
+    logger.debug('Disabling tray mode for all sections');
 
     // Close all open trays
     document.querySelectorAll('.nemo-tray-section').forEach(section => {
@@ -2688,8 +2687,7 @@ export function disableTrayMode() {
     isOverTopLevelDropZone = false;
     hideTopLevelDropZone();
 
-    console.log('[NemoTray] Tray mode disabled');
-    logger.info('Tray mode disabled for all sections');
+    logger.debug('Tray mode disabled for all sections');
 }
 
 /**
@@ -2700,12 +2698,12 @@ export function disableTrayMode() {
 function convertToAccordionMode() {
     // Don't convert if sections feature is disabled
     if (!storage.getSectionsEnabled()) {
-        console.log('[NemoTray] Sections disabled, skipping accordion conversion');
+        logger.debug('Sections disabled, skipping accordion conversion');
         return 0;
     }
 
     const allSections = document.querySelectorAll('details.nemo-engine-section');
-    console.log('[NemoTray] Converting to accordion mode, sections:', allSections.length);
+    logger.debug(`Converting to accordion mode, sections: ${allSections.length}`);
 
     let converted = 0;
 
@@ -2742,7 +2740,7 @@ function convertToAccordionMode() {
     });
 
     if (converted > 0) {
-        console.log('[NemoTray] Converted', converted, 'sections to accordion mode');
+        logger.debug(`Converted ${converted} sections to accordion mode`);
         // Update all section counts after conversion
         updateAllAccordionSectionCounts();
     }
@@ -2762,9 +2760,9 @@ async function updateAllAccordionSectionCounts() {
                 NemoPresetManager.updateSectionCount(section);
             }
         });
-        console.log('[NemoTray] Updated all accordion section counts');
+        logger.debug('Updated all accordion section counts');
     } catch (e) {
-        console.warn('[NemoTray] Could not update section counts:', e);
+        logger.warn('Could not update section counts:', e);
     }
 }
 
@@ -2973,7 +2971,7 @@ async function updateParentSectionCounts(section) {
  * Disable accordion mode for all sections
  */
 function disableAccordionMode() {
-    console.log('[NemoTray] Disabling accordion mode for all sections');
+    logger.debug('Disabling accordion mode for all sections');
 
     document.querySelectorAll('.nemo-accordion-section').forEach(section => {
         // Remove accordion classes and attributes
@@ -3006,6 +3004,5 @@ function disableAccordionMode() {
         });
     });
 
-    console.log('[NemoTray] Accordion mode disabled');
-    logger.info('Accordion mode disabled for all sections');
+    logger.debug('Accordion mode disabled for all sections');
 }
