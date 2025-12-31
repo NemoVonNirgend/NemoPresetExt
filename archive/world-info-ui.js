@@ -602,32 +602,14 @@ export const NemoWorldInfoUI = {
         // Update button icon and tooltip based on state
         if (toggleButton) {
             if (isHidden) {
-                toggleButton.className = 'menu_button menu_button_icon fa-solid fa-bars';
-                toggleButton.innerHTML = ''; 
+                toggleButton.className = 'menu_button menu_button_icon fa-solid fa-angles-right';
+                toggleButton.innerHTML = '';
                 toggleButton.title = 'Show Left Panel';
-                // Force visibility for debugging
-                toggleButton.style.cssText = `
-                    background: rgba(0, 0, 0, 0.5) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-                    color: white !important;
-                    position: fixed !important;
-                    top: 60px !important;
-                    left: 10px !important;
-                    z-index: 1001 !important;
-                    opacity: 0.9 !important;
-                    display: block !important;
-                    visibility: visible !important;
-                    min-width: 40px !important;
-                    min-height: 32px !important;
-                    border-radius: 4px !important;
-                    transition: all 0.2s ease !important;
-                    font-size: 16px !important;
-                `;
+                toggleButton.style.cssText = '';
             } else {
-                toggleButton.className = 'menu_button menu_button_icon fa-solid fa-times';
+                toggleButton.className = 'menu_button menu_button_icon fa-solid fa-angles-left';
                 toggleButton.innerHTML = '';
                 toggleButton.title = 'Hide Left Panel';
-                // Reset to CSS-controlled styling when visible
                 toggleButton.style.cssText = '';
             }
         }
@@ -798,8 +780,13 @@ export const NemoWorldInfoUI = {
                     if (entryEl.dataset.nemoListenersAdded) return;
                     entryEl.dataset.nemoListenersAdded = 'true';
 
-                    entryEl.setAttribute('draggable', 'true');
+                    // Only allow dragging when move mode is enabled
                     entryEl.addEventListener('dragstart', /** @param {DragEvent} event */(event) => {
+                        const moveToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemo-world-info-move-toggle'));
+                        if (!moveToggle || !moveToggle.checked) {
+                            event.preventDefault();
+                            return;
+                        }
                         if (self._selectedEntries.size > 0) {
                             event.dataTransfer.setData('text/plain', JSON.stringify([...self._selectedEntries]));
                         }
