@@ -31,6 +31,28 @@ let DIVIDER_PREFIX_REGEX;
 let openSectionStates = storage.getOpenSectionStates();
 let isSectionsFeatureEnabled = storage.getSectionsEnabled();
 
+/**
+ * Capture current section open states from the DOM before a rebuild
+ * This prevents race conditions where state isn't saved before re-render
+ */
+function captureCurrentSectionStates() {
+    const container = document.querySelector(SELECTORS.promptsContainer);
+    if (!container) return;
+
+    container.querySelectorAll('details.nemo-engine-section').forEach(section => {
+        const summaryLi = section.querySelector('summary > li');
+        if (summaryLi) {
+            const nameSpan = summaryLi.querySelector('span.completion_prompt_manager_prompt_name a');
+            if (nameSpan) {
+                // Use the original divider text as the key
+                const dividerInfo = NemoPresetManager.getDividerInfo(summaryLi);
+                if (dividerInfo.originalText) {
+                    openSectionStates[dividerInfo.originalText] = section.open;
+                }
+            }
+        }
+    });
+}
 
 // 2. MODULE-SPECIFIC HELPERS
 export async function loadAndSetDividerRegex() {
@@ -1044,6 +1066,9 @@ export const NemoPresetManager = {
             return;
         }
 
+        // Capture current section states before clearing (prevents race condition)
+        captureCurrentSectionStates();
+
         // Rebuild sections
         const itemsToProcess = Array.from(promptsContainer.children);
         promptsContainer.innerHTML = ''; // Clear the container
@@ -1159,7 +1184,8 @@ export const NemoPresetManager = {
                     const summaryLi = section.querySelector('summary > li');
                     if (summaryLi) {
                         const dividerInfo = this.getDividerInfo(summaryLi);
-                        section.open = openSectionStates[dividerInfo.originalText] || false;
+                        // Default to open unless explicitly saved as closed
+                        section.open = openSectionStates[dividerInfo.originalText] !== false;
                     }
                 });
             }
@@ -1842,9 +1868,12 @@ export const NemoPresetManager = {
             const details = summary.closest('details');
             const li = details.querySelector('summary > li');
             const dividerInfo = this.getDividerInfo(li);
-            setTimeout(() => {
+            // Save state synchronously to prevent race conditions with re-renders
+            // The details.open will be the NEW state after the click
+            // We use requestAnimationFrame to ensure the DOM has updated
+            requestAnimationFrame(() => {
                 openSectionStates[dividerInfo.originalText] = details.open;
-            }, 0);
+            });
         }
     },
 
