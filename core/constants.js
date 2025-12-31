@@ -124,6 +124,13 @@ export const CONSTANTS = {
         UUID: /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
         SAFE_FILENAME: /^[a-zA-Z0-9._-]+$/,
         WHITESPACE_CLEANUP: /\s+/g
+    },
+
+    // Custom Nemo events (not part of SillyTavern's event_types)
+    EVENTS: {
+        FAVORITES_UPDATED: 'nemo_favorites_updated',
+        PRESET_CHANGED: 'nemo_preset_changed',
+        UI_REFRESHED: 'nemo_ui_refreshed'
     }
 };
 
@@ -140,5 +147,6 @@ Object.freeze(CONSTANTS.NETWORK);
 Object.freeze(CONSTANTS.LOG_LEVELS);
 Object.freeze(CONSTANTS.FEATURES);
 Object.freeze(CONSTANTS.REGEX);
+Object.freeze(CONSTANTS.EVENTS);
 
 export default CONSTANTS;

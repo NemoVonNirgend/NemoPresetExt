@@ -866,7 +866,7 @@ export class PresetNavigator {
             if (presetData) {
                 const presetContent = oai_settings[presetData.value];
                 const content = presetContent ? JSON.stringify(presetContent, null, 2) : 'Could not load preset content.';
-                callGenericPopup(`<pre>${content.replace(/</g, "<")}</pre>`, POPUP_TYPE.DISPLAY, `Quick Look: ${presetData.name}`, { wide: true });
+                callGenericPopup(`<pre>${content.replace(/</g, "&lt;")}</pre>`, POPUP_TYPE.DISPLAY, `Quick Look: ${this.escapeHtml(presetData.name)}`, { wide: true });
             }
         }
     }
@@ -1072,10 +1072,10 @@ export class PresetNavigator {
 
     togglePresetFavorite(presetName) {
         const wasAdded = storage.toggleFavoritePreset(presetName);
-        
+
         // Trigger favorites update event
-        eventSource.emit(event_types.NEMO_FAVORITES_UPDATED);
-        
+        eventSource.emit(CONSTANTS.EVENTS.FAVORITES_UPDATED);
+
         // Re-render to update the star icons and favorites sidebar
         this.render();
         this.renderFavoritesSidebar();
@@ -1098,11 +1098,12 @@ export class PresetNavigator {
             if (preset) {
                 const favoriteItem = document.createElement('div');
                 favoriteItem.className = 'navigator-favorite-item';
+                const escapedName = this.escapeHtml(preset.name);
                 favoriteItem.innerHTML = `
                     <div class="favorite-item-icon">
                         <i class="fa-solid fa-file-lines"></i>
                     </div>
-                    <div class="favorite-item-name" title="${preset.name}">${preset.name}</div>
+                    <div class="favorite-item-name" title="${escapedName}">${escapedName}</div>
                     <button class="favorite-remove-btn" title="Remove from favorites">
                         <i class="fa-solid fa-times"></i>
                     </button>
@@ -1190,5 +1191,5 @@ export function initPresetNavigatorForApi(apiType) {
     wrapper.parentElement.insertBefore(favoritesContainer, wrapper.nextSibling);
 
     renderFavorites(apiType);
-    eventSource.on(event_types.NEMO_FAVORITES_UPDATED, () => renderFavorites(apiType));
+    eventSource.on(CONSTANTS.EVENTS.FAVORITES_UPDATED, () => renderFavorites(apiType));
 }

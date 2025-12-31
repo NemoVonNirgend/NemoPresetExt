@@ -949,7 +949,7 @@ export const NemoPresetManager = {
 
     saveFavorites: function(favorites) {
         storage.saveFavoritePresets(favorites);
-        eventSource.emit(event_types.NEMO_FAVORITES_UPDATED);
+        eventSource.emit(CONSTANTS.EVENTS.FAVORITES_UPDATED);
     },
 
     isFavorite: function(presetId) {
