@@ -226,6 +226,16 @@ function applyCurrentMode() {
     const style = getDropdownStyle();
     logger.debug(`Applying tray mode: ${style}`);
 
+    // Capture current section open states BEFORE any mode changes
+    const sectionStates = new Map();
+    document.querySelectorAll('details.nemo-engine-section').forEach(section => {
+        const summaryLi = section.querySelector('summary > li');
+        const nameLink = summaryLi?.querySelector('span.completion_prompt_manager_prompt_name a');
+        if (nameLink) {
+            sectionStates.set(nameLink.textContent.trim(), section.open);
+        }
+    });
+
     if (style === 'accordion') {
         // First disable tray mode if it was active
         disableTrayMode();
@@ -240,6 +250,20 @@ function applyCurrentMode() {
         convertToTrayMode();
         // Refresh progress bars once
         refreshAllSectionProgressBars();
+    }
+
+    // Restore section open states after mode changes (for accordion mode only)
+    if (style === 'accordion' && sectionStates.size > 0) {
+        document.querySelectorAll('details.nemo-engine-section').forEach(section => {
+            const summaryLi = section.querySelector('summary > li');
+            const nameLink = summaryLi?.querySelector('span.completion_prompt_manager_prompt_name a');
+            if (nameLink) {
+                const savedState = sectionStates.get(nameLink.textContent.trim());
+                if (savedState !== undefined) {
+                    section.open = savedState;
+                }
+            }
+        });
     }
 }
 

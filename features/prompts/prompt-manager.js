@@ -1104,7 +1104,23 @@ export const NemoPresetManager = {
                 this.processSingleItem(item, promptsContainer);
             }
         });
-        
+
+        // Final pass: ensure all sections have correct open state
+        // This handles any race conditions with other code that might reset states
+        promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(section => {
+            const summaryLi = section.querySelector('summary > li');
+            if (summaryLi) {
+                const dividerInfo = this.getDividerInfo(summaryLi);
+                if (dividerInfo.originalText) {
+                    // Default to open unless explicitly saved as closed
+                    const shouldBeOpen = openSectionStates[dividerInfo.originalText] !== false;
+                    if (section.open !== shouldBeOpen) {
+                        section.open = shouldBeOpen;
+                    }
+                }
+            }
+        });
+
         delete promptsContainer.dataset.nemoOrganizing;
         this.initializeDragAndDrop(promptsContainer);
     },
