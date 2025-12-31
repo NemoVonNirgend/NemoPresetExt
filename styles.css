@@ -5488,10 +5488,9 @@ body.sortable-dragging .nemo-engine-section summary::before {
     display: none; /* Hidden by default */
 }
 
-/* Show drag handle on hover or in move mode for better discoverability */
-.nemo-lorebook-item:hover .nemo-drag-handle,
+/* Only show drag handle in move mode */
 .nemo-move-mode .nemo-drag-handle {
-    display: block; /* Visible on hover or in move mode */
+    display: block; /* Only visible in move mode */
 }
 
 .nemo-move-toggle-container {
