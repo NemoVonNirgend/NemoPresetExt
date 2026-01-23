@@ -48,6 +48,8 @@ import { tutorialLauncher } from './features/onboarding/tutorial-launcher.js';
 import { NemoCharacterManager } from './archive/character-manager.js';
 import { PresetNavigator } from './archive/navigator.js';
 import { NemoWorldInfoUI } from './archive/world-info-ui.js';
+
+let reorganizeDebounceTimer = null;
 import domCache from './archive/dom-cache.js';
 
 // Extension name constant for legacy code compatibility
@@ -261,6 +263,9 @@ async function initializeExtension() {
             // Initialize Prompt Manager sections when the list appears
             const promptList = document.querySelector(CONSTANTS.SELECTORS.PROMPT_CONTAINER);
             if (promptList && !promptList.dataset.nemoPromptsInitialized) {
+                // Hide container immediately to prevent flash during initialization
+                document.body.classList.add('nemo-prompt-reorganizing');
+
                 logger.performance('Prompt Manager Initialization', () => {
                     NemoPresetManager.initialize(promptList);
                 });
@@ -334,6 +339,12 @@ async function initializeExtension() {
             // Clean up NemoPresetManager
             if (window.NemoPresetManager && typeof window.NemoPresetManager.destroy === 'function') {
                 window.NemoPresetManager.destroy();
+            }
+
+            // Clear any pending timers
+            if (reorganizeDebounceTimer) {
+                clearTimeout(reorganizeDebounceTimer);
+                reorganizeDebounceTimer = null;
             }
 
             // Reset patched flags
@@ -434,8 +445,8 @@ function initializeMobileEnhancements() {
 }
 
 // Keep old function names for backward compatibility
-const applyWidePanelsOverride = removeWidePanelsStyles;
-const removeWidePanelsOverride = applyWidePanelsStyles;
+const applyWidePanelsOverride = applyWidePanelsStyles;
+const removeWidePanelsOverride = removeWidePanelsStyles;
 
 // Enhanced preset navigator initialization that works with both new and legacy code
 function initPresetNavigatorForApiEnhanced(apiType) {

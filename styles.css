@@ -3153,10 +3153,32 @@ details.nemo-engine-section .nemo-enabled-count {
  * The .nemo-sections-mode class is added at initialization and persists
  */
 
-/* Hide content during active reorganization */
+/* Hide content during active reorganization and disable transitions to prevent flicker */
 #completion_prompt_manager_list[data-nemo-organizing="true"] {
     visibility: hidden;
     min-height: 100px; /* Prevent layout jump */
+}
+
+/* Body-level class to hide prompt list - SURVIVES container replacement by SillyTavern */
+/* This is critical: when user clicks toggle, SillyTavern destroys and recreates the container */
+/* Using body class ensures hiding persists through container replacement */
+body.nemo-prompt-reorganizing #completion_prompt_manager_list {
+    visibility: hidden !important;
+    min-height: 100px;
+}
+
+body.nemo-prompt-reorganizing #completion_prompt_manager_list * {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Disable ALL transitions and animations during reorganization */
+#completion_prompt_manager_list[data-nemo-organizing="true"] *,
+#completion_prompt_manager_list[data-nemo-organizing="true"] details,
+#completion_prompt_manager_list[data-nemo-organizing="true"] summary,
+#completion_prompt_manager_list[data-nemo-organizing="true"] .nemo-section-content {
+    transition: none !important;
+    animation: none !important;
 }
 
 /* When sections mode is active, hide any prompts that are direct children (not in sections) */
@@ -3165,8 +3187,15 @@ details.nemo-engine-section .nemo-enabled-count {
     display: none !important;
 }
 
+/* CRITICAL: Body-level class that persists through container replacement by SillyTavern */
+/* This hides flat prompts even when the container is replaced and loses its classes */
+body.nemo-sections-mode-active #completion_prompt_manager_list > li.completion_prompt_manager_prompt {
+    display: none !important;
+}
+
 /* But show prompts inside sections normally */
-#completion_prompt_manager_list.nemo-sections-mode details.nemo-engine-section li.completion_prompt_manager_prompt {
+#completion_prompt_manager_list.nemo-sections-mode details.nemo-engine-section li.completion_prompt_manager_prompt,
+body.nemo-sections-mode-active #completion_prompt_manager_list details.nemo-engine-section li.completion_prompt_manager_prompt {
     display: flex !important;
 }
 
@@ -5086,6 +5115,11 @@ details.nemo-engine-section .nemo-enabled-count {
 
 /* Header items in the prompt list are not draggable */
 .nemo-header-item { cursor: default; }
+
+/* Display name span for section headers (preserves original text in hidden link) */
+.nemo-section-display-name {
+    cursor: pointer;
+}
 
 /* Drag and Drop for Prompt List */
 .drag-handle {

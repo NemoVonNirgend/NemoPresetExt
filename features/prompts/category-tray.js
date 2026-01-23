@@ -35,6 +35,9 @@ let currentDropTarget = null; // Section being hovered over during drag
 let topLevelDropZone = null; // Drop zone for making prompts top-level
 let isOverTopLevelDropZone = false;
 let isDragging = false; // Flag to pause updates during drag
+// Flag to pause updates during toggle operations (shared via window for cross-file access)
+// This prevents observer interference when toggling prompts
+window._nemoTogglingPrompt = window._nemoTogglingPrompt || false;
 let currentContextMenu = null; // Track current context menu for cleanup
 
 /**
@@ -293,8 +296,8 @@ export function initCategoryTray() {
 
     // Watch for prompt manager re-renders
     const observer = new MutationObserver((mutations) => {
-        // Skip updates during drag to prevent flickering
-        if (isDragging) return;
+        // Skip updates during drag or toggle to prevent flickering
+        if (isDragging || window._nemoTogglingPrompt) return;
 
         // Only run if we see relevant changes (new sections or prompts added)
         const hasRelevantChanges = mutations.some(m =>
@@ -311,8 +314,8 @@ export function initCategoryTray() {
         if (hasRelevantChanges) {
             clearTimeout(window._trayDebounce);
             window._trayDebounce = setTimeout(() => {
-                // Double-check we're not dragging
-                if (isDragging) return;
+                // Double-check we're not dragging or toggling
+                if (isDragging || window._nemoTogglingPrompt) return;
                 applyCurrentMode();
                 refreshAllSectionProgressBars();
             }, 50); // Reduced from 200ms to 50ms
@@ -541,7 +544,30 @@ function convertToTrayMode() {
             sectionPromptIdsCache.set(sectionName, sectionPromptIds);
         } else if (cachedPromptIds) {
             // Restore from cache (DOM was refreshed by SillyTavern)
-            sectionPromptIds = cachedPromptIds;
+            // Validate that cached prompts still exist in promptManager to avoid stale data
+            if (promptManager && promptManager.activeCharacter) {
+                const validatedIds = cachedPromptIds.filter(({ identifier }) => {
+                    try {
+                        const entry = promptManager.getPromptOrderEntry(promptManager.activeCharacter, identifier);
+                        return entry !== null && entry !== undefined;
+                    } catch {
+                        return false;
+                    }
+                });
+                // Only use validated cache if most prompts are still valid
+                // If too many are missing, let the section rebuild from scratch
+                if (validatedIds.length >= cachedPromptIds.length * 0.5) {
+                    sectionPromptIds = validatedIds;
+                    // Update cache with validated list
+                    sectionPromptIdsCache.set(sectionName, validatedIds);
+                } else {
+                    logger.debug(`[NemoTray] Cache for ${sectionName} too stale, clearing`);
+                    sectionPromptIdsCache.delete(sectionName);
+                    sectionPromptIds = [];
+                }
+            } else {
+                sectionPromptIds = cachedPromptIds;
+            }
         } else {
             sectionPromptIds = [];
         }
@@ -774,7 +800,7 @@ async function movePromptToSectionTop(identifier, promptData, fromSection, toSec
 
         logger.debug(`Moved prompt ${identifier} to top of ${getSectionId(toSection)}`);
     } catch (error) {
-        console.error('[NemoTray] Error moving prompt to section top:', error);
+        logger.error('[NemoTray] Error moving prompt to section top:', error);
     }
 }
 
@@ -1430,39 +1456,71 @@ function openTray(section) {
     });
 
     // Load preset handlers
-    // Note: Uses performToggle directly since loading a preset is an explicit user choice
+    // Note: Uses batch toggle to apply all changes with single save (prevents race conditions)
     tray.querySelectorAll('.nemo-preset-item').forEach(item => {
-        item.addEventListener('click', (e) => {
+        item.addEventListener('click', async (e) => {
             if (e.target.closest('.nemo-preset-delete')) return; // Don't load if clicking delete
             e.stopPropagation();
             const presetKey = item.dataset.presetKey;
             const preset = loadPreset(presetKey);
             if (preset) {
-                // Apply preset - disable all, then enable preset prompts (skip validation)
-                prompts.forEach(p => {
-                    const shouldEnable = preset.enabledPrompts.includes(p.identifier);
-                    if (p.isEnabled !== shouldEnable) {
-                        performToggle(p.identifier, shouldEnable);
-                        p.isEnabled = shouldEnable;
-                    }
-                });
+                // Set flag to prevent observer interference during batch toggle
+                window._nemoTogglingPrompt = true;
 
-                // Update all cards visually
-                tray.querySelectorAll('.nemo-prompt-card').forEach(card => {
-                    const identifier = card.dataset.identifier;
-                    const prompt = prompts.find(p => p.identifier === identifier);
-                    if (prompt?.isEnabled) {
-                        card.classList.add('nemo-prompt-card-enabled');
-                        card.querySelector('.nemo-prompt-card-status').textContent = '✓';
-                    } else {
-                        card.classList.remove('nemo-prompt-card-enabled');
-                        card.querySelector('.nemo-prompt-card-status').textContent = '';
+                try {
+                    if (!promptManager || !promptManager.activeCharacter) {
+                        logger.warn('Cannot load preset: promptManager not available');
+                        return;
                     }
-                });
 
-                updateTrayState();
-                presetsMenu.classList.remove('nemo-presets-open');
-                logger.info(`Loaded preset: ${preset.name}`);
+                    const activeCharacter = promptManager.activeCharacter;
+
+                    // Apply preset - update data model for all prompts, save once at end
+                    prompts.forEach(p => {
+                        const shouldEnable = preset.enabledPrompts.includes(p.identifier);
+                        if (p.isEnabled !== shouldEnable) {
+                            const promptOrderEntry = promptManager.getPromptOrderEntry(activeCharacter, p.identifier);
+                            if (promptOrderEntry) {
+                                // Clear token count cache for this prompt
+                                if (promptManager.tokenHandler && promptManager.tokenHandler.getCounts) {
+                                    const counts = promptManager.tokenHandler.getCounts();
+                                    counts[p.identifier] = null;
+                                }
+                                promptOrderEntry.enabled = shouldEnable;
+                            }
+                            p.isEnabled = shouldEnable;
+                        }
+                    });
+
+                    // Single save after all changes
+                    try {
+                        await promptManager.saveServiceSettings();
+                    } catch (saveError) {
+                        logger.error('Error saving preset changes:', saveError);
+                    }
+
+                    // Update all cards visually
+                    tray.querySelectorAll('.nemo-prompt-card').forEach(card => {
+                        const identifier = card.dataset.identifier;
+                        const prompt = prompts.find(p => p.identifier === identifier);
+                        if (prompt?.isEnabled) {
+                            card.classList.add('nemo-prompt-card-enabled');
+                            card.querySelector('.nemo-prompt-card-status').textContent = '✓';
+                        } else {
+                            card.classList.remove('nemo-prompt-card-enabled');
+                            card.querySelector('.nemo-prompt-card-status').textContent = '';
+                        }
+                    });
+
+                    updateTrayState();
+                    presetsMenu.classList.remove('nemo-presets-open');
+                    logger.info(`Loaded preset: ${preset.name}`);
+                } finally {
+                    // Clear flag after save completes
+                    setTimeout(() => {
+                        window._nemoTogglingPrompt = false;
+                    }, 50);
+                }
             }
         });
     });
@@ -1505,33 +1563,64 @@ function openTray(section) {
     });
 
     // Toggle-all button handler
-    // Note: Uses performToggle directly to skip individual validation popups
-    // (user explicitly wants all enabled/disabled - showing 20 popups would be bad UX)
-    tray.querySelector('.nemo-tray-toggle-all').addEventListener('click', (e) => {
+    // Uses batch operations for efficiency (single save at end, prevents race conditions)
+    tray.querySelector('.nemo-tray-toggle-all').addEventListener('click', async (e) => {
         e.stopPropagation();
         const enabledCount = prompts.filter(p => p.isEnabled).length;
         const newState = enabledCount < prompts.length; // Enable all if not all enabled, else disable all
 
-        // Toggle all prompts (skip validation for bulk action)
-        prompts.forEach(p => {
-            if (p.isEnabled !== newState) {
-                performToggle(p.identifier, newState);
-                p.isEnabled = newState;
-            }
-        });
+        // Set flag to prevent observer interference during batch toggle
+        window._nemoTogglingPrompt = true;
 
-        // Update all cards visually
-        tray.querySelectorAll('.nemo-prompt-card').forEach(card => {
-            if (newState) {
-                card.classList.add('nemo-prompt-card-enabled');
-                card.querySelector('.nemo-prompt-card-status').textContent = '✓';
-            } else {
-                card.classList.remove('nemo-prompt-card-enabled');
-                card.querySelector('.nemo-prompt-card-status').textContent = '';
+        try {
+            if (!promptManager || !promptManager.activeCharacter) {
+                logger.warn('Cannot toggle all: promptManager not available');
+                return;
             }
-        });
 
-        updateTrayState();
+            const activeCharacter = promptManager.activeCharacter;
+
+            // Update data model for all prompts that need to change
+            prompts.forEach(p => {
+                if (p.isEnabled !== newState) {
+                    const promptOrderEntry = promptManager.getPromptOrderEntry(activeCharacter, p.identifier);
+                    if (promptOrderEntry) {
+                        // Clear token count cache for this prompt
+                        if (promptManager.tokenHandler && promptManager.tokenHandler.getCounts) {
+                            const counts = promptManager.tokenHandler.getCounts();
+                            counts[p.identifier] = null;
+                        }
+                        promptOrderEntry.enabled = newState;
+                    }
+                    p.isEnabled = newState;
+                }
+            });
+
+            // Single save after all changes
+            try {
+                await promptManager.saveServiceSettings();
+            } catch (saveError) {
+                logger.error('Error saving toggle-all changes:', saveError);
+            }
+
+            // Update all cards visually
+            tray.querySelectorAll('.nemo-prompt-card').forEach(card => {
+                if (newState) {
+                    card.classList.add('nemo-prompt-card-enabled');
+                    card.querySelector('.nemo-prompt-card-status').textContent = '✓';
+                } else {
+                    card.classList.remove('nemo-prompt-card-enabled');
+                    card.querySelector('.nemo-prompt-card-status').textContent = '';
+                }
+            });
+
+            updateTrayState();
+        } finally {
+            // Clear flag after save completes
+            setTimeout(() => {
+                window._nemoTogglingPrompt = false;
+            }, 50);
+        }
     });
 
     // Click on prompt cards to toggle
@@ -1756,6 +1845,19 @@ function closeTray(section) {
         // Set closing flag to prevent race conditions
         section._nemoTrayClosing = true;
 
+        // Clear drag state if this tray was the source of an active drag
+        // This prevents isDragging from getting stuck true indefinitely
+        if (currentlyDraggedFromTray === tray || currentlyDraggedFromSection === section) {
+            isDragging = false;
+            currentlyDraggedPrompt = null;
+            currentlyDraggedFromSection = null;
+            currentlyDraggedFromTray = null;
+            currentDropTarget = null;
+            isOverTopLevelDropZone = false;
+            hideTopLevelDropZone();
+            logger.debug('[NemoTray] Cleared drag state during tray close');
+        }
+
         // Remove click-outside handler
         if (tray._closeHandler) {
             document.removeEventListener('click', tray._closeHandler);
@@ -1838,23 +1940,58 @@ function togglePrompt(identifier, enabled, onValidationFailed = null) {
 
 /**
  * Perform the actual toggle operation (no validation)
+ * Matches SillyTavern's handleToggle behavior for proper state sync
  * @param {string} identifier - Prompt identifier
  * @param {boolean} enabled - New enabled state
+ * @returns {Promise<void>}
  */
-function performToggle(identifier, enabled) {
-    if (!promptManager) return;
+async function performToggle(identifier, enabled) {
+    if (!promptManager) {
+        logger.warn('performToggle: promptManager not available');
+        return;
+    }
+
+    // Set flag to prevent observer interference during toggle
+    window._nemoTogglingPrompt = true;
 
     try {
         const activeCharacter = promptManager.activeCharacter;
+        if (!activeCharacter) {
+            logger.warn('performToggle: no active character');
+            return;
+        }
+
         const promptOrderEntry = promptManager.getPromptOrderEntry(activeCharacter, identifier);
 
         if (promptOrderEntry) {
+            // CRITICAL: Clear token count cache (matches SillyTavern's handleToggle)
+            // Without this, token counts become stale after toggle
+            if (promptManager.tokenHandler && promptManager.tokenHandler.getCounts) {
+                const counts = promptManager.tokenHandler.getCounts();
+                counts[identifier] = null;
+            }
+
             promptOrderEntry.enabled = enabled;
-            promptManager.saveServiceSettings();
+
+            // Await the save to ensure it completes before clearing the toggle flag
+            // This prevents race conditions with MutationObservers
+            try {
+                await promptManager.saveServiceSettings();
+            } catch (saveError) {
+                logger.error('Error saving settings after toggle:', saveError);
+            }
+
             logger.info(`Toggled prompt ${identifier} to ${enabled}`);
+        } else {
+            logger.warn(`performToggle: no promptOrderEntry for ${identifier}`);
         }
     } catch (error) {
         logger.error('Error performing toggle:', error);
+    } finally {
+        // Clear flag after save completes plus a small buffer for any async DOM updates
+        setTimeout(() => {
+            window._nemoTogglingPrompt = false;
+        }, 50);
     }
 }
 
@@ -2968,16 +3105,16 @@ function disableAccordionMode() {
             item.classList.remove('nemo-accordion-prompt', 'nemo-accordion-prompt-enabled', 'nemo-accordion-prompt-disabled');
             delete item.dataset.accordionEnhanced;
 
-            // Remove toggle handler
-            if (item._accordionToggleHandler) {
-                const toggleBtn = item.querySelector('.prompt-manager-toggle-action');
-                if (toggleBtn) {
-                    toggleBtn.removeEventListener('click', item._accordionToggleHandler);
-                }
-                delete item._accordionToggleHandler;
+            // Clear toggle handler flag (listener will be GC'd with element replacement)
+            const toggleBtn = item.querySelector('.prompt-manager-toggle-action');
+            if (toggleBtn) {
+                delete toggleBtn._nemoAccordionHandled;
             }
         });
     });
 
     logger.debug('Accordion mode disabled for all sections');
 }
+
+// Export for use in prompt-manager.js after cache restore
+export { convertToAccordionMode, enhancePromptItemForAccordion };

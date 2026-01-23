@@ -9,7 +9,7 @@ import storage from '../../core/storage-migration.js';
 import '../../lib/Sortable.min.js'; // Import Sortable
 import { getTooltip } from './prompt-tooltips.js';
 import { parsePromptDirectives } from '../directives/prompt-directives.js';
-import { disableTrayMode } from './category-tray.js';
+import { disableTrayMode, enhancePromptItemForAccordion } from './category-tray.js';
 
 // 1. CONFIGURATION & STATE
 const NEMO_BUILT_IN_PATTERNS = ['=+', '⭐─+', '━+'];
@@ -30,6 +30,238 @@ const SELECTORS = {
 let DIVIDER_PREFIX_REGEX;
 let openSectionStates = storage.getOpenSectionStates();
 let isSectionsFeatureEnabled = storage.getSectionsEnabled();
+
+// Cached section structure for instant restore after SillyTavern rebuilds
+let cachedSectionStructure = null;
+
+/**
+ * Cache the current section DOM structure for instant restore
+ * Called after organizing to preserve the structure
+ */
+function cacheSectionStructure() {
+    const container = document.querySelector(SELECTORS.promptsContainer);
+    if (!container) return;
+
+    const sections = container.querySelectorAll('details.nemo-engine-section');
+    if (sections.length === 0) return;
+
+    // Deep clone the entire container content
+    cachedSectionStructure = container.cloneNode(true);
+    logger.debug(`Cached section structure with ${sections.length} sections`);
+}
+
+/**
+ * Restore cached section structure while keeping SillyTavern's new prompt elements
+ * This preserves ST's state management while restoring our section layout
+ * @param {HTMLElement} container - The prompt list container
+ * @param {NodeList} newPrompts - The new prompt elements from SillyTavern (these are kept!)
+ * @returns {boolean} - True if restore was successful, false if full rebuild needed
+ */
+function restoreCachedStructure(container, newPrompts) {
+    if (!cachedSectionStructure || !container) return false;
+    if (newPrompts.length === 0) return false;
+
+    // Set organizing flag to prevent observer interference during restore
+    container.dataset.nemoOrganizing = 'true';
+
+    // Build a map of prompt identifier -> the actual new DOM element from SillyTavern
+    const newPromptMap = new Map();
+    newPrompts.forEach(prompt => {
+        const identifier = prompt.dataset.pmIdentifier;
+        if (identifier) {
+            newPromptMap.set(identifier, prompt);
+        }
+    });
+
+    if (newPromptMap.size === 0) return false;
+
+    // Clone the cached structure to get section layout
+    const cachedClone = cachedSectionStructure.cloneNode(true);
+
+    // Use DocumentFragment to batch DOM updates and prevent visual flicker
+    const fragment = document.createDocumentFragment();
+
+    /**
+     * Recursively rebuild a section content, handling nested sub-sections
+     */
+    function rebuildSectionContent(cachedContent, newPromptMap) {
+        const newContent = document.createElement('div');
+        newContent.className = cachedContent.className;
+
+        // Process children in order (prompts and sub-sections)
+        Array.from(cachedContent.children).forEach(child => {
+            if (child.matches('li.completion_prompt_manager_prompt')) {
+                // It's a prompt - use SillyTavern's new element
+                const identifier = child.dataset.pmIdentifier;
+                const newPrompt = newPromptMap.get(identifier);
+                if (newPrompt) {
+                    newContent.appendChild(newPrompt);
+                    newPromptMap.delete(identifier);
+                }
+            } else if (child.matches('details.nemo-engine-section')) {
+                // It's a sub-section - rebuild it recursively
+                const newSubSection = rebuildSection(child, newPromptMap);
+                if (newSubSection) {
+                    newContent.appendChild(newSubSection);
+                }
+            }
+        });
+
+        return newContent;
+    }
+
+    /**
+     * Rebuild a section (main or sub) with proper open state and content
+     */
+    function rebuildSection(cachedSection, newPromptMap) {
+        // Create fresh details element to avoid any stale state from cloneNode
+        const newSection = document.createElement('details');
+        newSection.className = cachedSection.className;
+
+        // Copy data attributes
+        Object.keys(cachedSection.dataset).forEach(key => {
+            newSection.dataset[key] = cachedSection.dataset[key];
+        });
+
+        // Get the original text (key used for saving state) from the data attribute
+        // This is the full divider text like "==== Core_Packs ====" not just "Core_Packs"
+        const cachedSummaryLi = cachedSection.querySelector('summary > li');
+        const originalText = cachedSummaryLi?.dataset?.nemoOriginalText;
+        const headerIdentifier = cachedSummaryLi?.dataset?.pmIdentifier;
+
+        // Determine correct open state BEFORE adding to DOM
+        let shouldBeOpen;
+        if (originalText && openSectionStates.hasOwnProperty(originalText)) {
+            shouldBeOpen = openSectionStates[originalText];
+        } else {
+            // Fall back to cached state or default to open
+            shouldBeOpen = cachedSection.open !== false;
+        }
+
+        // Set open attribute explicitly (not just property) to ensure correct initial render
+        if (shouldBeOpen) {
+            newSection.setAttribute('open', '');
+        }
+        newSection.open = shouldBeOpen;
+
+        // Build summary with the NEW header prompt from SillyTavern (has correct toggle state)
+        const cachedSummary = cachedSection.querySelector(':scope > summary');
+        if (cachedSummary) {
+            const newSummary = document.createElement('summary');
+
+            // Get the new header prompt from SillyTavern
+            const newHeaderPrompt = headerIdentifier ? newPromptMap.get(headerIdentifier) : null;
+
+            if (newHeaderPrompt) {
+                // Use SillyTavern's new header prompt
+                newSummary.appendChild(newHeaderPrompt);
+                newPromptMap.delete(headerIdentifier); // Remove so it's not placed elsewhere
+
+                // Clean the header text (SillyTavern's prompt has raw "=== text ===" format)
+                // DON'T modify link.textContent - SillyTavern preserves changes and breaks re-renders
+                // Instead, hide the original link and add a display span with cleaned name
+                const cleanedName = cachedSummaryLi?.dataset?.nemoSectionName;
+                if (cleanedName) {
+                    const nameSpan = newHeaderPrompt.querySelector('span.completion_prompt_manager_prompt_name');
+                    const link = nameSpan?.querySelector('a');
+                    if (link && nameSpan) {
+                        link.style.display = 'none';
+                        link.dataset.nemoOriginalText = link.textContent;
+
+                        // Add a display span with the cleaned name
+                        let displaySpan = nameSpan.querySelector('.nemo-section-display-name');
+                        if (!displaySpan) {
+                            displaySpan = document.createElement('span');
+                            displaySpan.className = 'nemo-section-display-name';
+                            nameSpan.insertBefore(displaySpan, link);
+                        }
+                        displaySpan.textContent = cleanedName;
+                    }
+                }
+            } else {
+                // Fallback: clone the cached summary content
+                Array.from(cachedSummary.childNodes).forEach(child => {
+                    newSummary.appendChild(child.cloneNode(true));
+                });
+            }
+
+            newSection.appendChild(newSummary);
+        }
+
+        // Rebuild section content (handles nested sub-sections)
+        const cachedContent = cachedSection.querySelector(':scope > .nemo-section-content');
+        if (cachedContent) {
+            const newContent = rebuildSectionContent(cachedContent, newPromptMap);
+            newSection.appendChild(newContent);
+        }
+
+        return newSection;
+    }
+
+    // Rebuild only top-level sections (sub-sections are handled recursively)
+    Array.from(cachedClone.children).forEach(child => {
+        if (child.matches('details.nemo-engine-section')) {
+            const newSection = rebuildSection(child, newPromptMap);
+            if (newSection) {
+                fragment.appendChild(newSection);
+            }
+        }
+    });
+
+    // Any remaining prompts that weren't in cached sections go at the end
+    newPromptMap.forEach(prompt => {
+        fragment.appendChild(prompt);
+    });
+
+    // Atomic replacement of all children - prevents visual flicker
+    container.replaceChildren(fragment);
+
+    // Apply enhancements to the new prompt elements (drag handles, tooltips, etc.)
+    container.querySelectorAll('li.completion_prompt_manager_prompt').forEach(item => {
+        // Add drag handle if missing
+        if (!item.classList.contains('nemo-header-item') && !item.querySelector('.drag-handle')) {
+            const dragHandle = document.createElement('span');
+            dragHandle.className = 'drag-handle';
+            dragHandle.innerHTML = '&#9776;';
+            item.prepend(dragHandle);
+        }
+
+        // Add favorite button if missing
+        const controlsWrapper = item.querySelector('.completion_prompt_manager_prompt_controls');
+        if (controlsWrapper && !controlsWrapper.querySelector('.nemo-favorite-btn')) {
+            const favoriteBtn = document.createElement('div');
+            favoriteBtn.className = 'nemo-favorite-btn menu_button menu_button_icon fa-solid fa-star';
+            favoriteBtn.title = 'Favorite Preset';
+            controlsWrapper.prepend(favoriteBtn);
+
+            const presetId = item.dataset.pmIdentifier;
+            if (NemoPresetManager.isFavorite(presetId)) {
+                favoriteBtn.classList.add('favorited');
+            }
+
+            favoriteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                NemoPresetManager.toggleFavorite(presetId);
+                favoriteBtn.classList.toggle('favorited');
+            });
+        }
+
+        // Apply tooltips
+        applyTooltipToPrompt(item);
+    });
+
+    // Update section counts
+    container.querySelectorAll('details.nemo-engine-section').forEach(section => {
+        NemoPresetManager.updateSectionCount(section);
+    });
+
+    // Clear organizing flag and restore visibility
+    delete container.dataset.nemoOrganizing;
+    container.style.visibility = '';
+
+    logger.debug('Restored section structure with SillyTavern prompt elements');
+    return true;
+}
 
 /**
  * Capture current section open states from the DOM before a rebuild
@@ -60,16 +292,22 @@ function captureCurrentSectionStates() {
  * @param {HTMLElement} item - The prompt item element
  */
 function applyAccordionEnhancement(item) {
-    if (!item || item.dataset.accordionEnhanced === 'true') return;
+    if (!item) return;
 
-    item.dataset.accordionEnhanced = 'true';
-    item.classList.add('nemo-accordion-prompt');
+    // Apply basic styling if not already done
+    if (item.dataset.accordionEnhanced !== 'true') {
+        item.dataset.accordionEnhanced = 'true';
+        item.classList.add('nemo-accordion-prompt');
 
-    // Apply enabled/disabled styling
-    const toggleBtn = item.querySelector('.prompt-manager-toggle-action');
-    const isEnabled = toggleBtn?.classList.contains('fa-toggle-on');
-    item.classList.toggle('nemo-accordion-prompt-enabled', isEnabled);
-    item.classList.toggle('nemo-accordion-prompt-disabled', !isEnabled);
+        // Apply enabled/disabled styling (legacy fallback for browsers without :has())
+        const toggleBtn = item.querySelector('.prompt-manager-toggle-action');
+        const isEnabled = toggleBtn?.classList.contains('fa-toggle-on');
+        item.classList.toggle('nemo-accordion-prompt-enabled', isEnabled);
+        item.classList.toggle('nemo-accordion-prompt-disabled', !isEnabled);
+    }
+
+    // CSS :has() selector handles enabled/disabled styling automatically
+    enhancePromptItemForAccordion(item);
 }
 
 // 2. MODULE-SPECIFIC HELPERS
@@ -960,6 +1198,10 @@ export const NemoPresetManager = {
         }
 
         // Check for main header pattern: === text === or similar
+        // Safety check: if regex isn't loaded yet, initialize with built-ins
+        if (!DIVIDER_PREFIX_REGEX) {
+            DIVIDER_PREFIX_REGEX = new RegExp(`^(${NEMO_BUILT_IN_PATTERNS.join('|')})`);
+        }
         const match = DIVIDER_PREFIX_REGEX.exec(promptName);
 
         promptElement.dataset.nemoDividerChecked = 'true';
@@ -1009,29 +1251,45 @@ export const NemoPresetManager = {
     // ** REFACTORED RENDER/ORGANIZATION LOGIC **
     organizePrompts: async function(forceFullReorganization = false) {
         const promptsContainer = document.querySelector(SELECTORS.promptsContainer);
-        if (!promptsContainer || (promptsContainer.dataset.nemoOrganizing === 'true' && !forceFullReorganization)) return;
+        logger.debug('[NemoPresetExt] organizePrompts called, container:', promptsContainer ? 'found' : 'NOT FOUND');
+
+        if (!promptsContainer || (promptsContainer.dataset.nemoOrganizing === 'true' && !forceFullReorganization)) {
+            logger.debug('[NemoPresetExt] organizePrompts returning early - container:', !!promptsContainer, 'organizing:', promptsContainer?.dataset.nemoOrganizing);
+            return;
+        }
         promptsContainer.dataset.nemoOrganizing = 'true';
 
         isSectionsFeatureEnabled = storage.getSectionsEnabled();
+        logger.debug('[NemoPresetExt] organizePrompts - sections enabled:', isSectionsFeatureEnabled);
 
         // Add persistent class for CSS to hide flat prompts when sections mode is active
-        // This prevents flash when ST rebuilds DOM before we reorganize
+        // Use BODY class to persist through container replacement by SillyTavern
         if (isSectionsFeatureEnabled) {
             promptsContainer.classList.add('nemo-sections-mode');
+            document.body.classList.add('nemo-sections-mode-active');
         } else {
             promptsContainer.classList.remove('nemo-sections-mode');
+            document.body.classList.remove('nemo-sections-mode-active');
         }
 
         // --- Start: Robust Flattening Logic ---
         const allPromptsInOrder = [];
         const allCurrentItems = Array.from(promptsContainer.querySelectorAll('li.completion_prompt_manager_prompt'));
+        logger.debug('[NemoPresetExt] organizePrompts - found', allCurrentItems.length, 'prompts to flatten');
 
         allCurrentItems.forEach(item => {
-            // Restore original text if it's a header
+            // Restore visibility if it's a header (we hid the link and added a display span)
             if (item.classList.contains('nemo-header-item')) {
+                const nameSpan = item.querySelector('span.completion_prompt_manager_prompt_name');
                 const link = item.querySelector(SELECTORS.promptNameLink);
-                if (link && item.dataset.nemoOriginalText) {
-                    link.textContent = item.dataset.nemoOriginalText;
+                if (link) {
+                    // Show the original link again
+                    link.style.display = '';
+                }
+                // Remove the display span we added
+                const displaySpan = nameSpan?.querySelector('.nemo-section-display-name');
+                if (displaySpan) {
+                    displaySpan.remove();
                 }
             }
             allPromptsInOrder.push(item);
@@ -1097,13 +1355,24 @@ export const NemoPresetManager = {
 
         // Rebuild sections
         const itemsToProcess = Array.from(promptsContainer.children);
+        logger.debug(`[NemoPresetExt] organizePrompts: ${itemsToProcess.length} items to process`);
+
         promptsContainer.innerHTML = ''; // Clear the container
 
+        let dividerCount = 0;
         itemsToProcess.forEach(item => {
             if (item.matches('li.completion_prompt_manager_prompt')) {
+                const nameLink = item.querySelector('span.completion_prompt_manager_prompt_name a');
+                const promptName = nameLink?.textContent?.trim() || '';
+                const dividerInfo = this.getDividerInfo(item, true);
+                if (dividerInfo.isDivider) {
+                    dividerCount++;
+                    logger.debug(`[NemoPresetExt] Found divider: "${promptName}" -> cleaned: "${dividerInfo.name}"`);
+                }
                 this.processSingleItem(item, promptsContainer);
             }
         });
+        logger.debug(`[NemoPresetExt] organizePrompts: Found ${dividerCount} dividers`);
 
         // Final pass: ensure all sections have correct open state
         // This handles any race conditions with other code that might reset states
@@ -1121,8 +1390,30 @@ export const NemoPresetManager = {
             }
         });
 
+        // Final count
+        const finalSections = promptsContainer.querySelectorAll('details.nemo-engine-section').length;
+        const finalPromptsInSections = promptsContainer.querySelectorAll('details.nemo-engine-section .nemo-section-content li.completion_prompt_manager_prompt').length;
+        const finalFlatPrompts = promptsContainer.querySelectorAll(':scope > li.completion_prompt_manager_prompt').length;
+        logger.debug(`[NemoPresetExt] organizePrompts COMPLETE: ${finalSections} sections, ${finalPromptsInSections} prompts in sections, ${finalFlatPrompts} flat prompts`);
+
+        // SAFETY: If most prompts are flat (not in sections), disable sections-mode so they're visible
+        // This prevents the CSS from hiding prompts when organizing didn't create enough sections
+        const totalPrompts = finalPromptsInSections + finalFlatPrompts;
+        if (totalPrompts > 0 && finalFlatPrompts > totalPrompts * 0.5) {
+            logger.warn(`[NemoPresetExt] organizePrompts: Too many flat prompts (${finalFlatPrompts}/${totalPrompts}), disabling sections-mode to keep prompts visible`);
+            promptsContainer.classList.remove('nemo-sections-mode');
+            document.body.classList.remove('nemo-sections-mode-active');
+        }
+
         delete promptsContainer.dataset.nemoOrganizing;
+        // Remove body class that hides prompt list (survives container replacement)
+        document.body.classList.remove('nemo-prompt-reorganizing');
+        logger.debug('[NemoPresetExt] organizePrompts: Removed body class, container should be visible');
+
         this.initializeDragAndDrop(promptsContainer);
+
+        // Cache the section structure for instant restore on future rebuilds
+        cacheSectionStructure();
     },
 
     processSingleItem: function(item, container) {
@@ -1148,7 +1439,21 @@ export const NemoPresetManager = {
             const nameSpan = item.querySelector('span.completion_prompt_manager_prompt_name');
             if (nameSpan) {
                 const link = nameSpan.querySelector('a');
-                if (link) link.textContent = dividerInfo.name;
+                // DON'T modify link.textContent - SillyTavern preserves our changes and breaks re-renders
+                // Instead, hide the original link and add a display span with cleaned name
+                if (link) {
+                    link.style.display = 'none';
+                    link.dataset.nemoOriginalText = link.textContent; // Store for safety
+
+                    // Add a display span with the cleaned name
+                    let displaySpan = nameSpan.querySelector('.nemo-section-display-name');
+                    if (!displaySpan) {
+                        displaySpan = document.createElement('span');
+                        displaySpan.className = 'nemo-section-display-name';
+                        nameSpan.insertBefore(displaySpan, link);
+                    }
+                    displaySpan.textContent = dividerInfo.name;
+                }
                 if (!nameSpan.querySelector('.nemo-enabled-count')) {
                     nameSpan.insertAdjacentHTML('beforeend', '<span class="nemo-enabled-count"></span>');
                 }
@@ -1298,18 +1603,24 @@ export const NemoPresetManager = {
             }
         });
 
-        console.log(`${LOG_PREFIX} Search for "${searchTerm}" found ${matchingItems.size} matching prompts in ${sectionsWithMatches.size} sections`);
+        logger.debug(`${LOG_PREFIX} Search for "${searchTerm}" found ${matchingItems.size} matching prompts in ${sectionsWithMatches.size} sections`);
     },
 
     // Event Handling & Initialization
     initialize: function(container) {
-        if (container.dataset.nemoPromptsInitialized) return;
+        logger.debug('[NemoPresetExt] initialize called, container exists:', !!container, 'already initialized:', container?.dataset.nemoPromptsInitialized);
+        if (container.dataset.nemoPromptsInitialized) {
+            logger.debug('[NemoPresetExt] initialize returning early - already initialized');
+            return;
+        }
         container.dataset.nemoPromptsInitialized = 'true';
+        logger.debug('[NemoPresetExt] initialize proceeding with setup');
 
         // Add persistent class immediately if sections mode is enabled
-        // This allows CSS to hide flat prompts during rebuilds, preventing flash
+        // Use BODY class to persist through container replacement by SillyTavern
         if (storage.getSectionsEnabled()) {
             container.classList.add('nemo-sections-mode');
+            document.body.classList.add('nemo-sections-mode-active');
         }
 
         this.createSearchAndStatusUI(container);
@@ -1328,6 +1639,10 @@ export const NemoPresetManager = {
 
         container.addEventListener('click', this.handleContainerClick.bind(this));
         container.addEventListener('contextmenu', this.handleContextMenu.bind(this));
+
+        // NOTE: Removed preemptive hiding on toggle clicks to prevent flash and lag
+        // The MutationObserver will handle hiding only when actual reorganization is needed
+
         this.initializeObserver(container);
         this.createContextMenu();
 
@@ -1336,28 +1651,149 @@ export const NemoPresetManager = {
 
         // Wait for prompts to be loaded before organizing
         // Use requestAnimationFrame to ensure DOM is fully rendered
+        let waitAttempts = 0;
+        const maxWaitAttempts = 100; // ~1.6 seconds at 60fps
+
         const waitForPromptsAndOrganize = () => {
-            const promptItems = container.querySelectorAll('li.completion_prompt_manager_prompt');
+            waitAttempts++;
+
+            // Always get fresh container reference in case it was replaced
+            const currentContainer = document.querySelector(SELECTORS.promptsContainer);
+            if (!currentContainer) {
+                if (waitAttempts < maxWaitAttempts) {
+                    requestAnimationFrame(waitForPromptsAndOrganize);
+                } else {
+                    logger.error('[NemoPresetExt] initialize: Gave up waiting for container');
+                    document.body.classList.remove('nemo-prompt-reorganizing');
+                }
+                return;
+            }
+
+            const promptItems = currentContainer.querySelectorAll('li.completion_prompt_manager_prompt');
+
             if (promptItems.length > 0) {
                 // Prompts are loaded, organize them now
+                logger.debug(`[NemoPresetExt] initialize: ${promptItems.length} prompts found, organizing...`);
                 this.organizePrompts();
+                // organizePrompts removes body class when done
+            } else if (waitAttempts < maxWaitAttempts) {
+                // Prompts not loaded yet, wait and try again
+                requestAnimationFrame(waitForPromptsAndOrganize);
             } else {
-                // Prompts not loaded yet, wait a bit and try again
-                // Use a short timeout to avoid blocking
-                setTimeout(() => {
-                    const itemsNow = container.querySelectorAll('li.completion_prompt_manager_prompt');
-                    if (itemsNow.length > 0) {
-                        this.organizePrompts();
-                    } else {
-                        // If still no prompts after delay, let the MutationObserver handle it
-                        // This ensures we don't wait forever if there genuinely are no prompts
-                        logger.debug('No prompts found after initialization delay, will wait for MutationObserver');
-                    }
-                }, 100);
+                // Gave up waiting, let MutationObserver handle it
+                logger.warn('[NemoPresetExt] initialize: No prompts found after max attempts');
+                document.body.classList.remove('nemo-prompt-reorganizing');
             }
         };
 
         requestAnimationFrame(waitForPromptsAndOrganize);
+    },
+
+    /**
+     * Re-initialization for when SillyTavern recreates the prompt list DOM
+     * Rebuilds sections properly from scratch based on divider patterns
+     */
+    reinitializeAfterDOMRecreation: function(container) {
+        if (!container) return;
+
+        // Mark as initialized to prevent duplicate calls
+        container.dataset.nemoPromptsInitialized = 'true';
+
+        // Clear any stale organizing flag to prevent organizePrompts from returning early
+        delete container.dataset.nemoOrganizing;
+
+        // Re-add the sections mode class if enabled
+        // Body class should already be set, but ensure container has it too
+        if (storage.getSectionsEnabled()) {
+            container.classList.add('nemo-sections-mode');
+            document.body.classList.add('nemo-sections-mode-active');
+        }
+
+        // Recreate search bar UI if missing (SillyTavern may have replaced the container element)
+        const searchContainer = document.getElementById('nemoSearchAndStatusWrapper');
+        if (!searchContainer) {
+            this.createSearchAndStatusUI(container);
+            this.setupEventListeners();
+        }
+
+        // Wait for SillyTavern to finish populating prompts before organizing
+        // The MutationObserver fires when container is created, but prompts are added asynchronously
+        let waitAttempts = 0;
+        const maxWaitAttempts = 100; // ~1.6 seconds at 60fps
+
+        const waitForPromptsAndOrganize = () => {
+            waitAttempts++;
+
+            // Always get fresh container reference in case SillyTavern replaced it
+            const currentContainer = document.querySelector(SELECTORS.promptsContainer);
+            if (!currentContainer) {
+                logger.warn(`[NemoPresetExt] reinitialize: Container not found on attempt ${waitAttempts}`);
+                if (waitAttempts < maxWaitAttempts) {
+                    requestAnimationFrame(waitForPromptsAndOrganize);
+                } else {
+                    logger.error('[NemoPresetExt] reinitialize: Gave up waiting for container');
+                    document.body.classList.remove('nemo-prompt-reorganizing');
+                }
+                return;
+            }
+
+            const promptCount = currentContainer.querySelectorAll('li.completion_prompt_manager_prompt').length;
+            logger.debug(`[NemoPresetExt] reinitialize attempt ${waitAttempts}: ${promptCount} prompts found`);
+
+            if (promptCount === 0) {
+                // Prompts not loaded yet, wait and try again
+                if (waitAttempts < maxWaitAttempts) {
+                    requestAnimationFrame(waitForPromptsAndOrganize);
+                } else {
+                    logger.error('[NemoPresetExt] reinitialize: Gave up waiting for prompts');
+                    document.body.classList.remove('nemo-prompt-reorganizing');
+                }
+                return;
+            }
+
+            logger.debug(`[NemoPresetExt] reinitialize: ${promptCount} prompts found, organizing...`);
+
+            try {
+                this.organizePrompts();
+
+                // Log state after organizing
+                const sectionsAfter = currentContainer.querySelectorAll('details.nemo-engine-section').length;
+                const promptsInSections = currentContainer.querySelectorAll('details.nemo-engine-section .nemo-section-content li.completion_prompt_manager_prompt').length;
+                logger.debug(`[NemoPresetExt] reinitialize: ${sectionsAfter} sections created, ${promptsInSections} prompts in sections`);
+            } catch (error) {
+                logger.error('[NemoPresetExt] Error during organizePrompts in reinitialize:', error);
+                currentContainer.classList.remove('nemo-sections-mode');
+                document.body.classList.remove('nemo-sections-mode-active');
+            }
+
+            // ALWAYS restore visibility by removing body class
+            logger.debug('[NemoPresetExt] reinitialize: Removing body class to restore visibility');
+            document.body.classList.remove('nemo-prompt-reorganizing');
+
+            // Safety check: if no sections were created, remove sections-mode
+            const sections = currentContainer.querySelectorAll('details.nemo-engine-section');
+            if (sections.length === 0 && currentContainer.classList.contains('nemo-sections-mode')) {
+                logger.warn('No sections created, removing sections-mode class');
+                currentContainer.classList.remove('nemo-sections-mode');
+                document.body.classList.remove('nemo-sections-mode-active');
+            }
+
+            // Final safety: ensure container is visible
+            currentContainer.style.visibility = '';
+            currentContainer.style.display = '';
+        };
+
+        requestAnimationFrame(waitForPromptsAndOrganize);
+
+        // Re-attach event handlers to the new container
+        container.addEventListener('click', this.handleContainerClick.bind(this));
+        container.addEventListener('contextmenu', this.handleContextMenu.bind(this));
+
+        // NOTE: Removed preemptive hiding on toggle clicks to prevent flash and lag
+        // The MutationObserver will handle hiding only when actual reorganization is needed
+
+        // Re-initialize the observer on the new container
+        this.initializeObserver(container);
     },
 
     setupEventListeners: function() {
@@ -1929,12 +2365,12 @@ export const NemoPresetManager = {
             const details = summary.closest('details');
             const li = details.querySelector('summary > li');
             const dividerInfo = this.getDividerInfo(li);
-            // Save state synchronously to prevent race conditions with re-renders
-            // The details.open will be the NEW state after the click
-            // We use requestAnimationFrame to ensure the DOM has updated
-            requestAnimationFrame(() => {
+            // Save state synchronously when the 'toggle' event fires on the details element
+            // Using a one-time toggle listener ensures we get the correct post-toggle state
+            details.addEventListener('toggle', function onToggle() {
+                details.removeEventListener('toggle', onToggle);
                 openSectionStates[dividerInfo.originalText] = details.open;
-            });
+            }, { once: true });
         }
     },
 
@@ -2164,11 +2600,13 @@ export const NemoPresetManager = {
         // Disconnect existing observer if present
         if (this.observers.listObserver) {
             this.observers.listObserver.disconnect();
-            console.log(`${LOG_PREFIX} Disconnected previous list observer`);
+            logger.debug(`${LOG_PREFIX} Disconnected previous list observer`);
         }
 
         const listObserver = new MutationObserver((mutations) => {
+            // Skip if already organizing or if a toggle is in progress
             if (container.dataset.nemoOrganizing === 'true') return;
+            if (window._nemoTogglingPrompt) return;
             listObserver.disconnect();
 
             let needsReorg = false;
@@ -2193,7 +2631,31 @@ export const NemoPresetManager = {
             if (needsReorg) {
                 // Set organizing flag IMMEDIATELY to hide flat list via CSS
                 container.dataset.nemoOrganizing = 'true';
-                this.organizePrompts(true);
+
+                // Try to restore from cache first (instant, no flicker)
+                const newPrompts = container.querySelectorAll('li.completion_prompt_manager_prompt:not(details.nemo-engine-section li)');
+                const restored = restoreCachedStructure(container, newPrompts);
+
+                if (restored) {
+                    delete container.dataset.nemoOrganizing;
+                    document.body.classList.remove('nemo-prompt-reorganizing');
+                    container.style.visibility = '';
+                    this.initializeDragAndDrop(container);
+                    // Update all section counts after restore
+                    container.querySelectorAll('details.nemo-engine-section').forEach(section => {
+                        this.updateSectionCount(section);
+                    });
+                    // Re-apply accordion enhancements to new prompt elements (adds toggle interception)
+                    if (storage.getDropdownStyle() === 'accordion') {
+                        container.querySelectorAll('li.completion_prompt_manager_prompt').forEach(item => {
+                            applyAccordionEnhancement(item);
+                        });
+                    }
+                } else {
+                    // No cache, fall back to full reorganization
+                    this.organizePrompts(true);
+                    container.style.visibility = '';
+                }
             }
 
             listObserver.observe(container, { childList: true, subtree: true });
@@ -2201,7 +2663,7 @@ export const NemoPresetManager = {
 
         this.observers.listObserver = listObserver;
         listObserver.observe(container, { childList: true, subtree: true });
-        console.log(`${LOG_PREFIX} List observer initialized`);
+        logger.debug(`${LOG_PREFIX} List observer initialized`);
     },
 
     // Context Menu for Prompt Movement
