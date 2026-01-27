@@ -66,7 +66,7 @@ body.nemo-theme-discord #top-settings-holder {
     background: var(--discord-dark) !important;
     z-index: 10000 !important;
     padding: 0 !important;
-    padding-top: 60px !important;
+    padding-top: 72px !important; /* Clearance for ST logo (48px + 12px top + 12px gap) */
     border: none !important;
     box-shadow: none !important;
     transform: none !important;
@@ -1076,6 +1076,41 @@ body.nemo-theme-discord .discord-dm-avatar-wrapper {
 /* Make chat message avatars clickable */
 body.nemo-theme-discord .mesAvatarWrapper .avatar {
     cursor: zoom-in !important;
+}
+
+/* ==========================================================================
+   RESPONSIVE: NARROW SCREENS
+   Adjust sidebar widths on smaller viewports
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+    body.nemo-theme-discord .discord-settings-sidebar {
+        width: 160px !important;
+        min-width: 160px !important;
+    }
+
+    body.nemo-theme-discord .discord-dm-sidebar {
+        width: 200px !important;
+    }
+
+    body.nemo-theme-discord .discord-profile-panel {
+        width: 280px !important;
+    }
+}
+
+@media (max-width: 900px) {
+    body.nemo-theme-discord .discord-settings-sidebar {
+        width: 140px !important;
+        min-width: 140px !important;
+    }
+
+    body.nemo-theme-discord .discord-dm-sidebar {
+        width: 180px !important;
+    }
+
+    body.nemo-theme-discord .discord-profile-panel {
+        display: none !important; /* Hide profile panel on narrow screens */
+    }
 }
 
 /* ==========================================================================

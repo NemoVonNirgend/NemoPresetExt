@@ -128,7 +128,7 @@ body.nemo-theme-cyberpunk .text_pole {
     color: #e0e0e0 !important;
 }
 
-/* Scanline overlay effect */
+/* Scanline overlay effect - z-index below modals but above content */
 body.nemo-theme-cyberpunk::before {
     content: '';
     position: fixed;
@@ -144,7 +144,7 @@ body.nemo-theme-cyberpunk::before {
         rgba(0, 255, 249, 0.03) 4px
     );
     pointer-events: none;
-    z-index: 99999;
+    z-index: 9998; /* Below modals (10000+) but above content */
     opacity: 0.5;
 }
 
@@ -311,6 +311,9 @@ body.nemo-theme-cyberpunk #top-settings-holder .drawer-icon:not(.closedIcon) {
 body.nemo-theme-cyberpunk #top-settings-holder > .drawer > .drawer-content {
     position: fixed !important;
     top: 58px !important;
+    max-width: 450px !important;
+    max-height: calc(100vh - 70px) !important;
+    overflow-y: auto !important;
     background: #161622 !important;
     border: 1px solid #3a3a4a !important;
     border-top: 2px solid #00fff9 !important;
@@ -881,6 +884,26 @@ body.nemo-theme-cyberpunk #form_sheld {
     background: var(--cyber-bg-dark) !important;
     border-top: 1px solid var(--cyber-border) !important;
     box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ==========================================================================
+   RESPONSIVE: NARROW SCREENS
+   Adjust layout for smaller viewports
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+    body.nemo-theme-cyberpunk #top-settings-holder > .drawer > .drawer-content {
+        max-width: 380px !important;
+    }
+}
+
+@media (max-width: 900px) {
+    body.nemo-theme-cyberpunk #top-settings-holder > .drawer > .drawer-content {
+        max-width: 320px !important;
+        left: 10px !important;
+        right: 10px !important;
+        max-width: calc(100vw - 20px) !important;
+    }
 }
 
 /* ==========================================================================

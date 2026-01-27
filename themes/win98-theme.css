@@ -2140,6 +2140,31 @@ body.nemo-theme-win98 [class*="CoT"] {
 }
 
 /* ==========================================================================
+   RESPONSIVE: NARROW SCREENS
+   Adjust taskbar buttons for smaller viewports
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+    body.nemo-theme-win98 #top-settings-holder .drawer-icon {
+        min-width: 80px !important;
+        max-width: 120px !important;
+    }
+}
+
+@media (max-width: 900px) {
+    body.nemo-theme-win98 #top-settings-holder .drawer-icon {
+        min-width: 60px !important;
+        max-width: 100px !important;
+        font-size: 12px !important;
+    }
+
+    /* Hide program names on narrow screens, show icons only */
+    body.nemo-theme-win98 #top-settings-holder .drawer-icon::after {
+        display: none !important;
+    }
+}
+
+/* ==========================================================================
    ACCESSIBILITY: REDUCED MOTION
    Respects user preference for reduced motion/animations
    ========================================================================== */
