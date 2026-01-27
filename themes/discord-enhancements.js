@@ -326,8 +326,10 @@ function setupQuickLinksFolder() {
     // Create folder button
     const folderBtn = document.createElement('button');
     folderBtn.className = 'discord-folder-btn';
-    folderBtn.innerHTML = '<i class="fa-solid fa-folder"></i>';
+    folderBtn.innerHTML = '<i class="fa-solid fa-folder" aria-hidden="true"></i>';
     folderBtn.title = 'Quick Links';
+    folderBtn.setAttribute('aria-label', 'Quick Links folder');
+    folderBtn.setAttribute('aria-expanded', 'false');
 
     // Create folder content container
     const folderContent = document.createElement('div');
@@ -374,11 +376,13 @@ function setupQuickLinksFolder() {
         if (isExpanded) {
             folderContent.classList.remove('expanded');
             folderBtn.classList.remove('expanded');
-            folderBtn.innerHTML = '<i class="fa-solid fa-folder"></i>';
+            folderBtn.innerHTML = '<i class="fa-solid fa-folder" aria-hidden="true"></i>';
+            folderBtn.setAttribute('aria-expanded', 'false');
         } else {
             folderContent.classList.add('expanded');
             folderBtn.classList.add('expanded');
-            folderBtn.innerHTML = '<i class="fa-solid fa-folder-open"></i>';
+            folderBtn.innerHTML = '<i class="fa-solid fa-folder-open" aria-hidden="true"></i>';
+            folderBtn.setAttribute('aria-expanded', 'true');
         }
     });
 
@@ -406,21 +410,25 @@ function setupDMSidebar() {
     sidebar.id = 'discord-dm-sidebar';
     sidebar.className = 'discord-dm-sidebar';
 
+    sidebar.setAttribute('role', 'complementary');
+    sidebar.setAttribute('aria-label', 'Direct Messages sidebar');
     sidebar.innerHTML = `
         <div class="discord-dm-search">
-            <input type="text" placeholder="Find or start a conversation" id="discord-dm-search-input">
+            <input type="text" placeholder="Find or start a conversation" id="discord-dm-search-input" aria-label="Search conversations">
         </div>
-        <div class="discord-dm-nav">
-            <div class="discord-dm-nav-item" id="discord-nav-characters" title="All Characters">
-                <i class="fa-solid fa-users"></i>
+        <nav class="discord-dm-nav" aria-label="Quick navigation">
+            <button class="discord-dm-nav-item" id="discord-nav-characters" title="All Characters" aria-label="View all characters">
+                <i class="fa-solid fa-users" aria-hidden="true"></i>
                 <span>Characters</span>
-            </div>
-        </div>
+            </button>
+        </nav>
         <div class="discord-dm-header">
-            <span class="discord-dm-header-title">Direct Messages</span>
-            <i class="fa-solid fa-plus discord-dm-header-add" title="Select Character"></i>
+            <span class="discord-dm-header-title" id="discord-dm-header-label">Direct Messages</span>
+            <button class="discord-dm-header-add" title="Select Character" aria-label="Add new conversation">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            </button>
         </div>
-        <div class="discord-dm-list" id="discord-dm-list">
+        <div class="discord-dm-list" id="discord-dm-list" role="list" aria-labelledby="discord-dm-header-label">
         </div>
     `;
 
@@ -434,8 +442,10 @@ function setupDMSidebar() {
             const toggleBtn = document.createElement('button');
             toggleBtn.id = 'discord-dm-toggle';
             toggleBtn.className = 'discord-dm-toggle active';
-            toggleBtn.innerHTML = '<i class="fa-solid fa-message"></i>';
+            toggleBtn.innerHTML = '<i class="fa-solid fa-message" aria-hidden="true"></i>';
             toggleBtn.title = 'Toggle DM Sidebar';
+            toggleBtn.setAttribute('aria-label', 'Toggle Direct Messages sidebar');
+            toggleBtn.setAttribute('aria-expanded', 'true');
 
             // Insert after the ST logo (at the beginning after pseudo-elements)
             settingsHolder.insertBefore(toggleBtn, settingsHolder.firstChild);
@@ -447,10 +457,12 @@ function setupDMSidebar() {
                     document.body.classList.remove('discord-dm-open');
                     sidebar.style.display = 'none';
                     toggleBtn.classList.remove('active');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
                 } else {
                     document.body.classList.add('discord-dm-open');
                     sidebar.style.display = 'flex';
                     toggleBtn.classList.add('active');
+                    toggleBtn.setAttribute('aria-expanded', 'true');
                 }
             });
         }
@@ -635,12 +647,12 @@ function setupImageDrawer() {
 
     panel.innerHTML = `
         <div class="discord-profile-banner">
-            <button class="discord-profile-close" id="discord-profile-close">
-                <i class="fa-solid fa-xmark"></i>
+            <button class="discord-profile-close" id="discord-profile-close" aria-label="Close profile panel">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
             <div class="discord-profile-avatar-wrapper">
-                <img class="discord-profile-avatar" id="discord-profile-avatar" src="img/ai4.png" alt="Character">
-                <div class="discord-profile-status"></div>
+                <img class="discord-profile-avatar" id="discord-profile-avatar" src="img/ai4.png" alt="Character avatar">
+                <div class="discord-profile-status" aria-hidden="true"></div>
             </div>
         </div>
         <div class="discord-profile-body">
@@ -653,7 +665,7 @@ function setupImageDrawer() {
                     Click on a character's avatar to view their profile.
                 </div>
 
-                <div class="discord-profile-divider"></div>
+                <div class="discord-profile-divider" aria-hidden="true"></div>
 
                 <div class="discord-profile-meta">
                     <div class="discord-profile-meta-item">
@@ -667,8 +679,8 @@ function setupImageDrawer() {
                 </div>
             </div>
 
-            <button class="discord-profile-view-full" id="discord-profile-view-full">
-                <i class="fa-solid fa-expand"></i> View Full Image
+            <button class="discord-profile-view-full" id="discord-profile-view-full" aria-label="View full character image">
+                <i class="fa-solid fa-expand" aria-hidden="true"></i> View Full Image
             </button>
         </div>
     `;
@@ -679,11 +691,14 @@ function setupImageDrawer() {
     const modal = document.createElement('div');
     modal.id = 'discord-image-modal';
     modal.className = 'discord-image-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Character image viewer');
     modal.innerHTML = `
-        <button class="discord-image-modal-close" id="discord-image-modal-close">
-            <i class="fa-solid fa-xmark"></i>
+        <button class="discord-image-modal-close" id="discord-image-modal-close" aria-label="Close image viewer">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
-        <img id="discord-image-modal-img" src="" alt="Full Character Image">
+        <img id="discord-image-modal-img" src="" alt="Full size character image">
     `;
     document.body.appendChild(modal);
 

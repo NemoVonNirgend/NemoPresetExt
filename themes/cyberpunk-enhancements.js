@@ -443,7 +443,7 @@ function createCyberpunkModalOverlay() {
     overlay.id = 'cyberpunk-modal-overlay';
     overlay.className = 'cyberpunk-modal-overlay';
     overlay.innerHTML = `
-        <div class="cyberpunk-modal-container">
+        <div class="cyberpunk-modal-container" role="dialog" aria-modal="true" aria-labelledby="cyberpunk-modal-title">
             <div class="cyberpunk-modal-header">
                 <div class="cyberpunk-modal-header-left">
                     <span class="cyberpunk-modal-prefix">&gt; SYSTEM://</span>
@@ -451,9 +451,9 @@ function createCyberpunkModalOverlay() {
                 </div>
                 <div class="cyberpunk-modal-header-right">
                     <div class="cyberpunk-modal-controls">
-                        <span class="cyberpunk-modal-control minimize">─</span>
-                        <span class="cyberpunk-modal-control maximize">□</span>
-                        <span class="cyberpunk-modal-control close" id="cyberpunk-modal-close">×</span>
+                        <button type="button" class="cyberpunk-modal-control minimize" aria-label="Minimize window" tabindex="0">─</button>
+                        <button type="button" class="cyberpunk-modal-control maximize" aria-label="Maximize window" tabindex="0">□</button>
+                        <button type="button" class="cyberpunk-modal-control close" id="cyberpunk-modal-close" aria-label="Close window" tabindex="0">×</button>
                     </div>
                 </div>
             </div>
@@ -848,10 +848,14 @@ function generateCyberpunkNav(activeDrawerId) {
     ];
 
     return navItems.map(item => `
-        <div class="cyberpunk-modal-nav-item ${item.id === activeDrawerId ? 'active' : ''}" data-target="${item.id}">
-            <i class="fa-solid ${item.icon}"></i>
+        <button type="button" class="cyberpunk-modal-nav-item ${item.id === activeDrawerId ? 'active' : ''}"
+                data-target="${item.id}"
+                aria-label="Navigate to ${item.label.replace(/_/g, ' ')}"
+                aria-current="${item.id === activeDrawerId ? 'page' : 'false'}"
+                tabindex="0">
+            <i class="fa-solid ${item.icon}" aria-hidden="true"></i>
             <span>${item.label}</span>
-        </div>
+        </button>
     `).join('');
 }
 

@@ -1073,3 +1073,70 @@ body.nemo-theme-discord .discord-dm-avatar-wrapper {
 body.nemo-theme-discord .mesAvatarWrapper .avatar {
     cursor: zoom-in !important;
 }
+
+/* ==========================================================================
+   ACCESSIBILITY: REDUCED MOTION
+   Respects user preference for reduced motion/animations
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    body.nemo-theme-discord,
+    body.nemo-theme-discord * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY: FOCUS STATES
+   Visible focus indicators for keyboard navigation
+   ========================================================================== */
+
+body.nemo-theme-discord .menu_button:focus-visible,
+body.nemo-theme-discord .drawer-icon:focus-visible,
+body.nemo-theme-discord button:focus-visible {
+    outline: 2px solid var(--discord-blurple) !important;
+    outline-offset: 2px !important;
+}
+
+body.nemo-theme-discord input:focus-visible,
+body.nemo-theme-discord textarea:focus-visible,
+body.nemo-theme-discord select:focus-visible {
+    outline: 2px solid var(--discord-blurple) !important;
+    outline-offset: 0 !important;
+    border-color: var(--discord-blurple) !important;
+}
+
+body.nemo-theme-discord a:focus-visible {
+    outline: 2px solid var(--discord-blurple) !important;
+    outline-offset: 2px !important;
+}
+
+/* Discord-specific focus states */
+body.nemo-theme-discord .discord-dm-item:focus-within {
+    background: var(--discord-hover) !important;
+    outline: 2px solid var(--discord-blurple) !important;
+    outline-offset: -2px !important;
+}
+
+body.nemo-theme-discord .discord-server-icon:focus-visible {
+    outline: 2px solid var(--discord-blurple) !important;
+    outline-offset: 2px !important;
+    border-radius: 50% !important;
+}
+
+body.nemo-theme-discord .discord-close-btn:focus-visible,
+body.nemo-theme-discord .discord-dm-toggle:focus-visible,
+body.nemo-theme-discord .discord-profile-toggle:focus-visible {
+    outline: 2px solid var(--discord-blurple) !important;
+    outline-offset: 2px !important;
+}
+
+/* Checkbox and radio focus states */
+body.nemo-theme-discord input[type="checkbox"]:focus-visible + label,
+body.nemo-theme-discord input[type="radio"]:focus-visible + label {
+    outline: 2px solid var(--discord-blurple) !important;
+    outline-offset: 2px !important;
+}

@@ -879,3 +879,64 @@ body.nemo-theme-cyberpunk #form_sheld {
     border-top: 1px solid var(--cyber-border) !important;
     box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5) !important;
 }
+
+/* ==========================================================================
+   ACCESSIBILITY: REDUCED MOTION
+   Respects user preference for reduced motion/animations
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    body.nemo-theme-cyberpunk,
+    body.nemo-theme-cyberpunk * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* Disable the scanline overlay animation */
+    body.nemo-theme-cyberpunk::before {
+        animation: none !important;
+        opacity: 0 !important;
+    }
+
+    /* Remove flicker and glow animations */
+    body.nemo-theme-cyberpunk .typing_indicator::after {
+        animation: none !important;
+    }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY: FOCUS STATES
+   Visible focus indicators for keyboard navigation
+   ========================================================================== */
+
+body.nemo-theme-cyberpunk .menu_button:focus-visible,
+body.nemo-theme-cyberpunk .drawer-icon:focus-visible,
+body.nemo-theme-cyberpunk button:focus-visible {
+    outline: 2px solid var(--cyber-cyan) !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 10px var(--cyber-cyan-glow) !important;
+}
+
+body.nemo-theme-cyberpunk input:focus-visible,
+body.nemo-theme-cyberpunk textarea:focus-visible,
+body.nemo-theme-cyberpunk select:focus-visible {
+    outline: 2px solid var(--cyber-cyan) !important;
+    outline-offset: 0 !important;
+    border-color: var(--cyber-cyan) !important;
+    box-shadow: 0 0 10px var(--cyber-cyan-glow), inset 0 0 5px var(--cyber-cyan-glow) !important;
+}
+
+body.nemo-theme-cyberpunk a:focus-visible {
+    outline: 2px solid var(--cyber-cyan) !important;
+    outline-offset: 2px !important;
+    text-shadow: 0 0 10px var(--cyber-cyan-glow) !important;
+}
+
+/* Checkbox and radio focus states */
+body.nemo-theme-cyberpunk input[type="checkbox"]:focus-visible + label,
+body.nemo-theme-cyberpunk input[type="radio"]:focus-visible + label {
+    outline: 2px solid var(--cyber-cyan) !important;
+    outline-offset: 2px !important;
+}

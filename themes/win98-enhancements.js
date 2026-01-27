@@ -75,11 +75,13 @@ function addSystemTray() {
     const systray = document.createElement('div');
     systray.id = 'win98-systray';
     systray.className = 'win98-systray';
+    systray.setAttribute('role', 'status');
+    systray.setAttribute('aria-label', 'System tray');
     systray.innerHTML = `
-        <div class="win98-systray-icons" style="display: flex; gap: 4px;">
-            <span class="win98-systray-icon" title="Volume" style="cursor: pointer;">🔊</span>
+        <div class="win98-systray-icons" style="display: flex; gap: 4px;" aria-label="System icons">
+            <button class="win98-systray-icon" title="Volume" aria-label="Volume control" style="cursor: pointer; background: none; border: none; padding: 0;">🔊</button>
         </div>
-        <div class="win98-clock" id="win98-clock" style="min-width: 60px; text-align: center;"></div>
+        <time class="win98-clock" id="win98-clock" style="min-width: 60px; text-align: center;" aria-live="polite"></time>
     `;
 
     // Style the systray with all necessary properties
@@ -137,10 +139,12 @@ function addControlsToPanel(panelId, title) {
 
     const controls = document.createElement('div');
     controls.className = 'win98-window-controls';
+    controls.setAttribute('role', 'group');
+    controls.setAttribute('aria-label', 'Window controls');
     controls.innerHTML = `
-        <button class="win98-window-btn win98-minimize" title="Minimize">_</button>
-        <button class="win98-window-btn win98-maximize" title="Maximize">□</button>
-        <button class="win98-window-btn win98-close" title="Close">×</button>
+        <button class="win98-window-btn win98-minimize" title="Minimize" aria-label="Minimize window">_</button>
+        <button class="win98-window-btn win98-maximize" title="Maximize" aria-label="Maximize window">□</button>
+        <button class="win98-window-btn win98-close" title="Close" aria-label="Close window">×</button>
     `;
 
     // Style
@@ -205,34 +209,36 @@ function initStartMenu() {
     const startMenu = document.createElement('div');
     startMenu.id = 'win98-start-menu';
     startMenu.className = 'win98-start-menu';
+    startMenu.setAttribute('role', 'menu');
+    startMenu.setAttribute('aria-label', 'Start menu');
     startMenu.innerHTML = `
-        <div class="win98-start-sidebar">
+        <div class="win98-start-sidebar" aria-hidden="true">
             <span class="win98-start-sidebar-text">SillyTavern</span>
         </div>
-        <div class="win98-start-items">
-            <div class="win98-start-item" data-action="programs">
-                <span class="win98-start-icon">📁</span>
+        <div class="win98-start-items" role="group">
+            <button class="win98-start-item" data-action="programs" role="menuitem" aria-haspopup="true">
+                <span class="win98-start-icon" aria-hidden="true">📁</span>
                 <span>Programs</span>
-                <span class="win98-arrow">▸</span>
-            </div>
-            <div class="win98-start-item" data-action="characters">
-                <span class="win98-start-icon">👤</span>
+                <span class="win98-arrow" aria-hidden="true">▸</span>
+            </button>
+            <button class="win98-start-item" data-action="characters" role="menuitem">
+                <span class="win98-start-icon" aria-hidden="true">👤</span>
                 <span>Characters</span>
-            </div>
-            <div class="win98-start-item" data-action="settings">
-                <span class="win98-start-icon">⚙️</span>
+            </button>
+            <button class="win98-start-item" data-action="settings" role="menuitem">
+                <span class="win98-start-icon" aria-hidden="true">⚙️</span>
                 <span>Settings</span>
-            </div>
-            <hr class="win98-start-separator">
-            <div class="win98-start-item" data-action="help">
-                <span class="win98-start-icon">❓</span>
+            </button>
+            <hr class="win98-start-separator" role="separator">
+            <button class="win98-start-item" data-action="help" role="menuitem">
+                <span class="win98-start-icon" aria-hidden="true">❓</span>
                 <span>Help</span>
-            </div>
-            <hr class="win98-start-separator">
-            <div class="win98-start-item" data-action="shutdown">
-                <span class="win98-start-icon">🔌</span>
+            </button>
+            <hr class="win98-start-separator" role="separator">
+            <button class="win98-start-item" data-action="shutdown" role="menuitem">
+                <span class="win98-start-icon" aria-hidden="true">🔌</span>
                 <span>Shut Down...</span>
-            </div>
+            </button>
         </div>
     `;
 
@@ -378,24 +384,27 @@ function handleStartMenuAction(action) {
 function showShutdownDialog() {
     const dialog = document.createElement('div');
     dialog.className = 'win98-shutdown-dialog';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', 'win98-shutdown-title');
     dialog.innerHTML = `
         <div class="win98-shutdown-content">
-            <div class="win98-shutdown-titlebar">
+            <div class="win98-shutdown-titlebar" id="win98-shutdown-title">
                 Shut Down SillyTavern
             </div>
             <div class="win98-shutdown-body">
-                <div class="win98-shutdown-icon">🖥️</div>
+                <div class="win98-shutdown-icon" aria-hidden="true">🖥️</div>
                 <div class="win98-shutdown-text">
-                    <p>What do you want the computer to do?</p>
-                    <select class="win98-shutdown-select">
+                    <p id="win98-shutdown-desc">What do you want the computer to do?</p>
+                    <select class="win98-shutdown-select" aria-labelledby="win98-shutdown-desc">
                         <option>Refresh page</option>
                         <option>Just kidding, keep chatting!</option>
                     </select>
                 </div>
             </div>
             <div class="win98-shutdown-buttons">
-                <button class="win98-shutdown-ok">OK</button>
-                <button class="win98-shutdown-cancel">Cancel</button>
+                <button class="win98-shutdown-ok" aria-label="Confirm shutdown action">OK</button>
+                <button class="win98-shutdown-cancel" aria-label="Cancel and close dialog">Cancel</button>
             </div>
         </div>
     `;

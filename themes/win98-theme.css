@@ -97,17 +97,18 @@ body.nemo-theme-win98 .ch_name {
     text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000 !important;
 }
 
-/* Links should be blue */
+/* Links should be blue - using darker blue for WCAG AA contrast on teal desktop */
 body.nemo-theme-win98 a {
-    color: #0000ff !important;
+    color: #000099 !important;
+    text-decoration: underline !important;
 }
 
 body.nemo-theme-win98 a:hover {
-    color: #ff0000 !important;
+    color: #cc0000 !important;
 }
 
 body.nemo-theme-win98 a:visited {
-    color: #800080 !important;
+    color: #660066 !important;
 }
 
 /* Hide SillyTavern backgrounds */
@@ -2128,4 +2129,57 @@ body.nemo-theme-win98 [class*="CoT"] {
     border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
     border-radius: 0 !important;
     color: #000000 !important;
+}
+
+/* ==========================================================================
+   ACCESSIBILITY: REDUCED MOTION
+   Respects user preference for reduced motion/animations
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    body.nemo-theme-win98,
+    body.nemo-theme-win98 * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY: FOCUS STATES
+   Windows 98 style dotted focus indicators for keyboard navigation
+   ========================================================================== */
+
+body.nemo-theme-win98 .menu_button:focus-visible,
+body.nemo-theme-win98 .drawer-icon:focus-visible,
+body.nemo-theme-win98 button:focus-visible {
+    outline: 1px dotted #000000 !important;
+    outline-offset: -3px !important;
+}
+
+body.nemo-theme-win98 input:focus-visible,
+body.nemo-theme-win98 textarea:focus-visible,
+body.nemo-theme-win98 select:focus-visible {
+    outline: 1px dotted #000000 !important;
+    outline-offset: -1px !important;
+}
+
+body.nemo-theme-win98 a:focus-visible {
+    outline: 1px dotted #000000 !important;
+    outline-offset: 1px !important;
+}
+
+/* Checkbox and radio focus states */
+body.nemo-theme-win98 input[type="checkbox"]:focus-visible + label,
+body.nemo-theme-win98 input[type="radio"]:focus-visible + label {
+    outline: 1px dotted #000000 !important;
+    outline-offset: 1px !important;
+}
+
+/* Win98 taskbar button focus */
+body.nemo-theme-win98 .win98-taskbar-button:focus-visible,
+body.nemo-theme-win98 .win98-start-button:focus-visible {
+    outline: 1px dotted #ffffff !important;
+    outline-offset: -3px !important;
 }
