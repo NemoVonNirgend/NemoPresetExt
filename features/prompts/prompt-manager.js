@@ -30,6 +30,8 @@ const SELECTORS = {
 let DIVIDER_PREFIX_REGEX;
 let openSectionStates = storage.getOpenSectionStates();
 let isSectionsFeatureEnabled = storage.getSectionsEnabled();
+// Flag to prevent reorganization during toggle operations (set by category-tray.js)
+let isToggleInProgress = false;
 
 
 // 2. MODULE-SPECIFIC HELPERS
@@ -968,6 +970,12 @@ export const NemoPresetManager = {
 
     // ** REFACTORED RENDER/ORGANIZATION LOGIC **
     organizePrompts: async function(forceFullReorganization = false) {
+        // Don't reorganize while a toggle operation is in progress - this would destroy open trays
+        if (isToggleInProgress && !forceFullReorganization) {
+            console.log(`${LOG_PREFIX} Skipping organizePrompts - toggle in progress`);
+            return;
+        }
+
         const promptsContainer = document.querySelector(SELECTORS.promptsContainer);
         if (!promptsContainer || (promptsContainer.dataset.nemoOrganizing === 'true' && !forceFullReorganization)) return;
         promptsContainer.dataset.nemoOrganizing = 'true';
@@ -2107,8 +2115,53 @@ export const NemoPresetManager = {
         });
 
         this.observers.listObserver = listObserver;
+        this.observers.listObserverContainer = container;
         listObserver.observe(container, { childList: true, subtree: true });
         console.log(`${LOG_PREFIX} List observer initialized`);
+    },
+
+    /**
+     * Pause the list observer to prevent DOM rebuild during prompt toggle operations.
+     * This is more reliable than using a flag since it completely disconnects the observer.
+     */
+    pauseListObserver: function() {
+        if (this.observers?.listObserver) {
+            this.observers.listObserver.disconnect();
+            console.log(`${LOG_PREFIX} List observer paused`);
+        }
+    },
+
+    /**
+     * Resume the list observer after a prompt toggle operation.
+     * Call this after ST has finished its internal DOM updates.
+     */
+    resumeListObserver: function() {
+        if (this.observers?.listObserver && this.observers?.listObserverContainer) {
+            this.observers.listObserver.observe(
+                this.observers.listObserverContainer,
+                { childList: true, subtree: true }
+            );
+            console.log(`${LOG_PREFIX} List observer resumed`);
+        }
+    },
+
+    /**
+     * Begin a toggle operation. This prevents organizePrompts from running
+     * and destroying open trays during the toggle.
+     */
+    beginToggle: function() {
+        isToggleInProgress = true;
+        this.pauseListObserver();
+        console.log(`${LOG_PREFIX} Toggle operation started`);
+    },
+
+    /**
+     * End a toggle operation. Resumes normal reorganization behavior.
+     */
+    endToggle: function() {
+        isToggleInProgress = false;
+        this.resumeListObserver();
+        console.log(`${LOG_PREFIX} Toggle operation ended`);
     },
 
     // Context Menu for Prompt Movement

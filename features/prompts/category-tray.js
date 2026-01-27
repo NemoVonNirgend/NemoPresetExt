@@ -1851,7 +1851,7 @@ function togglePrompt(identifier, enabled, onValidationFailed = null) {
  * @param {string} identifier - Prompt identifier
  * @param {boolean} enabled - New enabled state
  */
-function performToggle(identifier, enabled) {
+async function performToggle(identifier, enabled) {
     if (!promptManager) return;
 
     try {
@@ -1860,7 +1860,24 @@ function performToggle(identifier, enabled) {
 
         if (promptOrderEntry) {
             promptOrderEntry.enabled = enabled;
+
+            // Begin toggle operation - this pauses the observer AND sets a flag
+            // to prevent organizePrompts from destroying the tray
+            const { NemoPresetManager } = await import('./prompt-manager.js');
+            if (NemoPresetManager?.beginToggle) {
+                NemoPresetManager.beginToggle();
+            }
+
             promptManager.saveServiceSettings();
+
+            // End toggle operation after ST finishes its internal re-render.
+            // Use a longer timeout to be safe - ST may have async operations.
+            setTimeout(() => {
+                if (NemoPresetManager?.endToggle) {
+                    NemoPresetManager.endToggle();
+                }
+            }, 300);
+
             logger.info(`Toggled prompt ${identifier} to ${enabled}`);
         }
     } catch (error) {

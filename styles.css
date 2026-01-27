@@ -2110,14 +2110,15 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     padding-right: 4px;
 }
 
-/* Individual prompt card */
+/* Individual prompt card - use consistent border widths to prevent layout shift */
 .nemo-prompt-card {
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-left: 4px solid rgba(255, 255, 255, 0.15);
     border-radius: 8px;
     padding: 8px 10px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
     display: flex;
     gap: 8px;
     overflow: hidden;
@@ -2127,6 +2128,7 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 .nemo-prompt-card:hover {
     background: rgba(74, 158, 255, 0.1);
     border-color: rgba(74, 158, 255, 0.4);
+    border-left-color: rgba(74, 158, 255, 0.6);
 }
 
 /* Drag handle */
@@ -2244,11 +2246,13 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     color: rgba(74, 158, 255, 1);
 }
 
+/* Enabled card - only change colors, not sizes to prevent layout shift */
 .nemo-prompt-card-enabled {
-    background: linear-gradient(135deg, rgba(46, 204, 113, 0.22), rgba(39, 174, 96, 0.15));
-    border: 2px solid #2ecc71;
-    border-left: 5px solid #2ecc71;
-    box-shadow: 0 2px 8px rgba(46, 204, 113, 0.25);
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(39, 174, 96, 0.12));
+    border-color: #2ecc71;
+    border-left-color: #2ecc71;
+    box-shadow: 0 2px 8px rgba(46, 204, 113, 0.2);
+    opacity: 1;
 }
 
 /* Enabled card title gets green tint */
@@ -2263,19 +2267,18 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 }
 
 .nemo-prompt-card-enabled:hover {
-    background: linear-gradient(135deg, rgba(46, 204, 113, 0.3), rgba(39, 174, 96, 0.2));
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(39, 174, 96, 0.18));
     border-color: #3de07d;
-    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.25);
 }
 
-/* Disabled card styling for better contrast */
+/* Disabled card styling - dimmed but same size */
 .nemo-prompt-card:not(.nemo-prompt-card-enabled) {
-    opacity: 0.6;
-    border-left: 3px solid rgba(255, 255, 255, 0.08);
+    opacity: 0.55;
 }
 
 .nemo-prompt-card:not(.nemo-prompt-card-enabled):hover {
-    opacity: 0.9;
+    opacity: 0.85;
 }
 
 .nemo-prompt-card-header {
@@ -3183,6 +3186,71 @@ details.nemo-engine-section .nemo-enabled-count {
 
 .nemo-accordion-prompt-disabled .prompt-manager-toggle-action {
     color: #888 !important;
+}
+
+/*
+ * INSTANT STATE STYLING - Uses :has() to directly match SillyTavern's toggle state.
+ * This prevents the flash/flicker when toggling because it doesn't rely on JS adding classes.
+ * The styling is always in sync with ST's actual toggle button state.
+ */
+
+/* Enabled state - match when toggle button has fa-toggle-on */
+.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(39, 174, 96, 0.12)) !important;
+    border: 2px solid rgba(46, 204, 113, 0.5) !important;
+    border-left: 5px solid #2ecc71 !important;
+    box-shadow: 0 2px 6px rgba(46, 204, 113, 0.15) !important;
+}
+
+.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on):hover {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(39, 174, 96, 0.18)) !important;
+    border-color: rgba(46, 204, 113, 0.7) !important;
+}
+
+.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .completion_prompt_manager_prompt_name a {
+    color: #5ddb8a !important;
+}
+
+/* Disabled state - match when toggle button does NOT have fa-toggle-on */
+.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)) {
+    background: rgba(0, 0, 0, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    opacity: 0.55;
+}
+
+.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)):hover {
+    opacity: 0.85;
+    background: rgba(0, 0, 0, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Also apply to general engine sections (fallback for non-accordion mode) */
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(39, 174, 96, 0.12)) !important;
+    border: 2px solid rgba(46, 204, 113, 0.5) !important;
+    border-left: 5px solid #2ecc71 !important;
+    box-shadow: 0 2px 6px rgba(46, 204, 113, 0.15) !important;
+}
+
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on):hover {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(39, 174, 96, 0.18)) !important;
+    border-color: rgba(46, 204, 113, 0.7) !important;
+}
+
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .completion_prompt_manager_prompt_name a {
+    color: #5ddb8a !important;
+}
+
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)) {
+    background: rgba(0, 0, 0, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    opacity: 0.55;
+}
+
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)):hover {
+    opacity: 0.85;
+    background: rgba(0, 0, 0, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Drag and drop styles for accordion - kept minimal for performance */
@@ -8288,14 +8356,14 @@ body.theme-terminal .mes_block .avatar {
     margin: 10px 0;
 }
 
-/* Prompt Grid */
+/* Prompt Grid - OLD STYLES scoped to .nemo-prompt-grid only to avoid conflict with tray cards */
 .nemo-prompt-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 15px;
 }
 
-.nemo-prompt-card {
+.nemo-prompt-grid .nemo-prompt-card {
     background: var(--nemo-secondary-bg);
     border: 1px solid var(--nemo-border-color);
     border-radius: 8px;
@@ -8304,20 +8372,20 @@ body.theme-terminal .mes_block .avatar {
     cursor: pointer;
 }
 
-.nemo-prompt-card:hover {
+.nemo-prompt-grid .nemo-prompt-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
     border-color: var(--nemo-primary-accent);
 }
 
-.nemo-prompt-card-header {
+.nemo-prompt-grid .nemo-prompt-card-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     margin-bottom: 10px;
 }
 
-.nemo-prompt-card-title {
+.nemo-prompt-grid .nemo-prompt-card-title {
     font-weight: 600;
     font-size: 14px;
     color: var(--nemo-text-color);
@@ -8325,13 +8393,13 @@ body.theme-terminal .mes_block .avatar {
     line-height: 1.3;
 }
 
-.nemo-prompt-card-actions {
+.nemo-prompt-grid .nemo-prompt-card-actions {
     display: flex;
     gap: 4px;
     margin-left: 10px;
 }
 
-.nemo-prompt-action {
+.nemo-prompt-grid .nemo-prompt-action {
     padding: 6px;
     background: none;
     border: none;
@@ -8343,12 +8411,12 @@ body.theme-terminal .mes_block .avatar {
     transition: all 0.2s;
 }
 
-.nemo-prompt-action:hover {
+.nemo-prompt-grid .nemo-prompt-action:hover {
     opacity: 1;
     background: var(--nemo-tertiary-bg);
 }
 
-.nemo-prompt-card .nemo-favorite-btn {
+.nemo-prompt-grid .nemo-prompt-card .nemo-favorite-btn {
     position: relative;
     background: none;
     border: none;
@@ -8358,23 +8426,23 @@ body.theme-terminal .mes_block .avatar {
     z-index: var(--z-base);
 }
 
-.nemo-prompt-card .nemo-favorite-btn.active {
+.nemo-prompt-grid .nemo-prompt-card .nemo-favorite-btn.active {
     color: #ffd700;
     opacity: 1;
 }
 
-.nemo-prompt-card .nemo-favorite-btn:hover {
+.nemo-prompt-grid .nemo-prompt-card .nemo-favorite-btn:hover {
     color: #ffd700;
 }
 
-.nemo-prompt-tags {
+.nemo-prompt-grid .nemo-prompt-tags {
     margin-bottom: 10px;
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
 }
 
-.nemo-tag {
+.nemo-prompt-grid .nemo-tag {
     background: var(--nemo-tertiary-bg);
     color: var(--nemo-text-color);
     padding: 2px 6px;
@@ -8383,7 +8451,7 @@ body.theme-terminal .mes_block .avatar {
     border: 1px solid var(--nemo-border-color);
 }
 
-.nemo-prompt-card-preview {
+.nemo-prompt-grid .nemo-prompt-card-preview {
     color: var(--nemo-text-muted);
     font-size: 12px;
     line-height: 1.4;
@@ -8394,7 +8462,7 @@ body.theme-terminal .mes_block .avatar {
     -webkit-box-orient: vertical;
 }
 
-.nemo-prompt-card-meta {
+.nemo-prompt-grid .nemo-prompt-card-meta {
     display: flex;
     flex-direction: column;
     gap: 2px;
