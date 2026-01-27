@@ -124,6 +124,7 @@ body.nemo-theme-win98 #sheld {
     padding: 4px !important;
     padding-bottom: calc(var(--win98-taskbar-height) + 8px) !important;
     height: calc(100vh - var(--win98-taskbar-height)) !important;
+    box-sizing: border-box !important;
 }
 
 /* ==========================================================================
@@ -528,6 +529,8 @@ body.nemo-theme-win98 .mes_text {
     color: var(--win98-text) !important;
     padding: 0 !important;
     margin: 0 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
 }
 
 /* IRC-style username prefix */
@@ -537,6 +540,11 @@ body.nemo-theme-win98 .mes .name_text {
     font-size: 15px !important;
     margin-right: 8px !important;
     white-space: nowrap !important;
+    max-width: 200px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
 }
 
 /* User messages - green username */

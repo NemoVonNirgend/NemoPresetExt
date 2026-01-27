@@ -416,6 +416,9 @@ body.nemo-theme-cyberpunk .mes_text {
     color: #e0e0e0 !important;
     font-family: 'Consolas', monospace !important;
     line-height: 1.6 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
 }
 
 body.nemo-theme-cyberpunk .mes_block {

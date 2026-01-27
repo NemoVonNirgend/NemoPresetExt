@@ -247,6 +247,8 @@ body.nemo-theme-discord .mes[is_user="true"] .name_text {
 
 body.nemo-theme-discord .mes_text {
     color: var(--discord-text-normal) !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
 }
 
 body.nemo-theme-discord .mes_block {
@@ -980,6 +982,8 @@ body.nemo-theme-discord .discord-profile-section-content {
     line-height: 1.4 !important;
     max-height: 150px !important;
     overflow-y: auto !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
 }
 
 body.nemo-theme-discord .discord-profile-meta {
