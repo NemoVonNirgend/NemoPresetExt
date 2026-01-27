@@ -1290,22 +1290,26 @@ export const NemoPresetManager = {
             const promptNavigatorBtn = document.getElementById('nemoPromptNavigatorBtn');
             const archiveNavigatorBtn = document.getElementById('nemoArchiveNavigatorBtn');
 
-            if (searchInput) {
+            // Guard against duplicate listeners using dataset flags
+            if (searchInput && !searchInput.dataset.nemoListenersAttached) {
+                searchInput.dataset.nemoListenersAttached = 'true';
                 searchInput.addEventListener('input', debounce(this.handlePresetSearch.bind(this), debounce_timeout.standard));
             }
 
-            if (searchClear) {
+            if (searchClear && !searchClear.dataset.nemoListenersAttached) {
+                searchClear.dataset.nemoListenersAttached = 'true';
                 searchClear.addEventListener('click', () => {
-                    const input = document.getElementById('nemoPresetSearchInput'); 
+                    const input = document.getElementById('nemoPresetSearchInput');
                     if (input) {
-                        input.value = ''; 
-                        this.handlePresetSearch(); 
+                        input.value = '';
+                        this.handlePresetSearch();
                         input.focus();
                     }
                 });
             }
 
-            if (takeSnapshotBtn) {
+            if (takeSnapshotBtn && !takeSnapshotBtn.dataset.nemoListenersAttached) {
+                takeSnapshotBtn.dataset.nemoListenersAttached = 'true';
                 takeSnapshotBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1314,7 +1318,8 @@ export const NemoPresetManager = {
                 });
             }
 
-            if (applySnapshotBtn) {
+            if (applySnapshotBtn && !applySnapshotBtn.dataset.nemoListenersAttached) {
+                applySnapshotBtn.dataset.nemoListenersAttached = 'true';
                 applySnapshotBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1326,32 +1331,36 @@ export const NemoPresetManager = {
             if (toggleBtn) {
                 toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
                 toggleBtn.setAttribute('aria-pressed', isSectionsFeatureEnabled);
-                toggleBtn.addEventListener('click', async () => {
-                    isSectionsFeatureEnabled = !isSectionsFeatureEnabled;
-                    storage.setSectionsEnabled(isSectionsFeatureEnabled);
-                    toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
-                    toggleBtn.setAttribute('aria-pressed', isSectionsFeatureEnabled);
+                if (!toggleBtn.dataset.nemoListenersAttached) {
+                    toggleBtn.dataset.nemoListenersAttached = 'true';
+                    toggleBtn.addEventListener('click', async () => {
+                        isSectionsFeatureEnabled = !isSectionsFeatureEnabled;
+                        storage.setSectionsEnabled(isSectionsFeatureEnabled);
+                        toggleBtn.classList.toggle('nemo-active', isSectionsFeatureEnabled);
+                        toggleBtn.setAttribute('aria-pressed', isSectionsFeatureEnabled);
 
-                    // When disabling sections, we need to revert tray mode first
-                    // and trigger ST to re-render the prompt list (tray removed DOM elements)
-                    if (!isSectionsFeatureEnabled) {
-                        console.log(`${LOG_PREFIX} Disabling sections - reverting tray mode`);
-                        disableTrayMode();
+                        // When disabling sections, we need to revert tray mode first
+                        // and trigger ST to re-render the prompt list (tray removed DOM elements)
+                        if (!isSectionsFeatureEnabled) {
+                            console.log(`${LOG_PREFIX} Disabling sections - reverting tray mode`);
+                            disableTrayMode();
 
-                        // Trigger ST prompt manager to re-render the list
-                        if (promptManager && typeof promptManager.render === 'function') {
-                            console.log(`${LOG_PREFIX} Triggering prompt manager re-render`);
-                            promptManager.render();
-                            // Wait for DOM to update before organizing
-                            await delay(100);
+                            // Trigger ST prompt manager to re-render the list
+                            if (promptManager && typeof promptManager.render === 'function') {
+                                console.log(`${LOG_PREFIX} Triggering prompt manager re-render`);
+                                promptManager.render();
+                                // Wait for DOM to update before organizing
+                                await delay(100);
+                            }
                         }
-                    }
 
-                    this.organizePrompts(true);
-                });
+                        this.organizePrompts(true);
+                    });
+                }
             }
-            
-            if (promptNavigatorBtn) {
+
+            if (promptNavigatorBtn && !promptNavigatorBtn.dataset.nemoListenersAttached) {
+                promptNavigatorBtn.dataset.nemoListenersAttached = 'true';
                 promptNavigatorBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1359,7 +1368,8 @@ export const NemoPresetManager = {
                 });
             }
 
-            if (archiveNavigatorBtn) {
+            if (archiveNavigatorBtn && !archiveNavigatorBtn.dataset.nemoListenersAttached) {
+                archiveNavigatorBtn.dataset.nemoListenersAttached = 'true';
                 archiveNavigatorBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1736,7 +1746,8 @@ export const NemoPresetManager = {
             const addLorebookBtn = document.getElementById('nemo-add-lorebook-btn');
             const lorebookSelect = document.getElementById('nemo-lorebook-select');
 
-            if (addLorebookBtn) {
+            if (addLorebookBtn && !addLorebookBtn.dataset.nemoListenersAttached) {
+                addLorebookBtn.dataset.nemoListenersAttached = 'true';
                 addLorebookBtn.addEventListener('click', () => {
                     this.addSelectedLorebook();
                 });
@@ -1744,7 +1755,8 @@ export const NemoPresetManager = {
 
             // Handle remove lorebook clicks (delegated)
             const activeLorebooksContainer = document.getElementById('nemo-active-lorebooks');
-            if (activeLorebooksContainer) {
+            if (activeLorebooksContainer && !activeLorebooksContainer.dataset.nemoListenersAttached) {
+                activeLorebooksContainer.dataset.nemoListenersAttached = 'true';
                 activeLorebooksContainer.addEventListener('click', (e) => {
                     const removeBtn = e.target.closest('.nemo-remove-lorebook');
                     if (removeBtn) {
@@ -1760,8 +1772,9 @@ export const NemoPresetManager = {
 
             // Listen for changes on the original world_info select to keep our UI in sync
             const worldInfoSelect = document.getElementById('world_info');
-            if (worldInfoSelect) {
-                $(worldInfoSelect).on('change', () => {
+            if (worldInfoSelect && !worldInfoSelect.dataset.nemoLorebookListenerAttached) {
+                worldInfoSelect.dataset.nemoLorebookListenerAttached = 'true';
+                $(worldInfoSelect).on('change.nemoLorebook', () => {
                     this.refreshActiveLorebooksDisplay();
                     this.populateAvailableLorebooksDropdown();
                 });
@@ -2216,11 +2229,16 @@ export const NemoPresetManager = {
         });
 
         // Hide context menu when clicking outside
-        document.addEventListener('click', (e) => {
+        // Store reference for cleanup to prevent memory leak
+        if (this._documentClickHandler) {
+            document.removeEventListener('click', this._documentClickHandler);
+        }
+        this._documentClickHandler = (e) => {
             if (!contextMenu.contains(e.target)) {
                 this.hideContextMenu();
             }
-        });
+        };
+        document.addEventListener('click', this._documentClickHandler);
     },
 
     handleContextMenu: function(e) {
@@ -3935,6 +3953,32 @@ export const NemoPresetManager = {
         if (this._presetChangeAfterHandler) {
             eventSource.removeListener(event_types.OAI_PRESET_CHANGED_AFTER, this._presetChangeAfterHandler);
             this._presetChangeAfterHandler = null;
+        }
+
+        // Clean up document click handler
+        if (this._documentClickHandler) {
+            document.removeEventListener('click', this._documentClickHandler);
+            this._documentClickHandler = null;
+        }
+
+        // Clean up summary protector observers
+        if (this.summaryProtectors) {
+            this.summaryProtectors.forEach(observer => {
+                try {
+                    observer.disconnect();
+                } catch (error) {
+                    console.warn(`${LOG_PREFIX} Error disconnecting summary protector:`, error);
+                }
+            });
+            this.summaryProtectors = [];
+            console.log(`${LOG_PREFIX} Disconnected all summary protectors`);
+        }
+
+        // Clean up jQuery event listeners (use namespace to only remove our listener)
+        const worldInfoSelect = document.getElementById('world_info');
+        if (worldInfoSelect) {
+            $(worldInfoSelect).off('change.nemoLorebook');
+            delete worldInfoSelect.dataset.nemoLorebookListenerAttached;
         }
 
         // Destroy all Sortable instances
