@@ -178,6 +178,10 @@ export const NemoPresetManager = {
                             class="menu_button"
                             aria-label="Toggle collapsible sections"
                             aria-pressed="true"><i class="fa-solid fa-list-ul" aria-hidden="true"></i></button>
+                    <button id="nemoViewModeBtn"
+                            title="Switch View Mode (Tray/Accordion)"
+                            class="menu_button"
+                            aria-label="Switch between tray and accordion view"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></button>
                     <button id="nemoPromptNavigatorBtn"
                             title="Browse Prompts with Folder Management"
                             class="menu_button"
@@ -1357,6 +1361,42 @@ export const NemoPresetManager = {
                         this.organizePrompts(true);
                     });
                 }
+            }
+
+            // View mode toggle button (accordion/tray)
+            const viewModeBtn = document.getElementById('nemoViewModeBtn');
+            if (viewModeBtn && !viewModeBtn.dataset.nemoListenersAttached) {
+                viewModeBtn.dataset.nemoListenersAttached = 'true';
+                // Set initial active state based on current mode
+                const currentMode = storage.getDropdownStyle();
+                viewModeBtn.classList.toggle('nemo-active', currentMode === 'tray');
+                viewModeBtn.setAttribute('aria-pressed', currentMode === 'tray');
+
+                viewModeBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Toggle between tray and accordion
+                    const currentMode = storage.getDropdownStyle();
+                    const newMode = currentMode === 'tray' ? 'accordion' : 'tray';
+
+                    console.log(`${LOG_PREFIX} Switching view mode from ${currentMode} to ${newMode}`);
+
+                    // Save the new mode
+                    storage.setDropdownStyle(newMode);
+
+                    // Update button active state
+                    viewModeBtn.classList.toggle('nemo-active', newMode === 'tray');
+                    viewModeBtn.setAttribute('aria-pressed', newMode === 'tray');
+
+                    // Dispatch event to trigger mode switch in category-tray.js
+                    document.dispatchEvent(new CustomEvent('nemo-dropdown-style-changed', {
+                        detail: { style: newMode }
+                    }));
+
+                    // Re-organize prompts to apply new view mode
+                    this.organizePrompts(true);
+                });
             }
 
             if (promptNavigatorBtn && !promptNavigatorBtn.dataset.nemoListenersAttached) {
