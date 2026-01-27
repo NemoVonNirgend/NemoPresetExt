@@ -130,7 +130,7 @@ function addWindowControls() {
     addControlsToPanel('right-nav-panel', 'Settings');
 }
 
-function addControlsToPanel(panelId, title) {
+function addControlsToPanel(panelId, _title) {
     const panel = document.getElementById(panelId);
     if (!panel) return;
     if (panel.querySelector('.win98-window-controls')) return;

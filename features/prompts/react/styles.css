@@ -1,0 +1,525 @@
+/* React Prompt Views Styles */
+
+/* Import Navigator styles */
+@import './navigator.css';
+
+/* Common */
+.nemo-toggle-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: color 0.2s, transform 0.15s, opacity 0.15s;
+    line-height: 1;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.nemo-toggle-btn.on {
+    color: #5d5;
+    text-shadow: 0 0 8px rgba(85, 221, 85, 0.4);
+}
+.nemo-toggle-btn.off {
+    color: #c55;
+    opacity: 0.6;
+}
+.nemo-toggle-btn:hover {
+    transform: scale(1.1);
+    opacity: 1;
+}
+.nemo-toggle-btn:active {
+    transform: scale(0.95);
+}
+.nemo-toggle-btn:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.nemo-toggle-sm { font-size: 1.05em; padding: 3px; }
+.nemo-toggle-md { font-size: 1.15em; padding: 4px; }
+.nemo-toggle-lg { font-size: 1.35em; padding: 5px; }
+
+/* Section emoji */
+.nemo-section-emoji {
+    font-size: 1.1em;
+    flex-shrink: 0;
+}
+
+/* Progress */
+.nemo-progress-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.nemo-progress-label {
+    font-size: 0.75em;
+    color: rgba(255,255,255,0.5);
+    min-width: 38px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.nemo-progress-bar {
+    width: 50px;
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.nemo-progress-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+.nemo-progress-fill.none { background: linear-gradient(90deg, #c44 0%, #a33 100%); }
+.nemo-progress-fill.partial { background: linear-gradient(90deg, #ca4 0%, #a84 100%); }
+.nemo-progress-fill.full { background: linear-gradient(90deg, #4c4 0%, #3a3 100%); }
+
+/* React Container */
+.nemo-react-prompt-container {
+    color: var(--SmartThemeBodyColor, #ddd);
+    background: transparent;
+    width: 100%;
+}
+
+/* Hide original prompt list visually but keep it functional for clicks */
+.nemo-react-prompt-container + #completion_prompt_manager_list {
+    position: absolute !important;
+    left: -9999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* But allow the inspect action links to be clicked programmatically */
+.nemo-react-prompt-container + #completion_prompt_manager_list .prompt-manager-inspect-action {
+    pointer-events: auto !important;
+}
+
+/* Accordion View */
+.nemo-accordion-view {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px;
+    color: var(--SmartThemeBodyColor, #ddd);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Accordion Toolbar */
+.nemo-accordion-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.nemo-accordion-toolbar-left,
+.nemo-accordion-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.nemo-toolbar-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.85em;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nemo-toolbar-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+    color: #fff;
+}
+
+.nemo-toolbar-btn:active {
+    transform: scale(0.95);
+}
+
+.nemo-view-switch-btn {
+    background: linear-gradient(135deg, rgba(100,100,255,0.15) 0%, rgba(80,80,200,0.1) 100%);
+    border-color: rgba(100,100,255,0.2);
+}
+
+.nemo-view-switch-btn:hover {
+    background: linear-gradient(135deg, rgba(100,100,255,0.25) 0%, rgba(80,80,200,0.2) 100%);
+    border-color: rgba(100,100,255,0.4);
+}
+
+.nemo-section {
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(40,40,45,0.9) 0%, rgba(30,30,35,0.95) 100%);
+    overflow: hidden;
+    color: var(--SmartThemeBodyColor, #ddd);
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.nemo-section:hover {
+    border-color: rgba(255,255,255,0.15);
+}
+
+.nemo-section[open] {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.nemo-section.sub-section {
+    margin-left: 16px;
+    margin-top: 6px;
+    border-left: 2px solid var(--SmartThemeQuoteColor, #666);
+    background: linear-gradient(135deg, rgba(35,35,40,0.8) 0%, rgba(25,25,30,0.9) 100%);
+}
+
+.nemo-section > summary {
+    cursor: pointer;
+    padding: 0;
+    background: transparent;
+    user-select: none;
+    list-style: none;
+    color: var(--SmartThemeBodyColor, #ddd);
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 14px;
+    transition: background 0.15s;
+}
+
+.nemo-section > summary:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+.nemo-section > summary::-webkit-details-marker { display: none; }
+
+.nemo-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.nemo-section-arrow {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65em;
+    color: var(--SmartThemeQuoteColor, #777);
+    transition: transform 0.2s ease, color 0.15s;
+    flex-shrink: 0;
+}
+
+.nemo-section[open] .nemo-section-arrow {
+    transform: rotate(90deg);
+    color: var(--SmartThemeBodyColor, #aaa);
+}
+
+.nemo-section-name {
+    font-weight: 500;
+    flex: 1;
+    color: var(--SmartThemeBodyColor, #ddd);
+    font-size: 0.92em;
+    letter-spacing: 0.01em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.nemo-section-name-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nemo-section-content {
+    padding: 8px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: rgba(0,0,0,0.2);
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Prompt Row */
+.nemo-prompt-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    transition: background 0.15s, transform 0.1s;
+    color: var(--SmartThemeBodyColor, #ddd);
+    min-height: 34px;
+    margin: 1px 0;
+}
+
+.nemo-prompt-row:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+.nemo-prompt-row:active {
+    transform: scale(0.995);
+}
+
+.nemo-prompt-row.enabled {
+    background: rgba(68, 204, 68, 0.05);
+}
+
+.nemo-prompt-row.disabled {
+    opacity: 0.55;
+}
+
+.nemo-prompt-row.disabled .nemo-prompt-name {
+    text-decoration: line-through;
+    text-decoration-color: rgba(255,255,255,0.3);
+}
+
+.nemo-prompt-name {
+    flex: 1;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
+    color: rgba(255,255,255,0.85);
+    font-size: 0.9em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.nemo-prompt-row.enabled .nemo-prompt-name {
+    color: rgba(255,255,255,0.95);
+}
+
+.nemo-prompt-name:hover {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+}
+
+.nemo-prompt-name.has-tooltip {
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: rgba(255,255,255,0.3);
+    text-underline-offset: 3px;
+}
+
+.nemo-prompt-tokens {
+    font-size: 0.75em;
+    color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.05);
+    padding: 3px 8px;
+    border-radius: 4px;
+    min-width: 42px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+.nemo-prompt-edit-btn {
+    background: none;
+    border: none;
+    padding: 5px 7px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.4);
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
+    font-size: 0.85em;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.nemo-prompt-row:hover .nemo-prompt-edit-btn {
+    opacity: 1;
+}
+
+.nemo-prompt-edit-btn:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+}
+
+/* Tray View */
+.nemo-tray-view {
+    padding: 8px;
+}
+
+.nemo-tray-loading,
+.nemo-tray-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--SmartThemeBodyColor, #888);
+}
+
+.nemo-tray-message {
+    padding: 16px;
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.2));
+    border-radius: 8px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+}
+
+.nemo-tray-message p {
+    margin: 8px 0;
+}
+
+.nemo-tray-folders {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nemo-tray-folder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.3));
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.nemo-tray-folder:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.nemo-tray-folder.active {
+    border-color: var(--SmartThemeQuoteColor, #888);
+    background: rgba(255,255,255,0.08);
+}
+
+.nemo-tray-folder-icon { font-size: 1.2em; }
+.nemo-tray-folder-name { flex: 1; font-weight: 500; }
+
+/* Tray Popup */
+.nemo-tray-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    background: var(--SmartThemeBodyColor, #222);
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+}
+
+.nemo-tray-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+}
+
+.nemo-tray-title { font-weight: 600; font-size: 1.1em; }
+
+.nemo-tray-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.nemo-tray-toggle-all, .nemo-tray-close {
+    background: none;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: inherit;
+}
+
+.nemo-tray-toggle-all:hover, .nemo-tray-close:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.nemo-tray-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-content: flex-start;
+}
+
+.nemo-tray-card {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--SmartThemeBlurTintColor, rgba(0,0,0,0.3));
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.nemo-tray-card:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+.nemo-tray-card.enabled {
+    border-color: var(--SmartThemeGoodColor, #4c4);
+    background: rgba(68, 204, 68, 0.1);
+}
+
+.nemo-tray-card-name { font-size: 0.9em; }
+.nemo-tray-card-check { color: var(--SmartThemeGoodColor, #4c4); }
+
+.nemo-tray-subsection {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.nemo-tray-subsection-header {
+    font-size: 0.85em;
+    opacity: 0.7;
+    margin-bottom: 6px;
+    padding-left: 4px;
+    border-left: 2px solid var(--SmartThemeQuoteColor, #888);
+}
+
+.nemo-tray-footer {
+    padding: 10px 16px;
+    border-top: 1px solid var(--SmartThemeBorderColor, #444);
+    font-size: 0.9em;
+    opacity: 0.7;
+}
+
+/* Loading/Empty states */
+.nemo-accordion-loading, .nemo-accordion-empty,
+.nemo-tray-loading {
+    padding: 20px;
+    text-align: center;
+    opacity: 0.7;
+}

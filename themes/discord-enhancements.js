@@ -747,7 +747,7 @@ function setupImageDrawer() {
                     const isUser = mes?.getAttribute('is_user') === 'true';
 
                     // Get character description if available
-                    let description = '';
+                    const description = '';
                     let messageCount = 0;
 
                     // Count messages from this character

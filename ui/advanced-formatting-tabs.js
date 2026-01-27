@@ -1,7 +1,6 @@
 // advanced-formatting-tabs.js
 // Overhauls the Advanced Formatting section to use a tabbed interface with search
 
-import { LOG_PREFIX } from '../core/utils.js';
 import logger from '../core/logger.js';
 
 export const AdvancedFormattingTabs = {
@@ -288,7 +287,7 @@ export const AdvancedFormattingTabs = {
             `;
             searchResults.appendChild(resultsHeader);
             
-            matchingElements.forEach(({ element, tabName, relevance }, index) => {
+            matchingElements.forEach(({ element, tabName, relevance }, _index) => {
                 const clone = element.cloneNode(true);
                 
                 // Create result container

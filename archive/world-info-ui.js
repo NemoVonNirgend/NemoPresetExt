@@ -1211,7 +1211,7 @@ export const NemoWorldInfoUI = {
 
         listElement.innerHTML = '';
 
-        let activeEntries = [...this._activeEntries];
+        const activeEntries = [...this._activeEntries];
 
         if (showInOrder) {
             activeEntries.sort((a, b) => {

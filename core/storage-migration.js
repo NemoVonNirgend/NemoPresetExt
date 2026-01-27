@@ -5,7 +5,7 @@
 
 import { extension_settings } from '../../../../extensions.js';
 import { saveSettingsDebounced } from '../../../../../script.js';
-import { LOG_PREFIX, NEMO_EXTENSION_NAME } from './utils.js';
+import { NEMO_EXTENSION_NAME } from './utils.js';
 import logger from './logger.js';
 
 // Old localStorage keys

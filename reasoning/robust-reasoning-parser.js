@@ -1023,7 +1023,7 @@ export class RobustReasoningParser {
         // Must be prose-like (starts with capital, has multiple words, ends with punctuation)
         if (!/^[A-Z]/.test(trimmed)) return false;
         if (trimmed.split(/\s+/).length < 3) return false;
-        if (!/[.!?"\)]$/.test(trimmed)) return false;
+        if (!/[.!?")]$/.test(trimmed)) return false;
 
         // Should NOT have structural markers
         if (this.isStructuredLine(line)) return false;

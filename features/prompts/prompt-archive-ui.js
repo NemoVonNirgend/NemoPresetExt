@@ -1,7 +1,6 @@
 // prompt-archive-ui.js
 // UI components for the prompt archive system
 
-import { LOG_PREFIX } from '../../core/utils.js';
 import { NemoPromptArchive } from './prompt-archive.js';
 
 export const NemoPromptArchiveUI = {

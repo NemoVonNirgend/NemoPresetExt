@@ -1,12 +1,16 @@
-import { eventSource, event_types, saveSettingsDebounced } from '../../../../script.js';
+import { eventSource, event_types } from '../../../../script.js';
 import { extension_settings } from '../../../extensions.js';
+import { promptManager } from '../../../openai.js';
+
+// Expose promptManager globally for React bundle access
+window.promptManager = promptManager;
 
 // Core utilities
-import { LOG_PREFIX, ensureSettingsNamespace, waitForElement } from './core/utils.js';
+import { ensureSettingsNamespace, waitForElement } from './core/utils.js';
 import { CONSTANTS } from './core/constants.js';
 import logger from './core/logger.js';
 import { initializeStorage, migrateFromLocalStorage } from './core/storage-migration.js';
-import { initializeDirectiveCache, clearDirectiveCache } from './core/directive-cache.js';
+import { initializeDirectiveCache } from './core/directive-cache.js';
 
 // UI modules
 import { NemoSettingsUI } from './ui/settings-ui.js';
@@ -49,6 +53,23 @@ import { NemoCharacterManager } from './archive/character-manager.js';
 import { PresetNavigator } from './archive/navigator.js';
 import { NemoWorldInfoUI } from './archive/world-info-ui.js';
 
+// React components - new React-based UI system
+import {
+    mountSettingsPanel,
+    mountPromptView,
+    mountNavigatorView,
+    mountUserSettingsTabs,
+    mountDirectiveAutocomplete,
+    unmountDirectiveAutocomplete,
+    showVNDialog,
+    showConflictToast,
+    showDirectiveHelp,
+    unmountAll,
+    getCurrentMode,
+    emitNemoEvent,
+    ST_EVENTS,
+} from './features/prompts/react/dist/prompt-views.js';
+
 let reorganizeDebounceTimer = null;
 import domCache from './archive/dom-cache.js';
 
@@ -58,12 +79,79 @@ const NEMO_EXTENSION_NAME = 'NemoPresetExt';
 // Initialization guard to prevent double initialization
 let extensionInitialized = false;
 
-// --- MAIN INITIALIZATION ---
-const MAIN_SELECTORS = {
-    promptsContainer: '#completion_prompt_manager_list',
-    promptEditorPopup: '.completion_prompt_manager_popup_entry',
-};
+// Track if React UI is enabled and initialized
+let reactUIInitialized = false;
 
+/**
+ * Initialize React-based UI components
+ * This mounts React components into existing containers
+ */
+async function initializeReactUI() {
+    if (reactUIInitialized) return;
+
+    const settings = extension_settings[NEMO_EXTENSION_NAME] || {};
+    const useReactUI = settings.useReactUI !== false; // Default to true
+
+    if (!useReactUI) {
+        logger.info('React UI disabled by user setting');
+        return;
+    }
+
+    try {
+        // Load React CSS if not already loaded
+        if (!document.getElementById('nemo-react-styles')) {
+            const link = document.createElement('link');
+            link.id = 'nemo-react-styles';
+            link.rel = 'stylesheet';
+            link.href = `scripts/extensions/third-party/${NEMO_EXTENSION_NAME}/features/prompts/react/dist/prompt-views.css`;
+            document.head.appendChild(link);
+            logger.debug('React CSS loaded');
+        }
+        // Mount Settings Panel (if container exists)
+        const settingsContainer = document.querySelector('.nemo-preset-enhancer-settings');
+        if (settingsContainer) {
+            // Create a dedicated React root container inside settings
+            let reactSettingsRoot = settingsContainer.querySelector('.nemo-react-settings-root');
+            if (!reactSettingsRoot) {
+                reactSettingsRoot = document.createElement('div');
+                reactSettingsRoot.className = 'nemo-react-settings-root';
+                settingsContainer.appendChild(reactSettingsRoot);
+            }
+            mountSettingsPanel(reactSettingsRoot);
+            logger.info('React Settings Panel mounted');
+        }
+
+        // Expose React functions globally for other modules to use
+        window.NemoReactUI = {
+            mountPromptView,
+            mountNavigatorView,
+            mountUserSettingsTabs,
+            mountSettingsPanel,
+            mountDirectiveAutocomplete,
+            unmountDirectiveAutocomplete,
+            showVNDialog,
+            showConflictToast,
+            showDirectiveHelp,
+            unmountAll,
+            getCurrentMode,
+            // Event bridge for vanilla JS to notify React of state changes
+            emitEvent: emitNemoEvent,
+            events: ST_EVENTS,
+            // Convenience methods for common events
+            notifyPromptToggled: (identifier) => emitNemoEvent(ST_EVENTS.NEMO_PROMPT_TOGGLED, identifier),
+            notifyPromptsRefreshed: () => emitNemoEvent(ST_EVENTS.NEMO_PROMPTS_REFRESHED),
+            notifySectionStateChanged: (sectionId, isOpen) => emitNemoEvent(ST_EVENTS.NEMO_SECTION_STATE_CHANGED, sectionId, isOpen),
+            notifyViewModeChanged: (mode) => emitNemoEvent(ST_EVENTS.NEMO_VIEW_MODE_CHANGED, mode),
+        };
+
+        reactUIInitialized = true;
+        logger.info('React UI initialized and functions exposed globally');
+    } catch (error) {
+        logger.error('Failed to initialize React UI', error);
+    }
+}
+
+// --- MAIN INITIALIZATION ---
 // Initialize when left nav panel is ready
 const leftNavPanel = document.querySelector('#left-nav-panel');
 if (leftNavPanel) {
@@ -99,6 +187,12 @@ async function initializeExtension() {
         // Initialize all modules
         NemoCharacterManager.initialize();
         NemoSettingsUI.initialize();
+
+        // Initialize React UI components (after settings HTML is injected)
+        // Use a small delay to ensure DOM is ready
+        setTimeout(() => {
+            initializeReactUI();
+        }, 600);
 
         // Initialize theme selector UI handlers (after settings UI is loaded)
         initThemeSelector();
@@ -263,9 +357,6 @@ async function initializeExtension() {
             // Initialize Prompt Manager sections when the list appears
             const promptList = document.querySelector(CONSTANTS.SELECTORS.PROMPT_CONTAINER);
             if (promptList && !promptList.dataset.nemoPromptsInitialized) {
-                // Hide container immediately to prevent flash during initialization
-                document.body.classList.add('nemo-prompt-reorganizing');
-
                 logger.performance('Prompt Manager Initialization', () => {
                     NemoPresetManager.initialize(promptList);
                 });
@@ -301,7 +392,7 @@ async function initializeExtension() {
         }, 2000);
 
         // Simple observer for critical functionality only - matches original behavior
-        const observer = new MutationObserver((mutations) => {
+        const observer = new MutationObserver((_mutations) => {
             checkAndInitializePresetNavigators();
         });
 
@@ -335,6 +426,17 @@ async function initializeExtension() {
             ExtensionManager.disconnectAll();
             eventCleanupFunctions.forEach(cleanup => cleanup());
             eventCleanupFunctions.length = 0;
+
+            // Clean up React UI components
+            if (reactUIInitialized) {
+                try {
+                    unmountAll();
+                    reactUIInitialized = false;
+                    logger.info('React UI components unmounted');
+                } catch (error) {
+                    logger.error('Error unmounting React UI', error);
+                }
+            }
 
             // Clean up NemoPresetManager
             if (window.NemoPresetManager && typeof window.NemoPresetManager.destroy === 'function') {
@@ -444,10 +546,6 @@ function initializeMobileEnhancements() {
     });
 }
 
-// Keep old function names for backward compatibility
-const applyWidePanelsOverride = applyWidePanelsStyles;
-const removeWidePanelsOverride = removeWidePanelsStyles;
-
 // Enhanced preset navigator initialization that works with both new and legacy code
 function initPresetNavigatorForApiEnhanced(apiType) {
     const selector = `select[data-preset-manager-for="${apiType}"]`;
@@ -463,7 +561,7 @@ function initPresetNavigatorForApiEnhanced(apiType) {
     browseButton.textContent = 'Browse...';
     browseButton.className = 'menu_button interactable';
 
-    browseButton.addEventListener('click', (event) => {
+    browseButton.addEventListener('click', (_event) => {
         const navigator = new PresetNavigator(apiType);
         navigator.open();
     });
@@ -471,45 +569,4 @@ function initPresetNavigatorForApiEnhanced(apiType) {
     originalSelect.parentElement.insertBefore(wrapper, originalSelect);
     wrapper.appendChild(originalSelect);
     wrapper.appendChild(browseButton);
-}
-
-async function initializeNemoSettingsUI() {
-    const pollForSettings = setInterval(async () => {
-        const container = document.getElementById('extensions_settings');
-        if (container && !document.querySelector('.nemo-preset-enhancer-settings')) {
-            clearInterval(pollForSettings);
-            ensureSettingsNamespace();
-            const response = await fetch(`scripts/extensions/third-party/${NEMO_EXTENSION_NAME}/settings.html`);
-            if (!response.ok) { console.error(`${LOG_PREFIX} Failed to fetch settings.html`); return; }
-            container.insertAdjacentHTML('beforeend', await response.text());
-
-            const regexInput = document.getElementById('nemoDividerRegexPattern');
-            const saveButton = document.getElementById('nemoSaveRegexSettings');
-            const statusDiv = document.getElementById('nemoRegexStatus');
-
-            regexInput.value = extension_settings[NEMO_EXTENSION_NAME]?.dividerRegexPattern || '';
-
-            saveButton.addEventListener('click', async () => {
-                const customPatternString = regexInput.value.trim();
-
-                try {
-                    if (customPatternString) {
-                        const testPatterns = customPatternString.split(',').map(p => p.trim()).filter(Boolean);
-                        testPatterns.forEach(p => new RegExp(p));
-                    }
-
-                    extension_settings[NEMO_EXTENSION_NAME].dividerRegexPattern = customPatternString;
-                    saveSettingsDebounced();
-
-                    await loadAndSetDividerRegex();
-                    await NemoPresetManager.organizePrompts();
-
-                    statusDiv.textContent = 'Pattern saved!'; statusDiv.style.color = 'lightgreen';
-                } catch(e) {
-                    statusDiv.textContent = `Invalid Regex part: ${e.message}`; statusDiv.style.color = 'red';
-                }
-                setTimeout(() => statusDiv.textContent = '', 4000);
-            });
-        }
-    }, 500);
 }

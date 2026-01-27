@@ -5,7 +5,6 @@
  * @module directive-autocomplete
  */
 
-import logger from '../../core/logger.js';
 import { getAllPromptsWithState } from './prompt-directives.js';
 import { SILLYTAVERN_MACROS } from './sillytavern-macros.js';
 import { chat_metadata } from '../../../../../../script.js';
@@ -744,7 +743,7 @@ function getVariableSuggestions(macroName, partialVarName, wordStart, wordEnd) {
  */
 function getCommentContext(text, cursorPos) {
     // Find the line containing the cursor
-    let lineStart = text.lastIndexOf('\n', cursorPos - 1) + 1;
+    const lineStart = text.lastIndexOf('\n', cursorPos - 1) + 1;
     let lineEnd = text.indexOf('\n', cursorPos);
     if (lineEnd === -1) lineEnd = text.length;
 

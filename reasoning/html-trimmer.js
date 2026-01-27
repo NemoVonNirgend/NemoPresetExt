@@ -4,7 +4,6 @@
  * to reduce context usage while preserving information
  */
 
-import { saveSettingsDebounced } from '../../../../../script.js';
 import { extension_settings } from '../../../../extensions.js';
 
 // Debug flag - set to true for verbose logging during development
@@ -26,7 +25,7 @@ export function initializeHTMLTrimmer() {
     debugLog(' Initializing...');
 
     // Import getContext from SillyTavern
-    import('/scripts/extensions.js').then(module => {
+    import('/scripts/extensions.js').then(_module => {
         if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
             getContext = SillyTavern.getContext;
         } else {
@@ -328,7 +327,7 @@ function separateNarrativeFromUI(messageContent) {
     temp.innerHTML = repairedContent;
 
     let narrative = '';
-    let uiBlocks = [];
+    const uiBlocks = [];
 
     debugLog(' 🔍 STARTING SEPARATION - Total top-level children:', temp.children.length);
     debugLog(' 🔍 Total child nodes (including text):', temp.childNodes.length);
@@ -388,13 +387,6 @@ function separateNarrativeFromUI(messageContent) {
         const isUIBlock = complexityScore >= 5;
 
         console.log(`NemoNet HTML Trimmer: 🔍 Evaluating ${tagName} - Score: ${complexityScore}, isUIBlock: ${isUIBlock}`);
-
-        // NARRATIVE detection - prioritize keeping content
-        const isNarrative =
-            tagName === 'p' || // Paragraphs are always narrative
-            tagName === 'blockquote' || // Quotes are always narrative
-            tagName === 'font' || // Font tags (colored dialogue) are always narrative
-            tagName === 'br'; // Line breaks
 
         if (isUIBlock) {
             debugLog(' ✅ UI BLOCK DETECTED - Complexity Score:', complexityScore);
@@ -529,31 +521,6 @@ ${uiASCII}
         console.error('NemoNet HTML Trimmer: Stack trace:', error.stack);
         return messageContent; // Return original on error
     }
-}
-
-/**
- * Update message DOM to reflect trimmed content
- */
-function updateMessageDOM(messageId, message) {
-    const messageBlock = document.querySelector(`[mesid="${messageId}"]`);
-    if (!messageBlock) {
-        console.warn(`NemoNet HTML Trimmer: Could not find message block for ID ${messageId}`);
-        return;
-    }
-
-    const mesTextDiv = messageBlock.querySelector('.mes_text');
-    if (!mesTextDiv) {
-        console.warn(`NemoNet HTML Trimmer: Could not find .mes_text in message ${messageId}`);
-        return;
-    }
-
-    // Update the message content
-    mesTextDiv.innerHTML = message.mes;
-
-    // Force browser repaint
-    void mesTextDiv.offsetHeight;
-
-    console.log(`NemoNet HTML Trimmer: Updated DOM for message ${messageId}`);
 }
 
 /**

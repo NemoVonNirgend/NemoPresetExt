@@ -1,18 +1,6 @@
 /* --- Nemo World Info Redesign CSS --- */
 /* Comprehensive styling for the redesigned World Info UI */
-
-/* ===== CSS Variables ===== */
-:root {
-    --wi-left-panel-width: 300px;
-    --wi-toggle-offset: 280px;
-    --wi-ui-chrome-height: 200px;
-    --wi-tab-height: 44px;
-    --wi-toolbar-height: 48px;
-    --wi-section-gap: 12px;
-    --wi-btn-radius: 6px;
-    --wi-transition-fast: 0.15s ease;
-    --wi-transition-normal: 0.25s ease;
-}
+/* Note: CSS variables are defined in main styles.css */
 
 /* ===== Section Headers ===== */
 .nemo-wi-section-header {

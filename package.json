@@ -1,0 +1,26 @@
+{
+  "name": "nemo-preset-ext",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint . --ext .js,.ts,.tsx --ignore-pattern node_modules --ignore-pattern dist --ignore-pattern lib",
+    "lint:fix": "eslint . --ext .js,.ts,.tsx --fix --ignore-pattern node_modules --ignore-pattern dist --ignore-pattern lib",
+    "format": "prettier --write \"**/*.{js,ts,tsx,css,json}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{js,ts,tsx,css,json}\" --ignore-path .gitignore",
+    "typecheck": "tsc --noEmit",
+    "build:core": "node core/build.js",
+    "build:react": "cd features/prompts/react && npm run build",
+    "build": "npm run build:core && npm run build:react"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "esbuild": "^0.20.2",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.3.0"
+  }
+}

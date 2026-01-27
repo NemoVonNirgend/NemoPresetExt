@@ -8,7 +8,6 @@
 (function() {
     'use strict';
 
-    const EXTENSION_NAME = 'Animated Backgrounds';
     const EXTENSION_ID = 'animated-backgrounds';
     
     // Enhanced media types
@@ -87,7 +86,7 @@
      * @returns {boolean} True if YouTube URL
      */
     function isYouTubeUrl(url) {
-        return /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i.test(url);
+        return /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i.test(url);
     }
 
     /**
@@ -96,7 +95,7 @@
      * @returns {string|null} Video ID or null
      */
     function getYouTubeVideoId(url) {
-        const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+        const match = url.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i);
         return match ? match[1] : null;
     }
 
@@ -434,7 +433,7 @@
         hookIntoBackgroundSystem();
         
         // Add settings to the extensions panel
-        $(document).ready(function() {
+        $(document).ready(() => {
             // Wait for SillyTavern to be ready
             const checkReady = setInterval(() => {
                 if (typeof getRequestHeaders === 'function') {

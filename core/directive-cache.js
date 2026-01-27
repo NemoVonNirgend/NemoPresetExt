@@ -11,7 +11,7 @@ import { parsePromptDirectives } from '../features/directives/prompt-directives.
 import { promptManager } from '../../../../openai.js';
 
 // Cache storage
-let directiveMetadataCache = new Map();
+const directiveMetadataCache = new Map();
 let cacheInitialized = false;
 let cacheVersion = 0;
 

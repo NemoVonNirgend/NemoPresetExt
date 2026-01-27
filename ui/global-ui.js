@@ -1,6 +1,5 @@
-import { eventSource, event_types, saveSettingsDebounced } from '../../../../../script.js';
-import { extension_settings } from '../../../../extensions.js';
-import { LOG_PREFIX, NEMO_EXTENSION_NAME } from '../core/utils.js';
+import { eventSource, event_types } from '../../../../../script.js';
+import { LOG_PREFIX } from '../core/utils.js';
 
 const SELECTORS = {
     stopButton: '#send_form_stop_button',

@@ -11,11 +11,12 @@ import { parsePromptDirectives, validatePromptActivation, getAllPromptsWithState
 import { getCachedDirectives, getPromptContentOnDemand } from '../../core/directive-cache.js';
 import { showConflictToast } from '../directives/directive-ui.js';
 import { promptManager } from '../../../../../openai.js';
-import { chat_metadata, saveSettingsDebounced } from '../../../../../../script.js';
+import { chat_metadata, saveSettingsDebounced, eventSource } from '../../../../../../script.js';
 import { extension_settings } from '../../../../../extensions.js';
 import { NEMO_EXTENSION_NAME } from '../../core/utils.js';
 import storage from '../../core/storage-migration.js';
 import { getTokenCountAsync } from '../../../../../tokenizers.js';
+import { getTooltip as getPromptTooltip } from './prompt-tooltips.js';
 
 // Track which sections are in tray mode
 const trayModeEnabled = new Set();
@@ -34,7 +35,6 @@ let currentlyDraggedFromTray = null;
 let currentDropTarget = null; // Section being hovered over during drag
 let topLevelDropZone = null; // Drop zone for making prompts top-level
 let isOverTopLevelDropZone = false;
-let isDragging = false; // Flag to pause updates during drag
 // Flag to pause updates during toggle operations (shared via window for cross-file access)
 // This prevents observer interference when toggling prompts
 window._nemoTogglingPrompt = window._nemoTogglingPrompt || false;
@@ -109,7 +109,7 @@ function deletePreset(key) {
 function getPresetsForSection(sectionId) {
     const allPresets = getSavedPresets();
     return Object.entries(allPresets)
-        .filter(([key, preset]) => preset.sectionId === sectionId)
+        .filter(([_key, preset]) => preset.sectionId === sectionId)
         .map(([key, preset]) => ({ key, ...preset }));
 }
 
@@ -222,176 +222,251 @@ function getDropdownStyle() {
     return storage.getDropdownStyle() || 'tray';
 }
 
-/**
- * Apply the appropriate mode based on current setting
- */
-function applyCurrentMode() {
-    const style = getDropdownStyle();
-    logger.debug(`Applying tray mode: ${style}`);
-
-    // Capture current section open states BEFORE any mode changes
-    const sectionStates = new Map();
-    document.querySelectorAll('details.nemo-engine-section').forEach(section => {
-        const summaryLi = section.querySelector('summary > li');
-        const nameLink = summaryLi?.querySelector('span.completion_prompt_manager_prompt_name a');
-        if (nameLink) {
-            sectionStates.set(nameLink.textContent.trim(), section.open);
-        }
-    });
-
-    if (style === 'accordion') {
-        // First disable tray mode if it was active
-        disableTrayMode();
-        // Then apply accordion mode
-        convertToAccordionMode();
-        // Update counts once
-        updateAllAccordionSectionCounts();
-    } else {
-        // First disable accordion mode if it was active
-        disableAccordionMode();
-        // Then apply tray mode
-        convertToTrayMode();
-        // Refresh progress bars once
-        refreshAllSectionProgressBars();
-    }
-
-    // Restore section open states after mode changes (for accordion mode only)
-    if (style === 'accordion' && sectionStates.size > 0) {
-        document.querySelectorAll('details.nemo-engine-section').forEach(section => {
-            const summaryLi = section.querySelector('summary > li');
-            const nameLink = summaryLi?.querySelector('span.completion_prompt_manager_prompt_name a');
-            if (nameLink) {
-                const savedState = sectionStates.get(nameLink.textContent.trim());
-                if (savedState !== undefined) {
-                    section.open = savedState;
-                }
-            }
-        });
-    }
-}
+// Track if React mode is active
+let reactModeActive = false;
 
 /**
  * Initialize the category tray system
+ * Uses React components exclusively for stable state management
  */
 export function initCategoryTray() {
-    logger.info('Initializing category tray system');
+    logger.info('Initializing category tray system (React mode)');
 
     // Listen for dropdown style changes
     document.addEventListener('nemo-dropdown-style-changed', (e) => {
         logger.debug('Dropdown style changed:', e.detail?.style);
-        applyCurrentMode();
+        mountReactPromptView();
     });
 
-    // Apply mode once after a short delay to catch initial sections
-    setTimeout(() => {
-        applyCurrentMode();
-        refreshAllSectionProgressBars();
-    }, 500);
+    // Throttle state to prevent infinite remount loops
+    let lastMountTime = 0;
+    let mountCount = 0;
+    const MOUNT_THROTTLE_MS = 500;
+    const MAX_MOUNTS_PER_MINUTE = 10;
 
-    // One additional check for late-loading sections
-    setTimeout(() => {
-        applyCurrentMode();
-        refreshAllSectionProgressBars();
-    }, 2000);
+    // Try to mount the React view (always try, re-mount if container missing)
+    const tryMount = () => {
+        const now = Date.now();
 
-    // Watch for prompt manager re-renders
-    const observer = new MutationObserver((mutations) => {
-        // Skip updates during drag or toggle to prevent flickering
-        if (isDragging || window._nemoTogglingPrompt) return;
+        // Throttle to prevent rapid remounting
+        if (now - lastMountTime < MOUNT_THROTTLE_MS) {
+            return false;
+        }
 
-        // Only run if we see relevant changes (new sections or prompts added)
-        const hasRelevantChanges = mutations.some(m =>
-            m.addedNodes.length > 0 &&
-            Array.from(m.addedNodes).some(node =>
-                node.nodeType === 1 && (
-                    node.matches?.('details.nemo-engine-section') ||
-                    node.matches?.('li.completion_prompt_manager_prompt') ||
-                    node.querySelector?.('details.nemo-engine-section')
-                )
-            )
-        );
+        // Prevent runaway mounts
+        if (mountCount > MAX_MOUNTS_PER_MINUTE) {
+            logger.error('Too many mount attempts, stopping');
+            return false;
+        }
 
-        if (hasRelevantChanges) {
-            clearTimeout(window._trayDebounce);
-            window._trayDebounce = setTimeout(() => {
-                // Double-check we're not dragging or toggling
-                if (isDragging || window._nemoTogglingPrompt) return;
-                applyCurrentMode();
-                refreshAllSectionProgressBars();
-            }, 50); // Reduced from 200ms to 50ms
+        const promptList = document.querySelector('#completion_prompt_manager_list');
+        if (!promptList || !window.NemoReactUI?.mountPromptView) {
+            return false;
+        }
+
+        // Check if our container still exists as a sibling of the prompt list
+        const promptListParent = promptList.parentElement;
+        const existingContainer = promptListParent?.querySelector('.nemo-react-prompt-container');
+        if (existingContainer && document.body.contains(existingContainer)) {
+            return true;
+        }
+
+        // Container missing - (re)mount
+        lastMountTime = now;
+        mountCount++;
+
+        return mountReactPromptView();
+    };
+
+    // Reset mount count every minute
+    setInterval(() => {
+        mountCount = 0;
+    }, 60000);
+
+    // Initial attempt after React UI is ready
+    const waitForReactUI = (attempts = 0) => {
+        if (window.NemoReactUI?.mountPromptView) {
+            // React is ready, try initial mount
+            tryMount();
+
+            // Set up PERSISTENT MutationObserver to detect when prompt list changes
+            // This handles ST recreating the list and destroying our container
+            const observer = new MutationObserver((mutations) => {
+                // Check if prompt list exists and our container is missing from its parent
+                const promptList = document.querySelector('#completion_prompt_manager_list');
+                const promptListParent = promptList?.parentElement;
+                if (promptList && promptListParent && !promptListParent.querySelector('.nemo-react-prompt-container')) {
+                    tryMount();
+                }
+            });
+
+            // Observe the document body for changes - NEVER disconnect
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+
+            logger.info('Persistent watcher installed for prompt manager list');
+            return;
+        }
+
+        // Keep waiting for React UI (up to 15 seconds)
+        if (attempts < 30) {
+            setTimeout(() => waitForReactUI(attempts + 1), 500);
+        } else {
+            logger.error('Failed to initialize React prompt view - React UI not available after 15 seconds');
+        }
+    };
+
+    // Start waiting
+    setTimeout(() => waitForReactUI(), 300);
+
+    logger.info('Category tray system initialized');
+}
+
+/**
+ * Mount React prompt view component
+ */
+function mountReactPromptView() {
+    const style = getDropdownStyle();
+    const promptList = document.querySelector('#completion_prompt_manager_list');
+
+    if (!promptList || !window.NemoReactUI?.mountPromptView) {
+        logger.warn('Cannot mount React prompt view - missing container or API');
+        return false;
+    }
+
+    // Get the prompt list's parent - we'll add our container as a sibling
+    // This prevents ST from destroying it when it rebuilds the prompt list
+    const promptListParent = promptList.parentElement;
+    if (!promptListParent) {
+        logger.warn('Cannot mount React prompt view - prompt list has no parent');
+        return false;
+    }
+
+    // Create a container for React OUTSIDE the prompt list (as a preceding sibling)
+    // This way SillyTavern can't destroy it when rebuilding the prompt list
+    let reactContainer = promptListParent.querySelector('.nemo-react-prompt-container');
+    if (!reactContainer) {
+        reactContainer = document.createElement('div');
+        reactContainer.className = 'nemo-react-prompt-container';
+        // Insert BEFORE the prompt list, as a sibling
+        promptListParent.insertBefore(reactContainer, promptList);
+        logger.info('Created React container as sibling of prompt list');
+    }
+
+    // Hide all original ST prompt items (React will render its own)
+    hideOriginalPromptElements(promptList);
+
+    // Build the options object - used for both initial mount and view switching
+    const buildMountOptions = (viewMode) => ({
+        currentView: viewMode,
+        onSwitchView: (newMode) => {
+            // Save the new view mode preference
+            const settings = extension_settings[NEMO_EXTENSION_NAME];
+            if (settings) {
+                settings.dropdownStyle = newMode;
+                saveSettingsDebounced();
+            }
+            // Re-mount with the new view mode
+            window.NemoReactUI.mountPromptView(reactContainer, newMode, buildMountOptions(newMode));
+            logger.info(`Switched to ${newMode} view`);
+        },
+        onEditPrompt: (identifier) => {
+            // Use ST's promptManager to open the edit form
+            const pm = window.promptManager;
+            if (!pm) {
+                logger.warn('promptManager not available');
+                return;
+            }
+
+            try {
+                // Get the prompt by identifier
+                const prompt = pm.getPromptById(identifier);
+                if (!prompt) {
+                    logger.warn('Prompt not found:', identifier);
+                    return;
+                }
+
+                // Clear forms and load the prompt into edit form
+                pm.clearEditForm?.();
+                pm.clearInspectForm?.();
+                pm.loadPromptIntoEditForm(prompt);
+                pm.showPopup('edit');
+            } catch (error) {
+                logger.error('Error opening prompt editor:', error);
+
+                // Fallback: try clicking the element in the hidden list
+                const stElement = document.querySelector(
+                    `li[data-pm-identifier="${identifier}"] .prompt-manager-inspect-action`
+                );
+                if (stElement) {
+                    stElement.click();
+                }
+            }
+        },
+        getTooltip: (prompt) => {
+            // Parse directives from prompt content to get the @tooltip
+            try {
+                if (!prompt.content) return undefined;
+                const directives = parsePromptDirectives(prompt.content);
+                if (directives.tooltip) {
+                    return directives.tooltip;
+                }
+                // Fallback to hardcoded tooltips if no directive found
+                return getPromptTooltip(prompt.name);
+            } catch {
+                return undefined;
+            }
         }
     });
 
-    // Watch the whole document body for changes
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
+    // Mount the appropriate React view
+    try {
+        window.NemoReactUI.mountPromptView(reactContainer, style, buildMountOptions(style));
 
-    logger.info('Category tray system initialized - watching for sections');
+        reactModeActive = true;
+        logger.info(`React ${style} view mounted successfully`);
+        return true;
+    } catch (error) {
+        logger.error('Failed to mount React prompt view:', error);
+        return false;
+    }
+}
+
+/**
+ * Hide original SillyTavern prompt elements when React is active
+ */
+function hideOriginalPromptElements(container) {
+    // Hide section details and prompt items
+    container.querySelectorAll('details.nemo-engine-section, li.completion_prompt_manager_prompt').forEach(el => {
+        if (!el.closest('.nemo-react-prompt-container')) {
+            el.style.display = 'none';
+            el.dataset.nemoHiddenForReact = 'true';
+        }
+    });
+}
+
+/**
+ * Check if React mode is currently active
+ */
+export function isReactModeActive() {
+    return reactModeActive;
+}
+
+/**
+ * Force refresh of the prompt view (React-only)
+ */
+export function forceRefreshPromptView() {
+    if (window.NemoReactUI) {
+        // Emit refresh event so React components re-render
+        window.NemoReactUI.notifyPromptsRefreshed();
+    }
 }
 
 // Track top-level prompts container
 let topLevelPromptsContainer = null;
 const TOP_LEVEL_SECTION_ID = '__nemo_top_level__';
-
-/**
- * Convert top-level prompts (outside any section) to use our tray system
- * This prevents lag from native SillyTavern drag handlers
- */
-function convertTopLevelPrompts() {
-    // Skip if container already exists and is in DOM
-    if (topLevelPromptsContainer && document.contains(topLevelPromptsContainer)) {
-        return 0;
-    }
-
-    const promptList = document.querySelector('#completion_prompt_manager_list');
-    if (!promptList) return 0;
-
-    // Find all top-level prompts (direct children of prompt list, not in sections)
-    // Exclude any that are inside our created container
-    const topLevelPrompts = promptList.querySelectorAll(':scope > li.completion_prompt_manager_prompt:not(.nemo-tray-hidden-prompt)');
-
-    if (topLevelPrompts.length === 0 && !sectionPromptIdsCache.has(TOP_LEVEL_SECTION_ID)) {
-        return 0;
-    }
-
-    // Don't re-process if we already have cached data and no new prompts
-    if (topLevelPrompts.length === 0 && topLevelPromptsContainer) {
-        return 0;
-    }
-
-    logger.debug(`Found ${topLevelPrompts.length} top-level prompts`);
-
-    // Check for cached data
-    let topLevelPromptIds = sectionPromptIdsCache.get(TOP_LEVEL_SECTION_ID);
-
-    if (topLevelPrompts.length > 0) {
-        // Extract and hide top-level prompts
-        topLevelPromptIds = [];
-        topLevelPrompts.forEach(el => {
-            const identifier = el.getAttribute('data-pm-identifier');
-            const nameEl = el.querySelector('.completion_prompt_manager_prompt_name a');
-            const name = nameEl?.textContent?.trim() || identifier;
-            if (identifier) {
-                topLevelPromptIds.push({ identifier, name });
-            }
-            // Hide the prompt
-            el.classList.add('nemo-tray-hidden-prompt');
-        });
-
-        // Cache the data
-        sectionPromptIdsCache.set(TOP_LEVEL_SECTION_ID, topLevelPromptIds);
-        logger.debug(`Cached ${topLevelPromptIds.length} top-level prompt IDs`);
-    }
-
-    // Create or update the top-level container if we have prompts
-    if (topLevelPromptIds && topLevelPromptIds.length > 0) {
-        createTopLevelContainer(promptList, topLevelPromptIds);
-    }
-
-    return topLevelPromptIds?.length || 0;
-}
 
 /**
  * Create the container for top-level prompts
@@ -456,185 +531,6 @@ function createTopLevelContainer(promptList, promptIds) {
     updateSectionProgressFromStoredIds(topLevelPromptsContainer);
 
     logger.debug('Created top-level prompts container');
-}
-
-/**
- * Convert sections to tray mode (hide items, click to expand tray)
- * Works for both main sections and sub-sections that contain prompts
- * @returns {number} Number of sections converted
- */
-function convertToTrayMode() {
-    // Don't convert if sections feature is disabled
-    if (!storage.getSectionsEnabled()) {
-        logger.debug('Sections disabled, skipping tray conversion');
-        return 0;
-    }
-
-    // Target ALL sections (both main and sub-sections)
-    const allSections = document.querySelectorAll('details.nemo-engine-section');
-
-    logger.debug(`Found ${allSections.length} sections`);
-
-    let converted = 0;
-
-    allSections.forEach(section => {
-        // Skip if already converted
-        if (section.dataset.trayConverted === 'true') return;
-
-        // Skip our top-level container (it's managed separately)
-        if (section.classList.contains('nemo-top-level-section')) return;
-
-        const summary = section.querySelector('summary');
-        const content = section.querySelector('.nemo-section-content');
-        if (!summary || !content) {
-            logger.debug(`Missing summary or content for: ${getSectionId(section)}`);
-            return;
-        }
-
-        const sectionName = getSectionId(section);
-
-        // Check if this section has prompts in DOM
-        const promptElements = content.querySelectorAll(':scope > li.completion_prompt_manager_prompt');
-        const hasPromptsInDOM = promptElements.length > 0;
-
-        // Check if we have cached data for this section (from previous conversion)
-        const cachedPromptIds = sectionPromptIdsCache.get(sectionName);
-
-        // Check if this section has sub-sections (parent section)
-        const hasSubSections = content.querySelectorAll(':scope > details.nemo-engine-section').length > 0;
-
-        // ALWAYS set up drop zone for all sections (so you can drag prompts INTO them)
-        setupSectionDropZone(section, summary);
-
-        // If no prompts in DOM and no cache, this section has no direct prompts
-        // But still mark it as converted and set up basic structure for parent sections
-        if (!hasPromptsInDOM && !cachedPromptIds) {
-            logger.debug(`No direct prompts in section (parent): ${sectionName}`);
-
-            // Mark as converted but with empty prompts
-            section.dataset.trayConverted = 'true';
-            section.classList.add('nemo-tray-section');
-            section._nemoPromptIds = [];
-
-            // Parent sections stay openable normally (no tray click handler)
-            // Just set up for receiving drops
-            converted++;
-            return;
-        }
-
-        // Processing section with prompts
-
-        let sectionPromptIds;
-
-        if (hasPromptsInDOM) {
-            // Extract prompt identifiers from DOM (first time conversion)
-            sectionPromptIds = [];
-            promptElements.forEach(el => {
-                const identifier = el.getAttribute('data-pm-identifier');
-                const nameEl = el.querySelector('.completion_prompt_manager_prompt_name a');
-                const name = nameEl?.textContent?.trim() || identifier;
-                if (identifier) {
-                    sectionPromptIds.push({ identifier, name });
-                }
-                // HIDE prompts instead of removing them (preserves DOM for mode switching)
-                el.classList.add('nemo-tray-hidden-prompt');
-            });
-
-            // Store in persistent cache (survives DOM refreshes)
-            sectionPromptIdsCache.set(sectionName, sectionPromptIds);
-        } else if (cachedPromptIds) {
-            // Restore from cache (DOM was refreshed by SillyTavern)
-            // Validate that cached prompts still exist in promptManager to avoid stale data
-            if (promptManager && promptManager.activeCharacter) {
-                const validatedIds = cachedPromptIds.filter(({ identifier }) => {
-                    try {
-                        const entry = promptManager.getPromptOrderEntry(promptManager.activeCharacter, identifier);
-                        return entry !== null && entry !== undefined;
-                    } catch {
-                        return false;
-                    }
-                });
-                // Only use validated cache if most prompts are still valid
-                // If too many are missing, let the section rebuild from scratch
-                if (validatedIds.length >= cachedPromptIds.length * 0.5) {
-                    sectionPromptIds = validatedIds;
-                    // Update cache with validated list
-                    sectionPromptIdsCache.set(sectionName, validatedIds);
-                } else {
-                    logger.debug(`[NemoTray] Cache for ${sectionName} too stale, clearing`);
-                    sectionPromptIdsCache.delete(sectionName);
-                    sectionPromptIds = [];
-                }
-            } else {
-                sectionPromptIds = cachedPromptIds;
-            }
-        } else {
-            sectionPromptIds = [];
-        }
-
-        // Store on section element for quick access
-        section._nemoPromptIds = sectionPromptIds;
-
-        // Mark as converted
-        section.dataset.trayConverted = 'true';
-        section.classList.add('nemo-tray-section');
-        content.classList.add('nemo-tray-hidden-content');
-
-        // Update the section progress bar using stored prompt IDs
-        // Update immediately and again after delays to catch ST overwrites
-        updateSectionProgressFromStoredIds(section);
-        setTimeout(() => updateSectionProgressFromStoredIds(section), 100);
-        setTimeout(() => updateSectionProgressFromStoredIds(section), 500);
-
-        // Create click handler
-        const clickHandler = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleTray(section);
-        };
-
-        // Create keyboard handler for Enter/Space
-        const keyHandler = (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                toggleTray(section);
-            }
-        };
-
-        // Make summary focusable for keyboard navigation
-        summary.setAttribute('tabindex', '0');
-        summary.setAttribute('role', 'button');
-        summary.setAttribute('aria-expanded', 'false');
-
-        // Remove any existing listeners and add new ones
-        summary.removeEventListener('click', summary._trayClickHandler);
-        summary.removeEventListener('keydown', summary._trayKeyHandler);
-        summary._trayClickHandler = clickHandler;
-        summary._trayKeyHandler = keyHandler;
-        summary.addEventListener('click', clickHandler);
-        summary.addEventListener('keydown', keyHandler);
-
-        // Note: Drop zone already set up earlier in convertToTrayMode
-
-        // Keep section closed
-        section.open = false;
-
-        converted++;
-    });
-
-    if (converted > 0) {
-        logger.debug(`Converted ${converted} sections to tray mode`);
-    }
-
-    // Also convert top-level prompts (outside sections) to prevent lag
-    const topLevelCount = convertTopLevelPrompts();
-    if (topLevelCount > 0) {
-        logger.debug(`Converted ${topLevelCount} top-level prompts`);
-    }
-
-    return converted + topLevelCount;
 }
 
 // Track all section drop zone summaries
@@ -838,7 +734,7 @@ function showTopLevelDropZone() {
         isOverTopLevelDropZone = true;
     });
 
-    topLevelDropZone.addEventListener('dragleave', (e) => {
+    topLevelDropZone.addEventListener('dragleave', (_e) => {
         topLevelDropZone.classList.remove('nemo-drop-zone-active');
         isOverTopLevelDropZone = false;
     });
@@ -906,7 +802,7 @@ async function movePromptToTopLevel(identifier, promptData, fromSection, fromTra
         }
 
         // Add to top-level prompts cache (only if not already there)
-        let topLevelPrompts = sectionPromptIdsCache.get(TOP_LEVEL_SECTION_ID) || [];
+        const topLevelPrompts = sectionPromptIdsCache.get(TOP_LEVEL_SECTION_ID) || [];
         const alreadyExists = topLevelPrompts.some(p => p.identifier === identifier);
         if (!alreadyExists) {
             topLevelPrompts.unshift({ identifier: promptData.identifier, name: promptData.name });
@@ -964,7 +860,6 @@ async function movePromptToTopLevel(identifier, promptData, fromSection, fromTra
  * Toggle the tray for a section
  */
 function toggleTray(section) {
-    const sectionId = getSectionId(section);
     // Check stored reference instead of querySelector (tray is sibling, not child)
     const existingTray = section._nemoCategoryTray;
 
@@ -1188,9 +1083,6 @@ function openTray(section) {
             ghostClass: 'nemo-tray-card-ghost',
             forceFallback: false, // Use native drag (we use global mousemove for drop detection)
             onStart: (evt) => {
-                // Set dragging flag to pause updates
-                isDragging = true;
-
                 // Track the dragged item for drop-on-section functionality
                 const item = evt.item;
                 const identifier = item.dataset.identifier;
@@ -1233,7 +1125,6 @@ function openTray(section) {
                     item.remove();
 
                     // Clear drag state
-                    isDragging = false;
                     currentlyDraggedPrompt = null;
                     currentlyDraggedFromSection = null;
                     currentlyDraggedFromTray = null;
@@ -1271,7 +1162,6 @@ function openTray(section) {
                     });
 
                     // Clear drag state
-                    isDragging = false;
                     currentlyDraggedPrompt = null;
                     currentlyDraggedFromSection = null;
                     currentlyDraggedFromTray = null;
@@ -1343,7 +1233,6 @@ function openTray(section) {
                 }
 
                 // Clear drag state
-                isDragging = false;
                 currentlyDraggedPrompt = null;
                 currentlyDraggedFromSection = null;
                 currentlyDraggedFromTray = null;
@@ -1846,9 +1735,7 @@ function closeTray(section) {
         section._nemoTrayClosing = true;
 
         // Clear drag state if this tray was the source of an active drag
-        // This prevents isDragging from getting stuck true indefinitely
         if (currentlyDraggedFromTray === tray || currentlyDraggedFromSection === section) {
-            isDragging = false;
             currentlyDraggedPrompt = null;
             currentlyDraggedFromSection = null;
             currentlyDraggedFromTray = null;
@@ -1887,14 +1774,6 @@ function closeTray(section) {
 }
 
 /**
- * Refresh the tray content (after toggle)
- */
-function refreshTray(section) {
-    closeTray(section);
-    setTimeout(() => openTray(section), 50);
-}
-
-/**
  * Toggle a prompt's enabled state with dependency validation
  * @param {string} identifier - Prompt identifier
  * @param {boolean} enabled - New enabled state
@@ -1911,8 +1790,6 @@ function togglePrompt(identifier, enabled, onValidationFailed = null) {
             const issues = validatePromptActivation(identifier, allPrompts);
 
             if (issues.length > 0) {
-                const hasErrors = issues.some(i => i.severity === 'error');
-
                 // Show conflict toast and let user decide
                 showConflictToast(issues, identifier, (proceed) => {
                     if (proceed) {
@@ -1982,6 +1859,11 @@ async function performToggle(identifier, enabled) {
             }
 
             logger.info(`Toggled prompt ${identifier} to ${enabled}`);
+
+            // Notify React of the toggle (if React mode is active)
+            if (window.NemoReactUI?.notifyPromptToggled) {
+                window.NemoReactUI.notifyPromptToggled(identifier);
+            }
         } else {
             logger.warn(`performToggle: no promptOrderEntry for ${identifier}`);
         }
@@ -2547,22 +2429,6 @@ function showPromptPreview(identifier, name) {
 }
 
 /**
- * Refresh progress bars for all converted sections
- * Called periodically to ensure progress bars stay updated after ST refreshes
- */
-function refreshAllSectionProgressBars() {
-    document.querySelectorAll('details.nemo-tray-section').forEach(section => {
-        if (section._nemoPromptIds || sectionPromptIdsCache.has(getSectionId(section))) {
-            // Restore from cache if needed
-            if (!section._nemoPromptIds) {
-                section._nemoPromptIds = sectionPromptIdsCache.get(getSectionId(section));
-            }
-            updateSectionProgressFromStoredIds(section);
-        }
-    });
-}
-
-/**
  * Get direct counts for a section from stored prompt IDs (tray mode)
  * @param {HTMLElement} section - The section element
  * @returns {{enabled: number, total: number}} The direct counts
@@ -3080,40 +2946,71 @@ async function updateParentSectionCounts(section) {
 }
 
 /**
- * Disable accordion mode for all sections
+ * Convert all sections to tray mode
+ * Hides prompts in sections and shows them in a popup tray when clicked
  */
-function disableAccordionMode() {
-    logger.debug('Disabling accordion mode for all sections');
+function convertSectionsToTray() {
+    const allSections = document.querySelectorAll('details.nemo-engine-section');
+    logger.debug(`Converting ${allSections.length} sections to tray mode`);
 
-    document.querySelectorAll('.nemo-accordion-section').forEach(section => {
-        // Remove accordion classes and attributes
-        section.classList.remove('nemo-accordion-section');
-        delete section.dataset.accordionConverted;
+    allSections.forEach(section => {
+        // Skip if already in tray mode
+        if (section.dataset.trayConverted === 'true') return;
 
+        const summary = section.querySelector('summary');
         const content = section.querySelector('.nemo-section-content');
-        if (content) {
-            // Destroy sortable if exists
-            if (content._accordionSortable) {
-                content._accordionSortable.destroy();
-                delete content._accordionSortable;
-            }
-        }
+        if (!summary || !content) return;
 
-        // Clean up prompt item enhancements
-        const promptItems = section.querySelectorAll('li.completion_prompt_manager_prompt');
+        // Mark as tray mode
+        section.dataset.trayConverted = 'true';
+        section.classList.add('nemo-tray-section');
+
+        // Store prompt IDs before hiding them
+        const promptItems = content.querySelectorAll(':scope > li.completion_prompt_manager_prompt');
+        const promptIds = [];
+
         promptItems.forEach(item => {
-            item.classList.remove('nemo-accordion-prompt', 'nemo-accordion-prompt-enabled', 'nemo-accordion-prompt-disabled');
-            delete item.dataset.accordionEnhanced;
+            const identifier = item.getAttribute('data-pm-identifier');
+            const nameLink = item.querySelector('.completion_prompt_manager_prompt_name a');
+            const name = nameLink?.textContent?.trim() || identifier;
 
-            // Clear toggle handler flag (listener will be GC'd with element replacement)
-            const toggleBtn = item.querySelector('.prompt-manager-toggle-action');
-            if (toggleBtn) {
-                delete toggleBtn._nemoAccordionHandled;
+            if (identifier) {
+                promptIds.push({ identifier, name });
+                // Hide prompt from DOM (not removed, just hidden for CSS-based hiding)
+                item.classList.add('nemo-tray-hidden-prompt');
             }
         });
+
+        // Store prompt IDs on section for tray population
+        section._nemoPromptIds = promptIds;
+
+        // Also cache by section ID for persistence
+        const sectionId = getSectionId(section);
+        sectionPromptIdsCache.set(sectionId, promptIds);
+
+        // Add hidden class to content
+        content.classList.add('nemo-tray-hidden-content');
+
+        // Set up click handler for tray
+        const clickHandler = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleTray(section);
+        };
+
+        summary.addEventListener('click', clickHandler);
+        summary._trayClickHandler = clickHandler;
+
+        // Set up drop zone for drag-drop between sections
+        setupSectionDropZone(section, summary);
+
+        // Update progress bar
+        updateSectionProgressFromStoredIds(section);
+
+        trayModeEnabled.add(sectionId);
     });
 
-    logger.debug('Accordion mode disabled for all sections');
+    logger.info(`Converted ${allSections.length} sections to tray mode`);
 }
 
 // Export for use in prompt-manager.js after cache restore

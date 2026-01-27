@@ -9,6 +9,13 @@ import logger from '../../core/logger.js';
 import { getAllPromptsWithState, parsePromptDirectives } from './prompt-directives.js';
 import { promptManager } from '../../../../../openai.js';
 
+// Store observer references for cleanup
+const observers = {
+    visualCustomizations: null,
+    tokenCostTracker: null,
+    conditionalVisibility: null,
+};
+
 /**
  * Initialize all fixes for directive features
  */
@@ -28,19 +35,30 @@ export function initDirectiveFeaturesFixes() {
 }
 
 /**
+ * Cleanup all observers (called on extension unload)
+ */
+export function cleanupDirectiveFeaturesFixes() {
+    Object.values(observers).forEach(observer => {
+        if (observer) {
+            observer.disconnect();
+        }
+    });
+    observers.visualCustomizations = null;
+    observers.tokenCostTracker = null;
+    observers.conditionalVisibility = null;
+    logger.info('Directive features observers cleaned up');
+}
+
+/**
  * Fix visual customizations to run reliably
  */
 function fixVisualCustomizations() {
-    let isApplying = false; // Prevent re-entry
+    let isApplying = false;
     let applyTimeout = null;
 
-    // Debounced apply function
     const debouncedApply = () => {
         if (isApplying) return;
-
-        if (applyTimeout) {
-            clearTimeout(applyTimeout);
-        }
+        if (applyTimeout) clearTimeout(applyTimeout);
 
         applyTimeout = setTimeout(() => {
             isApplying = true;
@@ -49,44 +67,55 @@ function fixVisualCustomizations() {
         }, 100);
     };
 
-    // Observer to apply visual customizations whenever prompts change
-    const observer = new MutationObserver((mutations) => {
-        // Check for added nodes OR attribute changes (class/style modifications)
-        const needsReapply = mutations.some(m => {
-            if (m.type === 'childList' && m.addedNodes.length > 0) {
-                return Array.from(m.addedNodes).some(node =>
-                    node.classList?.contains('completion_prompt_manager_prompt')
-                );
+    // Wait for the prompt list container to exist before observing
+    const waitForContainer = (attempts = 0) => {
+        const listContainer = document.querySelector('#completion_prompt_manager_list');
+        if (listContainer) {
+            // Disconnect previous observer if any
+            if (observers.visualCustomizations) {
+                observers.visualCustomizations.disconnect();
             }
-            // Also reapply if class or style attributes change (something is removing our classes)
-            if (m.type === 'attributes' && m.target.classList?.contains('completion_prompt_manager_prompt')) {
-                return true;
-            }
-            return false;
-        });
 
-        if (needsReapply) {
-            debouncedApply();
-        }
-    });
+            // Create targeted observer on the prompt list only
+            observers.visualCustomizations = new MutationObserver((mutations) => {
+                const needsReapply = mutations.some(m => {
+                    if (m.type === 'childList' && m.addedNodes.length > 0) {
+                        return Array.from(m.addedNodes).some(node =>
+                            node.classList?.contains('completion_prompt_manager_prompt') ||
+                            node.querySelector?.('.completion_prompt_manager_prompt')
+                        );
+                    }
+                    if (m.type === 'attributes' && m.target.classList?.contains('completion_prompt_manager_prompt')) {
+                        return true;
+                    }
+                    return false;
+                });
 
-    // Watch the entire document body to catch any changes
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class', 'style']
-    });
+                if (needsReapply) {
+                    debouncedApply();
+                }
+            });
 
-    // Apply immediately
-    applyVisualCustomizations();
+            // Watch only the prompt list container (not entire body)
+            observers.visualCustomizations.observe(listContainer, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['class', 'style']
+            });
 
-    // Also reapply every 2 seconds as a safety net
-    setInterval(() => {
-        if (!isApplying) {
+            // Apply immediately
             applyVisualCustomizations();
+            logger.debug('Visual customizations observer attached to prompt list');
+        } else if (attempts < 20) {
+            setTimeout(() => waitForContainer(attempts + 1), 500);
         }
-    }, 2000);
+    };
+
+    waitForContainer();
+
+    // Also listen for React events to reapply customizations
+    window.addEventListener('NEMO_PROMPTS_REFRESHED', debouncedApply);
 }
 
 /**
@@ -426,13 +455,24 @@ function setupTokenCostTrackerFixed() {
     // Update immediately
     updateTokenCostTrackerFixed();
 
+    // Disconnect previous observer if any
+    if (observers.tokenCostTracker) {
+        observers.tokenCostTracker.disconnect();
+    }
+
     // Setup debounced observer to update when prompts change
     let updateTimeout = null;
-    const observer = new MutationObserver(() => {
+    observers.tokenCostTracker = new MutationObserver(() => {
         if (updateTimeout) clearTimeout(updateTimeout);
         updateTimeout = setTimeout(() => updateTokenCostTrackerFixed(), 200);
     });
-    observer.observe(listContainer, { childList: true, subtree: false, attributes: false });
+    observers.tokenCostTracker.observe(listContainer, { childList: true, subtree: false, attributes: false });
+
+    // Also listen for React events
+    window.addEventListener('NEMO_PROMPT_TOGGLED', () => {
+        if (updateTimeout) clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(() => updateTokenCostTrackerFixed(), 200);
+    });
 
     logger.info('Token cost tracker setup complete');
     return true;
@@ -730,11 +770,10 @@ function fixConditionalVisibility() {
     let isApplying = false;
     let applyTimeout = null;
 
-    // Debounced apply
     const debouncedApply = () => {
         if (isApplying) return;
-
         if (applyTimeout) clearTimeout(applyTimeout);
+
         applyTimeout = setTimeout(() => {
             isApplying = true;
             applyConditionalVisibilityFixed();
@@ -745,14 +784,29 @@ function fixConditionalVisibility() {
     // Run once on init
     applyConditionalVisibilityFixed();
 
-    // Re-apply when prompts change
-    const listContainer = document.querySelector('#completion_prompt_manager_list');
-    if (listContainer) {
-        const observer = new MutationObserver(() => {
-            debouncedApply();
-        });
-        observer.observe(listContainer, { childList: true, subtree: false, attributes: false });
-    }
+    // Wait for container and setup observer
+    const waitForContainer = (attempts = 0) => {
+        const listContainer = document.querySelector('#completion_prompt_manager_list');
+        if (listContainer) {
+            // Disconnect previous observer if any
+            if (observers.conditionalVisibility) {
+                observers.conditionalVisibility.disconnect();
+            }
+
+            observers.conditionalVisibility = new MutationObserver(() => {
+                debouncedApply();
+            });
+            observers.conditionalVisibility.observe(listContainer, { childList: true, subtree: false, attributes: false });
+        } else if (attempts < 20) {
+            setTimeout(() => waitForContainer(attempts + 1), 500);
+        }
+    };
+
+    waitForContainer();
+
+    // Also listen for React events
+    window.addEventListener('NEMO_PROMPT_TOGGLED', debouncedApply);
+    window.addEventListener('NEMO_PROMPTS_REFRESHED', debouncedApply);
 }
 
 /**

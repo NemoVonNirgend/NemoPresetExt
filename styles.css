@@ -4,6 +4,9 @@
 @import url('./features/onboarding/vn-dialog.css');
 @import url('./features/onboarding/tutorial-launcher.css');
 
+/* === DATA-DRIVEN ACCORDION VIEW === */
+@import url('./features/prompts/accordion-view.css');
+
 /* === WIDE PANELS CSS MOVED TO DYNAMIC LOADING IN content.js === */
 /* The wide panels feature is now conditionally applied based on user settings */
 /* See applyWidePanelsStyles() in content.js for the implementation */
@@ -81,10 +84,20 @@
 
 /* === ENHANCED VISUAL DESIGN SYSTEM === */
 :root {
+    /* Core Theme Colors */
+    --nemo-bg-color: var(--SmartThemeBodyColor, #1a1a2e);
+    --nemo-text-color: var(--SmartThemeEmColor, #e0e0e0);
+    --nemo-text-color-secondary: rgba(255, 255, 255, 0.7);
+    --nemo-border-color: rgba(255, 255, 255, 0.12);
+    --nemo-primary-accent: var(--SmartThemeQuoteColor, #6eb5ff);
+    --nemo-primary-accent-light: #8ec5ff;
+    --nemo-btn-bg: rgba(255, 255, 255, 0.08);
+
     /* Semantic Colors */
     --nemo-success: #51cf66;
     --nemo-warning: #ffd43b;
     --nemo-error: #ff6b6b;
+    --nemo-error-color: var(--nemo-error);
     --nemo-info: var(--SmartThemeQuoteColor, #4a9eff);
 
     /* Interactive States */
@@ -118,6 +131,19 @@
     --nemo-text-lg: 1.125rem;
     --nemo-text-xl: 1.25rem;
     --nemo-text-2xl: 1.5rem;
+
+    /* World Info UI Dimensions */
+    --wi-left-panel-width: 300px;
+    --wi-toggle-offset: 280px;
+    --wi-ui-chrome-height: 200px;
+    --wi-tab-height: 44px;
+    --wi-toolbar-height: 48px;
+    --wi-section-gap: 12px;
+    --wi-btn-radius: 6px;
+
+    /* World Info Transitions */
+    --wi-transition-fast: 0.15s ease;
+    --wi-transition-normal: 0.25s ease;
 }
 
 /* === ENHANCED INTERACTIVE STATES === */
@@ -1997,9 +2023,9 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 .nemo-category-tray {
     background: linear-gradient(135deg, rgba(25, 25, 40, 0.98) 0%, rgba(15, 15, 30, 0.98) 100%);
     border: 1px solid rgba(74, 158, 255, 0.3);
-    border-radius: 8px;
-    margin: 8px 0 8px 20px;
-    padding: 12px;
+    border-radius: 10px;
+    margin: 10px 0 10px 20px;
+    padding: 16px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     animation: nemo-tray-open 0.25s ease-out;
     position: relative;
@@ -2037,8 +2063,8 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -2103,30 +2129,49 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 /* Grid of prompt cards */
 .nemo-tray-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 8px;
-    max-height: 400px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    max-height: 450px;
     overflow-y: auto;
-    padding-right: 4px;
+    padding: 4px 8px 4px 4px;
 }
 
-/* Individual prompt card */
-.nemo-prompt-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+/* Individual prompt card - tray cards use dark transparent background */
+.nemo-category-tray .nemo-prompt-card {
+    background: rgba(30, 30, 40, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
     border-radius: 8px;
-    padding: 8px 10px;
+    padding: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
-    gap: 8px;
+    gap: 10px;
     overflow: hidden;
     align-items: stretch;
+    min-height: 75px;
+    position: relative;
+}
+
+/* Fallback for cards outside tray */
+.nemo-prompt-card {
+    background: rgba(30, 30, 40, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    gap: 10px;
+    overflow: hidden;
+    align-items: stretch;
+    min-height: 75px;
+    position: relative;
 }
 
 .nemo-prompt-card:hover {
     background: rgba(74, 158, 255, 0.1);
     border-color: rgba(74, 158, 255, 0.4);
+    transform: translateY(-1px);
 }
 
 /* Drag handle */
@@ -2179,7 +2224,7 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 
 /* Prevent tray layout from shifting during drag */
 .nemo-tray-grid {
-    min-height: 50px;
+    min-height: 75px;
 }
 
 /* Drop target indicator for section headers */
@@ -2249,6 +2294,7 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     border: 2px solid #2ecc71;
     border-left: 5px solid #2ecc71;
     box-shadow: 0 2px 8px rgba(46, 204, 113, 0.25);
+    opacity: 1;
 }
 
 /* Enabled card title gets green tint */
@@ -2266,16 +2312,20 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     background: linear-gradient(135deg, rgba(46, 204, 113, 0.3), rgba(39, 174, 96, 0.2));
     border-color: #3de07d;
     box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+    transform: translateY(-2px);
 }
 
 /* Disabled card styling for better contrast */
 .nemo-prompt-card:not(.nemo-prompt-card-enabled) {
-    opacity: 0.6;
+    opacity: 0.45;
     border-left: 3px solid rgba(255, 255, 255, 0.08);
+    filter: grayscale(0.3);
 }
 
 .nemo-prompt-card:not(.nemo-prompt-card-enabled):hover {
-    opacity: 0.9;
+    opacity: 0.75;
+    filter: grayscale(0.1);
+    transform: translateY(-1px);
 }
 
 .nemo-prompt-card-header {
@@ -2288,13 +2338,14 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 
 .nemo-prompt-card-name {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 13.5px;
     color: var(--nemo-text-high-contrast, #fff);
     white-space: normal;
     word-break: break-word;
-    line-height: 1.3;
+    line-height: 1.35;
     flex: 1;
     min-width: 0;
+    letter-spacing: 0.01em;
 }
 
 .nemo-prompt-card-status {
@@ -2380,21 +2431,25 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 
 /* Scrollbar styling for tray grid */
 .nemo-tray-grid::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
 .nemo-tray-grid::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 3px;
+    border-radius: 4px;
+    margin: 4px 0;
 }
 
 .nemo-tray-grid::-webkit-scrollbar-thumb {
-    background: rgba(74, 158, 255, 0.3);
-    border-radius: 3px;
+    background: rgba(74, 158, 255, 0.35);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
 }
 
 .nemo-tray-grid::-webkit-scrollbar-thumb:hover {
-    background: rgba(74, 158, 255, 0.5);
+    background: rgba(74, 158, 255, 0.6);
+    background-clip: content-box;
 }
 
 .nemo-prompt-card-actions {
@@ -2431,23 +2486,24 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 .nemo-prompt-card-meta {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     font-size: 11px;
     color: var(--nemo-text-muted, #888);
-    margin-top: 6px;
+    margin-top: 8px;
 }
 
 .nemo-prompt-card-tokens {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     background: rgba(255, 255, 255, 0.08);
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: 3px 8px;
+    border-radius: 4px;
     font-family: var(--monoFontFamily, monospace);
     font-size: 10px;
     white-space: nowrap;
     width: fit-content;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .nemo-prompt-card-tokens i {
@@ -2463,10 +2519,30 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 .nemo-prompt-card-tooltip-text {
     font-size: 11px;
     line-height: 1.4;
-    opacity: 0.75;
+    opacity: 0.7;
     color: var(--nemo-text-muted, #aaa);
     word-wrap: break-word;
     overflow-wrap: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 2.8em;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+/* On card hover, expand tooltip to show full text */
+.nemo-prompt-card:hover .nemo-prompt-card-tooltip-text {
+    -webkit-line-clamp: unset;
+    max-height: none;
+    opacity: 0.9;
+    padding: 6px 8px;
+    margin: -6px -8px;
+    background: rgba(74, 158, 255, 0.08);
+    border-radius: 4px;
+    border-left: 2px solid rgba(74, 158, 255, 0.3);
 }
 
 /* Compact mode adjustments for meta */
@@ -8387,14 +8463,14 @@ body.theme-terminal .mes_block .avatar {
     margin: 10px 0;
 }
 
-/* Prompt Grid */
+/* Prompt Grid - scoped to .nemo-prompt-grid to avoid conflict with tray cards */
 .nemo-prompt-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 15px;
 }
 
-.nemo-prompt-card {
+.nemo-prompt-grid .nemo-prompt-card {
     background: var(--nemo-secondary-bg);
     border: 1px solid var(--nemo-border-color);
     border-radius: 8px;
@@ -8403,20 +8479,20 @@ body.theme-terminal .mes_block .avatar {
     cursor: pointer;
 }
 
-.nemo-prompt-card:hover {
+.nemo-prompt-grid .nemo-prompt-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
     border-color: var(--nemo-primary-accent);
 }
 
-.nemo-prompt-card-header {
+.nemo-prompt-grid .nemo-prompt-card-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     margin-bottom: 10px;
 }
 
-.nemo-prompt-card-title {
+.nemo-prompt-grid .nemo-prompt-card-title {
     font-weight: 600;
     font-size: 14px;
     color: var(--nemo-text-color);
@@ -8424,13 +8500,13 @@ body.theme-terminal .mes_block .avatar {
     line-height: 1.3;
 }
 
-.nemo-prompt-card-actions {
+.nemo-prompt-grid .nemo-prompt-card-actions {
     display: flex;
     gap: 4px;
     margin-left: 10px;
 }
 
-.nemo-prompt-action {
+.nemo-prompt-grid .nemo-prompt-action {
     padding: 6px;
     background: none;
     border: none;
@@ -8442,12 +8518,12 @@ body.theme-terminal .mes_block .avatar {
     transition: all 0.2s;
 }
 
-.nemo-prompt-action:hover {
+.nemo-prompt-grid .nemo-prompt-action:hover {
     opacity: 1;
     background: var(--nemo-tertiary-bg);
 }
 
-.nemo-prompt-card .nemo-favorite-btn {
+.nemo-prompt-grid .nemo-prompt-card .nemo-favorite-btn {
     position: relative;
     background: none;
     border: none;

@@ -226,14 +226,14 @@ export class AnimatedBackgroundsModule {
      * Check if URL is a YouTube URL
      */
     isYouTubeUrl(url) {
-        return /(?:youtube(?:-nocookie)?\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|.*\/shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/i.test(url);
+        return /(?:youtube(?:-nocookie)?\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|.*\/shorts\/)|youtu\.be\/)([^"&?/\s]{11})/i.test(url);
     }
 
     /**
      * Extract YouTube video ID from URL
      */
     getYouTubeVideoId(url) {
-        const match = url.match(/(?:youtube(?:-nocookie)?\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|.*\/shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/i);
+        const match = url.match(/(?:youtube(?:-nocookie)?\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|.*\/shorts\/)|youtu\.be\/)([^"&?/\s]{11})/i);
         return match ? match[1] : null;
     }
 
@@ -1380,7 +1380,7 @@ export class AnimatedBackgroundsModule {
         }
 
         const videoElement = this.getCurrentVideoElement();
-        let favoriteData = {
+        const favoriteData = {
             url: '',
             type: '',
             title: 'Untitled',
@@ -2302,7 +2302,7 @@ export class AnimatedBackgroundsModule {
         const videoInfo = await this.getYouTubeVideoInfo(videoId);
         
         // Add to playlist
-        const playlistItem = this.addToPlaylist(url, this.MEDIA_TYPES.YOUTUBE, videoInfo);
+        this.addToPlaylist(url, this.MEDIA_TYPES.YOUTUBE, videoInfo);
         
         // Only play immediately if playlist was empty or no current video
         if (this.playlist.items.length === 1 || !this.hasCurrentVideo()) {

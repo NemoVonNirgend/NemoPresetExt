@@ -98,7 +98,7 @@ function handlePromptToggleClick(event) {
 /**
  * Validate prompt activation and show conflict UI if needed
  */
-function validateAndToggle(promptId, toggleElement) {
+function validateAndToggle(promptId, _toggleElement) {
     try {
         const allPrompts = getAllPromptsWithState();
         const issues = validatePromptActivation(promptId, allPrompts);
@@ -280,29 +280,6 @@ function performToggle(identifier, enable) {
         logger.debug(`Toggled prompt ${identifier} to ${enable ? 'enabled' : 'disabled'}`);
     } catch (error) {
         logger.error('Error performing toggle:', error);
-    }
-}
-
-/**
- * Update the toggle UI element
- */
-function updateToggleUI(identifier, enabled) {
-    const toggleElement = document.querySelector(`[data-pm-identifier="${identifier}"]`);
-    if (!toggleElement) return;
-
-    // Find checkbox or toggle button
-    const checkbox = toggleElement.querySelector('.prompt_manager_prompt_checkbox');
-    if (checkbox) {
-        checkbox.checked = enabled;
-    }
-
-    // Update visual state
-    if (enabled) {
-        toggleElement.classList.add('prompt-enabled');
-        toggleElement.classList.remove('prompt-disabled');
-    } else {
-        toggleElement.classList.add('prompt-disabled');
-        toggleElement.classList.remove('prompt-enabled');
     }
 }
 

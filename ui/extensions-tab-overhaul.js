@@ -1,7 +1,6 @@
 // extensions-tab-overhaul.js
 // Enhanced extensions tab with full-screen views and folder management
 
-import { LOG_PREFIX } from '../core/utils.js';
 import { extension_settings } from '../../../../extensions.js';
 import { saveSettingsDebounced } from '../../../../../script.js';
 import logger from '../core/logger.js';
@@ -215,7 +214,7 @@ export const ExtensionsTabOverhaul = {
         return extensions;
     },
 
-    createEnhancedInterface: function(container) {
+    createEnhancedInterface: function(_container) {
         // Check if the interface is already created by looking for our layout element
         const existingLayout = document.querySelector('.nemo-extensions-layout');
         if (existingLayout) {

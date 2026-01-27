@@ -467,7 +467,7 @@ async function processQueue() {
  * @param {boolean} autoReplace - Whether to automatically replace without user interaction
  * @param {boolean} forceRegenerate - Force regeneration even if already processed (for manual clicks)
  */
-async function processPollinationsImage(imgElement, autoReplace = false, forceRegenerate = false) {
+async function processPollinationsImage(imgElement, _autoReplace = false, forceRegenerate = false) {
     // Get the original URL - either from data attribute (for regeneration) or current src
     const originalSrc = imgElement.dataset.originalPollinationsUrl || imgElement.src;
 

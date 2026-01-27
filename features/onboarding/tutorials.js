@@ -14,45 +14,6 @@ const VEX_PORTRAITS = {
 };
 
 /**
- * Helper function to find and highlight a prompt by name
- * @param {string} promptName - The name of the prompt to highlight
- * @returns {string|null} - CSS selector if found, null otherwise
- */
-function findPromptSelector(promptName) {
-    // Try to find prompt in the DOM
-    // SillyTavern prompts are typically in the prompt manager
-    // We'll search for elements containing the prompt name
-    const promptElements = document.querySelectorAll('[id*="completion_prompt"], [id*="prompt_manager"]');
-
-    for (const element of promptElements) {
-        const text = element.textContent || '';
-        if (text.includes(promptName)) {
-            return `#${element.id}`;
-        }
-    }
-
-    // If not found by ID, try finding by text content and generate a unique selector
-    const allPrompts = document.querySelectorAll('.prompt-manager-prompt, .inline-drawer');
-    for (let i = 0; i < allPrompts.length; i++) {
-        const prompt = allPrompts[i];
-        const nameElement = prompt.querySelector('.prompt-name, .inline-drawer-header');
-        if (nameElement && nameElement.textContent.includes(promptName)) {
-            // Return a selector using nth-of-type since :contains() is not valid CSS
-            const parent = prompt.parentElement;
-            const siblings = parent ? Array.from(parent.children).filter(el =>
-                el.classList.contains('prompt-manager-prompt') || el.classList.contains('inline-drawer')
-            ) : [];
-            const index = siblings.indexOf(prompt);
-            if (index !== -1) {
-                return `.prompt-manager-prompt:nth-of-type(${index + 1}), .inline-drawer:nth-of-type(${index + 1})`;
-            }
-        }
-    }
-
-    return null;
-}
-
-/**
  * Helper function to open the prompt manager
  */
 function openPromptManager() {

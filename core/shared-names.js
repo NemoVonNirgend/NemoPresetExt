@@ -106,7 +106,7 @@ class SharedNamesManager {
      */
     extractCapitalizedWords(text) {
         // Match capitalized words (2-20 characters, not at start of sentence)
-        const regex = /(?<!\.\s)(?<!\?  )\b([A-Z][a-z]{1,19})\b/g;
+        const regex = /(?<!\.\s)(?<!\? {2})\b([A-Z][a-z]{1,19})\b/g;
         const matches = text.match(regex);
 
         if (matches) {

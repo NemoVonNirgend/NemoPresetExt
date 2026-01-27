@@ -6,16 +6,56 @@
  */
 
 import logger from '../../core/logger.js';
-import { validatePromptActivation, getAllPromptsWithState, DIRECTIVE_DOCUMENTATION } from './prompt-directives.js';
+import { DIRECTIVE_DOCUMENTATION } from './prompt-directives.js';
 import { promptManager } from '../../../../../openai.js';
 
 /**
  * Show a conflict resolution toast
+ * Uses React component when available, falls back to vanilla JS
  * @param {Array} issues - Array of validation issues
  * @param {string} promptId - ID of the prompt being activated
  * @param {Function} onResolve - Callback when user resolves the conflict
  */
 export function showConflictToast(issues, promptId, onResolve) {
+    // Try to use React version if available
+    if (window.NemoReactUI?.showConflictToast) {
+        // Convert issues to React format and handle the promise
+        window.NemoReactUI.showConflictToast(issues).then(result => {
+            if (result.action === 'resolve') {
+                // Handle resolve action - disable conflicting prompts or enable dependencies
+                if (result.issue) {
+                    if (result.issue.conflictingPrompt) {
+                        disablePrompt(result.issue.conflictingPrompt.identifier);
+                    }
+                    if (result.issue.requiredPrompt) {
+                        enablePrompt(result.issue.requiredPrompt.identifier);
+                    }
+                }
+                onResolve(true);
+            } else if (result.action === 'ignore') {
+                onResolve(true);
+            } else {
+                onResolve(false);
+            }
+        }).catch(err => {
+            logger.error('React conflict toast error:', err);
+            // Fall back to vanilla implementation on error
+            showConflictToastVanilla(issues, promptId, onResolve);
+        });
+        return;
+    }
+
+    // Fall back to vanilla implementation
+    showConflictToastVanilla(issues, promptId, onResolve);
+}
+
+/**
+ * Vanilla JS implementation of conflict toast
+ * @param {Array} issues - Array of validation issues
+ * @param {string} promptId - ID of the prompt being activated
+ * @param {Function} onResolve - Callback when user resolves the conflict
+ */
+function showConflictToastVanilla(issues, promptId, onResolve) {
     // Check if there's already a toast showing for this prompt
     const existingToast = document.querySelector(`.nemo-directive-toast[data-prompt-id="${promptId}"]`);
     if (existingToast) {
@@ -390,8 +430,16 @@ export function addDirectiveDocumentation() {
 
 /**
  * Show directive help modal
+ * Uses React component when available, falls back to vanilla JS
  */
 function showDirectiveHelp() {
+    // Try to use React version if available
+    if (window.NemoReactUI?.showDirectiveHelp) {
+        window.NemoReactUI.showDirectiveHelp();
+        return;
+    }
+
+    // Fall back to vanilla implementation
     const modal = document.createElement('div');
     modal.className = 'nemo-directive-modal';
     modal.innerHTML = `
@@ -467,29 +515,22 @@ function formatDocumentation(markdown) {
 
 /**
  * Initialize directive UI system
+ * Now uses React for the help button (via DirectiveAutocompleteController)
  */
 export function initDirectiveUI() {
-    logger.info('Initializing directive UI system');
+    logger.info('Initializing directive UI system (React mode)');
 
-    // Watch for prompt editor popup to appear
-    const observer = new MutationObserver(() => {
-        // Check if prompt editor popup is visible
-        const popup = document.querySelector('.completion_prompt_manager_popup_entry, .dialogue_popup');
-        if (popup && popup.style.display !== 'none') {
-            // Try to add help icon
+    // The help button is now rendered by React's DirectiveAutocompleteController
+    // which is mounted by directive-autocomplete-ui.js
+    // We keep this function for backward compatibility but it's mostly a no-op now
+
+    // Try to add help icon immediately as fallback if React isn't ready
+    setTimeout(() => {
+        // Only add if React hasn't already added it
+        if (!document.querySelector('.nemo-directive-help, .nemo-directive-help-button')) {
             addDirectiveDocumentation();
         }
-    });
+    }, 2000);
 
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'class']
-    });
-
-    // Also try immediately in case popup is already open
-    setTimeout(() => addDirectiveDocumentation(), 1000);
-
-    logger.info('Directive UI system initialized - watching for prompt editor');
+    logger.info('Directive UI system initialized');
 }

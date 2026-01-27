@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NemoPresetExt React Build Test</title>
+    <link rel="stylesheet" href="dist/prompt-views.css">
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #eee;
+        }
+        #test-container {
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #222;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #2a4;
+            color: white;
+        }
+        .status.error {
+            background: #a24;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>NemoPresetExt React Build Test</h1>
+
+    <div id="status"></div>
+
+    <div id="test-container">
+        <p>React view will render here...</p>
+    </div>
+
+    <script type="module">
+        const statusEl = document.getElementById('status');
+
+        function showStatus(message, isError = false) {
+            statusEl.innerHTML = `<div class="status ${isError ? 'error' : 'success'}">${message}</div>`;
+        }
+
+        try {
+            showStatus('Loading React bundle...');
+
+            // Import the built module
+            const reactViews = await import('./dist/prompt-views.js');
+
+            showStatus('Module loaded successfully! Exports: ' + Object.keys(reactViews).join(', '));
+
+            // Check for required exports
+            const requiredExports = [
+                'mountPromptView',
+                'unmountPromptView',
+                'isViewMounted',
+                'getCurrentMode',
+                'refreshView'
+            ];
+
+            const missingExports = requiredExports.filter(exp => !reactViews[exp]);
+
+            if (missingExports.length > 0) {
+                showStatus('Missing exports: ' + missingExports.join(', '), true);
+            } else {
+                showStatus('✅ All required exports present! Build is valid.', false);
+            }
+
+            console.log('React views module:', reactViews);
+
+        } catch (error) {
+            showStatus('❌ Failed to load module: ' + error.message, true);
+            console.error(error);
+        }
+    </script>
+</body>
+</html>

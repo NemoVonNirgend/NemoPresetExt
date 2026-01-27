@@ -242,7 +242,6 @@ export const PROMPT_TOOLTIPS = {
 
     // === Jailbreaks ===
     "===🔓︱Jailbreak ===": "Content restriction bypass. Enable if model is refusing things it shouldn't. Try Mini first, Extended if needed.",
-    "📜︱System: Unrestricted Content Generation": "Master jailbreak - removes content filtering entirely. Enable for NSFW, violence, controversial topics. First line of defense against AI prudishness.",
     "✨ | Extended Jailbreak (Fefnik / Quantum)": "Aggressive extended jailbreak for stubborn models. Use if basic jailbreak isn't enough and model still refuses. Nuclear option for maximum freedom.",
     "📜︱Mini Jailbreak (Quantum)": "Lightweight jailbreak for gentle persuasion. Try this first if you're getting refusals. Less aggressive than full jailbreaks but often sufficient.",
 

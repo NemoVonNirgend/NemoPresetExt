@@ -1,6 +1,5 @@
 import { callGenericPopup, POPUP_TYPE } from '../../../../../popup.js';
-import { LOG_PREFIX, generateUUID, debounce, NEMO_FAVORITE_PRESETS_KEY } from '../../core/utils.js';
-import { eventSource, event_types } from '../../../../../../script.js';
+import { LOG_PREFIX, generateUUID, debounce } from '../../core/utils.js';
 import { promptManager } from '../../../../../openai.js';
 
 // New storage keys for prompt navigator
@@ -779,7 +778,7 @@ export class PromptNavigator {
             // Check if this is a header/divider by looking for typical header patterns
             const nameEl = item.querySelector('.completion_prompt_manager_prompt_name a');
             const name = nameEl ? nameEl.textContent.trim() : '';
-            const isHeader = name.match(/^[\=\⭐\━\-\+]{2,}/) || item.classList.contains('nemo-header-item');
+            const isHeader = name.match(/^[-=⭐━+]{2,}/) || item.classList.contains('nemo-header-item');
             return isHeader && !item.closest('details.nemo-engine-section');
         });
         
@@ -1055,7 +1054,7 @@ export class PromptNavigator {
         }
     }
 
-    async importPromptToCompletion(promptName, promptData) {
+    async importPromptToCompletion(promptName, _promptData) {
         try {
             // This would require interfacing with SillyTavern's prompt manager
             // For now, show a message that this feature needs implementation
