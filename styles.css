@@ -677,7 +677,7 @@ button[role="tab"][aria-selected="true"]::after {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 4px;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
     font-size: 0.95rem;
     overflow: hidden;
     line-height: 1.2;
@@ -3291,10 +3291,11 @@ details.nemo-engine-section .nemo-enabled-count {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 10000;
+    z-index: 2147483647; /* Ensure it's on top of everything */
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 20px; /* Prevent touching edges on small screens */
 }
 
 .nemo-preview-backdrop {
@@ -3303,8 +3304,9 @@ details.nemo-engine-section .nemo-enabled-count {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(3px);
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: -1;
 }
 
 .nemo-preview-container {
@@ -3314,11 +3316,12 @@ details.nemo-engine-section .nemo-enabled-count {
     border-radius: 12px;
     width: 90%;
     max-width: 800px;
-    max-height: 80vh;
+    max-height: 85vh; /* Increased slightly */
     display: flex;
     flex-direction: column;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     animation: nemo-preview-appear 0.2s ease-out;
+    margin: auto; /* Ensure centering works even if flex has issues */
 }
 
 @keyframes nemo-preview-appear {
@@ -3544,6 +3547,22 @@ details.nemo-engine-section .nemo-enabled-count {
     .nemo-prompt-card-content {
         align-items: center;
         text-align: center;
+    }
+
+    /* Fix: Ensure Preview Modal is visible and centered on mobile */
+    .nemo-prompt-preview-modal {
+        padding: 10px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        z-index: 2147483647 !important;
+    }
+
+    .nemo-preview-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 85vh !important;
+        margin: auto !important;
+        animation: none !important;
     }
 }
 

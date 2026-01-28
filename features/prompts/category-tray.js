@@ -2413,11 +2413,25 @@ function showPromptPreview(identifier, name) {
     `;
 
     // Close handlers
-    modal.querySelector('.nemo-preview-close').addEventListener('click', () => modal.remove());
-    modal.querySelector('.nemo-preview-backdrop').addEventListener('click', () => modal.remove());
+    modal.querySelector('.nemo-preview-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        modal.remove();
+    });
+    modal.querySelector('.nemo-preview-backdrop').addEventListener('click', (e) => {
+        e.stopPropagation();
+        modal.remove();
+    });
+
+    // Stop propagation of all interaction events from the container to prevent accidental closes
+    ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend'].forEach(eventType => {
+        modal.querySelector('.nemo-preview-container').addEventListener(eventType, (e) => {
+            e.stopPropagation();
+        });
+    });
 
     // Edit button - directly open the prompt manager editor
-    modal.querySelector('.nemo-preview-edit-btn').addEventListener('click', () => {
+    modal.querySelector('.nemo-preview-edit-btn').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent bubbling up to background elements
         modal.remove();
 
         // Directly call promptManager methods to open the editor
@@ -2754,12 +2768,22 @@ function convertToAccordionMode() {
     let converted = 0;
 
     allSections.forEach(section => {
-        // Skip if already in accordion mode
-        if (section.dataset.accordionConverted === 'true') return;
-
         const summary = section.querySelector('summary');
         const content = section.querySelector('.nemo-section-content');
         if (!summary || !content) return;
+
+        // Cleanup zombie tray listeners if switching from Tray Mode
+        if (summary._trayClickHandler) {
+            summary.removeEventListener('click', summary._trayClickHandler);
+            delete summary._trayClickHandler;
+        }
+        if (summary._trayKeyHandler) {
+            summary.removeEventListener('keydown', summary._trayKeyHandler);
+            delete summary._trayKeyHandler;
+        }
+
+        // Skip if already in accordion mode and HAS the class (double check)
+        if (section.dataset.accordionConverted === 'true' && section.classList.contains('nemo-accordion-section')) return;
 
         // Mark as accordion mode
         section.dataset.accordionConverted = 'true';
