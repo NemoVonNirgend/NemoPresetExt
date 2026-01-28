@@ -261,8 +261,28 @@ export function initCategoryTray() {
     // Invalidate cache on preset change
     if (eventSource && event_types) {
         eventSource.on(event_types.OAI_PRESET_CHANGED_AFTER, () => {
-            console.log('[NemoTray] Preset changed - clearing prompt cache');
+            console.log('[NemoTray] Preset changed - clearing prompt cache and closing trays');
             sectionPromptIdsCache.clear();
+            
+            // Close all open trays and reset section data
+            document.querySelectorAll('.nemo-tray-open').forEach(section => {
+                if (section._nemoCategoryTray) {
+                    section._nemoCategoryTray.remove();
+                    delete section._nemoCategoryTray;
+                }
+                section.classList.remove('nemo-tray-open');
+                // Don't remove tray-converted status yet, let convertToTrayMode handle it
+                // But clear the IDs so we know to rescan
+                section._nemoPromptIds = null;
+            });
+            
+            // Also reset any other sections that might have cached data attached
+            document.querySelectorAll('details.nemo-engine-section').forEach(section => {
+                section._nemoPromptIds = null;
+            });
+
+            trayModeEnabled.clear();
+            
             // Top level container needs to be recreated on preset change
             if (topLevelPromptsContainer) {
                 topLevelPromptsContainer.remove();
@@ -454,11 +474,17 @@ function convertToTrayMode() {
     let converted = 0;
 
     allSections.forEach(section => {
-        // Skip if already converted
-        if (section.dataset.trayConverted === 'true') return;
-
         // Skip our top-level container (it's managed separately)
         if (section.classList.contains('nemo-top-level-section')) return;
+
+        // If already converted, check if we need to re-verify (e.g. after preset change)
+        if (section.dataset.trayConverted === 'true') {
+            // If we have IDs, we're good. If not (cleared by event), we proceed to re-scan.
+            if (section._nemoPromptIds && section._nemoPromptIds.length > 0) {
+                return;
+            }
+            // If empty IDs but marked converted, we continue to re-scan
+        }
 
         const summary = section.querySelector('summary');
         const content = section.querySelector('.nemo-section-content');
@@ -501,29 +527,10 @@ function convertToTrayMode() {
         console.log('[NemoTray] Processing section:', sectionName, { hasPromptsInDOM, hasCachedData: !!cachedPromptIds });
 
         let sectionPromptIds;
-        let useCache = false;
 
-        if (cachedPromptIds) {
-            if (!hasPromptsInDOM) {
-                useCache = true;
-            } else if (cachedPromptIds.length === promptElements.length) {
-                useCache = true;
-            } else {
-                console.log(`[NemoTray] Cache mismatch for ${sectionName} (Cache: ${cachedPromptIds.length}, DOM: ${promptElements.length}) - re-scanning`);
-            }
-        }
-
-        if (useCache) {
-            // Restore from cache (Primary source of truth to avoid re-scanning on every stream token)
-            sectionPromptIds = cachedPromptIds;
-            // console.log(`[NemoTray] Using cached ${sectionPromptIds.length} prompt IDs for:`, sectionName);
-
-            // Even if using cache, we must ensure DOM elements are hidden if they exist
-            if (hasPromptsInDOM) {
-                promptElements.forEach(el => el.classList.add('nemo-tray-hidden-prompt'));
-            }
-        } else if (hasPromptsInDOM) {
-            // Extract prompt identifiers from DOM (first time conversion)
+        if (hasPromptsInDOM) {
+            // Extract prompt identifiers from DOM (first time conversion OR re-scan after edit)
+            // Always prefer DOM over cache when elements are present to capture name/content changes
             sectionPromptIds = [];
             promptElements.forEach(el => {
                 const identifier = el.getAttribute('data-pm-identifier');
@@ -538,8 +545,12 @@ function convertToTrayMode() {
 
             // Store in persistent cache (survives DOM refreshes)
             sectionPromptIdsCache.set(sectionName, sectionPromptIds);
-            console.log(`[NemoTray] Cached ${sectionPromptIds.length} prompt IDs for section:`, sectionName);
-            console.log(`[NemoTray] Hidden ${promptElements.length} prompt DOM elements in:`, sectionName);
+            // console.log(`[NemoTray] Cached ${sectionPromptIds.length} prompt IDs for section:`, sectionName);
+        } else if (cachedPromptIds) {
+            // Restore from cache (Only if DOM elements are missing - e.g. potentially wiped but we want to preserve state?)
+            // Note: organizePrompts usually ensures DOM elements exist before this runs.
+            sectionPromptIds = cachedPromptIds;
+            console.log(`[NemoTray] Restored ${sectionPromptIds.length} prompt IDs from cache for:`, sectionName);
         } else {
             sectionPromptIds = [];
         }

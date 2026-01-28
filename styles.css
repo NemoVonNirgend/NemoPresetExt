@@ -1921,7 +1921,7 @@ button.loading::after {
 /* --- Collapsible Sections & Core Prompt UI --- */
 .nemo-engine-section summary { cursor: pointer; display: flex; align-items: center; list-style: none; position: relative; }
 .nemo-engine-section summary > li.completion_prompt_manager_prompt, li.completion_prompt_manager_prompt { display: flex; align-items: flex-start; width: 100%; justify-content: space-between; flex-wrap: wrap; padding: 4px 0; gap: 4px; }
-.nemo-engine-section summary::-webkit-details-marker, .nimo-engine-section summary::marker { display: none; }
+.nemo-engine-section summary::-webkit-details-marker, .nemo-engine-section summary::marker { display: none; }
 .nemo-engine-section summary::before { content: '▶'; font-size: 0.75em; position: absolute; left: -15px; top: 50%; transform: translateY(-50%); color: var(--nemo-text-muted); pointer-events: none; transition: transform 0.2s ease; }
 .nemo-engine-section[open] > summary::before { transform: translateY(-50%) rotate(90deg); }
 .nemo-engine-section summary > li.completion_prompt_manager_prompt > span.completion_prompt_manager_prompt_name { margin-left: 18px; }
@@ -11056,4 +11056,12 @@ body.theme-terminal .mes_block .avatar {
 #mistralAI_api[style*="display: none"] {
     opacity: 0;
     transform: translateY(-10px);
+}
+
+/* Ensure container maintains height to prevent collapse */
+#completion_prompt_manager_list.nemo-hidden-during-update {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+    /* Do NOT set min-height blindly as it might force layout shifts if content is smaller */
 }

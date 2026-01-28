@@ -12,7 +12,7 @@ import { getContext } from '../../../../../extensions.js';
 // Directive parsing cache for performance optimization
 // Uses a Map with content hash as key to avoid re-parsing identical content
 const directiveCache = new Map();
-const CACHE_MAX_SIZE = 500; // Maximum cached entries
+const CACHE_MAX_SIZE = 2000; // Increased from 500 to cover large presets
 const CACHE_TTL = 60000; // Cache TTL in ms (1 minute)
 
 /**
