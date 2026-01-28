@@ -11,7 +11,7 @@ import { parsePromptDirectives, validatePromptActivation, getAllPromptsWithState
 import { getCachedDirectives, getPromptContentOnDemand } from '../../core/directive-cache.js';
 import { showConflictToast } from '../directives/directive-ui.js';
 import { promptManager } from '../../../../../openai.js';
-import { chat_metadata, saveSettingsDebounced } from '../../../../../../script.js';
+import { chat_metadata, saveSettingsDebounced, eventSource, event_types } from '../../../../../../script.js';
 import { extension_settings } from '../../../../../extensions.js';
 import { NEMO_EXTENSION_NAME } from '../../core/utils.js';
 import storage from '../../core/storage-migration.js';
@@ -258,7 +258,34 @@ export function initCategoryTray() {
         applyCurrentMode();
     });
 
-    // Try multiple times with increasing delays to catch sections
+    // Invalidate cache on preset change
+    if (eventSource && event_types) {
+        eventSource.on(event_types.OAI_PRESET_CHANGED_AFTER, () => {
+            console.log('[NemoTray] Preset changed - clearing prompt cache');
+            sectionPromptIdsCache.clear();
+            // Top level container needs to be recreated on preset change
+            if (topLevelPromptsContainer) {
+                topLevelPromptsContainer.remove();
+                topLevelPromptsContainer = null;
+            }
+        });
+    }
+
+    // Listen for prompt manager organization completion
+    document.addEventListener('nemo-prompts-organized', (e) => {
+        console.log('[NemoTray] Prompts organized event received');
+        // Debounce just in case multiple events fire rapidly
+        clearTimeout(window._trayDebounce);
+        window._trayDebounce = setTimeout(() => {
+            if (isDragging) return;
+            applyCurrentMode();
+            // Refresh progress bars after conversion
+            setTimeout(() => refreshAllSectionProgressBars(), 100);
+            setTimeout(() => refreshAllSectionProgressBars(), 300);
+        }, 100);
+    });
+
+    // Try multiple times with increasing delays to catch sections (initial load backup)
     const delays = [500, 1000, 2000, 3000, 5000];
     delays.forEach(delay => {
         setTimeout(() => {
@@ -273,38 +300,8 @@ export function initCategoryTray() {
     setTimeout(() => refreshAllSectionProgressBars(), 6000);
     setTimeout(() => refreshAllSectionProgressBars(), 8000);
 
-    // Watch for prompt manager re-renders
-    const observer = new MutationObserver((mutations) => {
-        // Skip updates during drag to prevent flickering
-        if (isDragging) return;
-
-        // Only run if we see relevant changes
-        const hasRelevantChanges = mutations.some(m =>
-            m.addedNodes.length > 0 ||
-            (m.target.classList && m.target.classList.contains('nemo-engine-section'))
-        );
-
-        if (hasRelevantChanges) {
-            clearTimeout(window._trayDebounce);
-            window._trayDebounce = setTimeout(() => {
-                // Double-check we're not dragging
-                if (isDragging) return;
-                applyCurrentMode();
-                // Refresh progress bars after conversion
-                setTimeout(() => refreshAllSectionProgressBars(), 100);
-                setTimeout(() => refreshAllSectionProgressBars(), 300);
-            }, 200);
-        }
-    });
-
-    // Watch the whole document body for changes
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-
-    console.log('[NemoTray] Observer attached to document.body');
-    logger.info('Category tray system initialized - watching for sections');
+    console.log('[NemoTray] Event listeners attached');
+    logger.info('Category tray system initialized - listening for prompt organization');
 }
 
 // Track top-level prompts container
@@ -342,7 +339,10 @@ function convertTopLevelPrompts() {
     // Check for cached data
     let topLevelPromptIds = sectionPromptIdsCache.get(TOP_LEVEL_SECTION_ID);
 
-    if (topLevelPrompts.length > 0) {
+    if (topLevelPromptIds && topLevelPromptIds.length === topLevelPrompts.length) {
+        // Use cache (hide DOM elements if present)
+        topLevelPrompts.forEach(el => el.classList.add('nemo-tray-hidden-prompt'));
+    } else if (topLevelPrompts.length > 0) {
         // Extract and hide top-level prompts
         topLevelPromptIds = [];
         topLevelPrompts.forEach(el => {
@@ -501,8 +501,28 @@ function convertToTrayMode() {
         console.log('[NemoTray] Processing section:', sectionName, { hasPromptsInDOM, hasCachedData: !!cachedPromptIds });
 
         let sectionPromptIds;
+        let useCache = false;
 
-        if (hasPromptsInDOM) {
+        if (cachedPromptIds) {
+            if (!hasPromptsInDOM) {
+                useCache = true;
+            } else if (cachedPromptIds.length === promptElements.length) {
+                useCache = true;
+            } else {
+                console.log(`[NemoTray] Cache mismatch for ${sectionName} (Cache: ${cachedPromptIds.length}, DOM: ${promptElements.length}) - re-scanning`);
+            }
+        }
+
+        if (useCache) {
+            // Restore from cache (Primary source of truth to avoid re-scanning on every stream token)
+            sectionPromptIds = cachedPromptIds;
+            // console.log(`[NemoTray] Using cached ${sectionPromptIds.length} prompt IDs for:`, sectionName);
+
+            // Even if using cache, we must ensure DOM elements are hidden if they exist
+            if (hasPromptsInDOM) {
+                promptElements.forEach(el => el.classList.add('nemo-tray-hidden-prompt'));
+            }
+        } else if (hasPromptsInDOM) {
             // Extract prompt identifiers from DOM (first time conversion)
             sectionPromptIds = [];
             promptElements.forEach(el => {
@@ -520,10 +540,6 @@ function convertToTrayMode() {
             sectionPromptIdsCache.set(sectionName, sectionPromptIds);
             console.log(`[NemoTray] Cached ${sectionPromptIds.length} prompt IDs for section:`, sectionName);
             console.log(`[NemoTray] Hidden ${promptElements.length} prompt DOM elements in:`, sectionName);
-        } else if (cachedPromptIds) {
-            // Restore from cache (DOM was refreshed by SillyTavern)
-            sectionPromptIds = cachedPromptIds;
-            console.log(`[NemoTray] Restored ${sectionPromptIds.length} prompt IDs from cache for:`, sectionName);
         } else {
             sectionPromptIds = [];
         }

@@ -973,6 +973,40 @@ export const NemoPresetManager = {
     },
 
     // ** REFACTORED RENDER/ORGANIZATION LOGIC **
+    
+    /**
+     * Destroy existing Sortable instances to prevent duplicates and memory leaks
+     */
+    destroySortables: function() {
+        if (!this.sortableInstances) return;
+        
+        // Convert to array to avoid issues during iteration if delete is called
+        Array.from(this.sortableInstances).forEach(instance => {
+            try {
+                if (instance && typeof instance.destroy === 'function') {
+                    instance.destroy();
+                }
+            } catch (error) {
+                console.warn(`${LOG_PREFIX} Error destroying Sortable instance:`, error);
+            }
+        });
+        
+        this.sortableInstances.clear();
+        
+        // Also cleanup summary protectors
+        if (this.summaryProtectors) {
+            this.summaryProtectors.forEach(observer => observer.disconnect());
+            this.summaryProtectors = [];
+        }
+        
+        const container = document.querySelector(SELECTORS.promptsContainer);
+        if (container) {
+            delete container.sortable;
+        }
+        
+        console.log(`${LOG_PREFIX} All Sortable instances destroyed`);
+    },
+
     organizePrompts: async function(forceFullReorganization = false) {
         // Don't reorganize while a toggle operation is in progress - this would destroy open trays
         if (isToggleInProgress && !forceFullReorganization) {
@@ -984,90 +1018,115 @@ export const NemoPresetManager = {
         if (!promptsContainer || (promptsContainer.dataset.nemoOrganizing === 'true' && !forceFullReorganization)) return;
         promptsContainer.dataset.nemoOrganizing = 'true';
 
-        isSectionsFeatureEnabled = storage.getSectionsEnabled();
-
-        // --- Start: Robust Flattening Logic ---
-        const allPromptsInOrder = [];
-        const allCurrentItems = Array.from(promptsContainer.querySelectorAll('li.completion_prompt_manager_prompt'));
-
-        allCurrentItems.forEach(item => {
-            // Restore original text if it's a header
-            if (item.classList.contains('nemo-header-item')) {
-                const link = item.querySelector(SELECTORS.promptNameLink);
-                if (link && item.dataset.nemoOriginalText) {
-                    link.textContent = item.dataset.nemoOriginalText;
-                }
-            }
-            allPromptsInOrder.push(item);
-        });
-
-        const fragment = document.createDocumentFragment();
-        allPromptsInOrder.forEach(p => fragment.appendChild(p));
-        promptsContainer.innerHTML = '';
-        promptsContainer.appendChild(fragment);
-        // --- End: Robust Flattening Logic ---
-
-        // Clean up metadata
-        const allItems = Array.from(promptsContainer.querySelectorAll('li.completion_prompt_manager_prompt'));
-        allItems.forEach(item => {
-            delete item.dataset.nemoDividerChecked;
-            delete item.dataset.nemoIsDivider;
-            delete item.dataset.nemoSectionName;
-            delete item.dataset.nemoOriginalText;
-            item.classList.remove('nemo-header-item');
-            item.draggable = true;
-        });
-
-        // Add favorite buttons and drag handles
-        allItems.forEach(item => {
-            // Add drag handle to non-header items if it doesn't exist
-            if (!item.classList.contains('nemo-header-item') && !item.querySelector('.drag-handle')) {
-                const dragHandle = document.createElement('span');
-                dragHandle.className = 'drag-handle';
-                dragHandle.innerHTML = '&#9776;'; // Hamburger icon
-                item.prepend(dragHandle);
-            }
-
-            const controlsWrapper = item.querySelector('.completion_prompt_manager_prompt_controls');
-            if (controlsWrapper && !controlsWrapper.querySelector('.nemo-favorite-btn')) {
-                const favoriteBtn = document.createElement('div');
-                favoriteBtn.className = 'nemo-favorite-btn menu_button menu_button_icon fa-solid fa-star';
-                favoriteBtn.title = 'Favorite Preset';
-                controlsWrapper.prepend(favoriteBtn);
-
-                const presetId = item.dataset.pmIdentifier;
-                if (this.isFavorite(presetId)) {
-                    favoriteBtn.classList.add('favorited');
-                }
-
-                favoriteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.toggleFavorite(presetId);
-                    favoriteBtn.classList.toggle('favorited');
-                });
-            }
-
-            // Apply tooltips to prompt items
-            applyTooltipToPrompt(item);
-        });
-
-        if (!isSectionsFeatureEnabled) {
-            delete promptsContainer.dataset.nemoOrganizing;
-            return;
+        // Clear any pending initialization to prevent duplicates/races
+        if (this.dragDropInitTimeout) {
+            clearTimeout(this.dragDropInitTimeout);
+            this.dragDropInitTimeout = null;
         }
 
-        // Rebuild sections
-        const itemsToProcess = Array.from(promptsContainer.children);
-        promptsContainer.innerHTML = ''; // Clear the container
+        // Wrap in requestAnimationFrame to avoid blocking UI thread immediately
+        requestAnimationFrame(() => {
+            try {
+                // Pause observer to prevent infinite loop of mutations triggering reorganization
+                this.pauseListObserver();
 
-        itemsToProcess.forEach(item => {
-            if (item.matches('li.completion_prompt_manager_prompt')) {
-                this.processSingleItem(item, promptsContainer);
+                isSectionsFeatureEnabled = storage.getSectionsEnabled();
+
+                // 1. Snapshot all current items in order (detached references)
+                const allCurrentItems = Array.from(promptsContainer.querySelectorAll('li.completion_prompt_manager_prompt'));
+                
+                // 2. Prepare items (cleanup metadata, add controls) - effectively "flattening" state
+                allCurrentItems.forEach(item => {
+                    // Restore original text if it's a header
+                    if (item.classList.contains('nemo-header-item')) {
+                        const link = item.querySelector(SELECTORS.promptNameLink);
+                        if (link && item.dataset.nemoOriginalText) {
+                            link.textContent = item.dataset.nemoOriginalText;
+                        }
+                    }
+                    
+                    // Clean up metadata
+                    delete item.dataset.nemoDividerChecked;
+                    delete item.dataset.nemoIsDivider;
+                    delete item.dataset.nemoSectionName;
+                    delete item.dataset.nemoOriginalText;
+                    item.classList.remove('nemo-header-item');
+                    item.draggable = true;
+
+                    // Add controls (drag handle, favorite)
+                    if (!item.querySelector('.drag-handle')) {
+                        const dragHandle = document.createElement('span');
+                        dragHandle.className = 'drag-handle';
+                        dragHandle.innerHTML = '&#9776;';
+                        item.prepend(dragHandle);
+                    }
+
+                    const controlsWrapper = item.querySelector('.completion_prompt_manager_prompt_controls');
+                    if (controlsWrapper && !controlsWrapper.querySelector('.nemo-favorite-btn')) {
+                        const favoriteBtn = document.createElement('div');
+                        favoriteBtn.className = 'nemo-favorite-btn menu_button menu_button_icon fa-solid fa-star';
+                        favoriteBtn.title = 'Favorite Preset';
+                        controlsWrapper.prepend(favoriteBtn);
+
+                        const presetId = item.dataset.pmIdentifier;
+                        if (this.isFavorite(presetId)) {
+                            favoriteBtn.classList.add('favorited');
+                        }
+
+                        favoriteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            this.toggleFavorite(presetId);
+                            favoriteBtn.classList.toggle('favorited');
+                        });
+                    }
+
+                    // Apply tooltips
+                    applyTooltipToPrompt(item);
+                });
+
+                // 3. Build the new structure in memory
+                const fragment = document.createDocumentFragment();
+
+                if (!isSectionsFeatureEnabled) {
+                    // Simple flat list
+                    allCurrentItems.forEach(item => fragment.appendChild(item));
+                } else {
+                    // Organized sections
+                    allCurrentItems.forEach(item => {
+                        this.processSingleItem(item, fragment);
+                    });
+                }
+
+                // 4. Cleanup old Sortables BEFORE clearing DOM
+                this.destroySortables();
+
+                // 5. Single DOM Paint
+                promptsContainer.innerHTML = '';
+                promptsContainer.appendChild(fragment);
+
+                delete promptsContainer.dataset.nemoOrganizing;
+                
+                // Resume observer after DOM changes are committed
+                this.resumeListObserver();
+                
+                // 6. Initialize Drag and Drop (after paint) with a small delay
+                this.dragDropInitTimeout = setTimeout(() => {
+                    this.initializeDragAndDrop(promptsContainer);
+                    this.dragDropInitTimeout = null;
+                    
+                    // Dispatch event to signal that organization is complete
+                    // This allows category-tray.js to convert sections without watching the DOM
+                    document.dispatchEvent(new CustomEvent('nemo-prompts-organized', {
+                        detail: { timestamp: Date.now() }
+                    }));
+                }, 0);
+
+            } catch (error) {
+                console.error(`${LOG_PREFIX} Error in organizePrompts:`, error);
+                delete promptsContainer.dataset.nemoOrganizing;
+                this.resumeListObserver(); // Ensure we resume on error
             }
         });
-        
-        delete promptsContainer.dataset.nemoOrganizing;
-        this.initializeDragAndDrop(promptsContainer);
     },
 
     processSingleItem: function(item, container) {
@@ -1128,8 +1187,8 @@ export const NemoPresetManager = {
                 return item;
             }
 
-            const lastSection = container.lastElementChild;
-            if (lastSection && lastSection.matches('details.nemo-engine-section')) {
+            const lastSection = this.findLastMainSection(container); // Optimization: find last main section properly
+            if (lastSection) {
                 const content = lastSection.querySelector('.nemo-section-content');
                 content.appendChild(item);
                 this.updateSectionCount(lastSection);
@@ -1141,16 +1200,33 @@ export const NemoPresetManager = {
     },
 
     findLastMainSection: function(container) {
-        const sections = Array.from(container.querySelectorAll(':scope > details.nemo-engine-section:not(.nemo-sub-section)'));
-        return sections[sections.length - 1] || null;
+        // Optimization: Iterate children manually instead of expensive querySelectorAll
+        // container can be DocumentFragment or Element
+        const children = container.children;
+        for (let i = children.length - 1; i >= 0; i--) {
+            const child = children[i];
+            if (child.tagName === 'DETAILS' && child.classList.contains('nemo-engine-section') && !child.classList.contains('nemo-sub-section')) {
+                return child;
+            }
+        }
+        return null;
     },
 
     findLastSubSection: function(container) {
         const lastMainSection = this.findLastMainSection(container);
         if (!lastMainSection) return null;
 
-        const subSections = Array.from(lastMainSection.querySelectorAll(':scope > .nemo-section-content > details.nemo-sub-section'));
-        return subSections[subSections.length - 1] || null;
+        const content = lastMainSection.querySelector('.nemo-section-content');
+        if (!content) return null;
+
+        const children = content.children;
+        for (let i = children.length - 1; i >= 0; i--) {
+            const child = children[i];
+            if (child.tagName === 'DETAILS' && child.classList.contains('nemo-sub-section')) {
+                return child;
+            }
+        }
+        return null;
     },
 
     handlePresetSearch: function() {
