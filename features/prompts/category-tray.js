@@ -11,7 +11,7 @@ import { parsePromptDirectives, validatePromptActivation, getAllPromptsWithState
 import { getCachedDirectives, getPromptContentOnDemand } from '../../core/directive-cache.js';
 import { showConflictToast } from '../directives/directive-ui.js';
 import { promptManager } from '../../../../../openai.js';
-import { chat_metadata, saveSettingsDebounced } from '../../../../../../script.js';
+import { chat_metadata, saveSettingsDebounced, eventSource, event_types } from '../../../../../../script.js';
 import { extension_settings } from '../../../../../extensions.js';
 import { NEMO_EXTENSION_NAME } from '../../core/utils.js';
 import storage from '../../core/storage-migration.js';
@@ -258,7 +258,54 @@ export function initCategoryTray() {
         applyCurrentMode();
     });
 
-    // Try multiple times with increasing delays to catch sections
+    // Invalidate cache on preset change
+    if (eventSource && event_types) {
+        eventSource.on(event_types.OAI_PRESET_CHANGED_AFTER, () => {
+            console.log('[NemoTray] Preset changed - clearing prompt cache and closing trays');
+            sectionPromptIdsCache.clear();
+            
+            // Close all open trays and reset section data
+            document.querySelectorAll('.nemo-tray-open').forEach(section => {
+                if (section._nemoCategoryTray) {
+                    section._nemoCategoryTray.remove();
+                    delete section._nemoCategoryTray;
+                }
+                section.classList.remove('nemo-tray-open');
+                // Don't remove tray-converted status yet, let convertToTrayMode handle it
+                // But clear the IDs so we know to rescan
+                section._nemoPromptIds = null;
+            });
+            
+            // Also reset any other sections that might have cached data attached
+            document.querySelectorAll('details.nemo-engine-section').forEach(section => {
+                section._nemoPromptIds = null;
+            });
+
+            trayModeEnabled.clear();
+            
+            // Top level container needs to be recreated on preset change
+            if (topLevelPromptsContainer) {
+                topLevelPromptsContainer.remove();
+                topLevelPromptsContainer = null;
+            }
+        });
+    }
+
+    // Listen for prompt manager organization completion
+    document.addEventListener('nemo-prompts-organized', (e) => {
+        console.log('[NemoTray] Prompts organized event received');
+        // Debounce just in case multiple events fire rapidly
+        clearTimeout(window._trayDebounce);
+        window._trayDebounce = setTimeout(() => {
+            if (isDragging) return;
+            applyCurrentMode();
+            // Refresh progress bars after conversion
+            setTimeout(() => refreshAllSectionProgressBars(), 100);
+            setTimeout(() => refreshAllSectionProgressBars(), 300);
+        }, 100);
+    });
+
+    // Try multiple times with increasing delays to catch sections (initial load backup)
     const delays = [500, 1000, 2000, 3000, 5000];
     delays.forEach(delay => {
         setTimeout(() => {
@@ -273,38 +320,8 @@ export function initCategoryTray() {
     setTimeout(() => refreshAllSectionProgressBars(), 6000);
     setTimeout(() => refreshAllSectionProgressBars(), 8000);
 
-    // Watch for prompt manager re-renders
-    const observer = new MutationObserver((mutations) => {
-        // Skip updates during drag to prevent flickering
-        if (isDragging) return;
-
-        // Only run if we see relevant changes
-        const hasRelevantChanges = mutations.some(m =>
-            m.addedNodes.length > 0 ||
-            (m.target.classList && m.target.classList.contains('nemo-engine-section'))
-        );
-
-        if (hasRelevantChanges) {
-            clearTimeout(window._trayDebounce);
-            window._trayDebounce = setTimeout(() => {
-                // Double-check we're not dragging
-                if (isDragging) return;
-                applyCurrentMode();
-                // Refresh progress bars after conversion
-                setTimeout(() => refreshAllSectionProgressBars(), 100);
-                setTimeout(() => refreshAllSectionProgressBars(), 300);
-            }, 200);
-        }
-    });
-
-    // Watch the whole document body for changes
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-
-    console.log('[NemoTray] Observer attached to document.body');
-    logger.info('Category tray system initialized - watching for sections');
+    console.log('[NemoTray] Event listeners attached');
+    logger.info('Category tray system initialized - listening for prompt organization');
 }
 
 // Track top-level prompts container
@@ -342,7 +359,10 @@ function convertTopLevelPrompts() {
     // Check for cached data
     let topLevelPromptIds = sectionPromptIdsCache.get(TOP_LEVEL_SECTION_ID);
 
-    if (topLevelPrompts.length > 0) {
+    if (topLevelPromptIds && topLevelPromptIds.length === topLevelPrompts.length) {
+        // Use cache (hide DOM elements if present)
+        topLevelPrompts.forEach(el => el.classList.add('nemo-tray-hidden-prompt'));
+    } else if (topLevelPrompts.length > 0) {
         // Extract and hide top-level prompts
         topLevelPromptIds = [];
         topLevelPrompts.forEach(el => {
@@ -454,11 +474,17 @@ function convertToTrayMode() {
     let converted = 0;
 
     allSections.forEach(section => {
-        // Skip if already converted
-        if (section.dataset.trayConverted === 'true') return;
-
         // Skip our top-level container (it's managed separately)
         if (section.classList.contains('nemo-top-level-section')) return;
+
+        // If already converted, check if we need to re-verify (e.g. after preset change)
+        if (section.dataset.trayConverted === 'true') {
+            // If we have IDs, we're good. If not (cleared by event), we proceed to re-scan.
+            if (section._nemoPromptIds && section._nemoPromptIds.length > 0) {
+                return;
+            }
+            // If empty IDs but marked converted, we continue to re-scan
+        }
 
         const summary = section.querySelector('summary');
         const content = section.querySelector('.nemo-section-content');
@@ -503,7 +529,8 @@ function convertToTrayMode() {
         let sectionPromptIds;
 
         if (hasPromptsInDOM) {
-            // Extract prompt identifiers from DOM (first time conversion)
+            // Extract prompt identifiers from DOM (first time conversion OR re-scan after edit)
+            // Always prefer DOM over cache when elements are present to capture name/content changes
             sectionPromptIds = [];
             promptElements.forEach(el => {
                 const identifier = el.getAttribute('data-pm-identifier');
@@ -518,10 +545,10 @@ function convertToTrayMode() {
 
             // Store in persistent cache (survives DOM refreshes)
             sectionPromptIdsCache.set(sectionName, sectionPromptIds);
-            console.log(`[NemoTray] Cached ${sectionPromptIds.length} prompt IDs for section:`, sectionName);
-            console.log(`[NemoTray] Hidden ${promptElements.length} prompt DOM elements in:`, sectionName);
+            // console.log(`[NemoTray] Cached ${sectionPromptIds.length} prompt IDs for section:`, sectionName);
         } else if (cachedPromptIds) {
-            // Restore from cache (DOM was refreshed by SillyTavern)
+            // Restore from cache (Only if DOM elements are missing - e.g. potentially wiped but we want to preserve state?)
+            // Note: organizePrompts usually ensures DOM elements exist before this runs.
             sectionPromptIds = cachedPromptIds;
             console.log(`[NemoTray] Restored ${sectionPromptIds.length} prompt IDs from cache for:`, sectionName);
         } else {
@@ -2386,11 +2413,25 @@ function showPromptPreview(identifier, name) {
     `;
 
     // Close handlers
-    modal.querySelector('.nemo-preview-close').addEventListener('click', () => modal.remove());
-    modal.querySelector('.nemo-preview-backdrop').addEventListener('click', () => modal.remove());
+    modal.querySelector('.nemo-preview-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        modal.remove();
+    });
+    modal.querySelector('.nemo-preview-backdrop').addEventListener('click', (e) => {
+        e.stopPropagation();
+        modal.remove();
+    });
+
+    // Stop propagation of all interaction events from the container to prevent accidental closes
+    ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend'].forEach(eventType => {
+        modal.querySelector('.nemo-preview-container').addEventListener(eventType, (e) => {
+            e.stopPropagation();
+        });
+    });
 
     // Edit button - directly open the prompt manager editor
-    modal.querySelector('.nemo-preview-edit-btn').addEventListener('click', () => {
+    modal.querySelector('.nemo-preview-edit-btn').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent bubbling up to background elements
         modal.remove();
 
         // Directly call promptManager methods to open the editor
@@ -2727,12 +2768,22 @@ function convertToAccordionMode() {
     let converted = 0;
 
     allSections.forEach(section => {
-        // Skip if already in accordion mode
-        if (section.dataset.accordionConverted === 'true') return;
-
         const summary = section.querySelector('summary');
         const content = section.querySelector('.nemo-section-content');
         if (!summary || !content) return;
+
+        // Cleanup zombie tray listeners if switching from Tray Mode
+        if (summary._trayClickHandler) {
+            summary.removeEventListener('click', summary._trayClickHandler);
+            delete summary._trayClickHandler;
+        }
+        if (summary._trayKeyHandler) {
+            summary.removeEventListener('keydown', summary._trayKeyHandler);
+            delete summary._trayKeyHandler;
+        }
+
+        // Skip if already in accordion mode and HAS the class (double check)
+        if (section.dataset.accordionConverted === 'true' && section.classList.contains('nemo-accordion-section')) return;
 
         // Mark as accordion mode
         section.dataset.accordionConverted = 'true';

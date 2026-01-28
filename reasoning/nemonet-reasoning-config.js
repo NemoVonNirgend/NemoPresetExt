@@ -8,6 +8,7 @@
 import { RobustReasoningParser } from './robust-reasoning-parser.js';
 import { getContext } from '../../../../extensions.js';
 import { updateReasoningUI } from '../../../../reasoning.js';
+import { saveChatDebounced } from '../../../../../script.js';
 
 // Debug flag - set to true for verbose logging during development
 const DEBUG_REASONING = false;
@@ -494,12 +495,12 @@ function setupMessageObserver(parser) {
                                 message.extra.reasoning_type = 'parsed';
                                 debugLog(' ⚡ Pre-render update complete, forcing re-render...');
 
-                                // Save immediately
-                                getContext().saveChat();
+                                // Save immediately (debounced)
+                                saveChatDebounced();
 
                                 // CRITICAL: Force the DOM element to re-render with new data
                                 // Wait just a tiny bit for the initial render to complete
-                                setTimeout(() => {
+                                requestAnimationFrame(() => {
                                     const mesText = node.querySelector('.mes_text');
                                     if (mesText) {
                                         debugLog(' 🔄 Forcing message re-render');
@@ -635,7 +636,7 @@ function forceProcessMessage(messageId, parser) {
                             updateReasoningUI(messageId);
 
                             // Save
-                            getContext().saveChat();
+                            saveChatDebounced();
 
                             debugLog(' 💪 RECOVERY processing complete!');
                             return;
@@ -661,7 +662,7 @@ function forceProcessMessage(messageId, parser) {
                     updateReasoningUI(messageId);
 
                     // Save
-                    getContext().saveChat();
+                    saveChatDebounced();
 
                     debugLog(' 💪 FORCE processing complete!');
                     return;
@@ -740,7 +741,7 @@ function processMessageReasoning(messageId, parser) {
         debugLog(' ✅ Message data updated - scheduling DOM updates...');
 
         // Save chat first so data is persisted
-        getContext().saveChat();
+        saveChatDebounced();
 
         // Use a retry mechanism that consolidates multiple update attempts
         retryDOMUpdate(messageId, message, result.reasoning);
@@ -1279,7 +1280,7 @@ function reprocessLatestMessage(parser) {
                 }
 
                 // Save the fix
-                getContext().saveChat();
+                saveChatDebounced();
 
                 debugLog(' ✅ Message recovered and saved!');
                 return;
