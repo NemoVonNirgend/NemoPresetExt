@@ -1,0 +1,1233 @@
+/**
+ * NemoTavern Theme - Glassmorphism Modern UI
+ * A modern, glass-effect theme for SillyTavern
+ */
+
+/* ============================================
+   Design Tokens (CSS Custom Properties)
+   ============================================ */
+
+body.nemo-theme-nemotavern {
+  /* Glassmorphism */
+  --nemo-glass-bg: rgba(20, 20, 30, 0.7);
+  --nemo-glass-bg-light: rgba(30, 30, 45, 0.6);
+  --nemo-glass-bg-dark: rgba(10, 10, 20, 0.85);
+  --nemo-glass-border: rgba(255, 255, 255, 0.1);
+  --nemo-glass-border-hover: rgba(255, 255, 255, 0.2);
+  --nemo-glass-blur: 20px;
+  --nemo-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --nemo-glass-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
+
+  /* Accent Colors */
+  --nemo-accent-primary: #6366f1;
+  --nemo-accent-primary-rgb: 99, 102, 241;
+  --nemo-accent-secondary: #8b5cf6;
+  --nemo-accent-tertiary: #a855f7;
+  --nemo-accent-glow: rgba(99, 102, 241, 0.3);
+  --nemo-accent-gradient: linear-gradient(135deg, var(--nemo-accent-primary), var(--nemo-accent-secondary));
+
+  /* Success/Warning/Error */
+  --nemo-success: #22c55e;
+  --nemo-warning: #f59e0b;
+  --nemo-error: #ef4444;
+
+  /* Text Colors */
+  --nemo-text-primary: rgba(255, 255, 255, 0.95);
+  --nemo-text-secondary: rgba(255, 255, 255, 0.7);
+  --nemo-text-muted: rgba(255, 255, 255, 0.5);
+  --nemo-text-disabled: rgba(255, 255, 255, 0.3);
+
+  /* Backgrounds */
+  --nemo-bg-base: #0a0a0f;
+  --nemo-bg-surface: #12121a;
+  --nemo-bg-elevated: #1a1a25;
+  --nemo-bg-overlay: rgba(0, 0, 0, 0.6);
+
+  /* Spacing */
+  --nemo-panel-radius: 16px;
+  --nemo-panel-radius-sm: 8px;
+  --nemo-panel-radius-lg: 24px;
+  --nemo-panel-padding: 16px;
+  --nemo-panel-padding-sm: 12px;
+  --nemo-panel-padding-lg: 24px;
+  --nemo-dock-width: 300px;
+  --nemo-dock-width-collapsed: 48px;
+
+  /* Transitions */
+  --nemo-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --nemo-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --nemo-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index Layers */
+  --nemo-z-base: 1;
+  --nemo-z-dropdown: 100;
+  --nemo-z-sticky: 200;
+  --nemo-z-modal: 300;
+  --nemo-z-popover: 400;
+  --nemo-z-overlay: 500;
+  --nemo-z-command-palette: 600;
+  --nemo-z-toast: 700;
+
+  /* Font */
+  --nemo-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --nemo-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+body.nemo-theme-nemotavern {
+  background: var(--nemo-bg-base);
+  color: var(--nemo-text-primary);
+  font-family: var(--nemo-font-sans);
+
+  /* Full-screen gradient backdrop */
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, var(--nemo-bg-base) 0%, #0f0f18 100%);
+  background-attachment: fixed;
+}
+
+/* ============================================
+   Glass Panel Base
+   ============================================ */
+
+body.nemo-theme-nemotavern .nemo-glass-panel {
+  background: var(--nemo-glass-bg);
+  backdrop-filter: blur(var(--nemo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--nemo-glass-blur));
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius);
+  box-shadow: var(--nemo-glass-shadow);
+  transition: all var(--nemo-transition-normal);
+}
+
+body.nemo-theme-nemotavern .nemo-glass-panel:hover {
+  border-color: var(--nemo-glass-border-hover);
+  box-shadow: var(--nemo-glass-shadow-lg);
+}
+
+/* ============================================
+   SillyTavern Core UI Overrides
+   ============================================ */
+
+/* Main container - pushed down for toolbar */
+body.nemo-theme-nemotavern #sheld {
+  background: transparent;
+  padding-top: 52px !important;
+  position: relative;
+  z-index: 1 !important;
+}
+
+/* Ensure the whole page accounts for toolbar */
+body.nemo-theme-nemotavern {
+  padding-top: 0 !important;
+}
+
+body.nemo-theme-nemotavern #top-bar {
+  margin-top: 52px;
+  z-index: 1 !important;
+}
+
+/* Force all ST content below our modals */
+body.nemo-theme-nemotavern #form_sheld,
+body.nemo-theme-nemotavern #chat,
+body.nemo-theme-nemotavern .mes,
+body.nemo-theme-nemotavern #send_form {
+  z-index: 1 !important;
+}
+
+/* Chat area */
+body.nemo-theme-nemotavern #chat {
+  background: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--nemo-glass-border) transparent;
+}
+
+body.nemo-theme-nemotavern #chat::-webkit-scrollbar {
+  width: 8px;
+}
+
+body.nemo-theme-nemotavern #chat::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body.nemo-theme-nemotavern #chat::-webkit-scrollbar-thumb {
+  background: var(--nemo-glass-border);
+  border-radius: 4px;
+}
+
+body.nemo-theme-nemotavern #chat::-webkit-scrollbar-thumb:hover {
+  background: var(--nemo-glass-border-hover);
+}
+
+/* Message bubbles */
+body.nemo-theme-nemotavern .mes {
+  background: var(--nemo-glass-bg);
+  backdrop-filter: blur(var(--nemo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--nemo-glass-blur));
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius);
+  margin-bottom: 12px;
+  transition: all var(--nemo-transition-normal);
+}
+
+body.nemo-theme-nemotavern .mes:hover {
+  border-color: var(--nemo-glass-border-hover);
+  transform: translateY(-1px);
+}
+
+body.nemo-theme-nemotavern .mes[is_user="true"] {
+  background: var(--nemo-glass-bg-light);
+  border-color: rgba(var(--nemo-accent-primary-rgb), 0.2);
+}
+
+/* Input area */
+body.nemo-theme-nemotavern #send_form {
+  background: var(--nemo-glass-bg-dark);
+  backdrop-filter: blur(var(--nemo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--nemo-glass-blur));
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius);
+  padding: var(--nemo-panel-padding);
+  margin: var(--nemo-panel-padding);
+}
+
+body.nemo-theme-nemotavern #send_textarea {
+  background: var(--nemo-bg-surface);
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius-sm);
+  color: var(--nemo-text-primary);
+  font-family: var(--nemo-font-sans);
+  padding: 12px 16px;
+  transition: all var(--nemo-transition-fast);
+}
+
+body.nemo-theme-nemotavern #send_textarea:focus {
+  border-color: var(--nemo-accent-primary);
+  box-shadow: 0 0 0 3px var(--nemo-accent-glow);
+  outline: none;
+}
+
+body.nemo-theme-nemotavern #send_textarea::placeholder {
+  color: var(--nemo-text-muted);
+}
+
+/* Buttons */
+body.nemo-theme-nemotavern .menu_button,
+body.nemo-theme-nemotavern button:not(.nemo-ignore) {
+  background: var(--nemo-glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius-sm);
+  color: var(--nemo-text-secondary);
+  cursor: pointer;
+  transition: all var(--nemo-transition-fast);
+}
+
+body.nemo-theme-nemotavern .menu_button:hover,
+body.nemo-theme-nemotavern button:not(.nemo-ignore):hover {
+  background: var(--nemo-glass-bg-light);
+  border-color: var(--nemo-accent-primary);
+  color: var(--nemo-text-primary);
+  box-shadow: 0 0 12px var(--nemo-accent-glow);
+}
+
+body.nemo-theme-nemotavern .menu_button:active,
+body.nemo-theme-nemotavern button:not(.nemo-ignore):active {
+  transform: scale(0.98);
+}
+
+/* Primary buttons */
+body.nemo-theme-nemotavern .menu_button.primary,
+body.nemo-theme-nemotavern button.primary {
+  background: var(--nemo-accent-gradient);
+  border: none;
+  color: white;
+}
+
+body.nemo-theme-nemotavern .menu_button.primary:hover,
+body.nemo-theme-nemotavern button.primary:hover {
+  box-shadow: 0 4px 16px var(--nemo-accent-glow);
+}
+
+/* ============================================
+   Drawer Panels (Hidden when NemoTavern active)
+   ============================================ */
+
+body.nemo-theme-nemotavern .drawer {
+  background: var(--nemo-glass-bg);
+  backdrop-filter: blur(var(--nemo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--nemo-glass-blur));
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius);
+}
+
+body.nemo-theme-nemotavern .drawer-content {
+  background: transparent;
+  color: var(--nemo-text-primary);
+}
+
+body.nemo-theme-nemotavern .drawer-icon {
+  background: var(--nemo-glass-bg);
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius-sm);
+  color: var(--nemo-text-secondary);
+  transition: all var(--nemo-transition-fast);
+}
+
+body.nemo-theme-nemotavern .drawer-icon:hover {
+  background: var(--nemo-glass-bg-light);
+  border-color: var(--nemo-accent-primary);
+  color: var(--nemo-accent-primary);
+  box-shadow: 0 0 12px var(--nemo-accent-glow);
+}
+
+/* ============================================
+   Navigation Panels
+   ============================================ */
+
+body.nemo-theme-nemotavern #left-nav-panel,
+body.nemo-theme-nemotavern #right-nav-panel {
+  background: var(--nemo-glass-bg-dark);
+  backdrop-filter: blur(var(--nemo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--nemo-glass-blur));
+  border: 1px solid var(--nemo-glass-border);
+}
+
+body.nemo-theme-nemotavern #left-nav-panel {
+  border-radius: 0 var(--nemo-panel-radius) var(--nemo-panel-radius) 0;
+}
+
+body.nemo-theme-nemotavern #right-nav-panel {
+  border-radius: var(--nemo-panel-radius) 0 0 var(--nemo-panel-radius);
+}
+
+/* ============================================
+   Settings and Forms
+   ============================================ */
+
+body.nemo-theme-nemotavern input[type="text"],
+body.nemo-theme-nemotavern input[type="number"],
+body.nemo-theme-nemotavern input[type="password"],
+body.nemo-theme-nemotavern select,
+body.nemo-theme-nemotavern textarea {
+  background: var(--nemo-bg-surface);
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius-sm);
+  color: var(--nemo-text-primary);
+  padding: 10px 14px;
+  transition: all var(--nemo-transition-fast);
+}
+
+body.nemo-theme-nemotavern input:focus,
+body.nemo-theme-nemotavern select:focus,
+body.nemo-theme-nemotavern textarea:focus {
+  border-color: var(--nemo-accent-primary);
+  box-shadow: 0 0 0 3px var(--nemo-accent-glow);
+  outline: none;
+}
+
+body.nemo-theme-nemotavern input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--nemo-glass-border);
+  border-radius: 4px;
+  height: 6px;
+}
+
+body.nemo-theme-nemotavern input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--nemo-accent-primary);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  height: 18px;
+  width: 18px;
+  box-shadow: 0 2px 8px var(--nemo-accent-glow);
+}
+
+body.nemo-theme-nemotavern input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--nemo-bg-surface);
+  border: 2px solid var(--nemo-glass-border);
+  border-radius: 4px;
+  cursor: pointer;
+  height: 20px;
+  width: 20px;
+  transition: all var(--nemo-transition-fast);
+}
+
+body.nemo-theme-nemotavern input[type="checkbox"]:checked {
+  background: var(--nemo-accent-primary);
+  border-color: var(--nemo-accent-primary);
+}
+
+body.nemo-theme-nemotavern input[type="checkbox"]:checked::after {
+  content: '✓';
+  color: white;
+  display: block;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 16px;
+}
+
+/* ============================================
+   Labels and Text
+   ============================================ */
+
+body.nemo-theme-nemotavern label {
+  color: var(--nemo-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+body.nemo-theme-nemotavern h1,
+body.nemo-theme-nemotavern h2,
+body.nemo-theme-nemotavern h3,
+body.nemo-theme-nemotavern h4 {
+  color: var(--nemo-text-primary);
+  font-weight: 600;
+}
+
+body.nemo-theme-nemotavern .mes_text {
+  color: var(--nemo-text-primary);
+  line-height: 1.6;
+}
+
+/* ============================================
+   Tooltips
+   ============================================ */
+
+body.nemo-theme-nemotavern [data-tooltip]::before,
+body.nemo-theme-nemotavern .tooltip {
+  background: var(--nemo-glass-bg-dark);
+  backdrop-filter: blur(var(--nemo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--nemo-glass-blur));
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius-sm);
+  color: var(--nemo-text-primary);
+  font-size: 12px;
+  padding: 8px 12px;
+  box-shadow: var(--nemo-glass-shadow);
+}
+
+/* ============================================
+   Modals
+   ============================================ */
+
+body.nemo-theme-nemotavern .popup,
+body.nemo-theme-nemotavern .modal {
+  background: var(--nemo-glass-bg);
+  backdrop-filter: blur(var(--nemo-glass-blur));
+  -webkit-backdrop-filter: blur(var(--nemo-glass-blur));
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius-lg);
+  box-shadow: var(--nemo-glass-shadow-lg);
+}
+
+/* ============================================
+   NemoTavern-specific Components
+   ============================================ */
+
+/* Command Palette Overlay */
+body.nemo-theme-nemotavern .nemo-command-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 999999 !important;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+}
+
+body.nemo-theme-nemotavern .nemo-command-palette {
+  background: #0e0e14;
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius);
+  box-shadow: var(--nemo-glass-shadow-lg);
+  max-height: 60vh;
+  overflow: hidden;
+  width: 560px;
+}
+
+body.nemo-theme-nemotavern .nemo-command-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--nemo-glass-border);
+  color: var(--nemo-text-primary);
+  font-family: var(--nemo-font-sans);
+  font-size: 18px;
+  padding: 20px 24px;
+  width: 100%;
+}
+
+body.nemo-theme-nemotavern .nemo-command-input:focus {
+  outline: none;
+}
+
+body.nemo-theme-nemotavern .nemo-command-input::placeholder {
+  color: var(--nemo-text-muted);
+}
+
+body.nemo-theme-nemotavern .nemo-command-list {
+  max-height: calc(60vh - 64px);
+  overflow-y: auto;
+  padding: 8px;
+}
+
+body.nemo-theme-nemotavern .nemo-command-item {
+  align-items: center;
+  border-radius: var(--nemo-panel-radius-sm);
+  color: var(--nemo-text-secondary);
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  transition: all var(--nemo-transition-fast);
+}
+
+body.nemo-theme-nemotavern .nemo-command-item:hover,
+body.nemo-theme-nemotavern .nemo-command-item.active {
+  background: rgba(var(--nemo-accent-primary-rgb), 0.15);
+  color: var(--nemo-text-primary);
+}
+
+body.nemo-theme-nemotavern .nemo-command-item.active {
+  border-left: 3px solid var(--nemo-accent-primary);
+}
+
+body.nemo-theme-nemotavern .nemo-command-item-icon {
+  color: var(--nemo-accent-primary);
+  font-size: 16px;
+  width: 24px;
+}
+
+body.nemo-theme-nemotavern .nemo-command-item-label {
+  flex: 1;
+  font-size: 14px;
+}
+
+body.nemo-theme-nemotavern .nemo-command-item-shortcut {
+  background: var(--nemo-glass-bg);
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: 4px;
+  color: var(--nemo-text-muted);
+  font-family: var(--nemo-font-mono);
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+/* Floating Panel */
+body.nemo-theme-nemotavern .nemo-floating-panel {
+  background: #14141e;
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius);
+  box-shadow: var(--nemo-glass-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  min-width: 280px;
+  overflow: hidden;
+  position: fixed;
+  z-index: 99998 !important;
+}
+
+body.nemo-theme-nemotavern .nemo-floating-panel.dragging {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  opacity: 0.9;
+}
+
+body.nemo-theme-nemotavern .nemo-panel-header {
+  align-items: center;
+  background: linear-gradient(90deg, rgba(var(--nemo-accent-primary-rgb), 0.2), transparent);
+  border-bottom: 1px solid var(--nemo-glass-border);
+  cursor: move;
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  user-select: none;
+}
+
+body.nemo-theme-nemotavern .nemo-panel-title {
+  color: var(--nemo-text-primary);
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+body.nemo-theme-nemotavern .nemo-panel-controls {
+  display: flex;
+  gap: 4px;
+}
+
+body.nemo-theme-nemotavern .nemo-panel-control {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--nemo-text-muted);
+  cursor: pointer;
+  display: flex;
+  height: 28px;
+  justify-content: center;
+  transition: all var(--nemo-transition-fast);
+  width: 28px;
+}
+
+body.nemo-theme-nemotavern .nemo-panel-control:hover {
+  background: var(--nemo-glass-border);
+  color: var(--nemo-text-primary);
+}
+
+body.nemo-theme-nemotavern .nemo-panel-control.close:hover {
+  background: var(--nemo-error);
+  color: white;
+}
+
+body.nemo-theme-nemotavern .nemo-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--nemo-panel-padding);
+}
+
+/* Docked Panels */
+body.nemo-theme-nemotavern .nemo-dock-zone {
+  background: rgba(var(--nemo-accent-primary-rgb), 0.1);
+  border: 2px dashed var(--nemo-accent-primary);
+  border-radius: var(--nemo-panel-radius);
+  opacity: 0;
+  pointer-events: none;
+  position: fixed;
+  transition: opacity var(--nemo-transition-fast);
+  z-index: var(--nemo-z-overlay);
+}
+
+body.nemo-theme-nemotavern .nemo-dock-zone.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.nemo-theme-nemotavern .nemo-dock-zone.left {
+  bottom: 20px;
+  left: 20px;
+  top: 60px;
+  width: var(--nemo-dock-width);
+}
+
+body.nemo-theme-nemotavern .nemo-dock-zone.right {
+  bottom: 20px;
+  right: 20px;
+  top: 60px;
+  width: var(--nemo-dock-width);
+}
+
+body.nemo-theme-nemotavern .nemo-dock-zone.top {
+  height: 120px;
+  left: 340px;
+  right: 340px;
+  top: 20px;
+}
+
+body.nemo-theme-nemotavern .nemo-dock-zone.bottom {
+  bottom: 20px;
+  height: 120px;
+  left: 340px;
+  right: 340px;
+}
+
+/* Unified Settings Modal */
+body.nemo-theme-nemotavern .nemo-settings-overlay {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 99999 !important;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-modal {
+  background: #12121a;
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: var(--nemo-panel-radius-lg);
+  box-shadow: var(--nemo-glass-shadow-lg);
+  display: flex;
+  height: 85vh;
+  max-width: 1200px;
+  overflow: hidden;
+  width: 90%;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-sidebar {
+  background: var(--nemo-bg-surface);
+  border-right: 1px solid var(--nemo-glass-border);
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--nemo-panel-padding);
+}
+
+body.nemo-theme-nemotavern .nemo-settings-nav-item {
+  align-items: center;
+  border-radius: var(--nemo-panel-radius-sm);
+  color: var(--nemo-text-secondary);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px;
+  transition: all var(--nemo-transition-fast);
+}
+
+body.nemo-theme-nemotavern .nemo-settings-nav-item:hover {
+  background: var(--nemo-glass-bg);
+  color: var(--nemo-text-primary);
+}
+
+body.nemo-theme-nemotavern .nemo-settings-nav-item.active {
+  background: rgba(var(--nemo-accent-primary-rgb), 0.2);
+  color: var(--nemo-accent-primary);
+}
+
+body.nemo-theme-nemotavern .nemo-settings-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0f0f16;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-header {
+  align-items: center;
+  border-bottom: 1px solid var(--nemo-glass-border);
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 24px;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+/* Quick Access Toolbar */
+body.nemo-theme-nemotavern .nemo-toolbar {
+  align-items: center;
+  background: #0d0d14 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 8px;
+  height: 52px;
+  padding: 0 16px;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 9999 !important;
+}
+
+body.nemo-theme-nemotavern .nemo-toolbar-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--nemo-panel-radius-sm);
+  color: #ffffff !important;
+  cursor: pointer;
+  display: flex;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  transition: all var(--nemo-transition-fast);
+}
+
+body.nemo-theme-nemotavern .nemo-toolbar-button:hover {
+  background: var(--nemo-glass-bg);
+  border-color: var(--nemo-glass-border);
+  color: var(--nemo-text-primary);
+}
+
+body.nemo-theme-nemotavern .nemo-toolbar-spacer {
+  flex: 1;
+}
+
+body.nemo-theme-nemotavern .nemo-toolbar-search {
+  background: #1a1a24 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  color: #aaaaaa !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  transition: all var(--nemo-transition-fast);
+}
+
+body.nemo-theme-nemotavern .nemo-toolbar-search:hover {
+  border-color: var(--nemo-accent-primary);
+}
+
+body.nemo-theme-nemotavern .nemo-toolbar-search kbd {
+  background: var(--nemo-bg-surface);
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: 4px;
+  font-family: var(--nemo-font-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+@keyframes nemo-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes nemo-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes nemo-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes nemo-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--nemo-accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--nemo-accent-glow);
+  }
+}
+
+body.nemo-theme-nemotavern .nemo-animate-fade-in {
+  animation: nemo-fade-in var(--nemo-transition-normal);
+}
+
+body.nemo-theme-nemotavern .nemo-animate-slide-up {
+  animation: nemo-slide-up var(--nemo-transition-normal);
+}
+
+body.nemo-theme-nemotavern .nemo-animate-scale-in {
+  animation: nemo-scale-in var(--nemo-transition-normal);
+}
+
+/* ============================================
+   Reduced Motion Support
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  body.nemo-theme-nemotavern *,
+  body.nemo-theme-nemotavern *::before,
+  body.nemo-theme-nemotavern *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   Hidden Original Elements (when NemoTavern active)
+   ============================================ */
+
+/* Hide ALL drawer icons globally - but keep them interactive for JS clicks */
+body.nemo-theme-nemotavern .drawer-icon {
+  position: fixed !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  opacity: 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  /* Note: NOT using display:none or visibility:hidden to keep elements clickable via JS */
+}
+
+/* Hide the top settings holder container completely */
+body.nemo-theme-nemotavern #top-settings-holder {
+  display: none !important;
+  visibility: hidden !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
+/* Hide drawer holder containers that may appear */
+body.nemo-theme-nemotavern #leftNavHolder,
+body.nemo-theme-nemotavern #rightNavHolder,
+body.nemo-theme-nemotavern #user-settings-button,
+body.nemo-theme-nemotavern #ai-config-button,
+body.nemo-theme-nemotavern #WI-SP-button,
+body.nemo-theme-nemotavern #extensions-settings-button,
+body.nemo-theme-nemotavern #backgrounds_menu_button {
+  /* Hide the icon container but keep drawer content functional */
+}
+
+/* Re-enable visibility for NemoTavern elements (overrides the global hide) */
+body.nemo-theme-nemotavern #nemo-root {
+  visibility: visible !important;
+  pointer-events: none !important;
+  opacity: 1 !important;
+}
+
+body.nemo-theme-nemotavern #nemo-root > * {
+  pointer-events: auto !important;
+}
+
+body.nemo-theme-nemotavern .nemo-toolbar {
+  visibility: visible !important;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  display: flex !important;
+}
+
+body.nemo-theme-nemotavern .nemo-toolbar * {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Explicitly show NemoTavern toolbar buttons */
+body.nemo-theme-nemotavern .nemo-toolbar .nemo-toolbar-button,
+body.nemo-theme-nemotavern .nemo-toolbar-button {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  left: auto !important;
+  width: auto !important;
+  height: 36px !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+}
+
+/* NemoTavern Root Container */
+body.nemo-theme-nemotavern #nemo-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--nemo-z-base);
+}
+
+body.nemo-theme-nemotavern #nemo-root > * {
+  pointer-events: auto;
+}
+
+/* ============================================
+   Additional Component Styles
+   ============================================ */
+
+/* Command Palette Category */
+body.nemo-theme-nemotavern .nemo-command-category {
+  padding: 8px 16px 4px;
+}
+
+body.nemo-theme-nemotavern .nemo-command-category-label {
+  color: var(--nemo-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Command Palette Empty State */
+body.nemo-theme-nemotavern .nemo-command-empty {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+body.nemo-theme-nemotavern .nemo-command-empty-text {
+  color: var(--nemo-text-muted);
+  font-size: 14px;
+}
+
+/* Command Palette Footer */
+body.nemo-theme-nemotavern .nemo-command-footer {
+  border-top: 1px solid var(--nemo-glass-border);
+  padding: 10px 16px;
+}
+
+body.nemo-theme-nemotavern .nemo-command-hint {
+  color: var(--nemo-text-muted);
+  display: flex;
+  font-size: 12px;
+  gap: 16px;
+}
+
+body.nemo-theme-nemotavern .nemo-command-hint kbd {
+  background: var(--nemo-bg-surface);
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: 4px;
+  font-family: var(--nemo-font-mono);
+  font-size: 10px;
+  margin-right: 4px;
+  padding: 2px 6px;
+}
+
+/* Settings Sidebar Header */
+body.nemo-theme-nemotavern .nemo-settings-sidebar-header {
+  border-bottom: 1px solid var(--nemo-glass-border);
+  padding: var(--nemo-panel-padding);
+}
+
+body.nemo-theme-nemotavern .nemo-settings-sidebar-title {
+  color: var(--nemo-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Settings Sidebar Footer */
+body.nemo-theme-nemotavern .nemo-settings-sidebar-footer {
+  border-top: 1px solid var(--nemo-glass-border);
+  margin-top: auto;
+  padding: 12px var(--nemo-panel-padding);
+}
+
+body.nemo-theme-nemotavern .nemo-settings-version {
+  color: var(--nemo-text-muted);
+  font-size: 11px;
+}
+
+/* Settings Title Wrapper */
+body.nemo-theme-nemotavern .nemo-settings-title-wrapper {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-title-wrapper i {
+  color: var(--nemo-accent-primary);
+  font-size: 20px;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-title {
+  color: var(--nemo-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Settings Sections */
+body.nemo-theme-nemotavern .nemo-settings-section {
+  margin-bottom: 32px;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-section h3 {
+  color: var(--nemo-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-description {
+  color: var(--nemo-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-option {
+  margin-bottom: 12px;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-option label {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+}
+
+/* Settings Shortcuts */
+body.nemo-theme-nemotavern .nemo-settings-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+body.nemo-theme-nemotavern .nemo-shortcut-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--nemo-glass-bg);
+  border-radius: var(--nemo-panel-radius-sm);
+}
+
+body.nemo-theme-nemotavern .nemo-shortcut-label {
+  color: var(--nemo-text-secondary);
+  font-size: 14px;
+}
+
+body.nemo-theme-nemotavern .nemo-shortcut-row kbd {
+  background: var(--nemo-bg-surface);
+  border: 1px solid var(--nemo-glass-border);
+  border-radius: 4px;
+  color: var(--nemo-text-muted);
+  font-family: var(--nemo-font-mono);
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+/* Color Swatches */
+body.nemo-theme-nemotavern .nemo-color-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+body.nemo-theme-nemotavern .nemo-color-swatch {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  height: 36px;
+  transition: all var(--nemo-transition-fast);
+  width: 36px;
+}
+
+body.nemo-theme-nemotavern .nemo-color-swatch:hover {
+  transform: scale(1.1);
+}
+
+body.nemo-theme-nemotavern .nemo-color-swatch.active {
+  border-color: white;
+  box-shadow: 0 0 12px var(--nemo-accent-glow);
+}
+
+/* Toolbar Brand */
+body.nemo-theme-nemotavern .nemo-toolbar-brand {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-right: 16px;
+}
+
+body.nemo-theme-nemotavern .nemo-toolbar-logo {
+  background: var(--nemo-accent-gradient);
+  border-radius: 6px;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+body.nemo-theme-nemotavern .nemo-toolbar-name {
+  color: #ffffff !important;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Toolbar Actions */
+body.nemo-theme-nemotavern .nemo-toolbar-actions {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+}
+
+body.nemo-theme-nemotavern .nemo-toolbar-button-label {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  body.nemo-theme-nemotavern .nemo-toolbar-button-label {
+    display: inline;
+  }
+}
+
+/* Toolbar Panel Toggles */
+body.nemo-theme-nemotavern .nemo-toolbar-panel-toggles {
+  align-items: center;
+  border-left: 1px solid var(--nemo-glass-border);
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+  padding-left: 8px;
+}
+
+/* Dock Zone Indicator */
+body.nemo-theme-nemotavern .nemo-dock-zone-indicator {
+  align-items: center;
+  color: var(--nemo-accent-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+body.nemo-theme-nemotavern .nemo-dock-zone-indicator i {
+  font-size: 24px;
+}
+
+body.nemo-theme-nemotavern .nemo-dock-zone-indicator span {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Panel Icon */
+body.nemo-theme-nemotavern .nemo-panel-icon {
+  color: var(--nemo-accent-primary);
+  font-size: 14px;
+}
+
+/* Panel Placeholder */
+body.nemo-theme-nemotavern .nemo-panel-placeholder {
+  align-items: center;
+  color: var(--nemo-text-muted);
+  display: flex;
+  height: 200px;
+  justify-content: center;
+}
+
+/* Settings Drawer Content Container */
+body.nemo-theme-nemotavern .nemo-settings-drawer-content {
+  min-height: 200px;
+}
+
+body.nemo-theme-nemotavern .nemo-settings-drawer-content .drawer-content {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  max-height: none !important;
+  position: static !important;
+}
+
+/* Settings Placeholder */
+body.nemo-theme-nemotavern .nemo-settings-placeholder {
+  align-items: center;
+  color: var(--nemo-text-muted);
+  display: flex;
+  height: 200px;
+  justify-content: center;
+}

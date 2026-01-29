@@ -9,6 +9,7 @@ import { LOG_PREFIX, NEMO_EXTENSION_NAME } from '../core/utils.js';
 import { initWin98Enhancements } from '../themes/win98-enhancements.js';
 import { initDiscordEnhancements } from '../themes/discord-enhancements.js';
 import { initCyberpunkEnhancements } from '../themes/cyberpunk-enhancements.js';
+import { initNemoTavernEnhancements } from '../themes/nemotavern/nemotavern-enhancements.js';
 
 // Available themes configuration
 const THEMES = {
@@ -35,6 +36,12 @@ const THEMES = {
         description: 'NemoNet CLI terminal style',
         cssFile: 'themes/cyberpunk-theme.css',
         bodyClass: 'nemo-theme-cyberpunk'
+    },
+    nemotavern: {
+        name: 'NemoTavern',
+        description: 'Modern glassmorphism UI with floating panels',
+        cssFile: 'themes/nemotavern/nemotavern-theme.css',
+        bodyClass: 'nemo-theme-nemotavern'
     }
 };
 
@@ -147,6 +154,10 @@ export async function applyTheme(themeName) {
         } else if (themeName === 'cyberpunk') {
             setTimeout(() => {
                 initCyberpunkEnhancements();
+            }, 100);
+        } else if (themeName === 'nemotavern') {
+            setTimeout(() => {
+                initNemoTavernEnhancements();
             }, 100);
         }
 
