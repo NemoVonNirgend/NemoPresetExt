@@ -499,7 +499,7 @@
     border: 1px solid var(--SmartThemeBorderColor);
     border-top: none;
     border-radius: 0 0 6px 6px;
-    background: var(--SmartThemeBlurTintColor, rgba(30, 30, 30, 0.98));
+    background: #1a1a1a;
     z-index: 100;
     scrollbar-width: thin;
 }
@@ -517,7 +517,7 @@
     letter-spacing: 0.5px;
     position: sticky;
     top: 0;
-    background: var(--SmartThemeBlurTintColor, rgba(30, 30, 30, 0.98));
+    background: #1a1a1a;
 }
 
 .nemo-stack-picker-item {
