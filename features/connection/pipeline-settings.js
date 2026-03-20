@@ -68,55 +68,202 @@ let currentPresetId = null;
 // ─── Helpers ────────────────────────────────────────────────────
 
 /**
- * Build an <option> list from the connection pool AND all provider model selects in the DOM.
- * Options are grouped by provider. ConnectionPool entries appear first as "Saved Connections".
- * Value format for DOM models: source::model_id (e.g. openrouter::google/gemma-3-27b-it:free)
- * @param {string|null} selectedId - Currently selected connection id
- * @returns {string} HTML options string
+ * Format a source::model value for display.
+ * @param {string} value - e.g., "openrouter::google/gemma-3-27b-it:free"
+ * @returns {string} e.g., "google/gemma-3-27b-it:free (OpenRouter)"
  */
-function buildConnectionOptions(selectedId) {
-    let html = '<option value="">(none)</option>';
+function formatDisplayValue(value) {
+    if (!value || !value.includes('::')) return value || '(none)';
+    const [source, model] = value.split('::', 2);
+    const providerName = PROVIDER_NAMES[source] || source;
+    return `${model} (${providerName})`;
+}
 
-    // Saved Connections from ConnectionPool (backward compat)
+/**
+ * Render filtered model options into the dropdown.
+ * @param {HTMLElement} dropdown
+ * @param {string} query - Filter text
+ * @param {HTMLElement} container - Parent picker container
+ */
+function renderDropdown(dropdown, query, container) {
+    dropdown.innerHTML = '';
+    const lowerQuery = query.toLowerCase();
+    let totalResults = 0;
+
+    // Saved Connections from ConnectionPool
     const connections = ConnectionPool.getAll();
     if (connections.length > 0) {
-        html += '<optgroup label="Saved Connections">';
+        const matches = [];
         for (const conn of connections) {
-            const sel = conn.id === selectedId ? ' selected' : '';
             const display = `${conn.label} (${conn.source}/${conn.model})`;
-            html += `<option value="${conn.id}"${sel}>${escapeHtml(display)}</option>`;
+            if (!query || display.toLowerCase().includes(lowerQuery)) {
+                matches.push({ text: display, value: conn.id });
+            }
         }
-        html += '</optgroup>';
+        if (matches.length > 0) {
+            const header = document.createElement('div');
+            header.className = 'nemo-stack-picker-group';
+            header.textContent = 'Saved Connections';
+            dropdown.appendChild(header);
+
+            for (const match of matches) {
+                const item = document.createElement('div');
+                item.className = 'nemo-stack-picker-item';
+                if (container.dataset.value === match.value) {
+                    item.classList.add('selected');
+                }
+                item.textContent = match.text;
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    container.dataset.value = match.value;
+                    const input = container.querySelector('.nemo-stack-model-picker-input');
+                    if (input) /** @type {HTMLInputElement} */ (input).value = match.text;
+                    dropdown.classList.remove('open');
+                });
+                dropdown.appendChild(item);
+                totalResults++;
+            }
+        }
     }
 
-    // All provider models from DOM selects
     for (const [source, selectId] of Object.entries(SOURCE_TO_SELECT)) {
-        const selectEl = document.querySelector(selectId);
-        if (!selectEl) continue;
+        const select = document.querySelector(selectId);
+        if (!select) continue;
 
-        const options = selectEl.querySelectorAll('option');
-        const validOptions = [];
-        for (const opt of options) {
-            if (!opt.value) continue;
-            const text = opt.textContent?.trim() || '';
-            if (!text || text.toLowerCase().includes('connect to the api')) continue;
-            validOptions.push({ value: opt.value, text });
+        const options = select.querySelectorAll('option');
+        const matches = [];
+
+        for (const option of options) {
+            if (!option.value || (option.textContent || '').toLowerCase().includes('connect to the api')) continue;
+            const text = (option.textContent || '').trim();
+            if (!text) continue;
+            const value = option.value;
+
+            if (!query || text.toLowerCase().includes(lowerQuery) || value.toLowerCase().includes(lowerQuery) || (PROVIDER_NAMES[source] || '').toLowerCase().includes(lowerQuery)) {
+                matches.push({ text, value, source });
+            }
         }
 
-        if (validOptions.length === 0) continue;
+        if (matches.length === 0) continue;
 
-        const providerLabel = PROVIDER_NAMES[source] || source;
-        html += `<optgroup label="${escapeHtml(providerLabel)}">`;
-        for (const opt of validOptions) {
-            const compositeId = `${source}::${opt.value}`;
-            const sel = compositeId === selectedId ? ' selected' : '';
-            const display = `${opt.text} (${providerLabel})`;
-            html += `<option value="${escapeHtml(compositeId)}"${sel}>${escapeHtml(display)}</option>`;
+        // Provider group header
+        const header = document.createElement('div');
+        header.className = 'nemo-stack-picker-group';
+        header.textContent = PROVIDER_NAMES[source] || source;
+        dropdown.appendChild(header);
+
+        // Model options (limit per provider when no search query)
+        const limit = query ? 30 : 15;
+        for (const match of matches.slice(0, limit)) {
+            const item = document.createElement('div');
+            item.className = 'nemo-stack-picker-item';
+            const fullValue = `${match.source}::${match.value}`;
+            if (container.dataset.value === fullValue) {
+                item.classList.add('selected');
+            }
+            item.textContent = match.text;
+            item.title = `${match.value} (${PROVIDER_NAMES[match.source] || match.source})`;
+
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                container.dataset.value = fullValue;
+                const input = container.querySelector('.nemo-stack-model-picker-input');
+                if (input) /** @type {HTMLInputElement} */ (input).value = formatDisplayValue(fullValue);
+                dropdown.classList.remove('open');
+            });
+
+            dropdown.appendChild(item);
+            totalResults++;
         }
-        html += '</optgroup>';
+
+        if (matches.length > limit) {
+            const more = document.createElement('div');
+            more.className = 'nemo-stack-picker-more';
+            more.textContent = `...${matches.length - limit} more (type to filter)`;
+            dropdown.appendChild(more);
+        }
     }
 
-    return html;
+    if (totalResults === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'nemo-stack-picker-empty';
+        empty.textContent = query ? 'No models match your search' : 'No models available';
+        dropdown.appendChild(empty);
+    }
+}
+
+/**
+ * Create a searchable model picker widget.
+ * @param {string} currentValue - Current source::model value (or empty)
+ * @param {string} fieldName - Field identifier for data attributes
+ * @returns {HTMLElement} The picker container element
+ */
+function createModelPicker(currentValue, fieldName) {
+    const container = document.createElement('div');
+    container.className = 'nemo-stack-model-picker';
+    container.dataset.field = fieldName;
+    container.dataset.value = currentValue || '';
+
+    // Display input
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'nemo-stack-model-picker-input';
+    input.placeholder = 'Search models...';
+    input.value = currentValue ? formatDisplayValue(currentValue) : '';
+
+    // Dropdown panel
+    const dropdown = document.createElement('div');
+    dropdown.className = 'nemo-stack-model-picker-dropdown';
+
+    // On focus: show dropdown with all models
+    input.addEventListener('focus', () => {
+        input.select();
+        renderDropdown(dropdown, '', container);
+        dropdown.classList.add('open');
+    });
+
+    // On input: filter models
+    input.addEventListener('input', () => {
+        renderDropdown(dropdown, input.value.trim(), container);
+        if (!dropdown.classList.contains('open')) {
+            dropdown.classList.add('open');
+        }
+    });
+
+    // Close on escape
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            dropdown.classList.remove('open');
+            input.blur();
+        }
+    });
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+        if (!container.contains(/** @type {Node} */ (e.target))) {
+            dropdown.classList.remove('open');
+            // Restore display value if user didn't select
+            input.value = container.dataset.value ? formatDisplayValue(container.dataset.value) : '';
+        }
+    });
+
+    // Clear button
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'nemo-stack-model-picker-clear';
+    clearBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    clearBtn.title = 'Clear selection';
+    clearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        container.dataset.value = '';
+        input.value = '';
+        dropdown.classList.remove('open');
+    });
+
+    container.appendChild(input);
+    container.appendChild(clearBtn);
+    container.appendChild(dropdown);
+
+    return container;
 }
 
 /**
@@ -133,76 +280,126 @@ function escapeHtml(str) {
 }
 
 /**
- * Create a model-select + temperature + max_tokens field row.
+ * Create model-select + temperature + max_tokens field rows as a DocumentFragment.
  * @param {string} labelText
  * @param {string} prefix - data attribute prefix (e.g. 'recall', 'analysis')
  * @param {object} values - { connectionId, temperature, max_tokens }
- * @returns {string}
+ * @returns {DocumentFragment}
  */
 function buildStageFields(labelText, prefix, values) {
-    const connOpts = buildConnectionOptions(values.connectionId);
-    return `
-        <div class="nemo-stack-field-row">
-            <label>${escapeHtml(labelText)} Model</label>
-            <select class="nemo-stack-model-select" data-stage="${prefix}" data-field="connectionId">${connOpts}</select>
-        </div>
-        <div class="nemo-stack-field-row">
-            <label>Temperature</label>
-            <input type="number" class="nemo-stack-input" data-stage="${prefix}" data-field="temperature"
-                   value="${values.temperature}" min="0" max="2" step="0.1">
-        </div>
-        <div class="nemo-stack-field-row">
-            <label>Max Tokens</label>
-            <input type="number" class="nemo-stack-input" data-stage="${prefix}" data-field="max_tokens"
-                   value="${values.max_tokens}" min="100" max="32000" step="100">
-        </div>`;
+    const frag = document.createDocumentFragment();
+
+    // Model picker row
+    const modelRow = document.createElement('div');
+    modelRow.className = 'nemo-stack-field-row';
+    const modelLabel = document.createElement('label');
+    modelLabel.textContent = `${labelText} Model`;
+    modelRow.appendChild(modelLabel);
+    const picker = createModelPicker(values.connectionId || '', 'connectionId');
+    picker.dataset.stage = prefix;
+    modelRow.appendChild(picker);
+    frag.appendChild(modelRow);
+
+    // Temperature row
+    const tempRow = document.createElement('div');
+    tempRow.className = 'nemo-stack-field-row';
+    const tempLabel = document.createElement('label');
+    tempLabel.textContent = 'Temperature';
+    tempRow.appendChild(tempLabel);
+    const tempInput = document.createElement('input');
+    tempInput.type = 'number';
+    tempInput.className = 'nemo-stack-input';
+    tempInput.dataset.stage = prefix;
+    tempInput.dataset.field = 'temperature';
+    tempInput.value = String(values.temperature);
+    tempInput.min = '0';
+    tempInput.max = '2';
+    tempInput.step = '0.1';
+    tempRow.appendChild(tempInput);
+    frag.appendChild(tempRow);
+
+    // Max tokens row
+    const tokensRow = document.createElement('div');
+    tokensRow.className = 'nemo-stack-field-row';
+    const tokensLabel = document.createElement('label');
+    tokensLabel.textContent = 'Max Tokens';
+    tokensRow.appendChild(tokensLabel);
+    const tokensInput = document.createElement('input');
+    tokensInput.type = 'number';
+    tokensInput.className = 'nemo-stack-input';
+    tokensInput.dataset.stage = prefix;
+    tokensInput.dataset.field = 'max_tokens';
+    tokensInput.value = String(values.max_tokens);
+    tokensInput.min = '100';
+    tokensInput.max = '32000';
+    tokensInput.step = '100';
+    tokensRow.appendChild(tokensInput);
+    frag.appendChild(tokensRow);
+
+    return frag;
 }
 
 /**
- * Build a single drafter row.
+ * Build a single drafter row as a DOM element.
  * @param {number} index
  * @param {object} drafter - { connectionId, temperature, max_tokens }
- * @returns {string}
+ * @returns {HTMLElement}
  */
 function buildDrafterRow(index, drafter) {
     const label = DRAFTER_LABELS[index] || String(index + 1);
-    const connOpts = buildConnectionOptions(drafter.connectionId);
-    return `
-        <div class="nemo-stack-drafter-row" data-index="${index}">
-            <span class="nemo-stack-drafter-label">${label}</span>
-            <select class="nemo-stack-model-select" data-field="connectionId">${connOpts}</select>
-            <input type="number" class="nemo-stack-input" data-field="temperature"
-                   value="${drafter.temperature}" min="0" max="2" step="0.1">
-            <input type="number" class="nemo-stack-input" data-field="max_tokens"
-                   value="${drafter.max_tokens}" min="100" max="32000" step="100">
-            <button class="nemo-stack-remove-btn" title="Remove drafter"><i class="fa-solid fa-xmark"></i></button>
-        </div>`;
+
+    const row = document.createElement('div');
+    row.className = 'nemo-stack-drafter-row';
+    row.dataset.index = String(index);
+
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'nemo-stack-drafter-label';
+    labelSpan.textContent = label;
+    row.appendChild(labelSpan);
+
+    const picker = createModelPicker(drafter.connectionId || '', 'connectionId');
+    row.appendChild(picker);
+
+    const tempInput = document.createElement('input');
+    tempInput.type = 'number';
+    tempInput.className = 'nemo-stack-input';
+    tempInput.dataset.field = 'temperature';
+    tempInput.value = String(drafter.temperature);
+    tempInput.min = '0';
+    tempInput.max = '2';
+    tempInput.step = '0.1';
+    row.appendChild(tempInput);
+
+    const tokensInput = document.createElement('input');
+    tokensInput.type = 'number';
+    tokensInput.className = 'nemo-stack-input';
+    tokensInput.dataset.field = 'max_tokens';
+    tokensInput.value = String(drafter.max_tokens);
+    tokensInput.min = '100';
+    tokensInput.max = '32000';
+    tokensInput.step = '100';
+    row.appendChild(tokensInput);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'nemo-stack-remove-btn';
+    removeBtn.title = 'Remove drafter';
+    removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    row.appendChild(removeBtn);
+
+    return row;
 }
 
 // ─── Panel Rendering ────────────────────────────────────────────
 
 /**
- * Build the full panel HTML for the given preset.
+ * Build the full panel DOM for the given preset.
  * @param {object} preset
- * @returns {string}
+ * @returns {DocumentFragment}
  */
-function buildPanelHtml(preset) {
+function buildPanelDom(preset) {
+    const frag = document.createDocumentFragment();
     const allPresets = PipelinePresets.getAll();
-
-    // Preset selector
-    let presetOptions = '';
-    for (const [id, p] of Object.entries(allPresets)) {
-        const sel = id === preset.id ? ' selected' : '';
-        presetOptions += `<option value="${id}"${sel}>${escapeHtml(p.name || id)}</option>`;
-    }
-
     const isDefault = preset.id === 'nemo-stack' || preset.id === 'nemo-stack-flash';
-
-    // Drafter rows
-    let drafterRowsHtml = '';
-    for (let i = 0; i < preset.drafters.length; i++) {
-        drafterRowsHtml += buildDrafterRow(i, preset.drafters[i]);
-    }
 
     // Prompt texts (read-only display)
     const recallPromptPreview = PipelinePrompts.buildRecallMessages('(system prompt)', [{ role: 'user', content: '(conversation)' }])[0]?.content || '';
@@ -210,86 +407,126 @@ function buildPanelHtml(preset) {
     const drafterRulesPreview = PipelinePrompts.getDrafterRules('{{user}}');
     const antiSlopPreview = PipelinePrompts.getAntiSlopRules();
 
-    return `
-        <!-- Header -->
-        <div class="nemo-stack-header">
-            <select id="nemo-stack-preset-select">${presetOptions}</select>
-            <button class="nemo-stack-header-btn" id="nemo-stack-clone-btn" title="Clone current preset">New Preset</button>
-            <button class="nemo-stack-header-btn danger" id="nemo-stack-delete-btn" title="Delete custom preset"
-                    ${isDefault ? 'disabled style="opacity:0.4;cursor:not-allowed"' : ''}>Delete</button>
-            <button class="nemo-stack-header-btn close-btn" id="nemo-stack-close-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
-        </div>
+    // ── Header ──
+    const header = document.createElement('div');
+    header.className = 'nemo-stack-header';
+    const presetSelect = document.createElement('select');
+    presetSelect.id = 'nemo-stack-preset-select';
+    for (const [id, p] of Object.entries(allPresets)) {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = p.name || id;
+        if (id === preset.id) opt.selected = true;
+        presetSelect.appendChild(opt);
+    }
+    header.appendChild(presetSelect);
+    header.insertAdjacentHTML('beforeend', `
+        <button class="nemo-stack-header-btn" id="nemo-stack-clone-btn" title="Clone current preset">New Preset</button>
+        <button class="nemo-stack-header-btn danger" id="nemo-stack-delete-btn" title="Delete custom preset"
+                ${isDefault ? 'disabled style="opacity:0.4;cursor:not-allowed"' : ''}>Delete</button>
+        <button class="nemo-stack-header-btn close-btn" id="nemo-stack-close-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    `);
+    frag.appendChild(header);
 
-        <!-- Stage 1: Recall + Analysis -->
-        <div class="nemo-stack-section" data-section="recall">
-            <div class="nemo-stack-section-header">
-                <i class="fa-solid fa-chevron-right"></i>
-                <span>Stage 1: Recall + Analysis</span>
-            </div>
-            <div class="nemo-stack-section-content">
-                ${buildStageFields('Recall', 'recall', preset.recall)}
-                <hr style="border-color:var(--SmartThemeBorderColor);margin:6px 0">
-                ${buildStageFields('Analysis', 'analysis', preset.analysis)}
-                <button class="nemo-stack-prompt-toggle" data-target="recall-prompt">
-                    <i class="fa-solid fa-eye"></i> Recall Prompt
-                </button>
-                <textarea class="nemo-stack-prompt-area" id="nemo-stack-recall-prompt" readonly>${escapeHtml(recallPromptPreview)}</textarea>
-                <button class="nemo-stack-prompt-toggle" data-target="analysis-prompt">
-                    <i class="fa-solid fa-eye"></i> Analysis Prompt
-                </button>
-                <textarea class="nemo-stack-prompt-area" id="nemo-stack-analysis-prompt" readonly>${escapeHtml(analysisPromptPreview)}</textarea>
-            </div>
-        </div>
+    // ── Stage 1: Recall + Analysis ──
+    const section1 = document.createElement('div');
+    section1.className = 'nemo-stack-section';
+    section1.dataset.section = 'recall';
+    section1.innerHTML = `
+        <div class="nemo-stack-section-header">
+            <i class="fa-solid fa-chevron-right"></i>
+            <span>Stage 1: Recall + Analysis</span>
+        </div>`;
+    const content1 = document.createElement('div');
+    content1.className = 'nemo-stack-section-content';
+    content1.appendChild(buildStageFields('Recall', 'recall', preset.recall));
+    const hr = document.createElement('hr');
+    hr.style.borderColor = 'var(--SmartThemeBorderColor)';
+    hr.style.margin = '6px 0';
+    content1.appendChild(hr);
+    content1.appendChild(buildStageFields('Analysis', 'analysis', preset.analysis));
+    content1.insertAdjacentHTML('beforeend', `
+        <button class="nemo-stack-prompt-toggle" data-target="recall-prompt">
+            <i class="fa-solid fa-eye"></i> Recall Prompt
+        </button>
+        <textarea class="nemo-stack-prompt-area" id="nemo-stack-recall-prompt" readonly>${escapeHtml(recallPromptPreview)}</textarea>
+        <button class="nemo-stack-prompt-toggle" data-target="analysis-prompt">
+            <i class="fa-solid fa-eye"></i> Analysis Prompt
+        </button>
+        <textarea class="nemo-stack-prompt-area" id="nemo-stack-analysis-prompt" readonly>${escapeHtml(analysisPromptPreview)}</textarea>
+    `);
+    section1.appendChild(content1);
+    frag.appendChild(section1);
 
-        <!-- Stage 2: Drafters -->
-        <div class="nemo-stack-section" data-section="drafters">
-            <div class="nemo-stack-section-header">
-                <i class="fa-solid fa-chevron-right"></i>
-                <span>Stage 2: Drafters (${preset.drafters.length})</span>
-            </div>
-            <div class="nemo-stack-section-content">
-                <div class="nemo-stack-drafters-list" id="nemo-stack-drafters-list">
-                    ${drafterRowsHtml}
-                </div>
-                <button class="nemo-stack-add-drafter-btn" id="nemo-stack-add-drafter"
-                        ${preset.drafters.length >= MAX_DRAFTERS ? 'disabled style="opacity:0.4"' : ''}>
-                    <i class="fa-solid fa-plus"></i> Add Drafter
-                </button>
-                <button class="nemo-stack-prompt-toggle" data-target="drafter-rules">
-                    <i class="fa-solid fa-eye"></i> Drafter Rules
-                </button>
-                <textarea class="nemo-stack-prompt-area" id="nemo-stack-drafter-rules" readonly>${escapeHtml(drafterRulesPreview)}</textarea>
-            </div>
-        </div>
+    // ── Stage 2: Drafters ──
+    const section2 = document.createElement('div');
+    section2.className = 'nemo-stack-section';
+    section2.dataset.section = 'drafters';
+    section2.innerHTML = `
+        <div class="nemo-stack-section-header">
+            <i class="fa-solid fa-chevron-right"></i>
+            <span>Stage 2: Drafters (${preset.drafters.length})</span>
+        </div>`;
+    const content2 = document.createElement('div');
+    content2.className = 'nemo-stack-section-content';
+    const draftersList = document.createElement('div');
+    draftersList.className = 'nemo-stack-drafters-list';
+    draftersList.id = 'nemo-stack-drafters-list';
+    for (let i = 0; i < preset.drafters.length; i++) {
+        draftersList.appendChild(buildDrafterRow(i, preset.drafters[i]));
+    }
+    content2.appendChild(draftersList);
+    content2.insertAdjacentHTML('beforeend', `
+        <button class="nemo-stack-add-drafter-btn" id="nemo-stack-add-drafter"
+                ${preset.drafters.length >= MAX_DRAFTERS ? 'disabled style="opacity:0.4"' : ''}>
+            <i class="fa-solid fa-plus"></i> Add Drafter
+        </button>
+        <button class="nemo-stack-prompt-toggle" data-target="drafter-rules">
+            <i class="fa-solid fa-eye"></i> Drafter Rules
+        </button>
+        <textarea class="nemo-stack-prompt-area" id="nemo-stack-drafter-rules" readonly>${escapeHtml(drafterRulesPreview)}</textarea>
+    `);
+    section2.appendChild(content2);
+    frag.appendChild(section2);
 
-        <!-- Stage 3: Consolidation -->
-        <div class="nemo-stack-section" data-section="consolidation">
-            <div class="nemo-stack-section-header">
-                <i class="fa-solid fa-chevron-right"></i>
-                <span>Stage 3: Consolidation</span>
-            </div>
-            <div class="nemo-stack-section-content">
-                ${buildStageFields('Consolidator', 'consolidator', preset.consolidator)}
-                <button class="nemo-stack-prompt-toggle" data-target="anti-slop">
-                    <i class="fa-solid fa-eye"></i> Anti-Slop Rules
-                </button>
-                <textarea class="nemo-stack-prompt-area" id="nemo-stack-anti-slop" readonly>${escapeHtml(antiSlopPreview)}</textarea>
-            </div>
-        </div>
+    // ── Stage 3: Consolidation ──
+    const section3 = document.createElement('div');
+    section3.className = 'nemo-stack-section';
+    section3.dataset.section = 'consolidation';
+    section3.innerHTML = `
+        <div class="nemo-stack-section-header">
+            <i class="fa-solid fa-chevron-right"></i>
+            <span>Stage 3: Consolidation</span>
+        </div>`;
+    const content3 = document.createElement('div');
+    content3.className = 'nemo-stack-section-content';
+    content3.appendChild(buildStageFields('Consolidator', 'consolidator', preset.consolidator));
+    content3.insertAdjacentHTML('beforeend', `
+        <button class="nemo-stack-prompt-toggle" data-target="anti-slop">
+            <i class="fa-solid fa-eye"></i> Anti-Slop Rules
+        </button>
+        <textarea class="nemo-stack-prompt-area" id="nemo-stack-anti-slop" readonly>${escapeHtml(antiSlopPreview)}</textarea>
+    `);
+    section3.appendChild(content3);
+    frag.appendChild(section3);
 
-        <!-- Footer -->
+    // ── Footer ──
+    const footerHtml = `
         <div class="nemo-stack-footer">
             <button class="nemo-stack-footer-btn primary" id="nemo-stack-save-btn">Save</button>
             <button class="nemo-stack-footer-btn" id="nemo-stack-validate-btn">Validate</button>
             <button class="nemo-stack-footer-btn" id="nemo-stack-test-btn">Test Pipeline</button>
         </div>
-
-        <!-- Validation results -->
         <div class="nemo-stack-validation" id="nemo-stack-validation"></div>
-
-        <!-- Test results -->
         <div class="nemo-stack-test-results" id="nemo-stack-test-results"></div>
     `;
+    const footerWrapper = document.createElement('div');
+    footerWrapper.innerHTML = footerHtml;
+    while (footerWrapper.firstChild) {
+        frag.appendChild(footerWrapper.firstChild);
+    }
+
+    return frag;
 }
 
 // ─── Event Binding ──────────────────────────────────────────────
@@ -391,7 +628,8 @@ function loadPreset(presetId) {
  */
 function renderPanel(preset) {
     if (!panelEl) return;
-    panelEl.innerHTML = buildPanelHtml(preset);
+    panelEl.innerHTML = '';
+    panelEl.appendChild(buildPanelDom(preset));
     bindPanelEvents();
 }
 
@@ -444,11 +682,11 @@ function readDraftersFromDom() {
     const rows = panelEl.querySelectorAll('.nemo-stack-drafter-row');
     const drafters = [];
     rows.forEach((row, i) => {
-        const connSelect = /** @type {HTMLSelectElement} */ (row.querySelector('[data-field="connectionId"]'));
+        const picker = /** @type {HTMLElement|null} */ (row.querySelector('.nemo-stack-model-picker'));
         const tempInput = /** @type {HTMLInputElement} */ (row.querySelector('[data-field="temperature"]'));
         const tokensInput = /** @type {HTMLInputElement} */ (row.querySelector('[data-field="max_tokens"]'));
         drafters.push({
-            connectionId: connSelect?.value || null,
+            connectionId: picker?.dataset.value || null,
             label: DRAFTER_LABELS[i] || String(i + 1),
             temperature: parseFloat(tempInput?.value) || 0.8,
             max_tokens: parseInt(tokensInput?.value, 10) || 4096,
@@ -487,13 +725,12 @@ function rebuildDraftersList(drafters) {
     const listEl = panelEl?.querySelector('#nemo-stack-drafters-list');
     if (!listEl) return;
 
-    // Re-label
-    let html = '';
+    // Re-label and rebuild DOM
+    listEl.innerHTML = '';
     for (let i = 0; i < drafters.length; i++) {
         drafters[i].label = DRAFTER_LABELS[i] || String(i + 1);
-        html += buildDrafterRow(i, drafters[i]);
+        listEl.appendChild(buildDrafterRow(i, drafters[i]));
     }
-    listEl.innerHTML = html;
 
     // Re-bind remove buttons via delegation (already bound on parent)
 
@@ -531,8 +768,8 @@ function saveCurrentPreset() {
 
     // Read stage fields
     for (const stage of ['recall', 'analysis', 'consolidator']) {
-        const connSelect = /** @type {HTMLSelectElement} */ (
-            panelEl.querySelector(`[data-stage="${stage}"][data-field="connectionId"]`)
+        const picker = /** @type {HTMLElement|null} */ (
+            panelEl.querySelector(`.nemo-stack-model-picker[data-stage="${stage}"]`)
         );
         const tempInput = /** @type {HTMLInputElement} */ (
             panelEl.querySelector(`[data-stage="${stage}"][data-field="temperature"]`)
@@ -543,7 +780,7 @@ function saveCurrentPreset() {
 
         const target = stage === 'consolidator' ? updated.consolidator : updated[stage];
         if (target) {
-            if (connSelect) target.connectionId = connSelect.value || null;
+            if (picker) target.connectionId = picker.dataset.value || null;
             if (tempInput) target.temperature = parseFloat(tempInput.value) || target.temperature;
             if (tokensInput) target.max_tokens = parseInt(tokensInput.value, 10) || target.max_tokens;
         }
