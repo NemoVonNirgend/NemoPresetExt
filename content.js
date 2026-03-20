@@ -18,7 +18,8 @@ import { initializeThemes, initThemeSelector } from './ui/theme-manager.js';
 
 // Feature modules - Prompts
 import { NemoPresetManager, loadAndSetDividerRegex } from './features/prompts/prompt-manager.js';
-import { NemoPromptArchiveUI } from './features/prompts/prompt-archive-ui.js';
+// Legacy prompt archive UI — disabled, replaced by category tray archive
+// import { NemoPromptArchiveUI } from './features/prompts/prompt-archive-ui.js';
 import { initCategoryTray } from './features/prompts/category-tray.js';
 
 // Feature modules - Image Generation
@@ -120,7 +121,7 @@ async function initializeExtension() {
         initThemeSelector();
 
         NemoGlobalUI.initialize();
-        NemoPromptArchiveUI.initialize();
+        // NemoPromptArchiveUI.initialize(); // Disabled — replaced by category tray archive
 
         // Initialize tab overhauls only if enabled
         if (extension_settings.NemoPresetExt?.enableTabOverhauls !== false) {
