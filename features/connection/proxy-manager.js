@@ -346,20 +346,13 @@ function applyProxyFields(proxy) {
 function renderCards() {
     if (!containerEl) return;
 
-    // Remove old row if present
-    if (proxyRow) {
-        proxyRow.remove();
-    }
+    // Clear everything except the form (if open)
+    const existingBars = containerEl.querySelectorAll('.nemo-proxy-bar');
+    existingBars.forEach(b => b.remove());
 
     // Build bar
     const bar = document.createElement('div');
     bar.className = 'nemo-proxy-bar';
-
-    // Label
-    const label = document.createElement('div');
-    label.className = 'nemo-proxy-bar-label';
-    label.textContent = 'Saved Proxies';
-    bar.appendChild(label);
 
     // Card row
     proxyRow = document.createElement('div');
