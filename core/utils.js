@@ -30,7 +30,18 @@ export const PREDEFINED_COLORS = [
     { name: 'Grey', value: '#757575' }, { name: 'Blue Grey', value: '#546E7A' }
 ];
 
-// 2. UTILITY FUNCTIONS
+// 2. PATH HELPERS
+/**
+ * Get the full path to a file within the NemoPresetExt extension directory.
+ * Use this instead of hardcoding 'scripts/extensions/third-party/NemoPresetExt/...' everywhere.
+ * @param {string} relativePath - Path relative to the extension root (e.g., 'settings.html')
+ * @returns {string} Full path from SillyTavern root
+ */
+export function getExtensionPath(relativePath = '') {
+    return `scripts/extensions/third-party/${NEMO_EXTENSION_NAME}/${relativePath}`;
+}
+
+// 3. UTILITY FUNCTIONS
 export function ensureSettingsNamespace() {
     // *** THIS IS THE FIX ***
     if (!extension_settings) {

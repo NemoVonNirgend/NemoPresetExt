@@ -5,7 +5,7 @@
 
 import logger from '../../core/logger.js';
 import { extension_settings } from '../../../../../extensions.js';
-import { LOG_PREFIX } from '../../core/utils.js';
+import { LOG_PREFIX, getExtensionPath } from '../../core/utils.js';
 
 export class AnimatedBackgroundsModule {
     constructor() {
@@ -144,7 +144,7 @@ export class AnimatedBackgroundsModule {
         style.id = 'animated-backgrounds-css';
         style.rel = 'stylesheet';
         style.type = 'text/css';
-        style.href = 'scripts/extensions/third-party/NemoPresetExt/animated-backgrounds.css';
+        style.href = getExtensionPath('features/backgrounds/animated-backgrounds.css');
         document.head.appendChild(style);
     }
 

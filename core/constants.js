@@ -116,7 +116,7 @@ export const CONSTANTS = {
     },
 
     // Version and compatibility
-    VERSION: '3.4.0',
+    VERSION: '4.7.0',
     MIN_SILLYTAVERN_VERSION: '1.12.0',
     
     // Regular expressions

@@ -1,10 +1,10 @@
 // NemoPresetExt/character-manager.js
 
-import { callGenericPopup, POPUP_TYPE } from '../../../../popup.js';
-import { getContext } from '../../../../extensions.js';
-import { LOG_PREFIX, generateUUID } from '../core/utils.js';
+import { callGenericPopup, POPUP_TYPE } from '../../../../../popup.js';
+import { getContext } from '../../../../../extensions.js';
+import { LOG_PREFIX, generateUUID } from '../../core/utils.js';
 import { CharacterManagerUI } from './character-manager-ui.js';
-import logger from '../core/logger.js';
+import logger from '../../core/logger.js';
 
 // --- SINGLETON UI INSTANCE ---
 let characterManagerUIInstance = null;

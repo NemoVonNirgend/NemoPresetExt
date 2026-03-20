@@ -1,8 +1,8 @@
-import { callGenericPopup, POPUP_TYPE } from '../../../../popup.js';
-import { getContext } from '../../../../extensions.js';
-import { LOG_PREFIX, generateUUID, debounce, NEMO_FAVORITE_CHARACTERS_KEY } from '../core/utils.js';
+import { callGenericPopup, POPUP_TYPE } from '../../../../../popup.js';
+import { getContext } from '../../../../../extensions.js';
+import { LOG_PREFIX, generateUUID, debounce, NEMO_FAVORITE_CHARACTERS_KEY, getExtensionPath } from '../../core/utils.js';
 import { loadCharacterMetadata, saveCharacterMetadata, updateMetadataTimestamp } from './character-manager.js';
-import { selectCharacterById } from '../../../../../script.js';
+import { selectCharacterById } from '../../../../../../script.js';
 
 export class CharacterManagerUI {
     constructor() {
@@ -24,7 +24,7 @@ export class CharacterManagerUI {
     async init() {
         if (this.isInitialized) return;
 
-        const response = await fetch('scripts/extensions/third-party/NemoPresetExt/character-manager-ui.html');
+        const response = await fetch(getExtensionPath('features/character-manager/character-manager-ui.html'));
         this.element.innerHTML = await response.text();
 
         // Cache DOM elements

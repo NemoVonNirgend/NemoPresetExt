@@ -1,0 +1,403 @@
+/* Animated Backgrounds CSS - NemoPresetExt */
+
+/* Loading state for background containers */
+.bg-loading {
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+/* Floating video controls */
+.enhanced-bg-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    z-index: 10000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.2s ease;
+    transform: translateY(10px);
+    user-select: none;
+}
+
+.enhanced-bg-controls.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.enhanced-bg-controls.faded {
+    opacity: 0.3;
+}
+
+.enhanced-bg-controls.faded:hover {
+    opacity: 1;
+}
+
+.enhanced-bg-controls.dragging {
+    cursor: grabbing !important;
+    opacity: 0.9;
+}
+
+/* Drag handle */
+.enhanced-bg-controls .drag-handle {
+    width: 8px;
+    height: 24px;
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.3) 0px,
+        rgba(255, 255, 255, 0.3) 2px,
+        transparent 2px,
+        transparent 4px
+    );
+    border-radius: 2px;
+    cursor: grab;
+    flex-shrink: 0;
+}
+
+.enhanced-bg-controls .drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Resize handle */
+.enhanced-bg-controls .resize-handle {
+    display: none; /* Hidden for now, can enable later */
+}
+
+/* Control button groups */
+.video-control-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 0 8px;
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.video-control-group:first-of-type {
+    border-left: none;
+    padding-left: 0;
+}
+
+/* Control buttons */
+.enhanced-bg-controls button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    font-size: 14px;
+}
+
+.enhanced-bg-controls button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.enhanced-bg-controls button:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.enhanced-bg-controls button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Volume controls */
+.enhanced-bg-controls label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.enhanced-bg-controls input[type="range"] {
+    width: 80px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.enhanced-bg-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.enhanced-bg-controls input[type="range"]::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+/* Playlist count badge */
+.playlist-count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ff6b6b;
+    color: #fff;
+    font-size: 9px;
+    padding: 2px 5px;
+    border-radius: 8px;
+    min-width: 14px;
+    text-align: center;
+}
+
+.enhanced-bg-controls button:has(.playlist-count) {
+    position: relative;
+}
+
+/* Restore controls button */
+#show-video-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+#show-video-controls:hover {
+    background: rgba(0, 0, 0, 0.85);
+    transform: scale(1.1);
+}
+
+#show-video-controls.pulse {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 2px 20px rgba(255, 107, 107, 0.5);
+    }
+}
+
+/* Playlist window */
+.playlist-window {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 450px;
+    max-width: 90vw;
+    max-height: 70vh;
+    background: rgba(20, 20, 25, 0.95);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.playlist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.playlist-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.playlist-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.playlist-controls button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.playlist-controls button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#clear-playlist:hover {
+    background: rgba(255, 100, 100, 0.3);
+    color: #ff6b6b;
+}
+
+.playlist-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.playlist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.playlist-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.playlist-item.active {
+    background: rgba(100, 180, 255, 0.15);
+    border-color: rgba(100, 180, 255, 0.3);
+}
+
+.playlist-thumbnail {
+    width: 60px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+    background: #333;
+}
+
+.playlist-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.playlist-item-title {
+    color: #fff;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+.playlist-item-type {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.playlist-item-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.playlist-item:hover .playlist-item-actions {
+    opacity: 1;
+}
+
+.playlist-item-actions button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    transition: all 0.15s ease;
+}
+
+.playlist-item-actions button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.playlist-item-actions button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.playlist-item-actions .remove-item:hover {
+    background: rgba(255, 100, 100, 0.3);
+    color: #ff6b6b;
+}
+
+/* Favorite indicator on background items */
+.favorite-indicator {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    color: #ff6b6b;
+    font-size: 14px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+}
+
+/* Scrollbar styling for playlist */
+.playlist-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.playlist-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.playlist-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.playlist-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}

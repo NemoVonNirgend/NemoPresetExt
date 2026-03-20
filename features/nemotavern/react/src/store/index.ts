@@ -47,8 +47,11 @@ export interface Command {
 }
 
 interface NemoStore {
+    // Hydration state - components should check this before rendering panel-dependent UI
+    _hasHydrated: boolean;
+
     // Panel State
-    panels: Map<string, PanelState>;
+    panels: Record<string, PanelState>;
     dockZones: {
         left: string[];
         right: string[];
@@ -112,8 +115,8 @@ interface NemoStore {
 }
 
 // Default panels configuration
-const DEFAULT_PANELS: Map<string, PanelState> = new Map([
-    ['characters', {
+const DEFAULT_PANELS: Record<string, PanelState> = {
+    characters: {
         id: 'characters',
         title: 'Characters',
         icon: 'fa-users',
@@ -126,8 +129,8 @@ const DEFAULT_PANELS: Map<string, PanelState> = new Map([
         zIndex: 1,
         contentType: 'drawer',
         drawerId: 'rightNavHolder'
-    }],
-    ['settings', {
+    },
+    settings: {
         id: 'settings',
         title: 'AI Settings',
         icon: 'fa-microchip',
@@ -140,8 +143,8 @@ const DEFAULT_PANELS: Map<string, PanelState> = new Map([
         zIndex: 1,
         contentType: 'drawer',
         drawerId: 'ai-config-button'
-    }],
-    ['world-info', {
+    },
+    'world-info': {
         id: 'world-info',
         title: 'World Info',
         icon: 'fa-book',
@@ -154,8 +157,8 @@ const DEFAULT_PANELS: Map<string, PanelState> = new Map([
         zIndex: 1,
         contentType: 'drawer',
         drawerId: 'WI-SP-button'
-    }],
-    ['extensions', {
+    },
+    extensions: {
         id: 'extensions',
         title: 'Extensions',
         icon: 'fa-puzzle-piece',
@@ -168,8 +171,8 @@ const DEFAULT_PANELS: Map<string, PanelState> = new Map([
         zIndex: 1,
         contentType: 'drawer',
         drawerId: 'extensions-settings-button'
-    }]
-]);
+    }
+};
 
 // Default commands
 const DEFAULT_COMMANDS: Command[] = [
@@ -263,8 +266,11 @@ const DEFAULT_QUICK_ACCESS: QuickAction[] = [
 export const useNemoStore = create<NemoStore>()(
     persist(
         (set, get) => ({
+            // Hydration flag - starts false, set to true after storage rehydration completes
+            _hasHydrated: false,
+
             // Initial state
-            panels: new Map(DEFAULT_PANELS),
+            panels: { ...DEFAULT_PANELS },
             dockZones: {
                 left: [],
                 right: [],
@@ -288,47 +294,57 @@ export const useNemoStore = create<NemoStore>()(
 
             // Panel Actions
             openPanel: (id, config) => set(state => {
-                const panels = new Map(state.panels);
-                const existing = panels.get(id);
+                const existing = state.panels[id];
 
                 if (existing) {
-                    panels.set(id, {
-                        ...existing,
-                        ...config,
-                        isOpen: true,
-                        isMinimized: false,
-                        zIndex: state.nextZIndex
-                    });
+                    return {
+                        panels: {
+                            ...state.panels,
+                            [id]: {
+                                ...existing,
+                                ...config,
+                                isOpen: true,
+                                isMinimized: false,
+                                zIndex: state.nextZIndex
+                            }
+                        },
+                        nextZIndex: state.nextZIndex + 1
+                    };
                 } else if (config) {
-                    panels.set(id, {
-                        id,
-                        title: config.title || id,
-                        isOpen: true,
-                        isMinimized: false,
-                        isMaximized: false,
-                        position: config.position || { x: 100, y: 100 },
-                        size: config.size || { width: 400, height: 500 },
-                        dockedTo: null,
-                        zIndex: state.nextZIndex,
-                        contentType: config.contentType || 'custom',
-                        ...config
-                    } as PanelState);
+                    return {
+                        panels: {
+                            ...state.panels,
+                            [id]: {
+                                id,
+                                title: config.title || id,
+                                isOpen: true,
+                                isMinimized: false,
+                                isMaximized: false,
+                                position: config.position || { x: 100, y: 100 },
+                                size: config.size || { width: 400, height: 500 },
+                                dockedTo: null,
+                                zIndex: state.nextZIndex,
+                                contentType: config.contentType || 'custom',
+                                ...config
+                            } as PanelState
+                        },
+                        nextZIndex: state.nextZIndex + 1
+                    };
                 }
 
-                return { panels, nextZIndex: state.nextZIndex + 1 };
+                return { nextZIndex: state.nextZIndex + 1 };
             }),
 
             closePanel: (id) => set(state => {
-                const panels = new Map(state.panels);
-                const panel = panels.get(id);
-                if (panel) {
-                    panels.set(id, { ...panel, isOpen: false });
-                }
-                return { panels };
+                const panel = state.panels[id];
+                if (!panel) return state;
+                return {
+                    panels: { ...state.panels, [id]: { ...panel, isOpen: false } }
+                };
             }),
 
             togglePanel: (id) => {
-                const panel = get().panels.get(id);
+                const panel = get().panels[id];
                 if (panel?.isOpen) {
                     get().closePanel(id);
                 } else {
@@ -337,93 +353,89 @@ export const useNemoStore = create<NemoStore>()(
             },
 
             minimizePanel: (id) => set(state => {
-                const panels = new Map(state.panels);
-                const panel = panels.get(id);
-                if (panel) {
-                    panels.set(id, { ...panel, isMinimized: true, isMaximized: false });
-                }
-                return { panels };
+                const panel = state.panels[id];
+                if (!panel) return state;
+                return {
+                    panels: { ...state.panels, [id]: { ...panel, isMinimized: true, isMaximized: false } }
+                };
             }),
 
             maximizePanel: (id) => set(state => {
-                const panels = new Map(state.panels);
-                const panel = panels.get(id);
-                if (panel) {
-                    panels.set(id, { ...panel, isMaximized: true, isMinimized: false });
-                }
-                return { panels };
+                const panel = state.panels[id];
+                if (!panel) return state;
+                return {
+                    panels: { ...state.panels, [id]: { ...panel, isMaximized: true, isMinimized: false } }
+                };
             }),
 
             restorePanel: (id) => set(state => {
-                const panels = new Map(state.panels);
-                const panel = panels.get(id);
-                if (panel) {
-                    panels.set(id, { ...panel, isMaximized: false, isMinimized: false });
-                }
-                return { panels };
+                const panel = state.panels[id];
+                if (!panel) return state;
+                return {
+                    panels: { ...state.panels, [id]: { ...panel, isMaximized: false, isMinimized: false } }
+                };
             }),
 
             updatePanelPosition: (id, position) => set(state => {
-                const panels = new Map(state.panels);
-                const panel = panels.get(id);
-                if (panel) {
-                    panels.set(id, { ...panel, position });
-                }
-                return { panels };
+                const panel = state.panels[id];
+                if (!panel) return state;
+                return {
+                    panels: { ...state.panels, [id]: { ...panel, position } }
+                };
             }),
 
             updatePanelSize: (id, size) => set(state => {
-                const panels = new Map(state.panels);
-                const panel = panels.get(id);
-                if (panel) {
-                    panels.set(id, { ...panel, size });
-                }
-                return { panels };
+                const panel = state.panels[id];
+                if (!panel) return state;
+                return {
+                    panels: { ...state.panels, [id]: { ...panel, size } }
+                };
             }),
 
             dockPanel: (id, zone) => set(state => {
-                const panels = new Map(state.panels);
-                const panel = panels.get(id);
+                const panel = state.panels[id];
+                if (!panel) return state;
+
                 const dockZones = { ...state.dockZones };
 
-                if (panel) {
-                    // Remove from current dock zone if any
-                    if (panel.dockedTo) {
-                        dockZones[panel.dockedTo] = dockZones[panel.dockedTo].filter(pId => pId !== id);
-                    }
-
-                    // Add to new dock zone
-                    dockZones[zone] = [...dockZones[zone], id];
-                    panels.set(id, { ...panel, dockedTo: zone });
+                // Remove from current dock zone if any
+                if (panel.dockedTo) {
+                    dockZones[panel.dockedTo] = dockZones[panel.dockedTo].filter(pId => pId !== id);
                 }
 
-                return { panels, dockZones };
+                // Add to new dock zone
+                dockZones[zone] = [...dockZones[zone], id];
+
+                return {
+                    panels: { ...state.panels, [id]: { ...panel, dockedTo: zone } },
+                    dockZones
+                };
             }),
 
             floatPanel: (id, position) => set(state => {
-                const panels = new Map(state.panels);
-                const panel = panels.get(id);
+                const panel = state.panels[id];
+                if (!panel) return state;
+
                 const dockZones = { ...state.dockZones };
 
-                if (panel) {
-                    // Remove from dock zone
-                    if (panel.dockedTo) {
-                        dockZones[panel.dockedTo] = dockZones[panel.dockedTo].filter(pId => pId !== id);
-                    }
-
-                    panels.set(id, { ...panel, dockedTo: null, position });
+                // Remove from dock zone
+                if (panel.dockedTo) {
+                    dockZones[panel.dockedTo] = dockZones[panel.dockedTo].filter(pId => pId !== id);
                 }
 
-                return { panels, dockZones };
+                return {
+                    panels: { ...state.panels, [id]: { ...panel, dockedTo: null, position } },
+                    dockZones
+                };
             }),
 
             bringToFront: (id) => set(state => {
-                const panels = new Map(state.panels);
-                const panel = panels.get(id);
-                if (panel) {
-                    panels.set(id, { ...panel, zIndex: state.nextZIndex });
-                }
-                return { panels, nextZIndex: state.nextZIndex + 1 };
+                const panel = state.panels[id];
+                if (!panel) return state;
+                return {
+                    panels: { ...state.panels, [id]: { ...panel, zIndex: state.nextZIndex } },
+                    nextZIndex: state.nextZIndex + 1
+                };
             }),
 
             // Settings Actions
@@ -472,15 +484,93 @@ export const useNemoStore = create<NemoStore>()(
         }),
         {
             name: 'nemo-tavern-storage',
+            version: 1, // Version for migration tracking
             partialize: (state) => ({
+                panels: state.panels,
                 dockZones: state.dockZones,
                 recentCommands: state.recentCommands,
                 activeView: state.activeView,
                 quickAccessButtons: state.quickAccessButtons
             }),
-            // Custom serialization for Map
-            serialize: (state) => JSON.stringify(state),
-            deserialize: (str) => JSON.parse(str)
+            // Migration function to handle old Map-based storage or corrupted data
+            migrate: (persistedState: unknown, version: number) => {
+                const state = persistedState as Record<string, unknown>;
+
+                // Handle upgrade from version 0 (pre-migration) to version 1
+                if (version === 0) {
+                    // If panels is empty object (serialized Map) or missing, reset to defaults
+                    if (!state.panels || Object.keys(state.panels as object).length === 0) {
+                        console.log('[NemoTavern] Migrating panel state to v1 format');
+                        return {
+                            ...state,
+                            panels: { ...DEFAULT_PANELS }
+                        };
+                    }
+
+                    // Validate panel structure - ensure all required fields exist
+                    const panels = state.panels as Record<string, unknown>;
+                    const migratedPanels: Record<string, PanelState> = {};
+
+                    for (const [id, panel] of Object.entries(panels)) {
+                        const p = panel as Partial<PanelState>;
+                        // Get defaults for this panel (or generic defaults)
+                        const defaultPanel = DEFAULT_PANELS[id];
+                        const defaultPosition = defaultPanel?.position || { x: 100, y: 100 };
+                        const defaultSize = defaultPanel?.size || { width: 400, height: 500 };
+
+                        // Deep merge for nested objects (position, size)
+                        // This ensures partial position/size objects don't lose properties
+                        const mergedPosition: Position = {
+                            x: (p.position as Partial<Position>)?.x ?? defaultPosition.x,
+                            y: (p.position as Partial<Position>)?.y ?? defaultPosition.y
+                        };
+
+                        const mergedSize: Size = {
+                            width: (p.size as Partial<Size>)?.width ?? defaultSize.width,
+                            height: (p.size as Partial<Size>)?.height ?? defaultSize.height
+                        };
+
+                        migratedPanels[id] = {
+                            id,
+                            title: p.title || defaultPanel?.title || id,
+                            icon: p.icon || defaultPanel?.icon,
+                            isOpen: p.isOpen ?? false,
+                            isMinimized: p.isMinimized ?? false,
+                            isMaximized: p.isMaximized ?? false,
+                            position: mergedPosition,
+                            size: mergedSize,
+                            dockedTo: p.dockedTo ?? null,
+                            zIndex: p.zIndex ?? 1,
+                            contentType: p.contentType || defaultPanel?.contentType || 'custom',
+                            drawerId: p.drawerId || defaultPanel?.drawerId
+                        };
+                    }
+
+                    // Add any missing default panels
+                    for (const [id, defaultPanel] of Object.entries(DEFAULT_PANELS)) {
+                        if (!migratedPanels[id]) {
+                            migratedPanels[id] = { ...defaultPanel };
+                        }
+                    }
+
+                    return {
+                        ...state,
+                        panels: migratedPanels
+                    };
+                }
+
+                return state;
+            },
+            // Handle corrupted or invalid storage gracefully
+            onRehydrateStorage: () => (state, error) => {
+                if (error) {
+                    console.error('[NemoTavern] Failed to rehydrate storage:', error);
+                    // State will reset to defaults on error
+                }
+                // Mark hydration as complete - components can now safely render panel-dependent UI
+                // This runs after persist middleware has finished loading from storage
+                useNemoStore.setState({ _hasHydrated: true });
+            }
         }
     )
 );

@@ -5,12 +5,14 @@
  * This is the CORE version - only includes tutorials for features present in this build
  */
 
+import { getExtensionPath } from '../../core/utils.js';
+
 // Vex portrait paths - different expressions for different moods
 const VEX_PORTRAITS = {
-    default: 'scripts/extensions/third-party/NemoPresetExt/assets/vex-default.png',      // Neutral, standard pose
-    smiling: 'scripts/extensions/third-party/NemoPresetExt/assets/vex-smiling.png',      // Happy, cheerful
-    talking: 'scripts/extensions/third-party/NemoPresetExt/assets/vex-talking.png',      // Explaining, teaching
-    thinking: 'scripts/extensions/third-party/NemoPresetExt/assets/vex-thinking.png'     // Thoughtful, considering
+    default: getExtensionPath('assets/vex-default.png'),      // Neutral, standard pose
+    smiling: getExtensionPath('assets/vex-smiling.png'),      // Happy, cheerful
+    talking: getExtensionPath('assets/vex-talking.png'),      // Explaining, teaching
+    thinking: getExtensionPath('assets/vex-thinking.png')     // Thoughtful, considering
 };
 
 /**

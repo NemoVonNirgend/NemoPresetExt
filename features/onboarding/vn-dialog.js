@@ -1,4 +1,5 @@
 import logger from '../../core/logger.js';
+import { getExtensionPath } from '../../core/utils.js';
 import { tutorialManager } from './tutorial-manager.js';
 
 /**
@@ -134,7 +135,7 @@ export class VNDialog {
             characterImg.style.display = 'block';
         } else {
             // Default Vex image path
-            characterImg.src = 'scripts/extensions/third-party/NemoPresetExt/assets/vex-default.png';
+            characterImg.src = getExtensionPath('assets/vex-default.png');
             characterImg.style.display = 'block';
         }
 

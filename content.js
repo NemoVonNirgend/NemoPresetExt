@@ -22,8 +22,7 @@ import { NemoPromptArchiveUI } from './features/prompts/prompt-archive-ui.js';
 import { initCategoryTray } from './features/prompts/category-tray.js';
 
 // Feature modules - Image Generation
-import { initPollinationsInterceptor } from './features/pollinations-interceptor.js';
-import PollinationsInterceptor from './features/pollinations-interceptor.js';
+import PollinationsInterceptor, { initPollinationsInterceptor } from './features/pollinations-interceptor.js';
 
 // Feature modules - Directives
 import { initDirectiveUI } from './features/directives/directive-ui.js';
@@ -44,14 +43,19 @@ import { initializeHTMLTrimmer, setupAutoTrim } from './reasoning/html-trimmer.j
 import { tutorialManager } from './features/onboarding/tutorial-manager.js';
 import { tutorialLauncher } from './features/onboarding/tutorial-launcher.js';
 
-// Archive modules - these are still in use but may be deprecated in future versions
-import { NemoCharacterManager } from './archive/character-manager.js';
+// Feature modules - Character Manager & World Info
+import { NemoCharacterManager } from './features/character-manager/character-manager.js';
+import { NemoWorldInfoUI } from './features/world-info/world-info-ui.js';
+import domCache from './features/character-manager/dom-cache.js';
+
+// Archive modules - legacy code kept for reference
 import { PresetNavigator } from './archive/navigator.js';
-import { NemoWorldInfoUI } from './archive/world-info-ui.js';
-import domCache from './archive/dom-cache.js';
 
 // Extension name constant for legacy code compatibility
 const NEMO_EXTENSION_NAME = 'NemoPresetExt';
+
+// Supported APIs for preset navigator initialization (module scope for performance optimization)
+const SUPPORTED_APIS = ['openai', 'novel', 'kobold', 'textgenerationwebui', 'anthropic', 'claude', 'google', 'scale', 'cohere', 'mistral', 'aix', 'openrouter'];
 
 // Initialization guard to prevent double initialization
 let extensionInitialized = false;
@@ -62,20 +66,13 @@ const MAIN_SELECTORS = {
     promptEditorPopup: '.completion_prompt_manager_popup_entry',
 };
 
-// 🔧 EMERGENCY: Try immediate initialization first
-console.log('🚨 [NemoPresetExt] Starting initialization check...');
-console.log('🚨 [NemoPresetExt] Left nav panel exists?:', document.querySelector('#left-nav-panel'));
-
 // Immediate execution if element already exists
 const leftNavPanel = document.querySelector('#left-nav-panel');
 if (leftNavPanel) {
-    console.log('🚨 [NemoPresetExt] Left nav panel found immediately, initializing...');
     initializeExtension();
 } else {
-    console.log('🚨 [NemoPresetExt] Waiting for left nav panel...');
     // Use waitForElement with increased timeout as fallback
     waitForElement('#left-nav-panel', async () => {
-        console.log('🚨 [NemoPresetExt] Left nav panel found via waitForElement');
         initializeExtension();
     }, 10000); // Increased to 10 seconds
 }
@@ -281,28 +278,70 @@ async function initializeExtension() {
             }
         };
 
-        // Function to check and initialize preset navigators
-        const checkAndInitializePresetNavigators = () => {
-            // Initialize Prompt Manager sections when the list appears
-            const promptList = document.querySelector(CONSTANTS.SELECTORS.PROMPT_CONTAINER);
-            if (promptList && !promptList.dataset.nemoPromptsInitialized) {
-                logger.performance('Prompt Manager Initialization', () => {
-                    NemoPresetManager.initialize(promptList);
-                });
+        // Track initialization state for early exit optimization
+        const nemoInitState = {
+            promptList: false,
+            apis: new Set(),
+            isFirstRun: true  // Track if this is the first run (for RAF optimization)
+        };
+
+        // Core initialization logic - separated for reuse
+        const performNavigatorCheck = () => {
+            // Fast path: if everything initialized, we can stop checking
+            if (nemoInitState.promptList && nemoInitState.apis.size === SUPPORTED_APIS.length) {
+                // But still check if wrapper exists (handles UI regeneration)
+                const wrapperExists = document.getElementById('nemoSearchAndStatusWrapper');
+                if (wrapperExists) {
+                    return;
+                }
             }
 
-            // Patch API preset dropdowns with the "Browse..." button
-            const supportedApis = ['openai', 'novel', 'kobold', 'textgenerationwebui', 'anthropic', 'claude', 'google', 'scale', 'cohere', 'mistral', 'aix', 'openrouter'];
-            supportedApis.forEach(api => {
+            // Check prompt list initialization
+            // Always re-check if the wrapper is missing (handles SillyTavern regenerating the UI)
+            const promptList = document.querySelector(CONSTANTS.SELECTORS.PROMPT_CONTAINER);
+            const wrapperExists = document.getElementById('nemoSearchAndStatusWrapper');
+
+            if (promptList && (!promptList.dataset.nemoPromptsInitialized || !wrapperExists)) {
+                logger.performance('Prompt Manager Initialization', () => {
+                    // Clear the flag so initialize runs fully
+                    delete promptList.dataset.nemoPromptsInitialized;
+                    NemoPresetManager.initialize(promptList);
+                });
+                nemoInitState.promptList = true;
+            }
+
+            SUPPORTED_APIS.forEach(api => {
+                if (nemoInitState.apis.has(api)) return;
                 const select = document.querySelector(`select[data-preset-manager-for="${api}"]`);
                 if (select && !select.dataset.nemoPatched) {
                     try {
                         initPresetNavigatorForApiEnhanced(api);
+                        nemoInitState.apis.add(api);
                     } catch (error) {
                         logger.error(`Failed to initialize preset navigator for ${api}`, error);
                     }
                 }
             });
+        };
+
+        // Debounced navigator initialization (for subsequent runs)
+        let navigatorCheckTimeout;
+        const debouncedCheckNavigators = () => {
+            clearTimeout(navigatorCheckTimeout);
+            navigatorCheckTimeout = setTimeout(performNavigatorCheck, 100);
+        };
+
+        // Function to check and initialize preset navigators
+        // Runs synchronously to avoid race conditions with other DOM manipulations
+        const checkAndInitializePresetNavigators = () => {
+            if (nemoInitState.isFirstRun) {
+                nemoInitState.isFirstRun = false;
+                // Run synchronously on first run to prevent race conditions
+                performNavigatorCheck();
+            } else {
+                // Subsequent runs: use debounce to coalesce rapid mutations
+                debouncedCheckNavigators();
+            }
         };
 
         // Check for existing dropdowns immediately
@@ -320,13 +359,81 @@ async function initializeExtension() {
             checkAndInitializePresetNavigators();
         }, 2000);
 
-        // Simple observer for critical functionality only - matches original behavior
-        const observer = new MutationObserver((mutations) => {
-            checkAndInitializePresetNavigators();
+        // Track the current observe target for re-attachment
+        let currentObserveTarget = null;
+
+        // Create the main UI observer
+        const createMainObserver = (target) => {
+            const observer = new MutationObserver((mutations) => {
+                // Only trigger on added nodes to reduce noise
+                const hasAddedNodes = mutations.some(m => m.addedNodes.length > 0);
+                if (hasAddedNodes) {
+                    checkAndInitializePresetNavigators();
+                }
+            });
+            observer.observe(target, { childList: true, subtree: true });
+            return observer;
+        };
+
+        // Attach observer to the best available target
+        const attachMainObserver = () => {
+            const leftNavPanel = document.getElementById('left-nav-panel');
+            const newTarget = leftNavPanel || document.body;
+
+            // Only re-attach if target changed
+            if (newTarget !== currentObserveTarget) {
+                // Disconnect existing observer
+                ExtensionManager.disconnectObserver('mainUI');
+
+                // Create and attach new observer
+                const observer = createMainObserver(newTarget);
+                ExtensionManager.observers.set('mainUI', observer);
+                currentObserveTarget = newTarget;
+
+                if (leftNavPanel) {
+                    logger.debug('Observer attached to #left-nav-panel (scoped)');
+                } else {
+                    logger.debug('Observer attached to document.body (fallback)');
+                }
+            }
+        };
+
+        // Initial attachment
+        attachMainObserver();
+
+        // Sentinel observer: watches for #left-nav-panel appearing/disappearing
+        // This handles cases where SillyTavern's virtual DOM recreates the panel
+        const sentinelObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                // Check added nodes for our target
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const element = node;
+                        if (element.id === 'left-nav-panel' || element.querySelector?.('#left-nav-panel')) {
+                            logger.debug('Detected #left-nav-panel appearance, re-attaching observer');
+                            attachMainObserver();
+                            return;
+                        }
+                    }
+                }
+                // Check removed nodes - if our target was removed, fall back to body
+                for (const node of mutation.removedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const element = node;
+                        if (element.id === 'left-nav-panel' || element.querySelector?.('#left-nav-panel')) {
+                            logger.debug('Detected #left-nav-panel removal, falling back to body observer');
+                            currentObserveTarget = null; // Force re-evaluation
+                            attachMainObserver();
+                            return;
+                        }
+                    }
+                }
+            }
         });
 
-        observer.observe(document.body, { childList: true, subtree: true });
-        ExtensionManager.observers.set('mainUI', observer);
+        // Sentinel only watches direct children of body (lightweight)
+        sentinelObserver.observe(document.body, { childList: true, subtree: false });
+        ExtensionManager.observers.set('sentinel', sentinelObserver);
 
         // Event listener management with cleanup
         const eventCleanupFunctions = [];
@@ -458,10 +565,6 @@ function initializeMobileEnhancements() {
     });
 }
 
-// Keep old function names for backward compatibility
-const applyWidePanelsOverride = removeWidePanelsStyles;
-const removeWidePanelsOverride = applyWidePanelsStyles;
-
 // Enhanced preset navigator initialization that works with both new and legacy code
 function initPresetNavigatorForApiEnhanced(apiType) {
     const selector = `select[data-preset-manager-for="${apiType}"]`;
@@ -485,45 +588,4 @@ function initPresetNavigatorForApiEnhanced(apiType) {
     originalSelect.parentElement.insertBefore(wrapper, originalSelect);
     wrapper.appendChild(originalSelect);
     wrapper.appendChild(browseButton);
-}
-
-async function initializeNemoSettingsUI() {
-    const pollForSettings = setInterval(async () => {
-        const container = document.getElementById('extensions_settings');
-        if (container && !document.querySelector('.nemo-preset-enhancer-settings')) {
-            clearInterval(pollForSettings);
-            ensureSettingsNamespace();
-            const response = await fetch(`scripts/extensions/third-party/${NEMO_EXTENSION_NAME}/settings.html`);
-            if (!response.ok) { console.error(`${LOG_PREFIX} Failed to fetch settings.html`); return; }
-            container.insertAdjacentHTML('beforeend', await response.text());
-
-            const regexInput = document.getElementById('nemoDividerRegexPattern');
-            const saveButton = document.getElementById('nemoSaveRegexSettings');
-            const statusDiv = document.getElementById('nemoRegexStatus');
-
-            regexInput.value = extension_settings[NEMO_EXTENSION_NAME]?.dividerRegexPattern || '';
-
-            saveButton.addEventListener('click', async () => {
-                const customPatternString = regexInput.value.trim();
-
-                try {
-                    if (customPatternString) {
-                        const testPatterns = customPatternString.split(',').map(p => p.trim()).filter(Boolean);
-                        testPatterns.forEach(p => new RegExp(p));
-                    }
-
-                    extension_settings[NEMO_EXTENSION_NAME].dividerRegexPattern = customPatternString;
-                    saveSettingsDebounced();
-
-                    await loadAndSetDividerRegex();
-                    await NemoPresetManager.organizePrompts();
-
-                    statusDiv.textContent = 'Pattern saved!'; statusDiv.style.color = 'lightgreen';
-                } catch(e) {
-                    statusDiv.textContent = `Invalid Regex part: ${e.message}`; statusDiv.style.color = 'red';
-                }
-                setTimeout(() => statusDiv.textContent = '', 4000);
-            });
-        }
-    }, 500);
 }

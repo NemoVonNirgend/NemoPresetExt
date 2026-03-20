@@ -5,7 +5,7 @@
 
 import { saveSettingsDebounced } from '../../../../../script.js';
 import { extension_settings } from '../../../../extensions.js';
-import { LOG_PREFIX, NEMO_EXTENSION_NAME } from '../core/utils.js';
+import { LOG_PREFIX, NEMO_EXTENSION_NAME, getExtensionPath } from '../core/utils.js';
 import { initWin98Enhancements } from '../themes/win98-enhancements.js';
 import { initDiscordEnhancements } from '../themes/discord-enhancements.js';
 import { initCyberpunkEnhancements } from '../themes/cyberpunk-enhancements.js';
@@ -48,8 +48,7 @@ const THEMES = {
 // Track loaded theme stylesheets
 let loadedThemeStylesheet = null;
 
-// Base path for the extension (relative to SillyTavern root)
-const EXTENSION_BASE_PATH = 'scripts/extensions/third-party/NemoPresetExt/';
+// Base path now uses centralized getExtensionPath() from core/utils.js
 
 /**
  * Load a theme CSS file dynamically
@@ -71,7 +70,7 @@ async function loadThemeCSS(themeName) {
     }
 
     // Create and load the new stylesheet
-    const cssPath = EXTENSION_BASE_PATH + theme.cssFile;
+    const cssPath = getExtensionPath(theme.cssFile);
     console.log(`${LOG_PREFIX} Loading theme CSS from: ${cssPath}`);
 
     const link = document.createElement('link');

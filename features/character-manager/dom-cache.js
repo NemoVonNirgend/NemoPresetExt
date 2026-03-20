@@ -3,8 +3,8 @@
  * Provides efficient DOM element caching and batch operations
  */
 
-import logger from '../core/logger.js';
-import { CONSTANTS } from '../core/constants.js';
+import logger from '../../core/logger.js';
+import { CONSTANTS } from '../../core/constants.js';
 
 class DOMCache {
     constructor() {

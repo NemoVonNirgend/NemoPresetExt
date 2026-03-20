@@ -10,6 +10,7 @@ import { useEventBridge } from './hooks/useEventBridge';
 
 const App: React.FC = () => {
     const {
+        _hasHydrated,
         commandPaletteOpen,
         settingsOpen,
         panels,
@@ -24,6 +25,12 @@ const App: React.FC = () => {
     // Set up event bridge for vanilla JS communication
     useEventBridge();
 
+    // Don't render panel-dependent UI until hydration is complete
+    // This prevents flash of empty/default content
+    if (!_hasHydrated) {
+        return null; // Or return a loading skeleton if preferred
+    }
+
     return (
         <>
             {/* Toolbar */}
@@ -34,7 +41,7 @@ const App: React.FC = () => {
             <DockZone zone="right" panels={dockZones.right} />
 
             {/* Floating Panels */}
-            {Array.from(panels.entries()).map(([id, panel]) => (
+            {Object.entries(panels).map(([id, panel]) => (
                 <FloatingPanel key={id} id={id} {...panel} />
             ))}
 

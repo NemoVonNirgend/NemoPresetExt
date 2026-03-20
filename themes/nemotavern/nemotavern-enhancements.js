@@ -8,8 +8,8 @@ let initialized = false;
 let reactAppMounted = false;
 let bodyClassObserver = null;
 
-// Base path for loading assets
-const EXTENSION_BASE_PATH = 'scripts/extensions/third-party/NemoPresetExt/';
+// Base path for loading assets — centralized constant
+import { getExtensionPath } from '../../core/utils.js';
 
 /**
  * Check if NemoTavern theme is active
@@ -100,7 +100,7 @@ async function mountReactApp() {
 
     try {
         // Load the bundled React app
-        const scriptPath = EXTENSION_BASE_PATH + 'features/nemotavern/react/dist/nemotavern.js';
+        const scriptPath = getExtensionPath('features/nemotavern/react/dist/nemotavern.js');
 
         // Check if script already exists
         if (document.querySelector(`script[src="${scriptPath}"]`)) {

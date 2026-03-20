@@ -1,10 +1,10 @@
-import { LOG_PREFIX } from '../core/utils.js';
-import logger from '../core/logger.js';
-import { debounce, navigation_option } from '../../../../../scripts/utils.js';
-import { Popup } from '../../../../../scripts/popup.js';
-import { getFreeWorldName, createNewWorldInfo, loadWorldInfo, world_names, saveWorldInfo, createWorldInfoEntry, deleteWorldInfoEntry, deleteWIOriginalDataValue } from '../../../../../scripts/world-info.js';
-import { eventSource, event_types } from '../../../../../script.js';
-import { accountStorage } from '../../../../../scripts/util/AccountStorage.js';
+import { LOG_PREFIX, getExtensionPath } from '../../core/utils.js';
+import logger from '../../core/logger.js';
+import { debounce, navigation_option } from '../../../../../../scripts/utils.js';
+import { Popup } from '../../../../../../scripts/popup.js';
+import { getFreeWorldName, createNewWorldInfo, loadWorldInfo, world_names, saveWorldInfo, createWorldInfoEntry, deleteWorldInfoEntry, deleteWIOriginalDataValue } from '../../../../../../scripts/world-info.js';
+import { eventSource, event_types } from '../../../../../../script.js';
+import { accountStorage } from '../../../../../../scripts/util/AccountStorage.js';
 
 /**
  * @typedef {object} WorldInfoEntry
@@ -70,7 +70,7 @@ export const NemoWorldInfoUI = {
 
     injectUI: async function() {
         try {
-            const response = await fetch('scripts/extensions/third-party/NemoPresetExt/world-info-ui.html');
+            const response = await fetch(getExtensionPath('features/world-info/world-info-ui.html'));
             if (!response.ok) {
                 throw new Error(`Failed to fetch UI template: ${response.statusText}`);
             }
@@ -749,7 +749,7 @@ export const NemoWorldInfoUI = {
      * Load World Info UI CSS dynamically
      */
     loadCSS: function() {
-        const cssPath = 'scripts/extensions/third-party/NemoPresetExt/world-info-ui.css';
+        const cssPath = getExtensionPath('features/world-info/world-info-ui.css');
 
         // Check if CSS is already loaded
         if (document.querySelector(`link[href="${cssPath}"]`)) {

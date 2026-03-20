@@ -230,7 +230,7 @@ export const NemoPresetManager = {
             </div>
             <div id="nemoSnapshotStatus" class="nemo-status-message" role="status" aria-live="polite" aria-atomic="true"></div>`;
         container.parentElement.insertBefore(searchAndStatusWrapper, container);
-        
+
         logger.debug('Created search and status UI');
     },
 

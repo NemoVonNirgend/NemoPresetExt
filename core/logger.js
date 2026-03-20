@@ -165,9 +165,58 @@ class Logger {
 // Create default logger instance
 const logger = new Logger();
 
-// Enable debug mode if feature flag is set
-if (CONSTANTS.FEATURES.ENABLE_DEBUG_MODE) {
+// Check for debug mode from multiple sources (CACHED AT MODULE LOAD):
+// This function runs ONCE at module initialization, and the result is stored in logger.level
+// Subsequent log calls just check this.level, avoiding repeated URL/localStorage parsing
+//
+// Sources checked (in order):
+// 1. Feature flag in constants (CONSTANTS.FEATURES.ENABLE_DEBUG_MODE)
+// 2. localStorage setting (localStorage.setItem('nemoPresetExtDebug', 'true'))
+// 3. URL parameter (?nemoDebug=true)
+const isDebugEnabled = () => {
+    // Check feature flag
+    if (CONSTANTS.FEATURES.ENABLE_DEBUG_MODE) return true;
+
+    // Check localStorage (can be set via console: localStorage.setItem('nemoPresetExtDebug', 'true'))
+    try {
+        if (localStorage.getItem('nemoPresetExtDebug') === 'true') return true;
+    } catch (e) {
+        // localStorage might not be available in some contexts
+    }
+
+    // Check URL parameter
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('nemoDebug') === 'true') return true;
+    } catch (e) {
+        // URL parsing might fail in some contexts
+    }
+
+    return false;
+};
+
+// Enable debug mode if any source indicates it should be enabled
+if (isDebugEnabled()) {
     logger.setDebugMode(true);
+    console.log('[NemoPresetExt] Debug mode enabled');
+}
+
+// Export utility to toggle debug mode at runtime
+// Usage: window.NemoPresetExtLogger.enableDebug() or .disableDebug()
+if (typeof window !== 'undefined') {
+    window.NemoPresetExtLogger = {
+        enableDebug: () => {
+            logger.setDebugMode(true);
+            try { localStorage.setItem('nemoPresetExtDebug', 'true'); } catch (e) {}
+            console.log('[NemoPresetExt] Debug mode enabled (persisted to localStorage)');
+        },
+        disableDebug: () => {
+            logger.setDebugMode(false);
+            try { localStorage.removeItem('nemoPresetExtDebug'); } catch (e) {}
+            console.log('[NemoPresetExt] Debug mode disabled');
+        },
+        getLogger: () => logger
+    };
 }
 
 // Export both the class and a default instance

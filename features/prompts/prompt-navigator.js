@@ -1,5 +1,5 @@
 import { callGenericPopup, POPUP_TYPE } from '../../../../../popup.js';
-import { LOG_PREFIX, generateUUID, debounce, NEMO_FAVORITE_PRESETS_KEY } from '../../core/utils.js';
+import { LOG_PREFIX, generateUUID, debounce, NEMO_FAVORITE_PRESETS_KEY, getExtensionPath } from '../../core/utils.js';
 import { eventSource, event_types } from '../../../../../../script.js';
 import { promptManager } from '../../../../../openai.js';
 
@@ -28,7 +28,7 @@ export class PromptNavigator {
     }
 
     async init() {
-        const response = await fetch('scripts/extensions/third-party/NemoPresetExt/prompt-navigator.html');
+        const response = await fetch(getExtensionPath('features/prompts/prompt-navigator.html'));
         const htmlContent = await response.text();
         
         this.navigatorElement = document.createElement('div');
