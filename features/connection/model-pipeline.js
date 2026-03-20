@@ -10,6 +10,37 @@ import logger from '../../core/logger.js';
 let currentExecution = null;
 
 /**
+ * Ensure a connection exists in the pool. If the connectionId uses the
+ * source::model format (from DOM provider selects), auto-register it
+ * as a temporary connection so ApiRouter can resolve it.
+ * @param {string|null} connectionId
+ * @returns {string|null}
+ */
+function ensureConnection(connectionId) {
+    if (!connectionId) return connectionId;
+
+    // Already a registered connection?
+    if (ConnectionPool.get(connectionId)) return connectionId;
+
+    // Parse source::model format
+    if (connectionId.includes('::')) {
+        const [source, model] = connectionId.split('::', 2);
+        ConnectionPool.register({
+            id: connectionId,
+            source,
+            model,
+            label: `${model} (${source})`,
+            priority: 5,
+            enabled: true,
+            tags: ['auto'],
+        });
+        return connectionId;
+    }
+
+    return connectionId; // Let it fail naturally if not found
+}
+
+/**
  * Status callback type.
  * @callback StatusCallback
  * @param {string} stage - Current stage name
@@ -60,6 +91,10 @@ export const ModelPipeline = {
             const recallMessages = PipelinePrompts.buildRecallMessages(systemPrompt, messages);
             const analysisMessages = PipelinePrompts.buildAnalysisMessages(systemPrompt, messages);
 
+            // Ensure connections are registered (handles source::model format)
+            ensureConnection(preset.recall.connectionId);
+            ensureConnection(preset.analysis.connectionId);
+
             // Run recall and analysis in parallel
             const [recallResult, analysisResult] = await Promise.all([
                 ApiRouter.send(preset.recall.connectionId, recallMessages, {
@@ -100,6 +135,9 @@ export const ModelPipeline = {
             const drafterMessages = PipelinePrompts.buildDrafterMessages(
                 systemPrompt, messages, recallText, analysisText, userName,
             );
+
+            // Ensure drafter connections are registered
+            preset.drafters.filter(d => d.connectionId).forEach(d => ensureConnection(d.connectionId));
 
             // Send to all drafters in parallel
             const drafterPromises = preset.drafters
@@ -171,6 +209,7 @@ export const ModelPipeline = {
                 systemPrompt, messages, analysisText, successfulDrafts, userName,
             );
 
+            ensureConnection(preset.consolidator.connectionId);
             const consolidationResult = await ApiRouter.send(
                 preset.consolidator.connectionId,
                 consolidationMessages,
@@ -240,16 +279,23 @@ export const ModelPipeline = {
 
         // Check recall
         if (!preset.recall.connectionId) missing.push('Recall model');
-        else if (!ConnectionPool.get(preset.recall.connectionId)) missing.push(`Recall: connection "${preset.recall.connectionId}" not found`);
+        else {
+            ensureConnection(preset.recall.connectionId);
+            if (!ConnectionPool.get(preset.recall.connectionId)) missing.push(`Recall: connection "${preset.recall.connectionId}" not found`);
+        }
 
         // Check analysis
         if (!preset.analysis.connectionId) missing.push('Analysis model');
-        else if (!ConnectionPool.get(preset.analysis.connectionId)) missing.push(`Analysis: connection "${preset.analysis.connectionId}" not found`);
+        else {
+            ensureConnection(preset.analysis.connectionId);
+            if (!ConnectionPool.get(preset.analysis.connectionId)) missing.push(`Analysis: connection "${preset.analysis.connectionId}" not found`);
+        }
 
         // Check drafters
         const configuredDrafters = preset.drafters.filter(d => d.connectionId);
         if (configuredDrafters.length === 0) missing.push('At least 1 drafter must be configured');
         for (const d of configuredDrafters) {
+            ensureConnection(d.connectionId);
             if (!ConnectionPool.get(d.connectionId)) {
                 missing.push(`Drafter ${d.label}: connection "${d.connectionId}" not found`);
             }
@@ -257,7 +303,10 @@ export const ModelPipeline = {
 
         // Check consolidator
         if (!preset.consolidator.connectionId) missing.push('Consolidator model');
-        else if (!ConnectionPool.get(preset.consolidator.connectionId)) missing.push(`Consolidator: connection "${preset.consolidator.connectionId}" not found`);
+        else {
+            ensureConnection(preset.consolidator.connectionId);
+            if (!ConnectionPool.get(preset.consolidator.connectionId)) missing.push(`Consolidator: connection "${preset.consolidator.connectionId}" not found`);
+        }
 
         // Check API key availability for all referenced connections
         const allConnectionIds = [

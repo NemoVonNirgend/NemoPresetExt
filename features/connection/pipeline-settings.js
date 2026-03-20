@@ -16,6 +16,46 @@ const log = logger.module('PipelineSettings');
 const MAX_DRAFTERS = 8;
 const DRAFTER_LABELS = 'ABCDEFGH';
 
+/** @type {Record<string, string>} */
+const SOURCE_TO_SELECT = {
+    'openai': '#model_openai_select',
+    'claude': '#model_claude_select',
+    'makersuite': '#model_google_select',
+    'vertexai': '#model_vertexai_select',
+    'deepseek': '#model_deepseek_select',
+    'ai21': '#model_ai21_select',
+    'mistralai': '#model_mistralai_select',
+    'groq': '#model_groq_select',
+    'cohere': '#model_cohere_select',
+    'perplexity': '#model_perplexity_select',
+    'xai': '#model_xai_select',
+    'custom': '#model_custom_select',
+    'pollinations': '#model_pollinations_select',
+    'moonshot': '#model_moonshot_select',
+    'fireworks': '#model_fireworks_select',
+    'zai': '#model_zai_select',
+    'siliconflow': '#model_siliconflow_select',
+    'cometapi': '#model_cometapi_select',
+    'openrouter': '#model_openrouter_select',
+    'aimlapi': '#model_aimlapi_select',
+    'electronhub': '#model_electronhub_select',
+    'chutes': '#model_chutes_select',
+    'nanogpt': '#model_nanogpt_select',
+    'azure_openai': '#azure_openai_model',
+};
+
+/** @type {Record<string, string>} */
+const PROVIDER_NAMES = {
+    'openai': 'OpenAI', 'claude': 'Claude', 'makersuite': 'Google AI Studio',
+    'vertexai': 'Vertex AI', 'deepseek': 'DeepSeek', 'ai21': 'AI21',
+    'mistralai': 'MistralAI', 'groq': 'Groq', 'cohere': 'Cohere',
+    'perplexity': 'Perplexity', 'xai': 'xAI', 'custom': 'Custom/Proxy',
+    'pollinations': 'Pollinations', 'moonshot': 'Moonshot', 'fireworks': 'Fireworks',
+    'zai': 'Z.AI', 'siliconflow': 'SiliconFlow', 'cometapi': 'CometAPI',
+    'openrouter': 'OpenRouter', 'aimlapi': 'AI/ML API', 'electronhub': 'Electron Hub',
+    'chutes': 'Chutes', 'nanogpt': 'NanoGPT', 'azure_openai': 'Azure OpenAI',
+};
+
 /** @type {HTMLElement|null} */
 let btnEl = null;
 
@@ -28,18 +68,54 @@ let currentPresetId = null;
 // ─── Helpers ────────────────────────────────────────────────────
 
 /**
- * Build an <option> list from the connection pool.
+ * Build an <option> list from the connection pool AND all provider model selects in the DOM.
+ * Options are grouped by provider. ConnectionPool entries appear first as "Saved Connections".
+ * Value format for DOM models: source::model_id (e.g. openrouter::google/gemma-3-27b-it:free)
  * @param {string|null} selectedId - Currently selected connection id
  * @returns {string} HTML options string
  */
 function buildConnectionOptions(selectedId) {
-    const connections = ConnectionPool.getAll();
     let html = '<option value="">(none)</option>';
-    for (const conn of connections) {
-        const sel = conn.id === selectedId ? ' selected' : '';
-        const display = `${conn.label} (${conn.source}/${conn.model})`;
-        html += `<option value="${conn.id}"${sel}>${escapeHtml(display)}</option>`;
+
+    // Saved Connections from ConnectionPool (backward compat)
+    const connections = ConnectionPool.getAll();
+    if (connections.length > 0) {
+        html += '<optgroup label="Saved Connections">';
+        for (const conn of connections) {
+            const sel = conn.id === selectedId ? ' selected' : '';
+            const display = `${conn.label} (${conn.source}/${conn.model})`;
+            html += `<option value="${conn.id}"${sel}>${escapeHtml(display)}</option>`;
+        }
+        html += '</optgroup>';
     }
+
+    // All provider models from DOM selects
+    for (const [source, selectId] of Object.entries(SOURCE_TO_SELECT)) {
+        const selectEl = document.querySelector(selectId);
+        if (!selectEl) continue;
+
+        const options = selectEl.querySelectorAll('option');
+        const validOptions = [];
+        for (const opt of options) {
+            if (!opt.value) continue;
+            const text = opt.textContent?.trim() || '';
+            if (!text || text.toLowerCase().includes('connect to the api')) continue;
+            validOptions.push({ value: opt.value, text });
+        }
+
+        if (validOptions.length === 0) continue;
+
+        const providerLabel = PROVIDER_NAMES[source] || source;
+        html += `<optgroup label="${escapeHtml(providerLabel)}">`;
+        for (const opt of validOptions) {
+            const compositeId = `${source}::${opt.value}`;
+            const sel = compositeId === selectedId ? ' selected' : '';
+            const display = `${opt.text} (${providerLabel})`;
+            html += `<option value="${escapeHtml(compositeId)}"${sel}>${escapeHtml(display)}</option>`;
+        }
+        html += '</optgroup>';
+    }
+
     return html;
 }
 
@@ -112,9 +188,6 @@ function buildDrafterRow(index, drafter) {
  */
 function buildPanelHtml(preset) {
     const allPresets = PipelinePresets.getAll();
-    const connections = ConnectionPool.getAll();
-    const hasConnections = connections.length > 0;
-    const emptyMsg = '<div class="nemo-stack-empty-msg">No connections registered. Add connections via the API Router to configure the pipeline.</div>';
 
     // Preset selector
     let presetOptions = '';
@@ -127,10 +200,8 @@ function buildPanelHtml(preset) {
 
     // Drafter rows
     let drafterRowsHtml = '';
-    if (hasConnections) {
-        for (let i = 0; i < preset.drafters.length; i++) {
-            drafterRowsHtml += buildDrafterRow(i, preset.drafters[i]);
-        }
+    for (let i = 0; i < preset.drafters.length; i++) {
+        drafterRowsHtml += buildDrafterRow(i, preset.drafters[i]);
     }
 
     // Prompt texts (read-only display)
@@ -156,11 +227,9 @@ function buildPanelHtml(preset) {
                 <span>Stage 1: Recall + Analysis</span>
             </div>
             <div class="nemo-stack-section-content">
-                ${hasConnections ? `
-                    ${buildStageFields('Recall', 'recall', preset.recall)}
-                    <hr style="border-color:var(--SmartThemeBorderColor);margin:6px 0">
-                    ${buildStageFields('Analysis', 'analysis', preset.analysis)}
-                ` : emptyMsg}
+                ${buildStageFields('Recall', 'recall', preset.recall)}
+                <hr style="border-color:var(--SmartThemeBorderColor);margin:6px 0">
+                ${buildStageFields('Analysis', 'analysis', preset.analysis)}
                 <button class="nemo-stack-prompt-toggle" data-target="recall-prompt">
                     <i class="fa-solid fa-eye"></i> Recall Prompt
                 </button>
@@ -179,15 +248,13 @@ function buildPanelHtml(preset) {
                 <span>Stage 2: Drafters (${preset.drafters.length})</span>
             </div>
             <div class="nemo-stack-section-content">
-                ${hasConnections ? `
-                    <div class="nemo-stack-drafters-list" id="nemo-stack-drafters-list">
-                        ${drafterRowsHtml}
-                    </div>
-                    <button class="nemo-stack-add-drafter-btn" id="nemo-stack-add-drafter"
-                            ${preset.drafters.length >= MAX_DRAFTERS ? 'disabled style="opacity:0.4"' : ''}>
-                        <i class="fa-solid fa-plus"></i> Add Drafter
-                    </button>
-                ` : emptyMsg}
+                <div class="nemo-stack-drafters-list" id="nemo-stack-drafters-list">
+                    ${drafterRowsHtml}
+                </div>
+                <button class="nemo-stack-add-drafter-btn" id="nemo-stack-add-drafter"
+                        ${preset.drafters.length >= MAX_DRAFTERS ? 'disabled style="opacity:0.4"' : ''}>
+                    <i class="fa-solid fa-plus"></i> Add Drafter
+                </button>
                 <button class="nemo-stack-prompt-toggle" data-target="drafter-rules">
                     <i class="fa-solid fa-eye"></i> Drafter Rules
                 </button>
@@ -202,7 +269,7 @@ function buildPanelHtml(preset) {
                 <span>Stage 3: Consolidation</span>
             </div>
             <div class="nemo-stack-section-content">
-                ${hasConnections ? buildStageFields('Consolidator', 'consolidator', preset.consolidator) : emptyMsg}
+                ${buildStageFields('Consolidator', 'consolidator', preset.consolidator)}
                 <button class="nemo-stack-prompt-toggle" data-target="anti-slop">
                     <i class="fa-solid fa-eye"></i> Anti-Slop Rules
                 </button>

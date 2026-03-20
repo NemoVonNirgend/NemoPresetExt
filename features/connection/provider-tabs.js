@@ -82,6 +82,12 @@ function buildTabs() {
         tab.textContent = option.textContent.trim();
         tab.title = option.textContent.trim();
 
+        // Rename "Custom (OpenAI-compatible)" to "Proxies"
+        if (option.value === 'custom') {
+            tab.textContent = 'Proxies';
+            tab.title = 'Custom OpenAI-compatible Proxies';
+        }
+
         tab.addEventListener('click', () => {
             onTabClick(option.value);
         });
