@@ -48,8 +48,10 @@ import { NemoCharacterManager } from './features/character-manager/character-man
 import { NemoWorldInfoUI } from './features/world-info/world-info-ui.js';
 import domCache from './features/character-manager/dom-cache.js';
 
-// Feature modules - Connection/Model Selector
+// Feature modules - Connection/Model Selector & API Router
 import { ModelSelector } from './features/connection/model-selector.js';
+import { ConnectionPool } from './features/connection/connection-pool.js';
+import { ApiRouter } from './features/connection/api-router.js';
 
 // Archive modules - legacy code kept for reference
 import { PresetNavigator } from './archive/navigator.js';
@@ -182,6 +184,12 @@ async function initializeExtension() {
 
         // Make NemoPresetManager available globally for preset state preservation
         window.NemoPresetManager = NemoPresetManager;
+
+        // Initialize API Router foundation (load saved connections)
+        ConnectionPool.load();
+        window.NemoConnectionPool = ConnectionPool;
+        window.NemoApiRouter = ApiRouter;
+        logger.info('API Router foundation initialized');
 
         // Make PollinationsInterceptor available globally for manual testing
         // Usage: window.PollinationsInterceptor.init() - Initialize interceptor
