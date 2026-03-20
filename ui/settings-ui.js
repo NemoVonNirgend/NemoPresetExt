@@ -271,6 +271,17 @@ export const NemoSettingsUI = {
                     });
                 }
 
+                // Enhanced Model Selector Setting
+                const modelSelectorToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableModelSelector'));
+                if (modelSelectorToggle) {
+                    modelSelectorToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableModelSelector ?? true;
+                    modelSelectorToggle.addEventListener('change', () => {
+                        extension_settings[NEMO_EXTENSION_NAME].enableModelSelector = modelSelectorToggle.checked;
+                        saveSettingsDebounced();
+                        this.showRefreshNotification();
+                    });
+                }
+
                 // Pollinations Interceptor Setting
                 const pollinationsInterceptorToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnablePollinationsInterceptor'));
                 if (pollinationsInterceptorToggle) {

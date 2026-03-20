@@ -48,6 +48,9 @@ import { NemoCharacterManager } from './features/character-manager/character-man
 import { NemoWorldInfoUI } from './features/world-info/world-info-ui.js';
 import domCache from './features/character-manager/dom-cache.js';
 
+// Feature modules - Connection/Model Selector
+import { ModelSelector } from './features/connection/model-selector.js';
+
 // Archive modules - legacy code kept for reference
 import { PresetNavigator } from './archive/navigator.js';
 
@@ -242,6 +245,28 @@ async function initializeExtension() {
 
         // Initialize Mobile Enhancements - auto-detect touch devices
         initializeMobileEnhancements();
+
+        // Initialize Enhanced Model Selector (searchable dropdowns + favorites + chips)
+        // Must run LATE - after ST's own Select2 init on OpenRouter/etc.
+        if (extension_settings.NemoPresetExt?.enableModelSelector !== false) {
+            setTimeout(() => {
+                try {
+                    ModelSelector.initialize();
+                    logger.info('Enhanced Model Selector initialized');
+                } catch (err) {
+                    logger.error('Failed to initialize Model Selector', err);
+                }
+            }, 1500); // Delay to ensure ST's own Select2 init has completed
+        } else {
+            // Feature disabled — show re-enable button in the connection panel
+            setTimeout(() => {
+                try {
+                    ModelSelector.injectReEnableButton();
+                } catch (err) {
+                    logger.debug('Could not inject re-enable button', err);
+                }
+            }, 1500);
+        }
 
         // Observer management with proper cleanup
         const ExtensionManager = {
@@ -467,6 +492,9 @@ async function initializeExtension() {
             if (window.NemoPresetManager && typeof window.NemoPresetManager.destroy === 'function') {
                 window.NemoPresetManager.destroy();
             }
+
+            // Clean up Model Selector
+            try { ModelSelector.destroy(); } catch (e) { /* ignore */ }
 
             // Reset patched flags
             document.querySelectorAll('[data-nemo-patched]').forEach(el => {

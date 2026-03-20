@@ -64,7 +64,9 @@ export function ensureSettingsNamespace() {
         // UI Theme settings - 'none', 'win98', 'discord'
         uiTheme: 'none',
         // Mobile enhancements - auto-detected on touch devices, can be disabled
-        enableMobileEnhancements: true
+        enableMobileEnhancements: true,
+        // Enhanced model selector with search, favorites, and quick-switch chips
+        enableModelSelector: true
     };
 
     // Apply defaults for any missing settings

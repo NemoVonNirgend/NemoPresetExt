@@ -1,0 +1,639 @@
+/* NemoPresetExt - Enhanced Model Selector: Provider Tabs + Card Grid */
+
+/* ===== Container ===== */
+.nemo-connection-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+/* ===== Provider Tabs ===== */
+.nemo-provider-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 6px 0;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--SmartThemeBlurTintColor, rgba(20, 20, 20, 0.95));
+    margin: 0 -4px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.nemo-provider-tab {
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.15));
+    color: var(--SmartThemeBodyColor, #ccc);
+    cursor: pointer;
+    font-size: 0.82em;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.nemo-provider-tab:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--SmartThemeBodyColor, #888);
+}
+
+.nemo-provider-tab.active {
+    background: var(--SmartThemeFavColor, rgba(74, 144, 217, 0.25));
+    border-color: var(--SmartThemeFavColor, #4a90d9);
+    color: var(--SmartThemeBodyColor, #fff);
+    font-weight: 600;
+}
+
+/* ===== Search Bar ===== */
+.nemo-model-search-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.nemo-model-search-wrapper i.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--SmartThemeQuoteColor, #888);
+    font-size: 0.85em;
+    pointer-events: none;
+}
+
+.nemo-model-search {
+    width: 100%;
+    padding: 8px 12px 8px 32px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 8px;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 0.9em;
+    outline: none;
+    transition: border-color 0.15s ease;
+    box-sizing: border-box;
+}
+
+.nemo-model-search:focus {
+    border-color: var(--SmartThemeFavColor, #4a90d9);
+}
+
+.nemo-model-search::placeholder {
+    color: var(--SmartThemeQuoteColor, #666);
+}
+
+/* ===== Get API Key Link ===== */
+.nemo-get-api-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.15));
+    color: var(--SmartThemeQuoteColor, #999);
+    font-size: 0.8em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    align-self: flex-start;
+}
+
+.nemo-get-api-key:hover {
+    color: var(--SmartThemeFavColor, #4a90d9);
+    border-color: var(--SmartThemeFavColor, #4a90d9);
+    background: rgba(74, 144, 217, 0.08);
+    text-decoration: none;
+}
+
+.nemo-get-api-key:active {
+    transform: scale(0.97);
+}
+
+/* ===== Filter / Sort Bar ===== */
+.nemo-model-filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.nemo-filter-group {
+    display: flex;
+    gap: 4px;
+}
+
+.nemo-filter-btn {
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.15));
+    color: var(--SmartThemeQuoteColor, #999);
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.nemo-filter-btn:hover {
+    color: var(--SmartThemeBodyColor, #ccc);
+    border-color: var(--SmartThemeBodyColor, #888);
+}
+
+.nemo-filter-btn.active {
+    background: var(--SmartThemeFavColor, rgba(74, 144, 217, 0.2));
+    border-color: var(--SmartThemeFavColor, #4a90d9);
+    color: var(--SmartThemeBodyColor, #fff);
+}
+
+.nemo-sort-group {
+    display: flex;
+    align-items: center;
+}
+
+.nemo-sort-select {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 0.8em;
+    cursor: pointer;
+    outline: none;
+}
+
+.nemo-sort-select:focus {
+    border-color: var(--SmartThemeFavColor, #4a90d9);
+}
+
+/* ===== Model Grid ===== */
+.nemo-model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+    max-height: 420px;
+    overflow-y: auto;
+    padding: 2px;
+    scrollbar-width: thin;
+}
+
+.nemo-model-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nemo-model-grid::-webkit-scrollbar-thumb {
+    background: var(--SmartThemeBorderColor, #555);
+    border-radius: 3px;
+}
+
+/* ===== Provider Group Header (cross-provider search) ===== */
+.nemo-provider-group-header {
+    grid-column: 1 / -1;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--SmartThemeQuoteColor, #888);
+    padding: 8px 4px 2px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #333);
+    margin-bottom: 2px;
+}
+
+.nemo-provider-group-header i {
+    margin-right: 4px;
+}
+
+/* ===== Model Card ===== */
+.nemo-model-card {
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 10px;
+    padding: 12px;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.15));
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+}
+
+.nemo-model-card:hover {
+    border-color: var(--SmartThemeBodyColor, #999);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.nemo-model-card.active {
+    border-color: var(--SmartThemeFavColor, #4a90d9);
+    background: rgba(74, 144, 217, 0.08);
+    box-shadow: 0 0 0 1px var(--SmartThemeFavColor, #4a90d9);
+}
+
+/* Card Header */
+.nemo-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.nemo-card-name {
+    font-weight: 600;
+    font-size: 0.95em;
+    color: var(--SmartThemeBodyColor, #eee);
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.nemo-card-fav {
+    cursor: pointer;
+    color: #555;
+    font-size: 0.85em;
+    flex-shrink: 0;
+    padding: 2px;
+    transition: color 0.15s ease;
+}
+
+.nemo-card-fav:hover,
+.nemo-card-fav.active {
+    color: #f0c040;
+}
+
+/* Card ID / Subtitle */
+.nemo-card-id {
+    font-size: 0.78em;
+    color: var(--SmartThemeQuoteColor, #777);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Card Stats Row */
+.nemo-card-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.78em;
+    color: var(--SmartThemeQuoteColor, #999);
+    margin-top: 4px;
+}
+
+.nemo-card-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.nemo-card-stat i {
+    font-size: 0.9em;
+}
+
+/* Capability Icons */
+.nemo-card-capabilities {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.nemo-card-cap-icon {
+    font-size: 0.8em;
+    color: var(--SmartThemeQuoteColor, #888);
+    padding: 2px 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nemo-card-cap-icon[title]:hover {
+    color: var(--SmartThemeBodyColor, #ccc);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Info Toggle Button */
+.nemo-card-info-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75em;
+    color: var(--SmartThemeQuoteColor, #888);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 0;
+    margin-top: 4px;
+    transition: color 0.15s ease;
+}
+
+.nemo-card-info-toggle:hover {
+    color: var(--SmartThemeBodyColor, #ccc);
+}
+
+.nemo-card-info-toggle i {
+    transition: transform 0.2s ease;
+    font-size: 0.85em;
+}
+
+.nemo-card-info-toggle.open i {
+    transform: rotate(180deg);
+}
+
+/* Expandable Info Panel */
+.nemo-card-info-panel {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 6px;
+    margin-top: 4px;
+    border-top: 1px solid var(--SmartThemeBorderColor, #333);
+    font-size: 0.8em;
+    color: var(--SmartThemeQuoteColor, #999);
+}
+
+.nemo-card-info-panel.open {
+    display: flex;
+}
+
+.nemo-card-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.nemo-card-info-label {
+    color: var(--SmartThemeQuoteColor, #777);
+}
+
+.nemo-card-info-value {
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-weight: 500;
+}
+
+/* Provider Badge (in cross-provider results) */
+.nemo-card-provider-badge {
+    display: inline-block;
+    font-size: 0.7em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--SmartThemeQuoteColor, #999);
+    margin-top: 2px;
+}
+
+/* ===== Empty / Placeholder States ===== */
+.nemo-model-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 24px 16px;
+    color: var(--SmartThemeQuoteColor, #666);
+    font-size: 0.9em;
+}
+
+.nemo-model-empty i {
+    font-size: 1.5em;
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* ===== Result Count ===== */
+.nemo-model-result-count {
+    font-size: 0.78em;
+    color: var(--SmartThemeQuoteColor, #666);
+    padding: 2px 0;
+}
+
+/* ===== Disable / Revert Button ===== */
+.nemo-selector-disable-btn {
+    position: absolute;
+    top: 6px;
+    right: 2px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--SmartThemeQuoteColor, #666);
+    cursor: pointer;
+    padding: 4px 6px;
+    font-size: 0.8em;
+    opacity: 0.4;
+    transition: all 0.15s ease;
+    z-index: 6;
+    line-height: 1;
+}
+
+.nemo-selector-disable-btn:hover {
+    opacity: 1;
+    color: var(--SmartThemeBodyColor, #ccc);
+    border-color: var(--SmartThemeBorderColor, #555);
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.3));
+}
+
+.nemo-selector-disable-btn:active {
+    transform: scale(0.92);
+}
+
+/* ===== Re-enable Button (shown when overhaul is disabled) ===== */
+.nemo-selector-reenable-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
+    border: 1px dashed var(--SmartThemeBorderColor, #555);
+    border-radius: 8px;
+    color: var(--SmartThemeQuoteColor, #888);
+    cursor: pointer;
+    padding: 6px 12px;
+    font-size: 0.82em;
+    margin-bottom: 6px;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.nemo-selector-reenable-btn:hover {
+    color: var(--SmartThemeBodyColor, #ccc);
+    border-color: var(--SmartThemeFavColor, #4a90d9);
+    border-style: solid;
+    background: rgba(74, 144, 217, 0.08);
+}
+
+.nemo-selector-reenable-btn:active {
+    transform: scale(0.98);
+}
+
+/* ===== Hidden original elements ===== */
+.nemo-hidden-by-selector {
+    display: none !important;
+}
+
+/* ===== Responsive: Tablet ===== */
+@media (max-width: 768px) {
+    .nemo-model-grid {
+        grid-template-columns: 1fr;
+        max-height: 350px;
+    }
+
+    .nemo-provider-tabs {
+        gap: 4px;
+    }
+
+    .nemo-provider-tab {
+        font-size: 0.78em;
+        padding: 4px 8px;
+    }
+}
+
+/* ===== Responsive: Mobile ===== */
+@media (max-width: 500px) {
+    /* Horizontal scroll tabs instead of wrapping (saves vertical space) */
+    .nemo-provider-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        padding: 8px 4px;
+        gap: 6px;
+        scroll-snap-type: x proximity;
+    }
+
+    .nemo-provider-tabs::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+    }
+
+    .nemo-provider-tab {
+        font-size: 0.82em;
+        padding: 8px 14px;
+        flex-shrink: 0;
+        scroll-snap-align: start;
+        /* Larger touch target (min 44px per Apple HIG) */
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Search bar — taller for thumb input */
+    .nemo-model-search {
+        padding: 12px 12px 12px 36px;
+        font-size: 1em;
+        border-radius: 10px;
+    }
+
+    .nemo-model-search-wrapper i.search-icon {
+        left: 12px;
+        font-size: 0.9em;
+    }
+
+    /* Cards — single column, larger touch targets */
+    .nemo-model-grid {
+        grid-template-columns: 1fr;
+        max-height: 300px;
+        gap: 6px;
+    }
+
+    .nemo-model-card {
+        padding: 14px;
+        border-radius: 12px;
+        /* Ensure min touch target height */
+        min-height: 48px;
+    }
+
+    .nemo-card-name {
+        font-size: 1em;
+    }
+
+    .nemo-card-id {
+        font-size: 0.82em;
+    }
+
+    /* Larger favorite star touch target */
+    .nemo-card-fav {
+        font-size: 1.1em;
+        padding: 6px;
+        margin: -4px;
+    }
+
+    /* Larger info toggle touch target */
+    .nemo-card-info-toggle {
+        font-size: 0.85em;
+        padding: 6px 0;
+        min-height: 36px;
+    }
+
+    .nemo-card-stats {
+        font-size: 0.82em;
+        gap: 10px;
+    }
+
+    .nemo-card-cap-icon {
+        font-size: 0.9em;
+        padding: 4px 6px;
+    }
+
+    /* Info panel — more readable on small screens */
+    .nemo-card-info-panel {
+        font-size: 0.85em;
+        gap: 6px;
+        padding-top: 8px;
+        margin-top: 6px;
+    }
+
+    .nemo-card-info-row {
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    /* Provider badge slightly larger */
+    .nemo-card-provider-badge {
+        font-size: 0.75em;
+        padding: 2px 8px;
+    }
+
+    /* Result count */
+    .nemo-model-result-count {
+        font-size: 0.82em;
+        padding: 4px 0;
+    }
+
+    /* Empty state */
+    .nemo-model-empty {
+        padding: 20px 12px;
+        font-size: 0.95em;
+    }
+
+    /* Connection panel spacing */
+    .nemo-connection-panel {
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+}
+
+/* ===== Touch device enhancements (any pointer: coarse) ===== */
+@media (pointer: coarse) {
+    /* Remove hover effects that don't work on touch */
+    .nemo-provider-tab:hover {
+        background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.15));
+        border-color: var(--SmartThemeBorderColor, #444);
+    }
+
+    .nemo-model-card:hover {
+        border-color: var(--SmartThemeBorderColor, #444);
+        background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.15));
+    }
+
+    /* Active press feedback instead */
+    .nemo-provider-tab:active {
+        background: rgba(255, 255, 255, 0.12);
+        transform: scale(0.97);
+    }
+
+    .nemo-model-card:active {
+        background: rgba(255, 255, 255, 0.06);
+        transform: scale(0.99);
+    }
+
+    .nemo-card-fav:active {
+        transform: scale(1.2);
+    }
+}
