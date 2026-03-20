@@ -325,12 +325,31 @@ function deleteProxy(id) {
  * @param {object} proxy
  */
 function applyProxyFields(proxy) {
-    // Set custom endpoint URL
-    const urlInput = document.getElementById('custom_api_url_text');
-    if (urlInput) {
-        urlInput.value = proxy.url;
-        urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+    // Find the custom endpoint URL input — try multiple possible IDs
+    const urlSelectors = ['#custom_api_url_text', '#openai_reverse_proxy', 'input[placeholder*="localhost"]'];
+    for (const sel of urlSelectors) {
+        const urlInput = document.querySelector(sel);
+        if (urlInput && urlInput.closest('[data-source*="custom"]')) {
+            urlInput.value = proxy.url;
+            urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+            break;
+        }
+        // Fallback: just set it if we find it
+        if (urlInput && sel === '#custom_api_url_text') {
+            urlInput.value = proxy.url;
+            urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+            break;
+        }
     }
+
+    // Also try setting via jQuery if oai_settings is accessible
+    try {
+        const customUrlField = document.querySelector('#openai_api input.text_pole[placeholder*="localhost"]');
+        if (customUrlField) {
+            customUrlField.value = proxy.url;
+            customUrlField.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    } catch (e) { /* ignore */ }
 
     // Set custom API key
     const keyInput = document.getElementById('api_key_custom');
@@ -338,6 +357,15 @@ function applyProxyFields(proxy) {
         keyInput.value = proxy.password || '';
         keyInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
+
+    // Auto-click Connect after a short delay to fetch models
+    setTimeout(() => {
+        const connectBtn = document.getElementById('api_button_openai');
+        if (connectBtn) {
+            connectBtn.click();
+            logger.debug('ProxyManager: Auto-triggered Connect');
+        }
+    }, 300);
 }
 
 /**
