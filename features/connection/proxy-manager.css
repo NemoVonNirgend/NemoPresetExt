@@ -1,0 +1,222 @@
+/* NemoPresetExt - Proxy Manager: Multi-proxy card UI for custom endpoints */
+
+/* ===== Proxy Bar Container ===== */
+.nemo-proxy-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.nemo-proxy-bar-label {
+    font-size: 0.8em;
+    font-weight: 600;
+    color: var(--SmartThemeQuoteColor, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ===== Horizontal Card Row ===== */
+.nemo-proxy-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px 0 6px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--SmartThemeBorderColor, #444) transparent;
+}
+
+.nemo-proxy-row::-webkit-scrollbar {
+    height: 4px;
+}
+
+.nemo-proxy-row::-webkit-scrollbar-thumb {
+    background: var(--SmartThemeBorderColor, #444);
+    border-radius: 2px;
+}
+
+/* ===== Proxy Card ===== */
+.nemo-proxy-card {
+    flex: 0 0 auto;
+    width: 160px;
+    min-width: 140px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.15));
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    user-select: none;
+}
+
+.nemo-proxy-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--SmartThemeBodyColor, #888);
+}
+
+.nemo-proxy-card.active {
+    border-color: var(--SmartThemeFavColor, #4a90d9);
+    background: color-mix(in srgb, var(--SmartThemeFavColor, #4a90d9) 15%, transparent);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--SmartThemeFavColor, #4a90d9) 25%, transparent);
+}
+
+/* ===== Active Dot ===== */
+.nemo-proxy-active-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4caf50;
+    box-shadow: 0 0 4px rgba(76, 175, 80, 0.6);
+    display: none;
+}
+
+.nemo-proxy-card.active .nemo-proxy-active-dot {
+    display: block;
+}
+
+/* ===== Card Content ===== */
+.nemo-proxy-name {
+    font-weight: 600;
+    font-size: 0.88em;
+    color: var(--SmartThemeBodyColor, #eee);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 16px;
+}
+
+.nemo-proxy-url {
+    font-size: 0.75em;
+    color: var(--SmartThemeQuoteColor, #888);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===== Card Action Buttons ===== */
+.nemo-proxy-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.nemo-proxy-actions button {
+    background: none;
+    border: none;
+    color: var(--SmartThemeQuoteColor, #888);
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 0.8em;
+    border-radius: 4px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.nemo-proxy-actions button:hover {
+    color: var(--SmartThemeBodyColor, #eee);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.nemo-proxy-actions button.nemo-proxy-delete:hover {
+    color: #f44336;
+}
+
+/* ===== Add Proxy Card ===== */
+.nemo-proxy-card-add {
+    flex: 0 0 auto;
+    width: 120px;
+    min-width: 100px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px dashed var(--SmartThemeBorderColor, #555);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    user-select: none;
+    color: var(--SmartThemeQuoteColor, #888);
+    font-size: 0.82em;
+}
+
+.nemo-proxy-card-add:hover {
+    border-color: var(--SmartThemeFavColor, #4a90d9);
+    color: var(--SmartThemeBodyColor, #eee);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.nemo-proxy-card-add i {
+    font-size: 1.2em;
+}
+
+/* ===== Add/Edit Form ===== */
+.nemo-proxy-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 8px;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
+}
+
+.nemo-proxy-form input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 6px;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.15));
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 0.85em;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease;
+}
+
+.nemo-proxy-form input:focus {
+    border-color: var(--SmartThemeFavColor, #4a90d9);
+}
+
+.nemo-proxy-form-buttons {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.nemo-proxy-form-buttons button {
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    cursor: pointer;
+    font-size: 0.82em;
+    transition: all 0.15s ease;
+}
+
+.nemo-proxy-form-buttons .nemo-proxy-save-btn {
+    background: color-mix(in srgb, var(--SmartThemeFavColor, #4a90d9) 25%, transparent);
+    border-color: var(--SmartThemeFavColor, #4a90d9);
+    color: var(--SmartThemeBodyColor, #eee);
+}
+
+.nemo-proxy-form-buttons .nemo-proxy-save-btn:hover {
+    background: color-mix(in srgb, var(--SmartThemeFavColor, #4a90d9) 40%, transparent);
+}
+
+.nemo-proxy-form-buttons .nemo-proxy-cancel-btn {
+    background: transparent;
+    color: var(--SmartThemeQuoteColor, #aaa);
+}
+
+.nemo-proxy-form-buttons .nemo-proxy-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--SmartThemeBodyColor, #eee);
+}

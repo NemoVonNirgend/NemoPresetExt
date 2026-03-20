@@ -264,7 +264,15 @@ export const ModelSelector = {
             document.head.appendChild(pipeLink);
         }
 
-        // 10. Initialize Nemo Stack pipeline settings UI
+        // 10. Load proxy manager CSS
+        if (!document.querySelector('link[href*="proxy-manager.css"]')) {
+            const proxyLink = document.createElement('link');
+            proxyLink.rel = 'stylesheet';
+            proxyLink.href = 'scripts/extensions/third-party/NemoPresetExt/features/connection/proxy-manager.css';
+            document.head.appendChild(proxyLink);
+        }
+
+        // 11. Initialize Nemo Stack pipeline settings UI
         PipelineSettingsUI.initialize(result.wrapper);
 
         logger.info('ModelSelector: Initialized with provider tabs + card grid + pipeline settings');

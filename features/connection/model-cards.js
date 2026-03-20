@@ -8,6 +8,7 @@
 import { getFavorites, isFavorite, toggleFavorite, pushRecent } from './model-favorites.js';
 import { model_list } from '../../../../../openai.js';
 import logger from '../../core/logger.js';
+import { ProxyManager } from './proxy-manager.js';
 
 /**
  * Map of provider source keys to their model select IDs.
@@ -91,6 +92,9 @@ let searchDebounce = null;
 
 /** @type {HTMLElement|null} Filter bar container */
 let filterBar = null;
+
+/** @type {HTMLElement|null} Proxy bar container (shown for 'custom' source) */
+let proxyBarContainer = null;
 
 /** @type {HTMLAnchorElement|null} Get API Key link */
 let apiKeyLink = null;
@@ -424,6 +428,14 @@ function renderForSource(source) {
     currentSource = source;
     const hasPricing = PROVIDERS_WITH_PRICING.includes(source);
 
+    // Show/hide proxy bar (only for 'custom' source)
+    if (proxyBarContainer) {
+        proxyBarContainer.style.display = source === 'custom' ? 'block' : 'none';
+        if (source === 'custom') {
+            ProxyManager.refresh();
+        }
+    }
+
     // Show/hide filter bar
     if (filterBar) {
         filterBar.style.display = hasPricing ? 'flex' : 'none';
@@ -631,6 +643,13 @@ function buildPanel() {
     searchWrapper.appendChild(searchInput);
     panelContainer.appendChild(searchWrapper);
 
+    // Proxy manager bar (shown only for 'custom' source)
+    proxyBarContainer = document.createElement('div');
+    proxyBarContainer.id = 'nemo-proxy-bar-container';
+    proxyBarContainer.style.display = 'none';
+    panelContainer.appendChild(proxyBarContainer);
+    ProxyManager.initialize(proxyBarContainer);
+
     // Get API Key link
     apiKeyLink = document.createElement('a');
     apiKeyLink.className = 'nemo-get-api-key';
@@ -758,6 +777,7 @@ export const ModelCards = {
      * Destroy the panel.
      */
     destroy() {
+        ProxyManager.destroy();
         if (panelContainer) {
             panelContainer.remove();
             panelContainer = null;
@@ -765,6 +785,7 @@ export const ModelCards = {
         searchInput = null;
         gridContainer = null;
         resultCount = null;
+        proxyBarContainer = null;
         currentSource = '';
         onCrossProviderSelect = null;
         clearTimeout(searchDebounce);
