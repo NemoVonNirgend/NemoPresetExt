@@ -11,6 +11,7 @@ import { extension_settings } from '../../../../../extensions.js';
 import { ProviderTabs } from './provider-tabs.js';
 import { ModelCards } from './model-cards.js';
 import { pushRecent } from './model-favorites.js';
+import { PipelineSettingsUI } from './pipeline-settings.js';
 import logger from '../../core/logger.js';
 
 const NEMO_EXTENSION_NAME = 'NemoPresetExt';
@@ -255,7 +256,18 @@ export const ModelSelector = {
             document.head.appendChild(link);
         }
 
-        logger.info('ModelSelector: Initialized with provider tabs + card grid');
+        // 9. Load pipeline settings CSS
+        if (!document.querySelector('link[href*="pipeline-settings.css"]')) {
+            const pipeLink = document.createElement('link');
+            pipeLink.rel = 'stylesheet';
+            pipeLink.href = 'scripts/extensions/third-party/NemoPresetExt/features/connection/pipeline-settings.css';
+            document.head.appendChild(pipeLink);
+        }
+
+        // 10. Initialize Nemo Stack pipeline settings UI
+        PipelineSettingsUI.initialize(result.wrapper);
+
+        logger.info('ModelSelector: Initialized with provider tabs + card grid + pipeline settings');
     },
 
     /**
@@ -278,6 +290,7 @@ export const ModelSelector = {
         }
 
         // Destroy sub-modules
+        PipelineSettingsUI.destroy();
         ModelCards.destroy();
         ProviderTabs.destroy();
 

@@ -1,0 +1,473 @@
+/* ============================================================
+ * NemoPresetExt - Pipeline Settings (Nemo Stack) Panel
+ * Styles for the pipeline configuration UI inside the connection panel.
+ * ============================================================ */
+
+/* ─── Trigger Button ─────────────────────────────────────────── */
+
+.nemo-stack-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    margin: 8px 0;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 20px;
+    background: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeFavColor);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    user-select: none;
+}
+
+.nemo-stack-btn:hover {
+    background: var(--SmartThemeFavColor);
+    color: var(--SmartThemeBodyColor);
+    border-color: var(--SmartThemeFavColor);
+}
+
+.nemo-stack-btn.active {
+    background: var(--SmartThemeFavColor);
+    color: var(--SmartThemeBodyColor);
+    border-color: var(--SmartThemeFavColor);
+}
+
+.nemo-stack-btn i {
+    font-size: 12px;
+}
+
+/* ─── Main Panel ─────────────────────────────────────────────── */
+
+.nemo-stack-panel {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    margin: 8px 0;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 8px;
+    background: var(--SmartThemeBlurTintColor);
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.nemo-stack-panel.open {
+    display: flex;
+}
+
+/* ─── Header Bar ─────────────────────────────────────────────── */
+
+.nemo-stack-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor);
+}
+
+.nemo-stack-header select {
+    flex: 1;
+    min-width: 140px;
+    padding: 4px 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    font-size: 13px;
+}
+
+.nemo-stack-header-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: var(--SmartThemeBlurTintColor);
+    color: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+
+.nemo-stack-header-btn:hover {
+    background: var(--SmartThemeBorderColor);
+}
+
+.nemo-stack-header-btn.danger {
+    color: #e74c3c;
+    border-color: #e74c3c55;
+}
+
+.nemo-stack-header-btn.danger:hover {
+    background: #e74c3c22;
+}
+
+.nemo-stack-header-btn.close-btn {
+    margin-left: auto;
+}
+
+/* ─── Collapsible Sections ───────────────────────────────────── */
+
+.nemo-stack-section {
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.nemo-stack-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--SmartThemeBodyColor);
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.15s;
+}
+
+.nemo-stack-section-header:hover {
+    background: var(--SmartThemeBorderColor);
+}
+
+.nemo-stack-section-header i.fa-chevron-right {
+    font-size: 11px;
+    transition: transform 0.2s;
+    width: 12px;
+    text-align: center;
+}
+
+.nemo-stack-section.open > .nemo-stack-section-header i.fa-chevron-right {
+    transform: rotate(90deg);
+}
+
+.nemo-stack-section-content {
+    display: none;
+    padding: 10px;
+    gap: 8px;
+    flex-direction: column;
+}
+
+.nemo-stack-section.open > .nemo-stack-section-content {
+    display: flex;
+}
+
+/* ─── Form Rows ──────────────────────────────────────────────── */
+
+.nemo-stack-field-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.nemo-stack-field-row label {
+    flex: 0 0 120px;
+    font-size: 12px;
+    color: var(--SmartThemeQuoteColor);
+    text-align: right;
+}
+
+.nemo-stack-model-select {
+    flex: 1;
+    min-width: 120px;
+    padding: 4px 6px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    font-size: 12px;
+}
+
+.nemo-stack-input {
+    width: 80px;
+    padding: 4px 6px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    font-size: 12px;
+    text-align: center;
+}
+
+.nemo-stack-input:focus,
+.nemo-stack-model-select:focus {
+    outline: none;
+    border-color: var(--SmartThemeFavColor);
+}
+
+/* ─── Prompt Toggle + Textarea ───────────────────────────────── */
+
+.nemo-stack-prompt-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    margin-top: 4px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--SmartThemeQuoteColor);
+    font-size: 11px;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.nemo-stack-prompt-toggle:hover {
+    color: var(--SmartThemeFavColor);
+}
+
+.nemo-stack-prompt-area {
+    display: none;
+    width: 100%;
+    min-height: 100px;
+    max-height: 300px;
+    margin-top: 4px;
+    padding: 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    font-size: 11px;
+    font-family: 'Courier New', Courier, monospace;
+    line-height: 1.4;
+    resize: vertical;
+}
+
+.nemo-stack-prompt-area.open {
+    display: block;
+}
+
+/* ─── Drafter Rows ───────────────────────────────────────────── */
+
+.nemo-stack-drafters-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.nemo-stack-drafter-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: var(--SmartThemeBlurTintColor);
+}
+
+.nemo-stack-drafter-label {
+    flex: 0 0 22px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--SmartThemeFavColor);
+    text-align: center;
+}
+
+.nemo-stack-drafter-row .nemo-stack-model-select {
+    flex: 1;
+}
+
+.nemo-stack-drafter-row .nemo-stack-input {
+    width: 65px;
+}
+
+.nemo-stack-remove-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #e74c3c;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.15s;
+}
+
+.nemo-stack-remove-btn:hover {
+    background: #e74c3c22;
+}
+
+.nemo-stack-add-drafter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    margin-top: 4px;
+    border: 1px dashed var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--SmartThemeQuoteColor);
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.nemo-stack-add-drafter-btn:hover {
+    color: var(--SmartThemeFavColor);
+    border-color: var(--SmartThemeFavColor);
+}
+
+/* ─── Footer ─────────────────────────────────────────────────── */
+
+.nemo-stack-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--SmartThemeBorderColor);
+    flex-wrap: wrap;
+}
+
+.nemo-stack-footer-btn {
+    padding: 5px 14px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: var(--SmartThemeBlurTintColor);
+    color: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.nemo-stack-footer-btn:hover {
+    background: var(--SmartThemeBorderColor);
+}
+
+.nemo-stack-footer-btn.primary {
+    background: var(--SmartThemeFavColor);
+    color: var(--SmartThemeBodyColor);
+    border-color: var(--SmartThemeFavColor);
+}
+
+.nemo-stack-footer-btn.primary:hover {
+    opacity: 0.85;
+}
+
+/* ─── Validation Results ─────────────────────────────────────── */
+
+.nemo-stack-validation {
+    display: none;
+    padding: 8px;
+    margin-top: 6px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.nemo-stack-validation.open {
+    display: block;
+}
+
+.nemo-stack-validation.success {
+    border-color: #2ecc71;
+    background: #2ecc7115;
+}
+
+.nemo-stack-validation.error {
+    border-color: #e74c3c;
+    background: #e74c3c15;
+}
+
+.nemo-stack-validation-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nemo-stack-validation-item i.fa-check {
+    color: #2ecc71;
+}
+
+.nemo-stack-validation-item i.fa-xmark {
+    color: #e74c3c;
+}
+
+/* ─── Test Results ───────────────────────────────────────────── */
+
+.nemo-stack-test-results {
+    display: none;
+    padding: 8px;
+    margin-top: 6px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    font-size: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.nemo-stack-test-results.open {
+    display: block;
+}
+
+.nemo-stack-test-status {
+    padding: 4px 0;
+    color: var(--SmartThemeQuoteColor);
+}
+
+.nemo-stack-test-timing {
+    font-weight: 600;
+    color: var(--SmartThemeFavColor);
+}
+
+.nemo-stack-test-preview {
+    margin-top: 6px;
+    padding: 6px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: var(--SmartThemeBlurTintColor);
+    white-space: pre-wrap;
+    font-size: 11px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* ─── Empty State ────────────────────────────────────────────── */
+
+.nemo-stack-empty-msg {
+    padding: 8px;
+    font-size: 12px;
+    color: var(--SmartThemeQuoteColor);
+    font-style: italic;
+    text-align: center;
+}
+
+/* ─── Mobile ─────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+    .nemo-stack-field-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .nemo-stack-field-row label {
+        flex: none;
+        text-align: left;
+    }
+
+    .nemo-stack-drafter-row {
+        flex-wrap: wrap;
+    }
+
+    .nemo-stack-drafter-row .nemo-stack-model-select {
+        min-width: 100%;
+    }
+
+    .nemo-stack-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .nemo-stack-header-btn.close-btn {
+        margin-left: 0;
+    }
+}
