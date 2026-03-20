@@ -128,7 +128,7 @@ export const NemoGlobalUI = {
                 // Convert standard sections to drawers
                 drawerTargetsConfig.forEach(config => {
                     const elementToConvert = document.querySelector(config.selector);
-                    if (elementToConvert && elementToConvert.offsetParent !== null && !elementToConvert.closest('.inline-drawer')) {
+                    if (elementToConvert && !elementToConvert.closest('.inline-drawer')) {
                         this.convertToInlineDrawer(config.selector, config.title, false, config.id);
                     }
                 });
@@ -172,7 +172,18 @@ export const NemoGlobalUI = {
             }
         });
 
-        bodyObserver.observe(document.body, { childList: true, subtree: true });
-        console.log(`${LOG_PREFIX} Global UI module initialized and observing body for left panel.`);
+        // Check immediately if the panel already exists
+        const existingPanel = document.querySelector(SELECTORS.leftNavPanel);
+        if (existingPanel) {
+            setupPanelObserver(existingPanel);
+            const stopButton = document.querySelector(SELECTORS.stopButton);
+            if (stopButton && !stopButton.dataset.nemoAnimated) {
+                this.initializeStopButtonAnimation();
+                stopButton.dataset.nemoAnimated = 'true';
+            }
+        } else {
+            bodyObserver.observe(document.body, { childList: true, subtree: true });
+        }
+        console.log(`${LOG_PREFIX} Global UI module initialized.`);
     }
 };
