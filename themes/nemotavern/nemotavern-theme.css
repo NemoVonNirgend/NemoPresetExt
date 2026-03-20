@@ -863,8 +863,9 @@ body.nemo-theme-nemotavern .nemo-animate-scale-in {
    Hidden Original Elements (when NemoTavern active)
    ============================================ */
 
-/* Hide ALL drawer icons globally - but keep them interactive for JS clicks */
-body.nemo-theme-nemotavern .drawer-icon {
+/* Hide drawer icons ONLY when the React toolbar has mounted (nemo-ui-active).
+   This prevents users from being locked out if the React app fails to load. */
+body.nemo-theme-nemotavern.nemo-ui-active .drawer-icon {
   position: fixed !important;
   top: -9999px !important;
   left: -9999px !important;
@@ -875,22 +876,22 @@ body.nemo-theme-nemotavern .drawer-icon {
   /* Note: NOT using display:none or visibility:hidden to keep elements clickable via JS */
 }
 
-/* Hide the top settings holder container completely */
-body.nemo-theme-nemotavern #top-settings-holder {
+/* Hide the top settings holder ONLY when React toolbar is available */
+body.nemo-theme-nemotavern.nemo-ui-active #top-settings-holder {
   display: none !important;
   visibility: hidden !important;
   position: absolute !important;
   left: -9999px !important;
 }
 
-/* Hide drawer holder containers that may appear */
-body.nemo-theme-nemotavern #leftNavHolder,
-body.nemo-theme-nemotavern #rightNavHolder,
-body.nemo-theme-nemotavern #user-settings-button,
-body.nemo-theme-nemotavern #ai-config-button,
-body.nemo-theme-nemotavern #WI-SP-button,
-body.nemo-theme-nemotavern #extensions-settings-button,
-body.nemo-theme-nemotavern #backgrounds_menu_button {
+/* Hide drawer holder containers ONLY when React toolbar provides alternatives */
+body.nemo-theme-nemotavern.nemo-ui-active #leftNavHolder,
+body.nemo-theme-nemotavern.nemo-ui-active #rightNavHolder,
+body.nemo-theme-nemotavern.nemo-ui-active #user-settings-button,
+body.nemo-theme-nemotavern.nemo-ui-active #ai-config-button,
+body.nemo-theme-nemotavern.nemo-ui-active #WI-SP-button,
+body.nemo-theme-nemotavern.nemo-ui-active #extensions-settings-button,
+body.nemo-theme-nemotavern.nemo-ui-active #backgrounds_menu_button {
   /* Hide the icon container but keep drawer content functional */
 }
 
