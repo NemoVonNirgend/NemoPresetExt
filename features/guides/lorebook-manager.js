@@ -228,17 +228,9 @@ async function findTrackerEntry(trackerType) {
     const tracker = TRACKERS[trackerType];
     if (!tracker) return null;
 
-    // Check cache first — only if UID is a valid non-empty string
-    if (uidCache[trackerType] && String(uidCache[trackerType]).trim()) {
-        const cachedUid = String(uidCache[trackerType]).trim();
-        const content = await runScript(`/getentryfield file=${JSON.stringify(bookName)} uid=${cachedUid} field=comment`);
-        if (content.includes(ENTRY_PREFIX)) {
-            return cachedUid;
-        }
-        delete uidCache[trackerType];
-    }
-
-    // Cache miss — scan the in-memory world info data to find our entries
+    // Always scan the in-memory world info data to find our entries.
+    // The UID cache from createentry may not match what getentryfield expects,
+    // so we rely on the worldInfo scan which uses the real entry.uid.
     try {
         const context = getContext();
         if (context?.worldInfo) {
