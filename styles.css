@@ -12261,6 +12261,99 @@ body.theme-terminal .mes_block .avatar {
 
 
 /* ============================================================
+   TOOL CALL RESULT STYLING
+   ============================================================ */
+
+/* Tool call messages — the entire message bubble */
+.mes .mes_text > details:has(> summary) {
+    border: 1px solid rgba(162, 155, 254, 0.2);
+    border-radius: 8px;
+    background: rgba(162, 155, 254, 0.04);
+    overflow: hidden;
+    margin: 4px 0;
+}
+
+/* Tool call summary bar */
+.mes .mes_text > details > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9em;
+    color: #a29bfe;
+    background: rgba(162, 155, 254, 0.06);
+    border-bottom: 1px solid rgba(162, 155, 254, 0.1);
+    transition: background 0.2s;
+    list-style: none;
+}
+
+.mes .mes_text > details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.mes .mes_text > details > summary::before {
+    content: '\f0ad';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+.mes .mes_text > details > summary::after {
+    content: '\f078';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.7em;
+    margin-left: auto;
+    opacity: 0.4;
+    transition: transform 0.2s;
+}
+
+.mes .mes_text > details[open] > summary::after {
+    transform: rotate(180deg);
+}
+
+.mes .mes_text > details > summary:hover {
+    background: rgba(162, 155, 254, 0.12);
+}
+
+/* Tool call content (JSON) */
+.mes .mes_text > details > pre {
+    margin: 0;
+    padding: 12px 14px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0 0 7px 7px;
+}
+
+.mes .mes_text > details > pre code {
+    font-size: 0.8em;
+    line-height: 1.4;
+}
+
+.mes .mes_text > details > pre::-webkit-scrollbar {
+    width: 4px;
+}
+
+.mes .mes_text > details > pre::-webkit-scrollbar-thumb {
+    background: rgba(162, 155, 254, 0.3);
+    border-radius: 2px;
+}
+
+/* Collapsed state — cleaner look */
+.mes .mes_text > details:not([open]) {
+    border-color: rgba(162, 155, 254, 0.15);
+}
+
+.mes .mes_text > details:not([open]) > summary {
+    border-bottom: none;
+    border-radius: 8px;
+}
+
+/* ============================================================
    NEMO GUIDES (merged from NemosGuides extension)
    ============================================================ */
 

@@ -103,7 +103,7 @@ async function runPlan(direction) {
     });
 
     await setChatVar('ng_last_plan', result);
-    return 'Response plan created. Blueprint is now in your context — use it to structure your response.';
+    return `Response plan created.\n\n${result}`;
 }
 
 async function runBrainstorm(topic) {
@@ -129,7 +129,7 @@ async function runBrainstorm(topic) {
     });
 
     await setChatVar('ng_last_brainstorm', result);
-    return 'Brainstorming complete. Creative ideas are now in your context — integrate the best ones.';
+    return `Brainstorming complete.\n\n${result}`;
 }
 
 async function runRefine(planText) {
@@ -162,7 +162,7 @@ async function runRefine(planText) {
     });
 
     await setChatVar('ng_last_plan', result);
-    return 'Plan refined and audited for consistency. Refined blueprint is now in your context.';
+    return `Plan refined and audited.\n\n${result}`;
 }
 
 // ── Full Pipeline ──
@@ -199,5 +199,5 @@ async function runFullPipeline(direction) {
         } catch { /* best effort */ }
     }
 
-    return 'Full pipeline complete (Plan → Brainstorm → Refine). The refined blueprint, creative sparks, and final plan are all in your context. Write your response using them.';
+    return `Full pipeline complete (Plan → Brainstorm → Refine).\n\n${refinedPlan || ''}`;
 }

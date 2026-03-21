@@ -142,8 +142,8 @@ async function execute({ focus, refresh } = {}) {
         console.warn('[NemosGuides] Could not write rules to lorebook tracker.');
     }
 
-    // Return brief summary — full rules are in lorebook + ephemeral injection
-    return 'Story rules generated and saved. Genre, tone, prose craft, world logic, character dynamics, authorial voice, and narrator personality are now active in your context.';
+    // Return full content so it's visible in the tool call result
+    return `Story rules generated and saved.\n\n${result}`;
 }
 
 /**

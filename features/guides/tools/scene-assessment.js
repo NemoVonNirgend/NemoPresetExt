@@ -127,9 +127,9 @@ async function execute({ aspects = ['all'], focus } = {}) {
     // Post-generation: persist results
     await persistResults(requestedAspects, result);
 
-    // Return brief summary — full result is already injected ephemerally + saved to lorebook
+    // Return full content so it's visible in the tool call result
     const aspectLabels = requestedAspects.map(a => ASPECT_LABELS[a] || a).join(', ');
-    return `Scene assessment complete (${aspectLabels}). Results are now in your context — use them to inform your response.`;
+    return `Scene assessment complete (${aspectLabels}).\n\n${result}`;
 }
 
 /**
