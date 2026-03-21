@@ -1,0 +1,92 @@
+[
+    {
+        "name": "NemoPresetExt",
+        "description": "Complete UI overhaul for SillyTavern — preset navigation, world info redesign, connection panel, prompt categories, themes, and more.",
+        "author": "Nemo",
+        "url": "https://github.com/NemoVonNirgend/NemoPresetExt",
+        "category": "extensions",
+        "tags": ["ui", "presets", "world-info", "must-have"]
+    },
+    {
+        "name": "NemoEngine",
+        "description": "Advanced modular preset system with Vex personalities, dynamic prompt engineering, genre/writing style modules, and multi-model optimization.",
+        "author": "Nemo",
+        "url": "https://github.com/NemoVonNirgend/NemoEngine",
+        "category": "presets",
+        "tags": ["prompt-engineering", "modular", "vex"]
+    },
+    {
+        "name": "TunnelVision",
+        "description": "Activity feed and monitoring extension for SillyTavern — track what's happening in your chats in real time.",
+        "author": "Coneja-Chibi",
+        "url": "https://github.com/Coneja-Chibi/TunnelVision",
+        "category": "extensions",
+        "tags": ["monitoring", "activity-feed"]
+    },
+    {
+        "name": "BunnyMo",
+        "description": "A curated lorebook collection by Coneja-Chibi for enriching your SillyTavern roleplay experience.",
+        "author": "Coneja-Chibi",
+        "url": "https://github.com/Coneja-Chibi/BunnyMo",
+        "category": "lorebooks",
+        "image": "scripts/extensions/third-party/NemoPresetExt/features/marketplace/images/bunnymo.webp",
+        "tags": ["lore", "worldbuilding"]
+    },
+    {
+        "name": "The HawThorne Directives",
+        "description": "A preset collection with fine-tuned directives and prompt configurations for optimized AI behavior.",
+        "author": "Coneja-Chibi",
+        "url": "https://github.com/Coneja-Chibi/The-HawThorne-Directives",
+        "category": "presets",
+        "image": "scripts/extensions/third-party/NemoPresetExt/features/marketplace/images/hawthorne.png",
+        "tags": ["directives", "prompt-tuning"]
+    },
+    {
+        "name": "Rabbit Response Team",
+        "description": "Response quality and formatting extension for SillyTavern by Coneja-Chibi.",
+        "author": "Coneja-Chibi",
+        "url": "https://github.com/Coneja-Chibi/Rabbit-Response-Team",
+        "category": "extensions",
+        "tags": ["response", "formatting"]
+    },
+    {
+        "name": "Marinara's Spaghetti Recipe",
+        "description": "Popular universal preset collection with optimized settings for multiple APIs and models. Widely used in the ST community.",
+        "author": "SpicyMarinara",
+        "url": "https://github.com/SpicyMarinara/SillyTavern-Settings",
+        "category": "presets",
+        "tags": ["universal", "popular", "multi-model"]
+    },
+    {
+        "name": "Lucid Loom",
+        "description": "Chat presets from Lucid Cards — polished presets for creative roleplay.",
+        "author": "Lucid Cards",
+        "url": "https://lucid.cards/chat-presets",
+        "category": "presets",
+        "tags": ["roleplay", "creative"]
+    },
+    {
+        "name": "AI Preset",
+        "description": "Discord community for AI preset sharing, prompt engineering discussion, and SillyTavern support.",
+        "author": "Nemo",
+        "url": "https://discord.gg/CnBsYV5m5E",
+        "category": "community",
+        "tags": ["presets", "support", "discussion"]
+    },
+    {
+        "name": "RoleCall",
+        "description": "Nemo's dedicated chat platform Discord — connect with other roleplayers, share characters, presets, and creative content.",
+        "author": "Nemo",
+        "url": "https://discord.gg/nmHdXvCWbD",
+        "category": "community",
+        "tags": ["chat-platform", "roleplay", "social"]
+    },
+    {
+        "name": "SillyTavern Docs",
+        "description": "Official SillyTavern documentation — setup guides, features, API configuration, and troubleshooting.",
+        "author": "SillyTavern Team",
+        "url": "https://docs.sillytavern.app/",
+        "category": "guides",
+        "tags": ["documentation", "setup", "official"]
+    }
+]
