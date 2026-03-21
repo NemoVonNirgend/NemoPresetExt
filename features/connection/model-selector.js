@@ -12,6 +12,7 @@ import { ProviderTabs } from './provider-tabs.js';
 import { ModelCards } from './model-cards.js';
 import { pushRecent } from './model-favorites.js';
 import { PipelineSettingsUI } from './pipeline-settings.js';
+import { TextCompletionSelector } from './textcomp-selector.js';
 import logger from '../../core/logger.js';
 
 const NEMO_EXTENSION_NAME = 'NemoPresetExt';
@@ -219,6 +220,7 @@ export const ModelSelector = {
             extension_settings[NEMO_EXTENSION_NAME].enableModelSelector = false;
             saveSettingsDebounced();
             ModelSelector.destroy();
+            try { TextCompletionSelector.destroy(); } catch (_) { /* ignore */ }
             // Also update the settings toggle if it exists
             const toggle = document.getElementById('nemoEnableModelSelector');
             if (toggle) toggle.checked = false;
@@ -352,6 +354,7 @@ export const ModelSelector = {
             const toggle = document.getElementById('nemoEnableModelSelector');
             if (toggle) toggle.checked = true;
             ModelSelector.initialize();
+            try { TextCompletionSelector.initialize(); } catch (_) { /* ignore */ }
         });
 
         // Insert right before the select dropdown

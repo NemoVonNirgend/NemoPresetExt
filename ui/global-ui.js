@@ -10,7 +10,7 @@ const SELECTORS = {
 export const NemoGlobalUI = {
     convertToInlineDrawer: function(selector, title, isOpenByDefault = false, uniqueId = null) {
         const targetElement = document.querySelector(selector);
-        if (!targetElement || targetElement.closest('.inline-drawer')) return;
+        if (!targetElement || targetElement.closest('.nemo-converted-drawer')) return;
         if (uniqueId && document.getElementById(`nemo-drawer-${uniqueId}`)) return;
 
         const drawer = document.createElement('div');
@@ -26,18 +26,26 @@ export const NemoGlobalUI = {
         drawerContent.className = 'inline-drawer-content';
         if (!isOpenByDefault) drawerContent.style.display = 'none';
 
-        // Use a DocumentFragment to batch append operations for performance
-        const fragment = document.createDocumentFragment();
-        while (targetElement.firstChild) {
-            fragment.appendChild(targetElement.firstChild);
-        }
-        drawerContent.appendChild(fragment);
+        // Insert wrapper BEFORE target, then move target INSIDE wrapper content.
+        targetElement.parentNode.insertBefore(drawer, targetElement);
+        drawerContent.appendChild(targetElement);
 
         drawer.appendChild(drawerToggle);
         drawer.appendChild(drawerContent);
 
-        targetElement.parentNode.insertBefore(drawer, targetElement);
-        targetElement.remove();
+        // Sync visibility: ST's changeMainAPI() directly hides/shows elements
+        // like #range_block_novel via jQuery .hide()/.show(). Since the target
+        // is now inside our wrapper, we must propagate its visibility to the
+        // drawer so the header doesn't show when the content is hidden.
+        const syncVisibility = () => {
+            const hidden = targetElement.style.display === 'none' ||
+                           targetElement.classList.contains('displayNone');
+            drawer.style.display = hidden ? 'none' : '';
+        };
+        const visObserver = new MutationObserver(syncVisibility);
+        visObserver.observe(targetElement, { attributes: true, attributeFilter: ['style', 'class'] });
+        // Initial sync (ST may have already hidden the element)
+        syncVisibility();
     },
 
     moveNestedPromptDrawers: function() {

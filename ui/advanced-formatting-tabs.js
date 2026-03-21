@@ -46,13 +46,11 @@ export const AdvancedFormattingTabs = {
             const searchContainer = document.createElement('div');
             searchContainer.className = 'nemo-advanced-formatting-search';
             searchContainer.innerHTML = `
-                <div class="flex-container alignItemsCenter" style="margin-bottom: 15px; gap: 10px;">
-                    <i class="fa-solid fa-search" style="color: var(--nemo-text-color); opacity: 0.7;"></i>
-                    <input type="search" id="nemo-advanced-formatting-search" 
-                           placeholder="Search advanced formatting options..." 
-                           style="flex: 1; padding: 8px 12px; border: 1px solid var(--nemo-border-color); 
-                                  border-radius: 4px; background: var(--nemo-tertiary-bg); 
-                                  color: var(--nemo-text-color); font-size: 14px;">
+                <div class="nemo-model-search-wrapper">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="search" id="nemo-advanced-formatting-search"
+                           class="nemo-model-search"
+                           placeholder="Search advanced formatting options...">
                 </div>
             `;
 

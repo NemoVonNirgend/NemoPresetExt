@@ -11771,3 +11771,437 @@ body.theme-terminal .mes_block .avatar {
     transition: opacity 0.1s ease;
     /* Do NOT set min-height blindly as it might force layout shifts if content is smaller */
 }
+
+/* ============================================================
+   PERSONA MANAGEMENT ENHANCEMENTS
+   ============================================================ */
+
+/* --- Overall Panel Polish --- */
+#PersonaManagement {
+    padding: 10px 15px !important;
+}
+
+#persona-management-block {
+    gap: 15px !important;
+}
+
+/* --- Left Column: Persona List --- */
+.persona_management_left_column {
+    min-width: 280px;
+}
+
+/* Toolbar spacing */
+.persona_management_left_column > .flex-container.marginBot10 {
+    flex-wrap: wrap;
+    gap: 6px !important;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    margin-bottom: 10px !important;
+}
+
+/* Persona count badge */
+.nemo-persona-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: var(--SmartThemeQuoteColor, rgba(100, 100, 255, 0.15));
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 0.8em;
+    font-weight: 500;
+    white-space: nowrap;
+    height: 28px;
+}
+
+.nemo-persona-count-badge i {
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+/* --- Persona Card Improvements --- */
+#user_avatar_block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px !important;
+}
+
+#user_avatar_block .avatar-container {
+    border-radius: 8px !important;
+    border: 2px solid transparent !important;
+    padding: 8px !important;
+    transition: all 0.2s ease !important;
+    position: relative;
+}
+
+#user_avatar_block .avatar-container:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Selected persona highlight — ST adds .selected class natively */
+#user_avatar_block .avatar-container.selected {
+    border-color: var(--SmartThemeQuoteColor, #6eb5ff) !important;
+    background: rgba(110, 181, 255, 0.08) !important;
+    box-shadow: 0 0 12px rgba(110, 181, 255, 0.15), inset 0 0 0 1px rgba(110, 181, 255, 0.1) !important;
+}
+
+/* Locked to character indicator */
+#user_avatar_block .avatar-container.locked_to_character::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #55efc4;
+    box-shadow: 0 0 6px rgba(85, 239, 196, 0.5);
+}
+
+/* Persona avatar image */
+#user_avatar_block .avatar-container .avatar {
+    border-radius: 6px !important;
+    width: 50px !important;
+    height: 50px !important;
+    object-fit: cover;
+}
+
+/* Persona name in list */
+#user_avatar_block .avatar-container .ch_name {
+    font-weight: 600 !important;
+    font-size: 0.95em !important;
+}
+
+/* Persona description preview in list */
+#user_avatar_block .avatar-container .ch_description {
+    opacity: 0.65;
+    font-size: 0.82em !important;
+    line-height: 1.4 !important;
+    max-height: 2.8em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- Right Column: Editor --- */
+.persona_management_right_column {
+    min-width: 350px;
+}
+
+/* Current Persona header */
+.persona_management_current_persona > h4.standoutHeader {
+    font-size: 0.75em !important;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: 0.5;
+    margin-bottom: 4px !important;
+}
+
+/* Persona name display */
+#persona_controls {
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 12px !important;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.08));
+}
+
+#persona_controls .persona_name {
+    font-size: 1.3em !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    flex: 1;
+}
+
+/* --- Action Icons Enhancement --- */
+.persona_controls_buttons_block.nemo-persona-actions {
+    display: flex !important;
+    gap: 2px !important;
+    align-items: center;
+}
+
+.nemo-persona-action-group {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.nemo-persona-action-group + .nemo-persona-action-group {
+    margin-left: 4px;
+}
+
+.nemo-persona-action-group .menu_button {
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 5px !important;
+    font-size: 0.85em !important;
+    transition: all 0.15s ease !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+.nemo-persona-action-group .menu_button:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    transform: scale(1.1);
+}
+
+/* Danger group (delete) */
+.nemo-persona-action-danger .menu_button {
+    color: var(--SmartThemeBodyColor, #ccc) !important;
+    opacity: 0.6;
+}
+
+.nemo-persona-action-danger .menu_button:hover {
+    color: #ff6b6b !important;
+    background: rgba(255, 107, 107, 0.1) !important;
+    opacity: 1;
+}
+
+/* --- Persona Description Section --- */
+.persona_management_current_persona > h4:not(.standoutHeader) {
+    font-size: 0.85em !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+    margin-top: 10px !important;
+    margin-bottom: 6px !important;
+}
+
+#persona_description {
+    border-radius: 8px !important;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.12)) !important;
+    padding: 10px !important;
+    font-size: 0.9em !important;
+    line-height: 1.5 !important;
+    min-height: 100px !important;
+    resize: vertical !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+#persona_description:focus {
+    border-color: var(--SmartThemeQuoteColor, #6eb5ff) !important;
+    box-shadow: 0 0 0 2px rgba(110, 181, 255, 0.15) !important;
+    outline: none !important;
+}
+
+#persona_description::placeholder {
+    opacity: 0.35 !important;
+    font-style: italic !important;
+}
+
+/* Position & Token count row */
+.persona_management_current_persona > .flex-container.justifySpaceBetween {
+    align-items: center;
+    margin-top: 8px;
+}
+
+.persona_management_current_persona .extension_token_counter {
+    font-size: 0.8em !important;
+    opacity: 0.6;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Position dropdown */
+.persona_management_description_position_container select {
+    border-radius: 6px !important;
+}
+
+/* --- Connection Buttons Enhancement --- */
+.nemo-persona-connections {
+    display: flex !important;
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+}
+
+.nemo-persona-connections .menu_button {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    font-size: 0.85em !important;
+    font-weight: 500 !important;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.12)) !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Locked state — green accent */
+.nemo-persona-connections .menu_button.nemo-persona-locked {
+    border-color: rgba(85, 239, 196, 0.4) !important;
+    background: rgba(85, 239, 196, 0.08) !important;
+    color: #55efc4 !important;
+}
+
+.nemo-persona-connections .menu_button.nemo-persona-locked .icon {
+    color: #55efc4 !important;
+}
+
+/* Unlocked state — subtle */
+.nemo-persona-connections .menu_button.nemo-persona-unlocked {
+    opacity: 0.6;
+}
+
+.nemo-persona-connections .menu_button.nemo-persona-unlocked:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Default persona (crown) */
+#lock_persona_default.nemo-persona-locked {
+    border-color: rgba(255, 215, 0, 0.4) !important;
+    background: rgba(255, 215, 0, 0.08) !important;
+    color: #ffd700 !important;
+}
+
+#lock_persona_default.nemo-persona-locked .icon {
+    color: #ffd700 !important;
+}
+
+/* --- Temporary Persona Banner --- */
+.nemo-persona-temp-banner {
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    margin: 8px 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 0.85em !important;
+    border-left: 3px solid var(--SmartThemeQuoteColor, #6eb5ff) !important;
+    background: rgba(110, 181, 255, 0.08) !important;
+}
+
+/* Connection list (character thumbnails) */
+#persona_connections_list {
+    padding: 8px 0 !important;
+    gap: 6px !important;
+}
+
+#persona_connections_list img {
+    border-radius: 6px !important;
+    width: 40px !important;
+    height: 40px !important;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+#persona_connections_list img:hover {
+    transform: scale(1.15);
+    border-color: var(--SmartThemeQuoteColor, #6eb5ff);
+}
+
+/* --- Global Settings Collapsible --- */
+.persona_management_global_settings {
+    border-top: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.08));
+    padding-top: 10px !important;
+    margin-top: 12px !important;
+}
+
+.nemo-persona-collapsible-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 6px 0 !important;
+    user-select: none;
+    transition: opacity 0.15s ease;
+}
+
+.nemo-persona-collapsible-header:hover {
+    opacity: 0.8;
+}
+
+.nemo-persona-chevron {
+    font-size: 0.7em !important;
+    opacity: 0.5;
+    transition: transform 0.2s ease;
+    margin-left: 8px;
+}
+
+.nemo-persona-settings-content {
+    overflow: hidden;
+    max-height: 200px;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    opacity: 1;
+}
+
+.nemo-persona-settings-content.nemo-persona-collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.persona_management_global_settings .range-block {
+    padding: 4px 0 !important;
+}
+
+.persona_management_global_settings .checkbox_label {
+    font-size: 0.85em !important;
+    gap: 8px !important;
+    padding: 4px 0 !important;
+}
+
+/* --- Header Bar Polish --- */
+#PersonaManagement > .flex-container:first-child > .flex-container:first-child {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.08));
+    margin-bottom: 10px !important;
+}
+
+/* Usage Stats / Backup / Restore buttons */
+#PersonaManagement > .flex-container:first-child .menu_button_icon {
+    font-size: 0.82em !important;
+    padding: 5px 10px !important;
+    border-radius: 6px !important;
+    gap: 5px !important;
+}
+
+/* --- Search bar --- */
+#persona_search_bar {
+    border-radius: 6px !important;
+    font-size: 0.88em !important;
+}
+
+/* --- Pagination --- */
+#persona_pagination_container {
+    font-size: 0.82em !important;
+}
+
+#persona_pagination_container .paginationjs-pages li {
+    border-radius: 4px !important;
+}
+
+/* --- Grid Toggle --- */
+#persona_grid_toggle {
+    width: 28px !important;
+    height: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 5px !important;
+    font-size: 0.85em !important;
+}
+
+/* --- Mobile Responsive --- */
+@media (max-width: 768px) {
+    #persona-management-block {
+        flex-direction: column !important;
+    }
+
+    .persona_management_left_column,
+    .persona_management_right_column {
+        min-width: unset !important;
+        width: 100% !important;
+    }
+}

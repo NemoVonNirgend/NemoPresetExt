@@ -49,6 +49,7 @@ import { tutorialLauncher } from './features/onboarding/tutorial-launcher.js';
 import { NemoCharacterManager } from './features/character-manager/character-manager.js';
 import { NemoWorldInfoUI } from './features/world-info/world-info-ui.js';
 import { NemoMarketplace } from './features/marketplace/marketplace.js';
+import { NemoPersonaUI } from './features/persona/persona-ui.js';
 import domCache from './features/character-manager/dom-cache.js';
 
 // Feature modules - Connection/Model Selector, API Router & Pipeline
@@ -125,6 +126,7 @@ async function initializeExtension() {
 
         NemoGlobalUI.initialize();
         NemoMarketplace.initialize();
+        NemoPersonaUI.initialize();
         // NemoPromptArchiveUI.initialize(); // Disabled — replaced by category tray archive
 
         // Initialize tab overhauls only if enabled
