@@ -228,17 +228,17 @@ async function findTrackerEntry(trackerType) {
     const tracker = TRACKERS[trackerType];
     if (!tracker) return null;
 
-    // Check cache first
-    if (uidCache[trackerType]) {
-        const content = await runScript(`/getentryfield file=${JSON.stringify(bookName)} uid=${uidCache[trackerType]} field=comment`);
+    // Check cache first — only if UID is a valid non-empty string
+    if (uidCache[trackerType] && String(uidCache[trackerType]).trim()) {
+        const cachedUid = String(uidCache[trackerType]).trim();
+        const content = await runScript(`/getentryfield file=${JSON.stringify(bookName)} uid=${cachedUid} field=comment`);
         if (content.includes(ENTRY_PREFIX)) {
-            return uidCache[trackerType];
+            return cachedUid;
         }
         delete uidCache[trackerType];
     }
 
-    // Cache miss — scan by trying to find entry with matching key
-    // Use the ST world info data directly to find our entries
+    // Cache miss — scan the in-memory world info data to find our entries
     try {
         const context = getContext();
         if (context?.worldInfo) {
@@ -246,18 +246,22 @@ async function findTrackerEntry(trackerType) {
                 if (name !== bookName) continue;
                 if (!worldData?.entries) continue;
 
-                for (const [uid, entry] of Object.entries(worldData.entries)) {
+                for (const entry of Object.values(worldData.entries)) {
+                    // The real UID is entry.uid, not the object key
+                    const entryUid = entry.uid !== undefined ? String(entry.uid) : null;
+                    if (!entryUid) continue;
+
                     // Match by comment field which contains our prefix + tracker type
                     if (entry.comment && entry.comment === tracker.comment) {
-                        uidCache[trackerType] = uid;
-                        console.log(`${LOG_PREFIX} Found existing tracker "${tracker.key}" (UID: ${uid})`);
-                        return uid;
+                        uidCache[trackerType] = entryUid;
+                        console.log(`${LOG_PREFIX} Found existing tracker "${tracker.key}" (UID: ${entryUid})`);
+                        return entryUid;
                     }
-                    // Fallback: match by key
-                    if (entry.key && entry.key.includes && entry.key.includes(tracker.key)) {
-                        uidCache[trackerType] = uid;
-                        console.log(`${LOG_PREFIX} Found existing tracker "${tracker.key}" by key (UID: ${uid})`);
-                        return uid;
+                    // Fallback: match by key array
+                    if (entry.key && Array.isArray(entry.key) && entry.key.some(k => k.includes(tracker.key))) {
+                        uidCache[trackerType] = entryUid;
+                        console.log(`${LOG_PREFIX} Found existing tracker "${tracker.key}" by key (UID: ${entryUid})`);
+                        return entryUid;
                     }
                 }
             }
@@ -295,8 +299,9 @@ export async function updateTracker(trackerType, content) {
     if (!uid) {
         // Create new entry — use empty key since we use constant:true (always active)
         uid = await runScript(`/createentry file=${JSON.stringify(bookName)} key="" ${JSON.stringify(stampedContent)}`);
+        uid = uid ? String(uid).trim() : '';
 
-        if (!uid || uid === '') {
+        if (!uid) {
             console.error(`${LOG_PREFIX} Failed to create tracker for ${trackerType}`);
             return false;
         }
