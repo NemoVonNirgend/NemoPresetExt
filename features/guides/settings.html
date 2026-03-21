@@ -1,0 +1,408 @@
+<div id="ng-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>Nemo's Guides</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div class="ng-description">
+                <p>Your AI gets its own creative toolkit. Instead of you toggling guides manually, the model decides when it needs scene analysis, story planning, or writing feedback — and calls the right tool automatically.</p>
+                <p><strong>Requires:</strong> An API that supports tool calling (OpenAI, Claude, Gemini, etc.)</p>
+            </div>
+
+            <!-- ═══ Master Toggle ═══ -->
+            <div class="ng-master-toggle">
+                <label class="checkbox_label" for="ng_enabled">
+                    <input type="checkbox" id="ng_enabled" />
+                    <span>Enable Nemo's Guides</span>
+                </label>
+                <small class="ng-hint">Registers all enabled tools with SillyTavern's tool calling system. Disable to remove all NG tools from the model's toolbox.</small>
+            </div>
+
+            <!-- ═══════════════════════════════════════ -->
+            <!-- FEATURE 1: Story Foundation            -->
+            <!-- ═══════════════════════════════════════ -->
+            <div class="inline-drawer ng-feature-group">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-scroll"></i> Story Foundation</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content ng-feature-content">
+                    <div class="ng-feature-description">
+                        <p>On a new chat, NG reads the character card, scenario, and opening message, then generates a complete story ruleset — genre, tone, prose style, world logic, character dynamics, and more.</p>
+                        <p>It also selects the best-suited authorial voices from world literature (any language, any era) and builds a narrator with a full personality profile (MBTI, Enneagram, dere type, temperament).</p>
+                        <p>Everything is saved as a persistent lorebook entry that stays active for the entire conversation.</p>
+                    </div>
+
+                    <!-- Rule Setup Tool -->
+                    <div class="ng-tool-section" data-tool="NG_rule_setup">
+                        <div class="ng-tool-header">
+                            <label class="checkbox_label">
+                                <input type="checkbox" class="ng-tool-enabled" />
+                                <span><i class="fa-solid fa-scroll"></i> Rule Setup</span>
+                            </label>
+                        </div>
+                        <div class="ng-tool-body">
+                            <label class="checkbox_label" title="When hidden, the generated rules are still saved to the lorebook — they just won't appear as a tool call message in chat.">
+                                <input type="checkbox" class="ng-tool-stealth" />
+                                <span>Stealth mode <i class="fa-solid fa-circle-info ng-info-icon" title="Hide the tool call result from the chat UI. The rules are still generated and saved — you just won't see the generation happen."></i></span>
+                            </label>
+                            <label class="checkbox_label" for="ng_auto_rules" title="Automatically generates story rules when you start a new chat. Runs as a sidecar generation using your current API.">
+                                <input type="checkbox" id="ng_auto_rules" checked />
+                                <span>Auto-generate on new chat <i class="fa-solid fa-circle-info ng-info-icon" title="When you start a fresh chat, NG will automatically read the character card and generate story rules, authorial voice, and narrator personality. Uses one sidecar API call."></i></span>
+                            </label>
+                            <label title="Use a different preset for rule generation. Useful if you want a smarter model (e.g. Claude/GPT-4) to write the rules while using a faster model for chat.">
+                                <span>Preset Override <i class="fa-solid fa-circle-info ng-info-icon" title="Leave empty to use your current preset. Set a preset name to switch to a different model/settings for rule generation, then automatically switch back."></i></span>
+                                <input type="text" class="ng-tool-preset text_pole" placeholder="Leave empty = current preset" />
+                            </label>
+                            <div class="ng-tool-actions">
+                                <div id="ng_generate_rules" class="menu_button menu_button_icon" title="Generate story rules right now using the current character card and chat context.">
+                                    <i class="fa-solid fa-scroll"></i>
+                                    <span>Generate Rules Now</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Prompt Override -->
+                    <div class="inline-drawer ng-sub-drawer">
+                        <div class="inline-drawer-toggle inline-drawer-header">
+                            <span><i class="fa-solid fa-pen-fancy"></i> Custom Rule Prompt</span>
+                            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                        </div>
+                        <div class="inline-drawer-content">
+                            <small class="ng-hint">Override the prompt that generates story rules. The default prompt produces an Atelier-style system prompt with genre analysis, authorial voice blending, narrator personality profiling, and world logic extraction. Only change this if you know what you're doing.</small>
+                            <div class="ng-tool-section" data-tool="NG_rule_setup">
+                                <textarea class="ng-tool-prompt text_pole" rows="6" placeholder="Leave empty for default prompt."></textarea>
+                                <div class="ng-reset-prompt menu_button menu_button_icon">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                    <span>Reset to Default</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ -->
+            <!-- FEATURE 2: Scene Tracking              -->
+            <!-- ═══════════════════════════════════════ -->
+            <div class="inline-drawer ng-feature-group">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-magnifying-glass-chart"></i> Scene Tracking</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content ng-feature-content">
+                    <div class="ng-feature-description">
+                        <p>The AI can assess the current scene across four aspects: <strong>thinking</strong> (character thoughts), <strong>clothing</strong> (what they're wearing), <strong>positions</strong> (where everyone is), and <strong>situation</strong> (full scene summary).</p>
+                        <p>Clothing and positions are saved as persistent lorebook entries — they stay in context until the AI updates them, so it doesn't need to re-check every turn.</p>
+                    </div>
+
+                    <!-- Scene Assessment Tool -->
+                    <div class="ng-tool-section" data-tool="NG_scene_assessment">
+                        <div class="ng-tool-header">
+                            <label class="checkbox_label">
+                                <input type="checkbox" class="ng-tool-enabled" />
+                                <span><i class="fa-solid fa-magnifying-glass-chart"></i> Scene Assessment</span>
+                            </label>
+                        </div>
+                        <div class="ng-tool-body">
+                            <label class="checkbox_label" title="Hide the assessment result from chat. The data is still generated, saved to lorebook, and available to the AI.">
+                                <input type="checkbox" class="ng-tool-stealth" />
+                                <span>Stealth mode <i class="fa-solid fa-circle-info ng-info-icon" title="The assessment runs silently — results go to the lorebook but don't appear as a message in chat."></i></span>
+                            </label>
+                            <label class="checkbox_label" title="Additionally inject the result as a temporary context insertion (separate from the lorebook entry).">
+                                <input type="checkbox" class="ng-tool-inject" />
+                                <span>Inject result into context <i class="fa-solid fa-circle-info ng-info-icon" title="Adds the result as an injection in the prompt, in addition to the lorebook entry. Useful if you want it at a specific depth/position."></i></span>
+                            </label>
+                            <div class="ng-inject-options" style="display:none">
+                                <label title="Where in the prompt to inject the result.">
+                                    <span>Position</span>
+                                    <select class="ng-tool-inject-position text_pole">
+                                        <option value="chat">In Chat</option>
+                                        <option value="before">Before Prompt</option>
+                                        <option value="after">After Prompt</option>
+                                    </select>
+                                </label>
+                                <label title="How deep in the chat history to inject. 0 = after the last message, 1 = one message back, etc.">
+                                    <span>Depth</span>
+                                    <input type="number" class="ng-tool-inject-depth text_pole" min="0" max="100" value="1" />
+                                </label>
+                                <label class="checkbox_label" title="If checked, the injection is removed after the next generation. If unchecked, it persists until manually cleared.">
+                                    <input type="checkbox" class="ng-tool-inject-ephemeral" checked />
+                                    <span>Ephemeral <i class="fa-solid fa-circle-info ng-info-icon" title="Remove injection after the next generation. Uncheck to keep it persistent."></i></span>
+                                </label>
+                            </div>
+                            <label title="Use a different preset/model for scene assessment. Leave empty to use current.">
+                                <span>Preset Override</span>
+                                <input type="text" class="ng-tool-preset text_pole" placeholder="Leave empty = current preset" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Lorebook Settings -->
+                    <div class="ng-lorebook-settings">
+                        <h4><i class="fa-solid fa-book"></i> Lorebook Trackers</h4>
+                        <div class="ng-feature-description">
+                            <p>Scene state (clothing, positions, etc.) is saved as "always-on" lorebook entries in a dedicated book. These entries persist across turns — the AI only updates them when something changes.</p>
+                            <p>On new chats, all entries are automatically wiped for a clean slate.</p>
+                        </div>
+                        <label title="Name of the lorebook to store tracker entries. A new lorebook will be created if it doesn't exist. You need to add it to your global World Info selection.">
+                            <span>Lorebook Name <i class="fa-solid fa-circle-info ng-info-icon" title="The lorebook that stores persistent scene data. Default: 'NemosGuides-Trackers'. Make sure it's added to your global World Info selection so entries are always active."></i></span>
+                            <input type="text" id="ng_lorebook_name" class="text_pole" placeholder="NemosGuides-Trackers" />
+                        </label>
+                        <div id="ng_clear_trackers" class="menu_button menu_button_icon" title="Disable and clear all NG tracker entries in the lorebook. Useful if entries get stale or you want a manual reset.">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>Clear All Trackers</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ -->
+            <!-- FEATURE 3: Response Planning           -->
+            <!-- ═══════════════════════════════════════ -->
+            <div class="inline-drawer ng-feature-group">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-compass-drafting"></i> Response Planning</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content ng-feature-content">
+                    <div class="ng-feature-description">
+                        <p>Gives the AI a multi-stage planning pipeline for important narrative moments. It can <strong>plan</strong> (create a structural blueprint), <strong>brainstorm</strong> (generate creative ideas), <strong>refine</strong> (audit for consistency), or run the <strong>full pipeline</strong> in one call.</p>
+                        <p>Tools chain together: scene assessment results feed into plans, brainstorm builds on plans, refine synthesizes everything.</p>
+                    </div>
+
+                    <!-- Plan & Refine Tool -->
+                    <div class="ng-tool-section" data-tool="NG_plan_and_refine">
+                        <div class="ng-tool-header">
+                            <label class="checkbox_label">
+                                <input type="checkbox" class="ng-tool-enabled" />
+                                <span><i class="fa-solid fa-compass-drafting"></i> Plan & Refine</span>
+                            </label>
+                        </div>
+                        <div class="ng-tool-body">
+                            <small class="ng-hint">Modes: <strong>plan</strong> (blueprint), <strong>brainstorm</strong> (creative ideas), <strong>refine</strong> (audit), <strong>full</strong> (all three in sequence). Each mode uses a sidecar API call.</small>
+                            <label class="checkbox_label" title="Hide planning output from chat. Plans still inform the AI's response.">
+                                <input type="checkbox" class="ng-tool-stealth" />
+                                <span>Stealth mode <i class="fa-solid fa-circle-info ng-info-icon" title="Planning happens silently. The AI uses the plan internally but you won't see the planning process in chat."></i></span>
+                            </label>
+                            <label class="checkbox_label" title="Inject the plan result into the prompt context.">
+                                <input type="checkbox" class="ng-tool-inject" />
+                                <span>Inject result into context</span>
+                            </label>
+                            <div class="ng-inject-options" style="display:none">
+                                <label>
+                                    <span>Position</span>
+                                    <select class="ng-tool-inject-position text_pole">
+                                        <option value="chat">In Chat</option>
+                                        <option value="before">Before Prompt</option>
+                                        <option value="after">After Prompt</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    <span>Depth</span>
+                                    <input type="number" class="ng-tool-inject-depth text_pole" min="0" max="100" value="1" />
+                                </label>
+                                <label class="checkbox_label">
+                                    <input type="checkbox" class="ng-tool-inject-ephemeral" checked />
+                                    <span>Ephemeral</span>
+                                </label>
+                            </div>
+                            <label title="Use a different preset for planning. A smarter model here = better plans.">
+                                <span>Preset Override</span>
+                                <input type="text" class="ng-tool-preset text_pole" placeholder="Leave empty = current preset" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Polish Prose Tool -->
+                    <div class="ng-tool-section" data-tool="NG_polish_prose">
+                        <div class="ng-tool-header">
+                            <label class="checkbox_label">
+                                <input type="checkbox" class="ng-tool-enabled" />
+                                <span><i class="fa-solid fa-feather-pointed"></i> Polish Prose</span>
+                            </label>
+                        </div>
+                        <div class="ng-tool-body">
+                            <small class="ng-hint">The AI can send its draft text through a line-editor that fixes awkward phrasing, eliminates repetition, and enhances prose quality while maintaining character voice. Uses one sidecar API call.</small>
+                            <label class="checkbox_label" title="Hide the polishing process from chat. The AI uses the polished result internally.">
+                                <input type="checkbox" class="ng-tool-stealth" />
+                                <span>Stealth mode</span>
+                            </label>
+                            <label title="Use a different preset for prose polishing.">
+                                <span>Preset Override</span>
+                                <input type="text" class="ng-tool-preset text_pole" placeholder="Leave empty = current preset" />
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ -->
+            <!-- FEATURE 4: Narrative Memory            -->
+            <!-- ═══════════════════════════════════════ -->
+            <div class="inline-drawer ng-feature-group">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-book-open"></i> Narrative Memory</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content ng-feature-content">
+                    <div class="ng-feature-description">
+                        <p>A persistent narrative scratchpad — like a game master's private notebook. The AI reads and updates it to maintain story coherence across turns.</p>
+                        <p>Six sections: <strong>plot threads</strong> (active storylines), <strong>off-screen</strong> (what NPCs are doing), <strong>character arcs</strong> (development trajectories), <strong>foreshadowing</strong> (seeds planted), <strong>session notes</strong> (key decisions), <strong>narrative direction</strong> (where the story is heading).</p>
+                        <p>Stored as a lorebook entry — always in context. No API calls needed to read/write.</p>
+                    </div>
+
+                    <!-- DM Notes Tool -->
+                    <div class="ng-tool-section" data-tool="NG_dm_notes">
+                        <div class="ng-tool-header">
+                            <label class="checkbox_label">
+                                <input type="checkbox" class="ng-tool-enabled" />
+                                <span><i class="fa-solid fa-book-open"></i> DM Notes</span>
+                            </label>
+                        </div>
+                        <div class="ng-tool-body">
+                            <label class="checkbox_label" title="Hide DM Notes updates from chat. The AI still reads and writes notes — you just won't see the tool call messages.">
+                                <input type="checkbox" class="ng-tool-stealth" />
+                                <span>Stealth mode <i class="fa-solid fa-circle-info ng-info-icon" title="The AI updates its notes silently. Recommended ON — you don't need to see every note update, and it keeps the chat clean."></i></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ -->
+            <!-- FEATURE 5: Writing Quality             -->
+            <!-- ═══════════════════════════════════════ -->
+            <div class="inline-drawer ng-feature-group">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-spell-check"></i> Writing Quality</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content ng-feature-content">
+                    <div class="ng-feature-description">
+                        <p>Automatically scans the AI's recent messages for writing quality issues and feeds the results back as context — the AI reads the warnings and naturally adjusts its writing. No regex replacement, just awareness.</p>
+                        <p><strong>Detects:</strong> repetitive phrases, overused words, weak constructions ("couldn't help but", "seemed to"), 108 known slop patterns (body clich&eacute;s, quippy writing, overwrought language), and sentence structure repetition.</p>
+                        <p><strong>No API calls.</strong> Analysis runs client-side in JavaScript — zero extra cost.</p>
+                        <p>Also integrates with ProsePolisher's blacklist if installed.</p>
+                    </div>
+
+                    <!-- Writing Analysis Toggle -->
+                    <div class="ng-analysis-settings">
+                        <label class="checkbox_label" for="ng_writing_analysis" title="Automatically analyze AI writing quality each turn and inject warnings into the system instruction.">
+                            <input type="checkbox" id="ng_writing_analysis" checked />
+                            <span><i class="fa-solid fa-chart-line"></i> Auto-analyze writing quality</span>
+                        </label>
+                        <small class="ng-hint">Runs every generation. Adds a small block to the system instruction listing detected issues. The AI reads this and avoids repeating the same patterns.</small>
+                    </div>
+
+                    <!-- Writing Check Tool -->
+                    <div class="ng-tool-section" data-tool="NG_writing_check">
+                        <div class="ng-tool-header">
+                            <label class="checkbox_label">
+                                <input type="checkbox" class="ng-tool-enabled" />
+                                <span><i class="fa-solid fa-spell-check"></i> Writing Check Tool</span>
+                            </label>
+                        </div>
+                        <div class="ng-tool-body">
+                            <small class="ng-hint">Gives the AI a tool it can explicitly call to get a detailed writing quality report. Unlike auto-analysis (which runs silently every turn), this returns the full report as a tool call result the AI can study. No API call — runs locally.</small>
+                            <label class="checkbox_label" title="Hide the quality report from chat.">
+                                <input type="checkbox" class="ng-tool-stealth" />
+                                <span>Stealth mode</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ -->
+            <!-- FEATURE 6: Prompt Advisor              -->
+            <!-- ═══════════════════════════════════════ -->
+            <div class="inline-drawer ng-feature-group">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-wand-sparkles"></i> Prompt Advisor</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content ng-feature-content">
+                    <div class="ng-feature-description">
+                        <p>Scans your current preset's prompt list and analyzes which prompts might be worth enabling or disabling for the current character and scenario.</p>
+                        <p>Reads prompt names and enabled/disabled state from the prompt manager, sends them to your AI for analysis, then shows recommendations as notifications.</p>
+                        <p><strong>Works with any preset</strong> — it reads whatever prompts are currently loaded in the prompt manager. Uses one sidecar API call.</p>
+                    </div>
+
+                    <div class="ng-tool-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <div id="ng_run_advisor" class="menu_button menu_button_icon" title="Analyze your current prompt setup and get recommendations for this character.">
+                            <i class="fa-solid fa-wand-sparkles"></i>
+                            <span>Analyze Prompts</span>
+                        </div>
+                        <div id="ng_apply_recommendations" class="menu_button menu_button_icon" title="Run the advisor, then automatically apply all recommendations (enable/disable prompts). You'll see what changed via notifications." style="display:none;">
+                            <i class="fa-solid fa-check-double"></i>
+                            <span>Apply All Recommendations</span>
+                        </div>
+                    </div>
+
+                    <label class="checkbox_label" for="ng_auto_advisor" title="Automatically run the prompt advisor when you switch characters or start a new chat.">
+                        <input type="checkbox" id="ng_auto_advisor" />
+                        <span>Auto-analyze on character change <i class="fa-solid fa-circle-info ng-info-icon" title="Runs the advisor automatically when you switch to a different character. Uses one API call per character switch."></i></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ -->
+            <!-- FEATURE 7: System Instruction          -->
+            <!-- ═══════════════════════════════════════ -->
+            <div class="inline-drawer ng-feature-group">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-microchip"></i> System Instruction</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content ng-feature-content">
+                    <div class="ng-feature-description">
+                        <p>The master instruction that teaches the AI when and how to use each tool. Injected into every generation.</p>
+                        <p>Automatically appends dynamic context each turn: which lorebook trackers need updating, and writing quality warnings from the analyzer.</p>
+                        <p><strong>Advanced users only.</strong> The default instruction is carefully tuned — most users should leave it as-is.</p>
+                    </div>
+
+                    <label class="checkbox_label" for="ng_inject_instruction" title="When enabled, NG injects a system instruction teaching the AI about available tools and when to use them.">
+                        <input type="checkbox" id="ng_inject_instruction" />
+                        <span>Inject system instruction <i class="fa-solid fa-circle-info ng-info-icon" title="This is the core instruction that tells the AI what tools are available and when to use them. Disabling this means the AI only knows about tools from their descriptions — it won't get guidance on strategy."></i></span>
+                    </label>
+
+                    <div class="ng-instruction-options">
+                        <label title="Where in the prompt to place the instruction. 'In Chat' inserts it at a specific depth in the conversation. 'In Prompt' places it in the system prompt area.">
+                            <span>Position</span>
+                            <select id="ng_instruction_position" class="text_pole">
+                                <option value="in_chat">In Chat</option>
+                                <option value="in_prompt">In Prompt</option>
+                                <option value="before_prompt">Before Prompt</option>
+                            </select>
+                        </label>
+                        <label title="How deep in the chat to inject. 0 = after the last message (most visible to the AI), higher = further back. Only applies to 'In Chat' position.">
+                            <span>Depth</span>
+                            <input type="number" id="ng_instruction_depth" class="text_pole" min="0" max="100" value="1" />
+                        </label>
+                        <label title="What role the injection appears as. System is usually best. Some APIs handle User or Assistant differently.">
+                            <span>Role</span>
+                            <select id="ng_instruction_role" class="text_pole">
+                                <option value="system">System</option>
+                                <option value="user">User</option>
+                                <option value="assistant">Assistant</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <label title="Override the system instruction text. Leave empty to use the carefully tuned default.">
+                        <span>Custom Instruction <i class="fa-solid fa-circle-info ng-info-icon" title="The default instruction explains all tools and when to use them, including Scene Assessment aspects, Plan & Refine modes, DM Notes sections, and general guidelines. Dynamic tracker status and writing quality warnings are appended automatically."></i></span>
+                        <textarea id="ng_system_instruction" class="text_pole" rows="6" placeholder="Leave empty for default. Only change if you want to completely rewrite how the AI is taught to use tools."></textarea>
+                    </label>
+                    <div id="ng_reset_instruction" class="menu_button menu_button_icon" title="Reset the custom instruction to empty (reverts to default).">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>Reset to Default</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

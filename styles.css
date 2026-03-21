@@ -2508,8 +2508,16 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 }
 
 .nemo-tray-compact .nemo-prompt-card {
-    padding: 8px 12px;
+    padding: 6px 10px;
     border-radius: 4px;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+.nemo-tray-compact .nemo-prompt-card-content {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 18px;
 }
 
 .nemo-tray-compact .nemo-prompt-card-header {
@@ -2518,6 +2526,13 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 
 .nemo-tray-compact .nemo-prompt-card-name {
     font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nemo-tray-compact .nemo-prompt-card-meta {
+    display: none !important;
 }
 
 .nemo-tray-compact .nemo-prompt-card-tooltip,
@@ -12204,4 +12219,915 @@ body.theme-terminal .mes_block .avatar {
         min-width: unset !important;
         width: 100% !important;
     }
+}
+
+
+/* ============================================================
+   NEMO GUIDES (merged from NemosGuides extension)
+   ============================================================ */
+
+/* Nemo's Guides - Extension Styles */
+
+/* ── Settings Panel ── */
+
+#ng-settings .ng-description {
+    margin-bottom: 10px;
+}
+
+#ng-settings .ng-description p {
+    margin: 0 0 6px 0;
+    line-height: 1.4;
+}
+
+#ng-settings .ng-description p:last-child {
+    margin-bottom: 0;
+}
+
+#ng-settings .ng-hint {
+    display: block;
+    font-size: 0.8em;
+    opacity: 0.5;
+    line-height: 1.3;
+    margin-top: 2px;
+}
+
+#ng-settings .ng-info-icon {
+    font-size: 0.8em;
+    opacity: 0.4;
+    cursor: help;
+    margin-left: 2px;
+    transition: opacity 0.2s;
+}
+
+#ng-settings .ng-info-icon:hover {
+    opacity: 0.9;
+}
+
+#ng-settings .ng-feature-description {
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 3px solid rgba(162, 155, 254, 0.3);
+    margin-bottom: 6px;
+}
+
+#ng-settings .ng-feature-description p {
+    margin: 0 0 4px 0;
+    font-size: 0.85em;
+    line-height: 1.4;
+    opacity: 0.7;
+}
+
+#ng-settings .ng-feature-description p:last-child {
+    margin-bottom: 0;
+}
+
+#ng-settings .ng-feature-description strong {
+    opacity: 1;
+    color: var(--SmartThemeBodyColor, #cdd6f4);
+}
+
+#ng-settings .ng-master-toggle {
+    margin: 8px 0 12px 0;
+}
+
+#ng-settings .ng-master-toggle .checkbox_label span {
+    font-weight: 600;
+    font-size: 1.05em;
+}
+
+/* Feature Groups */
+#ng-settings .ng-feature-group {
+    margin-bottom: 2px;
+}
+
+#ng-settings .ng-feature-group > .inline-drawer-header {
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+#ng-settings .ng-feature-group > .inline-drawer-header span {
+    font-weight: 600;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#ng-settings .ng-feature-group > .inline-drawer-header i {
+    width: 16px;
+    text-align: center;
+    opacity: 0.7;
+}
+
+#ng-settings .ng-feature-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 4px;
+}
+
+#ng-settings .ng-feature-content > small {
+    opacity: 0.6;
+    line-height: 1.4;
+}
+
+/* Tool Sections */
+#ng-settings .ng-tool-section {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.015);
+}
+
+#ng-settings .ng-tool-header {
+    margin-bottom: 4px;
+}
+
+#ng-settings .ng-tool-header .checkbox_label span {
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#ng-settings .ng-tool-header i {
+    font-size: 0.85em;
+    opacity: 0.6;
+}
+
+#ng-settings .ng-tool-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-left: 4px;
+    margin-top: 4px;
+}
+
+#ng-settings .ng-tool-body label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+#ng-settings .ng-tool-body label > span {
+    font-size: 0.85em;
+    opacity: 0.65;
+}
+
+#ng-settings .ng-tool-body small {
+    font-size: 0.8em;
+    opacity: 0.5;
+    line-height: 1.3;
+}
+
+#ng-settings .ng-tool-preset {
+    max-width: 250px;
+}
+
+#ng-settings .ng-tool-prompt {
+    min-height: 60px;
+    resize: vertical;
+}
+
+#ng-settings .ng-tool-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+#ng-settings .ng-reset-prompt {
+    align-self: flex-start;
+    font-size: 0.82em;
+}
+
+/* Inject Options */
+#ng-settings .ng-inject-options {
+    padding-left: 8px;
+    border-left: 2px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin: 2px 0;
+}
+
+#ng-settings .ng-inject-options select,
+#ng-settings .ng-inject-options input[type="number"] {
+    max-width: 140px;
+}
+
+/* Lorebook Settings */
+#ng-settings .ng-lorebook-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+#ng-settings .ng-lorebook-settings h4 {
+    margin: 0 0 2px 0;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#ng-settings .ng-lorebook-settings label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+#ng-settings .ng-lorebook-settings label > span {
+    font-size: 0.85em;
+    opacity: 0.65;
+}
+
+#ng-settings #ng_lorebook_name {
+    max-width: 250px;
+}
+
+/* Analysis Settings */
+#ng-settings .ng-analysis-settings {
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#ng-settings .ng-analysis-settings .checkbox_label span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#ng-settings .ng-analysis-settings small {
+    opacity: 0.5;
+    font-size: 0.8em;
+    line-height: 1.3;
+}
+
+/* System Instruction */
+#ng-settings .ng-instruction-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+#ng-settings .ng-instruction-options label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 80px;
+}
+
+#ng-settings .ng-instruction-options label > span {
+    font-size: 0.85em;
+    opacity: 0.65;
+}
+
+#ng-settings .ng-instruction-options select,
+#ng-settings .ng-instruction-options input[type="number"] {
+    max-width: 150px;
+}
+
+#ng-settings .ng-lorebook-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+#ng-settings .ng-lorebook-settings label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#ng-settings .ng-lorebook-settings label > span {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+#ng-settings #ng_lorebook_name {
+    max-width: 300px;
+}
+
+#ng-settings .ng-inject-options {
+    padding-left: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#ng-settings .ng-inject-options label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#ng-settings .ng-inject-options label > span {
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+#ng-settings .ng-inject-options select,
+#ng-settings .ng-inject-options input[type="number"] {
+    max-width: 150px;
+}
+
+#ng-settings #ng_system_instruction {
+    min-height: 80px;
+    resize: vertical;
+}
+
+#ng-settings hr {
+    margin: 10px 0;
+    border-color: var(--SmartThemeBorderColor);
+}
+
+/* ── Activity Feed Trigger Button ── */
+
+.ng-feed-trigger {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    z-index: 9998;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--SmartThemeBlurTintColor, rgba(30, 30, 46, 0.85));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    color: var(--SmartThemeBodyColor, #cdd6f4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ng-feed-trigger:hover {
+    transform: scale(1.1);
+    border-color: #a29bfe;
+    box-shadow: 0 4px 20px rgba(162, 155, 254, 0.3);
+}
+
+.ng-feed-trigger.ng-feed-active {
+    border-color: #a29bfe;
+    background: rgba(162, 155, 254, 0.15);
+}
+
+.ng-feed-trigger i {
+    font-size: 18px;
+}
+
+.ng-feed-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    background: #e84393;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+/* ── Activity Feed Panel ── */
+
+.ng-feed-panel {
+    position: fixed;
+    bottom: 130px;
+    right: 20px;
+    z-index: 9997;
+    width: 340px;
+    max-height: 450px;
+    border-radius: 12px;
+    background: var(--SmartThemeBlurTintColor, rgba(30, 30, 46, 0.92));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.ng-feed-panel.ng-feed-open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+/* Panel Header */
+.ng-feed-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.08));
+    flex-shrink: 0;
+}
+
+.ng-feed-panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, #cdd6f4);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ng-feed-panel-title i {
+    color: #a29bfe;
+}
+
+.ng-feed-panel-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.ng-feed-panel-actions span {
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, #cdd6f4);
+}
+
+.ng-feed-panel-actions span:hover {
+    opacity: 1;
+}
+
+/* Panel Body */
+.ng-feed-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ng-feed-panel-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.ng-feed-panel-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+}
+
+/* Empty State */
+.ng-feed-panel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 30px;
+    color: var(--SmartThemeBodyColor, #cdd6f4);
+    opacity: 0.35;
+    font-size: 13px;
+}
+
+.ng-feed-panel-empty i {
+    font-size: 24px;
+}
+
+/* Hide empty state when items exist */
+.ng-feed-panel-body:not(:empty) + .ng-feed-panel-empty {
+    display: none;
+}
+
+/* ── Feed Items ── */
+
+.ng-feed-item {
+    display: flex;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.ng-feed-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--tool-color, #a29bfe);
+    border-radius: 3px 0 0 3px;
+    opacity: 0.8;
+}
+
+/* Running state — pulsing left border */
+.ng-feed-item[data-status="running"]::before {
+    animation: ng-pulse-border 1.5s ease-in-out infinite;
+}
+
+.ng-feed-item[data-status="running"] {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.ng-feed-item[data-status="error"] {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.ng-feed-item-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.ng-feed-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.ng-feed-item-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+}
+
+.ng-feed-item-verb {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+
+.ng-feed-item-name {
+    color: var(--SmartThemeBodyColor, #cdd6f4);
+    font-weight: 500;
+    font-size: 12px;
+}
+
+.ng-feed-item-status {
+    margin-left: auto;
+    font-size: 11px;
+}
+
+.ng-status-running {
+    color: #fdcb6e;
+}
+
+.ng-status-done {
+    color: #55efc4;
+}
+
+.ng-status-error {
+    color: #ef4444;
+}
+
+.ng-feed-item-summary {
+    font-size: 11px;
+    color: var(--SmartThemeBodyColor, #cdd6f4);
+    opacity: 0.6;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ng-feed-item-time {
+    font-size: 10px;
+    color: var(--SmartThemeBodyColor, #cdd6f4);
+    opacity: 0.3;
+    margin-top: 2px;
+}
+
+/* ── Animations ── */
+
+/* Enter: fade in + slide down from above */
+.ng-feed-enter {
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+.ng-feed-visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Exit: drop down + fade out */
+@keyframes ng-drop-fade {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+}
+
+.ng-feed-exit {
+    animation: ng-drop-fade 0.5s ease-in forwards;
+}
+
+/* Faded state — still visible but dimmed */
+.ng-feed-faded {
+    opacity: 0.3;
+    transform: translateY(0);
+    transition: opacity 0.3s ease;
+}
+
+.ng-feed-faded:hover {
+    opacity: 0.7;
+}
+
+/* Completion flash */
+@keyframes ng-complete-flash {
+    0% {
+        box-shadow: 0 0 0 0 var(--tool-color);
+    }
+    50% {
+        box-shadow: 0 0 12px 2px var(--tool-color);
+    }
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+.ng-feed-complete {
+    animation: ng-complete-flash 0.6s ease-out;
+}
+
+/* Pulsing border for running state */
+@keyframes ng-pulse-border {
+    0%, 100% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Running spinner */
+.ng-feed-item .fa-spinner {
+    font-size: 11px;
+}
+
+/* ── TunnelVision Integration ── */
+
+.ng-tv-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+.ng-tv-item {
+    border-left: 3px solid #a29bfe !important;
+}
+
+.ng-tv-item[data-status="running"] {
+    border-left-color: #fdcb6e !important;
+}
+
+.ng-tv-item[data-status="error"] {
+    border-left-color: #ef4444 !important;
+}
+
+/* ── NG Tab inside TV Panel ── */
+
+.ng-tv-tab-body {
+    overflow-y: auto;
+    max-height: 350px;
+    padding: 8px;
+}
+
+.ng-tv-tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ng-tv-section {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.ng-tv-section-header {
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ng-tv-section-body {
+    padding: 6px 10px;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.ng-tv-empty {
+    opacity: 0.35;
+    font-style: italic;
+}
+
+.ng-tv-content {
+    font-size: 10px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+    opacity: 0.75;
+    max-height: 150px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.15);
+    padding: 6px;
+    border-radius: 4px;
+}
+
+.ng-tv-tracker {
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    font-size: 11px;
+    opacity: 0.75;
+}
+
+.ng-tv-tracker:last-child {
+    border-bottom: none;
+}
+
+.ng-tv-tracker strong {
+    text-transform: capitalize;
+    opacity: 1;
+}
+
+.ng-tv-analysis {
+    font-size: 11px;
+    opacity: 0.75;
+}
+
+.ng-tv-analysis > div {
+    padding: 2px 0;
+}
+
+/* Clickable items */
+.ng-feed-clickable {
+    cursor: pointer;
+}
+
+.ng-feed-clickable:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ── Details Popup ── */
+
+.ng-feed-details {
+    position: fixed;
+    bottom: 140px;
+    right: 370px;
+    z-index: 10000;
+    width: 420px;
+    max-height: 500px;
+    border-radius: 12px;
+    background: var(--SmartThemeBlurTintColor, rgba(25, 25, 40, 0.95));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.12));
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: ng-details-enter 0.25s ease-out;
+}
+
+@keyframes ng-details-enter {
+    from { opacity: 0; transform: translateX(10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.ng-feed-details-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.ng-feed-details-header span:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ng-feed-details-close {
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.ng-feed-details-close:hover {
+    opacity: 1;
+}
+
+.ng-feed-details-meta {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 14px;
+    font-size: 11px;
+    opacity: 0.5;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ng-feed-details-storage {
+    padding: 8px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ng-feed-details-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.4;
+    padding: 8px 14px 4px 14px;
+    font-weight: 600;
+}
+
+.ng-feed-details-storage .ng-feed-details-label {
+    padding: 0 0 4px 0;
+}
+
+.ng-feed-details-storage-item {
+    font-size: 11px;
+    opacity: 0.7;
+    padding: 2px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ng-feed-details-storage-item i {
+    font-size: 10px;
+    opacity: 0.5;
+}
+
+.ng-feed-details-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 14px 14px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: var(--SmartThemeBodyColor, #cdd6f4);
+    opacity: 0.85;
+}
+
+.ng-feed-details-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.ng-feed-details-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
 }

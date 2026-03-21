@@ -32,6 +32,8 @@ function buildRequestBody(connection, messages, params = {}) {
         stream: false, // Router always uses non-streaming for simplicity
         // Provider-specific fields
         ...(connection.source === 'claude' ? { claude_model: connection.model } : {}),
+        ...(connection.source === 'custom' && connection.customUrl ? { custom_url: connection.customUrl } : {}),
+        ...(connection.reverseProxy ? { reverse_proxy: connection.reverseProxy } : {}),
     };
     return { ...body, ...params.bodyOverrides };
 }

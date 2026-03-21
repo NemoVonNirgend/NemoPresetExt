@@ -88,6 +88,8 @@ export const ConnectionPool = {
             priority: connection.priority ?? 0,
             enabled: connection.enabled !== false,
             tags: Array.isArray(connection.tags) ? connection.tags : [],
+            ...(connection.customUrl ? { customUrl: connection.customUrl } : {}),
+            ...(connection.reverseProxy ? { reverseProxy: connection.reverseProxy } : {}),
         };
 
         if (idx >= 0) {

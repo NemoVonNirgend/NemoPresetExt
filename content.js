@@ -50,6 +50,7 @@ import { NemoCharacterManager } from './features/character-manager/character-man
 import { NemoWorldInfoUI } from './features/world-info/world-info-ui.js';
 import { NemoMarketplace } from './features/marketplace/marketplace.js';
 import { NemoPersonaUI } from './features/persona/persona-ui.js';
+import { initGuides } from './features/guides/index.js';
 import domCache from './features/character-manager/dom-cache.js';
 
 // Feature modules - Connection/Model Selector, API Router & Pipeline
@@ -128,6 +129,10 @@ async function initializeExtension() {
         NemoMarketplace.initialize();
         NemoPersonaUI.initialize();
         // NemoPromptArchiveUI.initialize(); // Disabled — replaced by category tray archive
+
+        // Initialize Nemo's Guides (AI-driven narrative guidance tools)
+        // Always init so settings panel renders; functional features gated inside
+        await initGuides();
 
         // Initialize tab overhauls only if enabled
         if (extension_settings.NemoPresetExt?.enableTabOverhauls !== false) {
