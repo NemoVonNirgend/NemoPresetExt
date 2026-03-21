@@ -67,6 +67,7 @@ export const NemoWorldInfoUI = {
     _currentPreset: '',
     presetStorageKey: 'nemo-wi-presets',
     _activeEntries: [],
+    _selectedLorebookName: null,
 
     injectUI: async function() {
         try {
@@ -150,6 +151,18 @@ export const NemoWorldInfoUI = {
                 worldEditorSelect.dispatchEvent(new Event('change'));
             }
         }
+
+        // Track selected lorebook and update visual indicator
+        this._selectedLorebookName = lorebookName;
+        document.querySelectorAll('.nemo-lorebook-item').forEach(item => {
+            item.classList.toggle('nemo-lorebook-selected', /** @type {HTMLElement} */ (item).dataset.name === lorebookName);
+        });
+
+        // Hide empty state when a lorebook is selected
+        const emptyState = document.getElementById('nemo-wi-empty-state');
+        if (emptyState) emptyState.style.display = 'none';
+        const entriesContent = document.getElementById('nemo-wi-entries-content');
+        if (entriesContent) entriesContent.style.display = '';
     },
 
     updateActiveLorebooksList: function() {
@@ -232,9 +245,7 @@ export const NemoWorldInfoUI = {
 
         const textSpan = document.createElement('span');
         textSpan.className = 'nemo-lorebook-item-text';
-        // Truncate long names
-        const displayName = option.text.length > 40 ? option.text.substring(0, 37) + '...' : option.text;
-        textSpan.textContent = displayName;
+        textSpan.textContent = option.text;
         lorebookItem.appendChild(textSpan);
 
         lorebookItem.addEventListener('click', (e) => {
@@ -787,6 +798,12 @@ export const NemoWorldInfoUI = {
                 self._currentWorld.name = name;
                 self._currentWorld.data = data;
 
+                // Show entries content, hide empty state
+                const emptyState = document.getElementById('nemo-wi-empty-state');
+                const entriesContent = document.getElementById('nemo-wi-entries-content');
+                if (emptyState) emptyState.style.display = 'none';
+                if (entriesContent) entriesContent.style.display = '';
+
                 // Call the original display function and let it handle the rendering
                 const result = await originalDisplay.apply(this, [name, data, ...args]);
 
@@ -1193,6 +1210,13 @@ export const NemoWorldInfoUI = {
             if (worldInfoSelect) {
                 this.populateLorebooksFromSelect(worldInfoSelect);
                 this.updateActiveLorebooksList();
+
+                // Restore selected lorebook highlight after rebuild
+                if (this._selectedLorebookName) {
+                    document.querySelectorAll('.nemo-lorebook-item').forEach(item => {
+                        item.classList.toggle('nemo-lorebook-selected', /** @type {HTMLElement} */ (item).dataset.name === this._selectedLorebookName);
+                    });
+                }
             }
         } finally {
             this._isRefreshingUI = false;
@@ -1338,13 +1362,33 @@ export const NemoWorldInfoUI = {
         const listElement = document.getElementById('nemo-world-info-order-helper-list');
         listElement.innerHTML = 'Loading...';
 
-        const activeEntries = this._activeEntries;
+        let entries = [...this._activeEntries];
+
+        // If no active entries from generation, load from current lorebook
+        if (entries.length === 0 && this._currentWorld?.name) {
+            try {
+                const world = await loadWorldInfo(this._currentWorld.name);
+                entries = Object.entries(world.entries).map(([uid, entry]) => ({
+                    ...entry, uid, world: this._currentWorld.name,
+                })).filter(e => !e.disable);
+                entries.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            } catch (e) {
+                logger.error('Error loading lorebook for order helper', e);
+            }
+        }
 
         listElement.innerHTML = '';
-        activeEntries.forEach(entry => {
+
+        if (entries.length === 0) {
+            listElement.innerHTML = '<div class="nemo-wi-helper-empty">No entries available. Select a lorebook from the left panel, or generate a message to populate active entries.</div>';
+            return;
+        }
+
+        entries.forEach(entry => {
             const item = document.createElement('div');
             item.className = 'nemo-order-helper-item';
-            item.textContent = `${entry.world}: ${entry.comment ?? entry.key.join(', ')}`;
+            const label = entry.comment ?? (entry.key ? entry.key.join(', ') : 'Untitled');
+            item.innerHTML = `<span class="nemo-order-helper-handle">&#9776;</span> <span class="nemo-order-helper-label">${entry.world}: ${label}</span> <span class="nemo-order-helper-order">#${entry.order ?? '—'}</span>`;
             item.dataset.book = entry.world;
             item.dataset.uid = entry.uid;
             listElement.appendChild(item);
@@ -1352,7 +1396,7 @@ export const NemoWorldInfoUI = {
 
         if (typeof Sortable !== 'undefined') {
             if (/** @type {any} */(listElement).sortable) /** @type {any} */(listElement).sortable.destroy();
-            /** @type {any} */(listElement).sortable = new Sortable(listElement, { animation: 150 });
+            /** @type {any} */(listElement).sortable = new Sortable(listElement, { animation: 150, handle: '.nemo-order-helper-handle' });
         }
     },
 
@@ -1398,7 +1442,7 @@ initLoreSimulator: function() {
 runLoreSimulator: async function() {
     const inputElement = /** @type {HTMLTextAreaElement} */ (document.getElementById('nemo-lore-simulator-input'));
     const resultsElement = document.getElementById('nemo-lore-simulator-results');
-    const worldInfoSelect = /** @type {HTMLSelectElement} */ (document.getElementById('world_info'));
+    const scopeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('nemo-lore-simulator-scope'));
     const text = inputElement.value;
 
     resultsElement.innerHTML = '';
@@ -1406,10 +1450,28 @@ runLoreSimulator: async function() {
         return;
     }
 
-    const activeLorebooks = Array.from(worldInfoSelect.selectedOptions).map(opt => opt.text);
+    // Determine which lorebooks to scan based on scope
+    const scope = scopeSelect ? scopeSelect.value : 'current';
+    let lorebooksToScan = [];
+
+    if (scope === 'current' && this._currentWorld?.name) {
+        lorebooksToScan = [this._currentWorld.name];
+    } else if (scope === 'active') {
+        const worldInfoSelect = /** @type {HTMLSelectElement} */ (document.getElementById('world_info'));
+        lorebooksToScan = Array.from(worldInfoSelect.selectedOptions).map(opt => opt.text);
+    } else {
+        // 'all' scope, or fallback if no current/active
+        lorebooksToScan = [...world_names];
+    }
+
+    if (lorebooksToScan.length === 0) {
+        // Fallback: if nothing selected at all, scan all
+        lorebooksToScan = [...world_names];
+    }
+
     const triggeredEntries = new Set();
 
-    for (const bookName of activeLorebooks) {
+    for (const bookName of lorebooksToScan) {
         const world = await loadWorldInfo(bookName);
         for (const entry of Object.values(world.entries)) {
             if (entry.disable) continue;

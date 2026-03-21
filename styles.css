@@ -5563,15 +5563,16 @@ body.sortable-dragging .nemo-engine-section summary::before {
 }
 
 .nemo-lorebook-item {
-    padding: 10px;
+    padding: 8px 10px;
     cursor: pointer;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 4px;
+    min-width: 0;
     border: 1px solid var(--nemo-border-color);
     margin-top: -1px; /* Collapse borders */
     background-color: var(--nemo-bg-color);
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 /* Lorebooks inside folders have subtle visual distinction */
@@ -5585,9 +5586,12 @@ body.sortable-dragging .nemo-engine-section summary::before {
 
 .nemo-drag-handle {
     cursor: grab;
-    margin-right: 10px;
+    margin-right: 6px;
     font-size: 1.2em;
     display: none; /* Hidden by default */
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
 }
 
 /* Show drag handle on hover or in move mode for better discoverability */
@@ -5608,9 +5612,12 @@ body.sortable-dragging .nemo-engine-section summary::before {
 }
 
 .nemo-lorebook-item-text {
-    white-space: normal;
-    word-break: break-word;
-    margin-right: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+    margin-right: 8px;
 }
 
 .nemo-lorebook-item:hover {
@@ -5620,6 +5627,15 @@ body.sortable-dragging .nemo-engine-section summary::before {
 .nemo-add-lorebook-button {
     font-size: 1.2em;
     font-weight: bold;
+    flex-shrink: 0;
+    width: 24px;
+    text-align: center;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+}
+
+.nemo-lorebook-item:hover .nemo-add-lorebook-button {
+    opacity: 1;
 }
 
 .nemo-world-info-list {
@@ -6143,6 +6159,182 @@ select:disabled {
         font-size: 0.9em;
     }
 }
+
+/* === WORLD INFO POLISH: Selected lorebook, empty state, toolbar, names === */
+
+/* Selected lorebook highlight */
+.nemo-lorebook-item.nemo-lorebook-selected {
+    background-color: var(--nemo-primary-accent-light, rgba(110, 181, 255, 0.15));
+    border-left: 3px solid var(--nemo-primary-accent, #6eb5ff);
+    border-color: var(--nemo-primary-accent, #6eb5ff);
+}
+
+.nemo-lorebook-item.nemo-lorebook-selected .nemo-lorebook-item-text {
+    color: var(--nemo-primary-accent, #6eb5ff);
+    font-weight: 600;
+}
+
+/* Empty state for right panel */
+.nemo-wi-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 30px;
+    text-align: center;
+    color: var(--nemo-text-color-secondary, #888);
+    height: 100%;
+    min-height: 300px;
+}
+
+.nemo-wi-empty-state-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    opacity: 0.3;
+    color: var(--nemo-primary-accent, #6eb5ff);
+}
+
+.nemo-wi-empty-state h3 {
+    font-size: 1.4em;
+    margin-bottom: 10px;
+    color: var(--nemo-text-high-contrast, #fff);
+}
+
+.nemo-wi-empty-state p {
+    font-size: 0.95em;
+    line-height: 1.5;
+    max-width: 400px;
+}
+
+.nemo-wi-empty-state-hint {
+    margin-top: 15px;
+    font-size: 0.85em !important;
+    opacity: 0.7;
+}
+
+/* Toolbar icon grouping with separators */
+.nemo-wi-toolbar-group {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+}
+
+.nemo-wi-toolbar-separator {
+    display: inline-block;
+    width: 1px;
+    height: 20px;
+    background: var(--nemo-border-color, rgba(255, 255, 255, 0.15));
+    margin: 0 6px;
+    vertical-align: middle;
+}
+
+/* Action buttons in sidebar */
+.nemo-wi-action-buttons {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.nemo-wi-action-buttons .menu_button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85em;
+    padding: 5px 10px;
+}
+
+.nemo-wi-action-buttons .menu_button i {
+    font-size: 0.9em;
+}
+
+/* Order helper item styling */
+.nemo-order-helper-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--nemo-border-color);
+    margin-bottom: -1px;
+    background: var(--nemo-bg-color);
+    cursor: grab;
+    transition: background-color 0.15s;
+}
+
+.nemo-order-helper-item:hover {
+    background: var(--nemo-hover-bg);
+}
+
+.nemo-order-helper-handle {
+    cursor: grab;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+.nemo-order-helper-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nemo-order-helper-order {
+    flex-shrink: 0;
+    font-size: 0.85em;
+    color: var(--nemo-text-color-secondary, #888);
+    font-family: monospace;
+}
+
+/* Helper empty message */
+.nemo-wi-helper-empty {
+    padding: 30px 20px;
+    text-align: center;
+    color: var(--nemo-text-color-secondary, #888);
+    font-style: italic;
+}
+
+/* Lore simulator controls */
+.nemo-lore-simulator-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.nemo-lore-simulator-controls label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+}
+
+.nemo-lore-simulator-controls select {
+    min-width: 160px;
+}
+
+/* Left sidebar section headers with icons */
+.nemo-world-info-active-header i,
+.nemo-world-info-preset-header i {
+    margin-right: 5px;
+    opacity: 0.7;
+}
+
+/* Tab icons */
+.nemo-world-info-tab i {
+    margin-right: 4px;
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+.nemo-world-info-tab.active i {
+    opacity: 1;
+}
+
+/* Move toggle label icon */
+.nemo-move-toggle-container label i {
+    font-size: 0.85em;
+}
+
 /* Favorite Preset Button Styles */
 .nemo-favorite-btn {
     color: #ccc;
@@ -6953,52 +7145,46 @@ body.theme-dyslexia-dark .mes_block .mes_text code {
     width: 100%;
 }
 
-/* Theme selector section - full width */
+/* Theme selector section - compact inline layout */
 #nemo-tab-ui-theme #UI-presets-block {
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
-/* Main content area - two columns */
+/* Hide the entire H4 heading — we'll merge its buttons into the dropdown row via JS */
+#nemo-tab-ui-theme #UI-presets-block > h4 {
+    display: none !important;
+}
+
+/* Make preset dropdown row compact and inline */
+#nemo-tab-ui-theme #UI-presets-block .flex-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+#nemo-tab-ui-theme #UI-presets-block select {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Main content area - single column, full width */
 .nemo-ui-theme-main-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
     width: 100%;
-    grid-template-rows: auto;
 }
 
-/* Force grid positioning - left column (theme elements) */
+/* Theme elements use full width */
 .nemo-ui-theme-main-content > [name="themeElements"] {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
     width: 100% !important;
-    min-width: 0 !important;
 }
 
-/* Force grid positioning - right column (Custom CSS) */
+/* Custom CSS as a collapsible section at the bottom */
 .nemo-ui-theme-main-content > #CustomCSS-block {
-    grid-column: 2 !important;
-    grid-row: 1 !important;
     width: 100% !important;
-    min-width: 0 !important;
-}
-
-/* Left column: All theme elements except Custom CSS */
-#nemo-tab-ui-theme .nemo-ui-theme-main-content [name="themeElements"] {
-    width: 100%;
-    min-width: 0;
-    grid-column: 1;
-    grid-row: 1;
-}
-
-/* Right column: Custom CSS block */
-#nemo-tab-ui-theme .nemo-ui-theme-main-content #CustomCSS-block {
-    width: 100%;
-    min-width: 0;
-    grid-column: 2;
-    grid-row: 1;
 }
 
 /* Make sure elements inside themeElements use full width */
@@ -7071,12 +7257,44 @@ body.theme-dyslexia-dark .mes_block .mes_text code {
     width: 100%;
 }
 
+/* Custom CSS block — inline drawer style at bottom */
+#nemo-tab-ui-theme #CustomCSS-block {
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+#nemo-tab-ui-theme #CustomCSS-block > h4 {
+    cursor: pointer;
+    padding: 10px 14px;
+    margin: 0;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#nemo-tab-ui-theme #CustomCSS-block > h4 span[data-i18n],
+#nemo-tab-ui-theme #CustomCSS-block > h4 > :first-child {
+    flex: 1;
+}
+
 /* Make Custom CSS textarea resizable */
 #nemo-tab-ui-theme #customCSS {
-    resize: both !important;
-    min-height: 200px !important;
-    max-height: 800px !important;
-    min-width: 200px !important;
+    resize: vertical !important;
+    min-height: 150px !important;
+    max-height: 600px !important;
+    width: 100% !important;
+    box-sizing: border-box;
+    padding: 10px;
+    margin: 0;
+    border: none;
+    border-top: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
 }
 
 /* Theme toggles multi-column layout */
@@ -7144,8 +7362,13 @@ body.theme-dyslexia-dark .mes_block .mes_text code {
 #nemo-tab-chat-messages.active {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 8px;
     width: 100%;
+}
+
+/* Hide redundant "Chat/Message Handling" H4 — the tab already labels this */
+#nemo-tab-chat-messages #power-user-option-checkboxes > div:first-child > h4:first-child {
+    display: none !important;
 }
 
 #nemo-tab-chat-messages > div {
@@ -7165,6 +7388,44 @@ body.theme-dyslexia-dark .mes_block .mes_text code {
     box-sizing: border-box;
 }
 
+/* Card-style checkboxes for Chat Messages */
+#nemo-tab-chat-messages .checkbox_label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--SmartThemeBlurTintColor, rgba(255, 255, 255, 0.05));
+    border-radius: 6px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    cursor: pointer;
+    margin: 0;
+}
+
+#nemo-tab-chat-messages .checkbox_label:hover {
+    background-color: var(--SmartThemeQuoteColor, rgba(255, 255, 255, 0.08));
+}
+
+/* STscript Settings section — divider */
+#nemo-tab-chat-messages #power-user-option-checkboxes > div:has(> h4[data-i18n="STscript Settings"]),
+#nemo-tab-chat-messages #power-user-option-checkboxes > div:last-child {
+    border-top: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    padding-top: 12px;
+    margin-top: 5px;
+}
+
+/* Inline drawers in Chat Messages — consistent styling */
+#nemo-tab-chat-messages .inline-drawer {
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+#nemo-tab-chat-messages .inline-drawer-header {
+    padding: 10px 14px;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
+}
+
 /* Character Handling tab specific styling */
 #nemo-tab-character-handling {
     display: none;
@@ -7174,48 +7435,38 @@ body.theme-dyslexia-dark .mes_block .mes_text code {
 /* Responsive design for mobile devices */
 @media (max-width: 768px) {
     .nemo-ui-theme-main-content {
-        grid-template-columns: 1fr !important;
-        gap: 20px !important;
+        gap: 15px !important;
     }
-    
+
     .nemo-ui-theme-main-content > [name="themeElements"] {
-        grid-column: 1 !important;
-        grid-row: 1 !important;
+        /* already full width in single column */
     }
-    
-    .nemo-ui-theme-main-content > #CustomCSS-block {
-        grid-column: 1 !important;
-        grid-row: 2 !important;
-    }
-    
+
     .nemo-user-settings-tab {
         font-size: 12px;
         padding: 10px 15px;
     }
 }
 
+/* Character Handling — single column, full width */
 #nemo-tab-character-handling.active {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
     width: 100%;
-    align-content: start;
 }
 
-#nemo-tab-character-handling [name="CharacterHandlingToggles"] {
-    width: 100%;
-    min-width: 0;
-    grid-column: 1;
+/* Hide redundant "Character Handling" H4 — the tab already says it */
+#nemo-tab-character-handling [name="CharacterHandlingToggles"] > h4 {
+    display: none !important;
 }
 
+#nemo-tab-character-handling [name="CharacterHandlingToggles"],
 #nemo-tab-character-handling [name="MiscellaneousToggles"] {
     width: 100%;
-    min-width: 0;
-    grid-column: 2;
 }
 
-/* Form elements should expand properly but buttons shouldn't stretch */
+/* Dropdowns full width */
 #nemo-tab-character-handling select,
 #nemo-tab-character-handling input[type="range"],
 #nemo-tab-character-handling input[type="number"],
@@ -7232,8 +7483,9 @@ body.theme-dyslexia-dark .mes_block .mes_text code {
 
 #nemo-tab-character-handling .flex-container.flexGap2 {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
+    margin-bottom: 10px;
 }
 
 /* Buttons should maintain natural size */
@@ -7242,30 +7494,62 @@ body.theme-dyslexia-dark .mes_block .mes_text code {
     flex-shrink: 0;
 }
 
-/* Miscellaneous section specific styling */
+/* Checkboxes in Character Handling section — grid layout */
+#nemo-tab-character-handling [name="CharacterHandlingToggles"] {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#nemo-tab-character-handling [name="CharacterHandlingToggles"] .checkbox_label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--SmartThemeBlurTintColor, rgba(255, 255, 255, 0.05));
+    border-radius: 6px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    cursor: pointer;
+    margin: 0;
+}
+
+#nemo-tab-character-handling [name="CharacterHandlingToggles"] .checkbox_label:hover {
+    background-color: var(--SmartThemeQuoteColor, rgba(255, 255, 255, 0.08));
+}
+
+/* Miscellaneous section */
 #nemo-tab-character-handling [name="MiscellaneousToggles"] {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    width: 100%;
-}
-
-#nemo-tab-character-handling [name="MiscellaneousToggles"] h4 {
-    margin-bottom: 10px;
-    margin-top: 0;
-}
-
-/* Organize miscellaneous checkboxes in a more compact layout */
-#nemo-tab-character-handling [name="MiscellaneousToggles"] .checkbox_label {
-    margin-bottom: 8px;
-    padding: 6px 0;
-}
-
-/* Make the button container more compact */
-#nemo-tab-character-handling [name="MiscellaneousToggles"] .flex-container.flexGap2 {
-    flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 15px;
+    width: 100%;
+    border-top: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    padding-top: 15px;
+}
+
+#nemo-tab-character-handling [name="MiscellaneousToggles"] > h4 {
+    margin: 0 0 5px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, #ccc);
+    border-bottom: none;
+}
+
+/* Miscellaneous checkboxes — same card style */
+#nemo-tab-character-handling [name="MiscellaneousToggles"] .checkbox_label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--SmartThemeBlurTintColor, rgba(255, 255, 255, 0.05));
+    border-radius: 6px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    cursor: pointer;
+    margin: 0;
+}
+
+#nemo-tab-character-handling [name="MiscellaneousToggles"] .checkbox_label:hover {
+    background-color: var(--SmartThemeQuoteColor, rgba(255, 255, 255, 0.08));
 }
 
 /* Smooth streaming control styling */
@@ -7860,67 +8144,17 @@ small[data-i18n="(0 = All)"],
     
 }
 
-/* Chat Messages tab specific styling */
-#nemo-tab-chat-messages {
-    display: none;
-}
-
-#nemo-tab-chat-messages.active {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 30px;
-    align-items: start;
-    width: 100%;
-}
-
-/* Organize chat message sections - ensure they fill space properly */
-#nemo-tab-chat-messages > * {
-    width: 100%;
-    min-width: 0;
-}
-
-#nemo-tab-chat-messages [name="ChatMessageHandlingToggles"] {
-    width: 100%;
-    min-width: 0;
-}
-
-#nemo-tab-chat-messages [name="AutoCompleteToggle"] {
-    width: 100%;
-    min-width: 0;
-}
-
-#nemo-tab-chat-messages [name="STscriptToggles"] {
-    width: 100%;
-    min-width: 0;
-}
-
-/* Form elements should expand properly but buttons shouldn't stretch */
-#nemo-tab-chat-messages select,
-#nemo-tab-chat-messages input[type="range"],
-#nemo-tab-chat-messages input[type="number"],
-#nemo-tab-chat-messages textarea {
-    width: 100%;
-    box-sizing: border-box;
-}
-
+/* Chat Messages — additional layout rules */
 #nemo-tab-chat-messages .flex-container {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-/* Buttons should maintain natural size */
-#nemo-tab-chat-messages .menu_button {
-    width: auto;
-    flex-shrink: 0;
-}
-
-/* Only allow flex growth for elements marked with flex1 */
 #nemo-tab-chat-messages .flex1 {
     flex: 1;
 }
 
-/* Fix the range sliders in chat messages */
 #nemo-tab-chat-messages .flex-container.flexBasis48p {
     flex: 1;
     min-width: 0;
@@ -7938,21 +8172,15 @@ small[data-i18n="(0 = All)"],
     min-height: 80px;
 }
 
-/* Fix checkbox containers */
-#nemo-tab-chat-messages .checkbox_label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: fit-content;
-}
-
 /* Enhanced section styling within tabs */
 .nemo-user-settings-tab-content h4 {
-    color: var(--nemo-primary-accent);
-    border-bottom: 2px solid var(--nemo-border-color);
-    padding-bottom: 8px;
-    margin-bottom: 15px;
-    margin-top: 25px;
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.15));
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+    margin-top: 15px;
 }
 
 .nemo-user-settings-tab-content h4:first-child {
@@ -7961,14 +8189,75 @@ small[data-i18n="(0 = All)"],
 
 /* Improve spacing for form elements in tabs */
 .nemo-user-settings-tab-content .flex-container {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
-.nemo-user-settings-tab-content .checkbox_label {
-    margin-bottom: 8px;
+/* Reasoning/Misc tab — full width layout */
+#nemo-tab-reasoning-misc {
+    display: none;
+}
+
+#nemo-tab-reasoning-misc.active {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+/* Force all children to use full width */
+#nemo-tab-reasoning-misc > *,
+#nemo-tab-reasoning-misc > * > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+}
+
+/* Card-style checkboxes */
+#nemo-tab-reasoning-misc .checkbox_label {
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--SmartThemeBlurTintColor, rgba(255, 255, 255, 0.05));
+    border-radius: 6px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    cursor: pointer;
+    margin: 0;
+}
+
+#nemo-tab-reasoning-misc .checkbox_label:hover {
+    background-color: var(--SmartThemeQuoteColor, rgba(255, 255, 255, 0.08));
+}
+
+/* Full width inputs */
+#nemo-tab-reasoning-misc select,
+#nemo-tab-reasoning-misc input[type="text"],
+#nemo-tab-reasoning-misc input[type="number"],
+#nemo-tab-reasoning-misc textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* CC checkboxes section styling */
+#nemo-cc-checkboxes-in-reasoning {
+    width: 100%;
+}
+
+#nemo-cc-checkboxes-in-reasoning h4 {
+    margin-top: 0;
+}
+
+/* Inline drawer styling */
+#nemo-tab-reasoning-misc .inline-drawer {
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+#nemo-tab-reasoning-misc .inline-drawer-header {
+    padding: 10px 14px;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
 }
 
 /* Better organization for inline drawers in tabs */
@@ -8049,10 +8338,9 @@ small[data-i18n="(0 = All)"],
     }
     
     .nemo-ui-theme-main-content {
-        grid-template-columns: 1fr !important;
-        gap: 20px;
+        gap: 15px;
     }
-    
+
     #nemo-tab-ui-theme [name="FontBlurChatWidthBlock"] {
         flex-direction: column;
     }
@@ -8063,63 +8351,39 @@ small[data-i18n="(0 = All)"],
     }
     
     #nemo-tab-character-handling.active {
-        grid-template-columns: 1fr;
-        gap: 20px;
+        gap: 15px;
     }
-    
-    #nemo-tab-character-handling [name="CharacterHandlingToggles"] {
-        grid-column: 1;
-    }
-    
-    #nemo-tab-character-handling [name="MiscellaneousToggles"] {
-        grid-column: 1;
-    }
-    
-    #nemo-tab-chat-messages.active {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
+
 }
 
 /* Tablet responsive design */
 @media (min-width: 769px) and (max-width: 1024px) {
-    /* Tablet: Keep two columns but with smaller gaps */
+    /* Tablet */
     #nemo-tab-ui-theme.active {
         gap: 20px;
     }
-    
+
     .nemo-ui-theme-main-content {
-        gap: 20px;
+        gap: 15px;
     }
-    
+
     #nemo-tab-character-handling.active {
-        gap: 20px;
-    }
-    
-    #nemo-tab-chat-messages.active {
-        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
         gap: 20px;
     }
 }
 
 /* Large screen optimizations */
 @media (min-width: 1200px) {
-    /* Large screens: Allow more columns for chat messages */
-    #nemo-tab-chat-messages.active {
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-        gap: 40px;
-    }
-    
     #nemo-tab-ui-theme.active {
-        gap: 30px;
+        gap: 25px;
     }
-    
+
     .nemo-ui-theme-main-content {
-        gap: 40px;
+        gap: 20px;
     }
     
     #nemo-tab-character-handling.active {
-        gap: 40px;
+        gap: 20px;
     }
 }
 
@@ -8963,11 +9227,8 @@ body.theme-terminal .mes_block .avatar {
 
 /* Search container */
 .nemo-advanced-formatting-search {
-    margin-bottom: 10px;
-    padding: 10px;
-    background: var(--nemo-secondary-bg);
-    border-radius: 8px;
-    border: 1px solid var(--nemo-border-color);
+    margin-bottom: 8px;
+    padding: 0;
 }
 
 /* Extensions Tab Overhaul */
@@ -8993,78 +9254,74 @@ body.theme-terminal .mes_block .avatar {
     gap: 15px;
 }
 
-/* Tab navigation */
+/* Tab navigation — full-width underline style matching User Settings */
 .nemo-advanced-formatting-tabs {
     display: flex;
-    background: var(--nemo-primary-bg);
-    border-radius: 8px 8px 0 0;
-    border: 1px solid var(--nemo-border-color);
-    border-bottom: none;
+    border-bottom: 2px solid var(--SmartThemeBorderColor, #444);
+    margin-bottom: 0;
     overflow-x: auto;
     scrollbar-width: thin;
-    margin-bottom: 0;
-}
-
-.nemo-advanced-formatting-tabs::-webkit-scrollbar {
-    height: 4px;
-}
-
-.nemo-advanced-formatting-tabs::-webkit-scrollbar-track {
-    background: var(--nemo-tertiary-bg);
-}
-
-.nemo-advanced-formatting-tabs::-webkit-scrollbar-thumb {
-    background: var(--nemo-border-color);
-    border-radius: 2px;
 }
 
 .nemo-advanced-formatting-tab {
     flex: 1;
-    min-width: 150px;
-    padding: 12px 16px;
+    padding: 12px 20px;
     background: transparent;
     border: none;
-    color: var(--nemo-text-muted);
+    border-right: 1px solid var(--SmartThemeBorderColor, #333);
+    color: var(--SmartThemeQuoteColor, #888);
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
     font-size: 14px;
+    font-weight: 500;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    border-bottom: 3px solid transparent;
     position: relative;
+    user-select: none;
+}
+
+.nemo-advanced-formatting-tab:last-child {
+    border-right: none;
 }
 
 .nemo-advanced-formatting-tab:hover {
-    background: var(--nemo-item-hover-bg);
-    color: var(--nemo-text-color);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--SmartThemeBodyColor, #ccc);
 }
 
 .nemo-advanced-formatting-tab.active {
-    color: var(--nemo-primary-accent);
-    border-bottom-color: var(--nemo-primary-accent);
-    background: var(--nemo-tertiary-bg);
-    font-weight: 500;
+    color: var(--SmartThemeFavColor, #e8a0bf);
+    background: transparent;
+}
+
+.nemo-advanced-formatting-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: var(--SmartThemeFavColor, #e8a0bf);
+    border-radius: 3px 3px 0 0;
 }
 
 .nemo-advanced-formatting-tab i {
-    font-size: 16px;
+    font-size: 14px;
 }
 
 /* Tab content */
 .nemo-advanced-formatting-tab-content {
     display: none;
-    padding: 20px;
-    background: var(--nemo-tertiary-bg);
-    border: 1px solid var(--nemo-border-color);
-    border-top: none;
-    border-radius: 0 0 8px 8px;
+    padding: 20px 0;
     min-height: 200px;
 }
 
 .nemo-advanced-formatting-tab-content.active {
     display: block;
+    animation: fadeIn 0.3s ease-in;
 }
 
 /* Make tab content columns use full width */
@@ -9074,6 +9331,25 @@ body.theme-terminal .mes_block .avatar {
     flex: 1;
     width: 100%;
     max-width: 100%;
+}
+
+/* Ensure all container elements expand to fill available space */
+.nemo-advanced-formatting-tab-content > * {
+    width: 100%;
+}
+
+/* Form elements fill width */
+.nemo-advanced-formatting-tab-content select,
+.nemo-advanced-formatting-tab-content input[type="text"],
+.nemo-advanced-formatting-tab-content input[type="number"],
+.nemo-advanced-formatting-tab-content textarea {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.nemo-advanced-formatting-tab-content .flex-container {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Search results */
@@ -9153,12 +9429,14 @@ body.theme-terminal .mes_block .avatar {
 /* Mobile responsiveness for Advanced Formatting tabs */
 @media (max-width: 768px) {
     .nemo-advanced-formatting-tabs {
-        flex-wrap: wrap;
+        flex-direction: column;
     }
-    
+
     .nemo-advanced-formatting-tab {
-        min-width: calc(50% - 1px);
         font-size: 12px;
+        padding: 10px 15px;
+        border-right: none;
+        border-bottom: 1px solid var(--SmartThemeBorderColor, #333);
         padding: 10px 12px;
     }
     
