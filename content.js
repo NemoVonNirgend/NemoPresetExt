@@ -53,6 +53,9 @@ import { NemoPersonaUI } from './features/persona/persona-ui.js';
 import { initGuides } from './features/guides/index.js';
 import domCache from './features/character-manager/dom-cache.js';
 
+// Feature modules - Emoji Picker
+import { EmojiPicker } from './features/emoji-picker/emoji-picker.js';
+
 // Feature modules - Connection/Model Selector, API Router & Pipeline
 import { ModelSelector } from './features/connection/model-selector.js';
 import { TextCompletionSelector } from './features/connection/textcomp-selector.js';
@@ -184,6 +187,11 @@ async function initializeExtension() {
         // Initialize HTML trimmer for reducing context usage in old messages
         initializeHTMLTrimmer();
         setupAutoTrim();
+
+        // Initialize Emoji Picker
+        if (extension_settings.NemoPresetExt?.enableEmojiPicker !== false) {
+            EmojiPicker.initialize();
+        }
 
         // Initialize tutorial system
         tutorialManager.initialize();

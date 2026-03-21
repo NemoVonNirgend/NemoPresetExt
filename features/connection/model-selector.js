@@ -329,19 +329,17 @@ export const ModelSelector = {
 
         const btn = document.createElement('div');
         btn.id = 'nemo-selector-reenable-btn';
-        btn.title = 'Switch to enhanced model selector with search, favorites, and card view';
-        btn.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;margin:4px 0;border:1px dashed #555;border-radius:8px;color:#aaa;cursor:pointer;font-size:0.85em;background:rgba(0,0,0,0.15);user-select:none;';
-        btn.innerHTML = '<i class="fa-solid fa-grip"></i> Enhanced Selector';
+        btn.title = 'Open Enhanced Selector';
+        btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#aaa;cursor:pointer;font-size:13px;background:rgba(0,0,0,0.15);user-select:none;transition:all 0.15s;flex-shrink:0;';
+        btn.innerHTML = '<i class="fa-solid fa-grip"></i>';
 
         btn.addEventListener('mouseenter', () => {
             btn.style.borderColor = '#4a90d9';
-            btn.style.borderStyle = 'solid';
             btn.style.color = '#ccc';
-            btn.style.background = 'rgba(74,144,217,0.08)';
+            btn.style.background = 'rgba(74,144,217,0.12)';
         });
         btn.addEventListener('mouseleave', () => {
-            btn.style.borderColor = '#555';
-            btn.style.borderStyle = 'dashed';
+            btn.style.borderColor = 'rgba(255,255,255,0.12)';
             btn.style.color = '#aaa';
             btn.style.background = 'rgba(0,0,0,0.15)';
         });
@@ -357,8 +355,14 @@ export const ModelSelector = {
             try { TextCompletionSelector.initialize(); } catch (_) { /* ignore */ }
         });
 
-        // Insert right before the select dropdown
-        sourceSelect.parentNode.insertBefore(btn, sourceSelect);
+        // Insert right after the select dropdown, inline
+        sourceSelect.parentNode.insertBefore(btn, sourceSelect.nextSibling);
+        // Make the parent flex so button sits inline with dropdown
+        if (sourceSelect.parentNode) {
+            sourceSelect.parentNode.style.display = 'flex';
+            sourceSelect.parentNode.style.alignItems = 'center';
+            sourceSelect.parentNode.style.gap = '6px';
+        }
         logger.debug('ModelSelector: Re-enable button injected');
     },
 

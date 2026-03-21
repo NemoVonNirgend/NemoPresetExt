@@ -13262,3 +13262,264 @@ body.theme-terminal .mes_block .avatar {
     background: rgba(255, 255, 255, 0.15);
     border-radius: 2px;
 }
+
+/* === EMOJI PICKER === */
+.nemo-emoji-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+.nemo-emoji-trigger:hover {
+    opacity: 1;
+}
+
+.nemo-emoji-picker {
+    position: fixed;
+    width: 340px;
+    max-height: 420px;
+    background: var(--SmartThemeBlurTintColor, #1e1e2e);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    display: none;
+    flex-direction: column;
+    z-index: 10001;
+    overflow: hidden;
+    font-family: inherit;
+}
+.nemo-emoji-picker.open {
+    display: flex;
+}
+
+/* Mobile bottom tray */
+.nemo-emoji-picker.mobile {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    max-height: 55vh;
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+}
+
+/* Header: search + skin tones */
+.nemo-ep-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 10px 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.nemo-ep-search-wrap {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.nemo-ep-search-icon {
+    position: absolute;
+    left: 8px;
+    font-size: 11px;
+    opacity: 0.4;
+    pointer-events: none;
+}
+.nemo-ep-search {
+    width: 100%;
+    padding: 6px 8px 6px 26px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--SmartThemeBodyColor, #cdd6f4);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.nemo-ep-search:focus {
+    border-color: var(--SmartThemeQuoteColor, #4a9eff);
+}
+.nemo-ep-search::placeholder {
+    color: var(--SmartThemeBodyColor, #cdd6f4);
+    opacity: 0.35;
+}
+
+/* Skin tone swatches */
+.nemo-ep-skin-tones {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.nemo-ep-tone {
+    width: 24px;
+    height: 24px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s, transform 0.1s;
+}
+.nemo-ep-tone:hover {
+    transform: scale(1.15);
+}
+.nemo-ep-tone.active {
+    border-color: var(--SmartThemeQuoteColor, #4a9eff);
+}
+
+/* Category tabs */
+.nemo-ep-tabs {
+    display: flex;
+    overflow-x: auto;
+    gap: 0;
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    scrollbar-width: none;
+}
+.nemo-ep-tabs::-webkit-scrollbar {
+    display: none;
+}
+.nemo-ep-tab {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 8px;
+    opacity: 0.5;
+    transition: opacity 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+.nemo-ep-tab:hover {
+    opacity: 0.8;
+    background: rgba(255, 255, 255, 0.06);
+}
+.nemo-ep-tab.active {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Emoji grid */
+.nemo-ep-grid-wrap {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 180px;
+    max-height: 280px;
+    padding: 6px;
+}
+.nemo-ep-grid-wrap::-webkit-scrollbar {
+    width: 5px;
+}
+.nemo-ep-grid-wrap::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+.nemo-ep-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+}
+.nemo-emoji-picker.mobile .nemo-ep-grid {
+    grid-template-columns: repeat(7, 1fr);
+}
+.nemo-emoji-btn {
+    width: 100%;
+    aspect-ratio: 1;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 22px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.1s, transform 0.1s;
+    line-height: 1;
+}
+.nemo-emoji-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.15);
+}
+.nemo-emoji-btn:active {
+    transform: scale(0.95);
+}
+.nemo-emoji-btn.nemo-ep-faved {
+    animation: nemo-ep-fav-pulse 0.4s ease;
+}
+@keyframes nemo-ep-fav-pulse {
+    0% { background: rgba(255, 215, 0, 0.3); transform: scale(1.2); }
+    100% { background: transparent; transform: scale(1); }
+}
+
+/* Mobile touch targets */
+@media (max-width: 768px) {
+    .nemo-emoji-btn {
+        min-height: 44px;
+        font-size: 24px;
+    }
+    .nemo-ep-tab {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+    }
+    .nemo-ep-tone {
+        width: 30px;
+        height: 30px;
+    }
+}
+
+/* Empty state */
+.nemo-ep-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 32px 16px;
+    opacity: 0.4;
+    font-size: 12px;
+}
+
+/* Sentinel for lazy loading */
+.nemo-ep-sentinel {
+    height: 1px;
+    width: 100%;
+}
+
+/* Preview footer */
+.nemo-ep-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    min-height: 32px;
+    font-size: 12px;
+}
+.nemo-ep-preview-emoji {
+    font-size: 24px;
+    line-height: 1;
+}
+.nemo-ep-preview-name {
+    opacity: 0.6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

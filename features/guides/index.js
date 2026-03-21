@@ -162,10 +162,21 @@ function updateSettingsUI() {
 function bindSettingsEvents() {
     // Global enable toggle
     $('#ng_enabled').on('change', function () {
-        extension_settings[EXTENSION_NAME].enabled = !!$(this).prop('checked');
+        const enabled = !!$(this).prop('checked');
+        extension_settings[EXTENSION_NAME].enabled = enabled;
         saveSettingsDebounced();
-        registerAllTools();
-        updateSystemInstruction();
+
+        if (enabled) {
+            // Activating: register tools, inject instruction, init activity feed
+            registerAllTools();
+            updateSystemInstruction();
+            initActivityFeed();
+            ensureBookExists().catch(err => console.error(`${LOG_PREFIX} Lorebook init failed:`, err));
+        } else {
+            // Deactivating: unregister tools, clear injected prompt
+            unregisterAllTools();
+            updateSystemInstruction(); // clears the prompt since enabled=false
+        }
     });
 
     // Lorebook settings
@@ -406,6 +417,9 @@ async function onGenerationStarted(type, opts, dryRun) {
  * Handle chat change — detect new chats and wipe trackers.
  */
 async function onChatChanged() {
+    const settings = extension_settings[EXTENSION_NAME];
+    if (!settings?.enabled) return;
+
     const context = getContext();
     const currentChatId = context?.chatId || null;
 
@@ -442,8 +456,10 @@ async function onChatChanged() {
  * This catches the case where the user sends the first message in a brand new chat.
  */
 async function onFirstMessage() {
-    const context = getContext();
     const settings = extension_settings[EXTENSION_NAME];
+    if (!settings?.enabled) return;
+
+    const context = getContext();
 
     // Count non-system messages. If this is the first user message (greeting + 1 user msg = 2 total),
     // run parallel setup for a fresh start.
@@ -499,6 +515,23 @@ export async function initGuides() {
     bindSettingsEvents();
     updateSettingsUI();
 
+    // Always wire event listeners — handlers check settings.enabled internally
+    if (event_types.GENERATION_STARTED) {
+        eventSource.on(event_types.GENERATION_STARTED, onGenerationStarted);
+    }
+
+    eventSource.on(event_types.CHAT_CHANGED, async () => {
+        const s = extension_settings[EXTENSION_NAME];
+        if (!s?.enabled) return;
+        registerAllTools();
+        updateSystemInstruction();
+        await onChatChanged();
+    });
+
+    if (event_types.MESSAGE_SENT) {
+        eventSource.on(event_types.MESSAGE_SENT, onFirstMessage);
+    }
+
     // Check if guides are enabled — if not, stop here (settings panel is still visible)
     const settings = extension_settings[EXTENSION_NAME];
     if (!settings?.enabled) {
@@ -514,23 +547,6 @@ export async function initGuides() {
 
     // Set initial system instruction
     updateSystemInstruction();
-
-    // Inject instruction on every generation start
-    if (event_types.GENERATION_STARTED) {
-        eventSource.on(event_types.GENERATION_STARTED, onGenerationStarted);
-    }
-
-    // Re-register tools on chat change and detect new chats
-    eventSource.on(event_types.CHAT_CHANGED, async () => {
-        registerAllTools();
-        updateSystemInstruction();
-        await onChatChanged();
-    });
-
-    // On first user message in a new chat, wipe trackers for a clean slate
-    if (event_types.MESSAGE_SENT) {
-        eventSource.on(event_types.MESSAGE_SENT, onFirstMessage);
-    }
 
     // Ensure the NG lorebook exists on startup
     await ensureBookExists();
