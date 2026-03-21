@@ -168,19 +168,17 @@ export const NemoMarketplace = {
             </div>
         `;
 
-        // Insert marketplace button after extensions
-        if (extensionsDrawer && extensionsDrawer.nextSibling) {
-            topSettingsHolder.insertBefore(marketplaceDrawer, extensionsDrawer.nextSibling);
-        } else if (extensionsDrawer) {
-            topSettingsHolder.appendChild(marketplaceDrawer);
+        // Insert marketplace button before extensions
+        if (extensionsDrawer) {
+            topSettingsHolder.insertBefore(marketplaceDrawer, extensionsDrawer);
         } else {
             // Fallback: just append
             topSettingsHolder.appendChild(marketplaceDrawer);
         }
 
-        // Move persona drawer to before extensions
-        if (personaDrawer && extensionsDrawer) {
-            topSettingsHolder.insertBefore(personaDrawer, extensionsDrawer);
+        // Move persona drawer to after extensions (original position)
+        if (personaDrawer && extensionsDrawer && extensionsDrawer.nextSibling) {
+            topSettingsHolder.insertBefore(personaDrawer, extensionsDrawer.nextSibling);
         }
 
         // Click handler — open popup instead of a drawer
