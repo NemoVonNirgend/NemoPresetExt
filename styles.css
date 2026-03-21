@@ -6529,12 +6529,12 @@ select:disabled {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.08));
     border-radius: 10px;
-    overflow: hidden;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
     position: relative;
+    min-height: 320px;
 }
 
 .nemo-marketplace-card:hover {
@@ -6558,6 +6558,8 @@ select:disabled {
     background-position: center;
     background-color: rgba(0, 0, 0, 0.3);
     border-bottom: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.05));
+    border-radius: 10px 10px 0 0;
+    overflow: hidden;
 }
 
 .nemo-marketplace-card-image-placeholder {
