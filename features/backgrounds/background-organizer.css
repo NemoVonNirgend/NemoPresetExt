@@ -1,0 +1,233 @@
+/* Background Organizer CSS - Virtual Folders & Settings Drawer */
+
+/* ===== View Toggle Button ===== */
+.bg-view-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 4px;
+}
+
+.bg-view-toggle .menu_button {
+    padding: 3px 6px;
+    min-width: unset;
+    font-size: 14px;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.bg-view-toggle .menu_button.active {
+    opacity: 1;
+    color: var(--SmartThemeQuoteColor, #4a9eff);
+}
+
+.bg-view-toggle .menu_button:hover {
+    opacity: 0.8;
+}
+
+/* ===== Folder Mode Container ===== */
+#bg_menu_content.bg-folder-mode {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    gap: 4px;
+    /* Override the grid layout from ST core */
+    grid-template-columns: unset !important;
+}
+
+/* Override ST's fixed height/overflow on bg_tabs when folder mode is active */
+#bg_tabs.bg-folder-active {
+    height: auto !important;
+    overflow-y: visible !important;
+}
+
+#bg_tabs.bg-folder-active .bg_tab_panel {
+    height: auto !important;
+    max-height: 60vh;
+    overflow-y: auto !important;
+}
+
+#bg_menu_content.bg-folder-mode > .bg_example {
+    /* Hide any direct bg_example children that haven't been sorted yet */
+    display: none;
+}
+
+/* ===== Folder Group ===== */
+.bg-folder-group {
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.bg-folder-group + .bg-folder-group {
+    margin-top: 2px;
+}
+
+/* ===== Folder Header ===== */
+.bg-folder-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.3));
+    border-bottom: 1px solid transparent;
+    transition: background-color 0.15s ease;
+    position: relative;
+    z-index: 2;
+}
+
+.bg-folder-header:hover {
+    background: var(--SmartThemeBodyColor, rgba(50, 50, 50, 0.5));
+}
+
+.bg-folder-group.open .bg-folder-header {
+    border-bottom-color: var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+}
+
+.bg-folder-chevron {
+    font-size: 11px;
+    color: var(--SmartThemeBodyColor, #ccc);
+    transition: transform 0.2s ease;
+    width: 12px;
+    text-align: center;
+}
+
+.bg-folder-group.open .bg-folder-chevron {
+    transform: rotate(0deg);
+}
+
+.bg-folder-group:not(.open) .bg-folder-chevron {
+    transform: rotate(-90deg);
+}
+
+.bg-folder-icon {
+    font-size: 14px;
+    color: var(--SmartThemeQuoteColor, #e8a63a);
+}
+
+.bg-folder-group.open .bg-folder-icon::before {
+    content: "\f07c"; /* fa-folder-open */
+}
+
+.bg-folder-group:not(.open) .bg-folder-icon::before {
+    content: "\f07b"; /* fa-folder */
+}
+
+.bg-folder-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, #ddd);
+    text-transform: capitalize;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bg-folder-count {
+    font-size: 11px;
+    color: var(--SmartThemeBodyColor, #999);
+    background: var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    padding: 1px 7px;
+    border-radius: 10px;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* ===== Folder Content ===== */
+.bg-folder-content {
+    display: grid;
+    grid-template-columns: repeat(var(--bg-thumb-columns, 5), 1fr);
+    gap: 4px;
+    padding: 6px;
+    position: relative;
+    z-index: 1;
+    clear: both;
+}
+
+.bg-folder-group:not(.open) .bg-folder-content {
+    display: none;
+}
+
+/* Ensure bg_example items display properly inside folders */
+.bg-folder-content .bg_example {
+    display: block !important;
+}
+
+/* Hidden items from filter */
+.bg-folder-content .bg_example.bg-filtered-out {
+    display: none !important;
+}
+
+/* Hide empty folders during filter */
+.bg-folder-group.bg-folder-empty {
+    display: none !important;
+}
+
+/* ===== Settings Drawer ===== */
+.bg-settings-drawer {
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    margin-top: 8px;
+    overflow: hidden;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
+}
+
+.bg-settings-drawer-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease;
+}
+
+.bg-settings-drawer-header:hover {
+    background: var(--SmartThemeBodyColor, rgba(50, 50, 50, 0.3));
+}
+
+.bg-settings-drawer-chevron {
+    font-size: 11px;
+    transition: transform 0.2s ease;
+    width: 12px;
+    text-align: center;
+}
+
+.bg-settings-drawer.open .bg-settings-drawer-chevron {
+    transform: rotate(0deg);
+}
+
+.bg-settings-drawer:not(.open) .bg-settings-drawer-chevron {
+    transform: rotate(-90deg);
+}
+
+.bg-settings-drawer-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.bg-settings-drawer-content {
+    /* shown by default when .open */
+}
+
+.bg-settings-drawer:not(.open) .bg-settings-drawer-content {
+    display: none;
+}
+
+/* Remove duplicate heading inside drawer since we have the drawer header */
+.bg-settings-drawer-content #animated-backgrounds-settings > h3 {
+    display: none;
+}
+
+.bg-settings-drawer-content #animated-backgrounds-settings {
+    border: none;
+    margin: 0;
+    padding: 8px 12px 12px;
+}

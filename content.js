@@ -35,6 +35,7 @@ import { initDirectiveFeaturesFixes } from './features/directives/directive-feat
 // Feature modules - Backgrounds
 import { animatedBackgrounds } from './features/backgrounds/animated-backgrounds-module.js';
 import { backgroundUIEnhancements } from './features/backgrounds/background-ui-enhancements.js';
+import { backgroundOrganizer } from './features/backgrounds/background-organizer.js';
 
 // Feature modules - Reasoning
 import { applyNemoNetReasoning } from './reasoning/nemonet-reasoning-config.js';
@@ -51,6 +52,7 @@ import domCache from './features/character-manager/dom-cache.js';
 
 // Feature modules - Connection/Model Selector, API Router & Pipeline
 import { ModelSelector } from './features/connection/model-selector.js';
+import { TextCompletionSelector } from './features/connection/textcomp-selector.js';
 import { ConnectionPool } from './features/connection/connection-pool.js';
 import { ApiRouter } from './features/connection/api-router.js';
 import { ModelPipeline } from './features/connection/model-pipeline.js';
@@ -125,8 +127,8 @@ async function initializeExtension() {
 
         // Initialize tab overhauls only if enabled
         if (extension_settings.NemoPresetExt?.enableTabOverhauls !== false) {
-            UserSettingsTabs.initialize();
-            AdvancedFormattingTabs.initialize();
+            UserSettingsTabs.initialize(); // Handles both User Settings AND Advanced Formatting tabs
+            // AdvancedFormattingTabs.initialize(); // Disabled — absorbed into UserSettingsTabs
         }
 
         if (extension_settings.NemoPresetExt?.enableLorebookOverhaul !== false) {
@@ -138,6 +140,7 @@ async function initializeExtension() {
             await animatedBackgrounds.initialize();
             animatedBackgrounds.addSettingsToUI();
             await backgroundUIEnhancements.initialize();
+            await backgroundOrganizer.initialize();
         }
 
         // Initialize directive cache for performance (parse once, use everywhere)
@@ -148,15 +151,13 @@ async function initializeExtension() {
             console.log('🔧 NemoNet: Directive cache initialized');
         }, 1000); // Delay to ensure promptManager is ready
 
-        // Initialize directive system
-        initDirectiveUI();
-        initPromptDirectiveHooks();
-        initMessageTriggerHooks();  // Message-based auto-enable/disable triggers
-        initDirectiveAutocomplete();
-        initDirectiveFeatures();
-
-        // Apply fixes for directive features
-        initDirectiveFeaturesFixes();
+        // Directive system — deprecated, disabled
+        // initDirectiveUI();
+        // initPromptDirectiveHooks();
+        // initMessageTriggerHooks();
+        // initDirectiveAutocomplete();
+        // initDirectiveFeatures();
+        // initDirectiveFeaturesFixes();
 
         // Initialize category tray system for quick prompt selection
         initCategoryTray();
@@ -268,6 +269,12 @@ async function initializeExtension() {
                     logger.info('Enhanced Model Selector initialized');
                 } catch (err) {
                     logger.error('Failed to initialize Model Selector', err);
+                }
+                try {
+                    TextCompletionSelector.initialize();
+                    logger.info('Text Completion Selector initialized');
+                } catch (err) {
+                    logger.error('Failed to initialize Text Completion Selector', err);
                 }
             }, 1500); // Delay to ensure ST's own Select2 init has completed
         } else {
@@ -506,8 +513,9 @@ async function initializeExtension() {
                 window.NemoPresetManager.destroy();
             }
 
-            // Clean up Model Selector
+            // Clean up Model Selectors
             try { ModelSelector.destroy(); } catch (e) { /* ignore */ }
+            try { TextCompletionSelector.destroy(); } catch (e) { /* ignore */ }
 
             // Reset patched flags
             document.querySelectorAll('[data-nemo-patched]').forEach(el => {

@@ -14,16 +14,65 @@ export const ExtensionsTabOverhaul = {
     extensionTags: {},
     originalExtensions: [], // Store original extension elements
     
+    // IDs to skip — these aren't real extensions (stray style tags, etc.)
+    skipIds: ['nemo-ext-unknown-extension'],
+
+    // Friendly display names for extension containers that lack proper title elements
+    friendlyNames: {
+        'assets_container': 'Download Extensions & Assets',
+        'typing_indicator_container': 'Typing Indicator',
+        'sd_container': 'Image Generation',
+        'expressions_container': 'Character Expressions',
+        'caption_container': 'Image Captioning',
+        'blip_container': 'Multimodal (LLaVA)',
+        'live2d_container': 'Live2D',
+        'vrm_container': 'VRM Characters',
+        'tts_container': 'Text-to-Speech',
+        'rvc_container': 'RVC Voice Conversion',
+        'stt_container': 'Speech-to-Text',
+        'audio_container': 'Ambient Audio',
+        'silence_container': 'Silence Player',
+        'summarize_container': 'Summarize',
+        'vectors_container': 'Vector Storage',
+        'chromadb_container': 'ChromaDB',
+        'qvink_memory_settings': 'Qvink Memory',
+        'vectors_enhanced_container': 'Enhanced Vectors',
+        'websearch_container': 'Web Search',
+        'regex_container': 'Regex',
+        'randomizer_container': 'Randomizer',
+        'qr_container': 'Quick Reply',
+        'translation_container': 'Chat Translation',
+        'objective_container': 'Objectives / Tasks',
+        'dice_container': 'Dice Roller',
+        'message_limit_container': 'Message Limit',
+        'injects_container': 'Data Bank Injections',
+        'idle_container': 'Idle Response',
+        'hypebot_container': 'HypeBot',
+        'accuweather_container': 'AccuWeather',
+        'rss_container': 'RSS Feed',
+        'emulatorjs_container': 'EmulatorJS',
+        'webllm_container': 'WebLLM (Local)',
+        'timelines_container': 'Timelines',
+        'spotify_settings': 'Spotify',
+        'tunnelvision_settings': 'TunnelVision',
+        'ng-settings': "Nemo's Guides",
+    },
+
     // Define default categories for extensions
     defaultCategories: {
         'Core': ['assets_container'],
-        'Image': ['sd_container', 'expressions_container', 'caption_container', 'live2d_container', 'vrm_container'],
-        'Audio': ['tts_container', 'rvc_container', 'stt_container', 'audio_container', 'silence_container'],
+        'Image': ['sd_container', 'expressions_container', 'caption_container', 'blip_container', 'live2d_container', 'vrm_container'],
+        'Audio': ['tts_container', 'rvc_container', 'stt_container', 'audio_container', 'silence_container', 'spotify_settings'],
         'Memory': ['summarize_container', 'vectors_container', 'chromadb_container', 'qvink_memory_settings', 'vectors_enhanced_container'],
-        'Utilities': ['websearch_container', 'regex_container', 'randomizer_container', 'message_limit_container', 'injects_container', 'accuweather_container', 'blip_container', 'emulatorjs_container', 'qr_container', 'translation_container', 'idle_container', 'hypebot_container', 'rss_container', 'timelines_container', 'webllm_container'],
+        'Utilities': ['websearch_container', 'regex_container', 'randomizer_container', 'qr_container', 'translation_container', 'objective_container', 'dice_container', 'typing_indicator_container'],
+        'Chat Features': ['message_limit_container', 'injects_container', 'idle_container', 'hypebot_container'],
+        'Integrations': ['accuweather_container', 'rss_container', 'emulatorjs_container', 'webllm_container', 'timelines_container'],
         'NemoSuite': [
             // NemoPresetExt core settings (this extension)
             'nemo-preset-ext-settings',
+            // Nemo companion extensions
+            'tunnelvision_settings',
+            'ng-settings',
             // Standalone Nemo extensions (if installed separately)
             'nemo-ext-prose-polisher',
             'nemo-ext-prosepolisher',
@@ -173,6 +222,11 @@ export const ExtensionsTabOverhaul = {
         const containers = document.querySelectorAll('#extensions_settings > *, #extensions_settings2 > *');
 
         containers.forEach(container => {
+            // Skip non-element nodes and non-DIV elements (e.g. stray <style> tags)
+            if (container.nodeType !== Node.ELEMENT_NODE || container.tagName === 'STYLE' || container.tagName === 'SCRIPT') {
+                return;
+            }
+
             // Skip our own UI elements (but NOT nemo-preset-enhancer-settings, we want that!)
             if (container.id === 'nemo-suite-drawer' ||
                 container.id === 'nemo-tab-extension-overlay' ||
@@ -183,15 +237,32 @@ export const ExtensionsTabOverhaul = {
             }
 
             let id = container.id;
-            const titleElement = container.querySelector('.inline-drawer-header b, h4, .extension-name, [data-extension-name]');
+
+            // Skip explicitly blacklisted IDs
+            if (id && this.skipIds.includes(id)) {
+                return;
+            }
+
+            // Skip empty containers that have no settings UI
+            // (many ST containers are just empty shells with no content)
+            if (container.children.length === 0) {
+                return;
+            }
+
+            // Determine title: friendly name > DOM element > fallback from ID
             let title = 'Unknown Extension';
 
-            if (titleElement) {
-                title = titleElement.textContent.trim();
-            } else if (container.dataset.extensionName) {
-                title = container.dataset.extensionName;
-            } else if (id) {
-                title = id.replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            if (this.friendlyNames[id]) {
+                title = this.friendlyNames[id];
+            } else {
+                const titleElement = container.querySelector('.inline-drawer-header b, h4, .extension-name, [data-extension-name]');
+                if (titleElement) {
+                    title = titleElement.textContent.trim();
+                } else if (container.dataset.extensionName) {
+                    title = container.dataset.extensionName;
+                } else if (id) {
+                    title = id.replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                }
             }
 
             // Special handling for NemoPresetExt settings
