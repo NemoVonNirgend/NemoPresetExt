@@ -321,8 +321,12 @@ export const ModelSelector = {
      * when the feature is disabled on page load.
      */
     injectReEnableButton() {
-        // Remove any existing re-enable button
-        document.getElementById('nemo-selector-reenable-btn')?.remove();
+        // Remove any existing re-enable button (and its wrapper, if present)
+        const existing = document.getElementById('nemo-selector-reenable-btn');
+        if (existing) {
+            const wrap = existing.closest('#nemo-selector-reenable-wrap');
+            (wrap || existing).remove();
+        }
 
         const sourceSelect = document.getElementById('chat_completion_source');
         if (!sourceSelect) return;
@@ -330,7 +334,7 @@ export const ModelSelector = {
         const btn = document.createElement('div');
         btn.id = 'nemo-selector-reenable-btn';
         btn.title = 'Open Enhanced Selector';
-        btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#aaa;cursor:pointer;font-size:13px;background:rgba(0,0,0,0.15);user-select:none;transition:all 0.15s;flex-shrink:0;';
+        btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#aaa;cursor:pointer;font-size:13px;background:rgba(0,0,0,0.15);user-select:none;transition:all 0.15s;flex-shrink:0;margin-left:6px;vertical-align:middle;';
         btn.innerHTML = '<i class="fa-solid fa-grip"></i>';
 
         btn.addEventListener('mouseenter', () => {
@@ -355,14 +359,12 @@ export const ModelSelector = {
             try { TextCompletionSelector.initialize(); } catch (_) { /* ignore */ }
         });
 
-        // Insert right after the select dropdown, inline
+        // Insert right after the select dropdown, inline.
+        // IMPORTANT: do NOT mutate sourceSelect.parentNode — that's #openai_api, which
+        // contains the entire connection panel (label, proxy drawer, API key form,
+        // Connect button, etc.). Setting display:flex on it would collapse the whole
+        // panel into a single horizontal row and break the layout.
         sourceSelect.parentNode.insertBefore(btn, sourceSelect.nextSibling);
-        // Make the parent flex so button sits inline with dropdown
-        if (sourceSelect.parentNode) {
-            sourceSelect.parentNode.style.display = 'flex';
-            sourceSelect.parentNode.style.alignItems = 'center';
-            sourceSelect.parentNode.style.gap = '6px';
-        }
         logger.debug('ModelSelector: Re-enable button injected');
     },
 

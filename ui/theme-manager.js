@@ -51,6 +51,53 @@ let loadedThemeStylesheet = null;
 // Base path now uses centralized getExtensionPath() from core/utils.js
 
 /**
+ * Detect mobile viewport. Themes break layouts on small screens and users
+ * have reported getting stuck in them, so we refuse to apply non-default
+ * themes when this returns true. Saved settings are preserved — the theme
+ * just isn't applied until the viewport is large enough.
+ * @returns {boolean}
+ */
+function isMobileViewport() {
+    try {
+        if (window.matchMedia) {
+            return window.matchMedia('(max-width: 768px)').matches;
+        }
+    } catch (_) { /* fall through */ }
+    const w = window.innerWidth || document.documentElement?.clientWidth || 0;
+    return w > 0 && w <= 768;
+}
+
+/**
+ * Strip any applied theme class/stylesheet from the page without
+ * mutating the saved setting.
+ */
+function stripAppliedTheme() {
+    Object.values(THEMES).forEach(t => {
+        if (t.bodyClass) document.body.classList.remove(t.bodyClass);
+    });
+    if (loadedThemeStylesheet) {
+        loadedThemeStylesheet.remove();
+        loadedThemeStylesheet = null;
+    }
+    document.getElementById('nemo-theme-stylesheet')?.remove();
+}
+
+/**
+ * Show a small toast explaining that themes are disabled on mobile.
+ */
+function showMobileThemeBlockedNotice() {
+    const id = 'nemo-mobile-theme-blocked-notice';
+    document.getElementById(id)?.remove();
+
+    const notice = document.createElement('div');
+    notice.id = id;
+    notice.innerHTML = '<i class="fa-solid fa-mobile-screen"></i><span>Themes are disabled on mobile. Default UI will be used until you switch to a larger screen.</span>';
+    notice.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(40,40,40,0.95);color:#fff;padding:10px 14px;border:1px solid rgba(255,200,50,0.5);border-radius:8px;display:flex;align-items:center;gap:10px;z-index:10001;box-shadow:0 4px 12px rgba(0,0,0,0.4);font-size:0.85em;max-width:90vw;line-height:1.3;';
+    document.body.appendChild(notice);
+    setTimeout(() => notice.remove(), 4500);
+}
+
+/**
  * Load a theme CSS file dynamically
  * @param {string} themeName - The theme identifier
  */
@@ -106,6 +153,15 @@ export async function applyTheme(themeName) {
 
     if (!theme) {
         console.warn(`${LOG_PREFIX} Unknown theme: ${themeName}`);
+        return;
+    }
+
+    // Mobile guard: refuse to apply any non-default theme on small viewports.
+    // The saved setting is left alone so the theme returns on desktop.
+    if (themeName !== 'none' && theme.cssFile && isMobileViewport()) {
+        console.log(`${LOG_PREFIX} Mobile viewport detected — blocking theme: ${themeName}`);
+        stripAppliedTheme();
+        showMobileThemeBlockedNotice();
         return;
     }
 
@@ -222,38 +278,80 @@ export function initThemeSelector() {
 function attachThemeCardHandlers(themeCards) {
     // Set the currently selected theme
     const currentTheme = getCurrentTheme();
+    const mobile = isMobileViewport();
+
     themeCards.forEach(card => {
         const radio = card.querySelector('input[type="radio"]');
         if (radio && radio.value === currentTheme) {
             radio.checked = true;
         }
+        // Visually mark non-default cards as disabled on mobile
+        if (mobile && radio && radio.value !== 'none') {
+            card.classList.add('nemo-theme-card-mobile-disabled');
+            card.style.opacity = '0.55';
+            card.title = 'Themes are disabled on mobile';
+        }
     });
+
+    // Banner above the cards explaining the mobile lock
+    if (mobile && themeCards.length > 0) {
+        const container = themeCards[0].parentElement;
+        if (container && !container.querySelector('.nemo-mobile-theme-banner')) {
+            const banner = document.createElement('div');
+            banner.className = 'nemo-mobile-theme-banner';
+            banner.innerHTML = '<i class="fa-solid fa-mobile-screen"></i> Themes are disabled on mobile to prevent layout issues. Saved themes will return on a larger screen.';
+            banner.style.cssText = 'background:rgba(255,200,50,0.12);border:1px solid rgba(255,200,50,0.4);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:0.85em;color:var(--SmartThemeBodyColor,#eee);display:flex;align-items:center;gap:8px;line-height:1.3;';
+            container.insertBefore(banner, themeCards[0]);
+        }
+    }
 
     // Add click handlers to theme cards
     themeCards.forEach(card => {
         card.addEventListener('click', (e) => {
+            const radio = card.querySelector('input[type="radio"]');
+            if (!radio) return;
+
+            // Block non-default selections on mobile
+            if (radio.value !== 'none' && isMobileViewport()) {
+                e.preventDefault();
+                e.stopPropagation();
+                showMobileThemeBlockedNotice();
+                // Force the radio state to reflect the actual applied theme ('none')
+                themeCards.forEach(c => {
+                    const r = c.querySelector('input[type="radio"]');
+                    if (r) r.checked = (r.value === 'none');
+                });
+                return;
+            }
+
             // Don't trigger if clicking on the radio itself (it handles itself)
             if (e.target.type === 'radio') return;
 
-            const radio = card.querySelector('input[type="radio"]');
-            if (radio) {
-                radio.checked = true;
-                handleThemeChange(radio.value);
-            }
+            radio.checked = true;
+            handleThemeChange(radio.value);
         });
 
         // Also handle radio change directly
         const radio = card.querySelector('input[type="radio"]');
         if (radio) {
             radio.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    handleThemeChange(e.target.value);
+                if (!e.target.checked) return;
+
+                if (e.target.value !== 'none' && isMobileViewport()) {
+                    showMobileThemeBlockedNotice();
+                    themeCards.forEach(c => {
+                        const r = c.querySelector('input[type="radio"]');
+                        if (r) r.checked = (r.value === 'none');
+                    });
+                    return;
                 }
+
+                handleThemeChange(e.target.value);
             });
         }
     });
 
-    console.log(`${LOG_PREFIX} Theme selector initialized with ${themeCards.length} theme cards`);
+    console.log(`${LOG_PREFIX} Theme selector initialized with ${themeCards.length} theme cards (mobile=${mobile})`);
 }
 
 /**
