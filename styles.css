@@ -7400,13 +7400,11 @@ body[class*="theme-"] .main-container {
 
 /* === DIALOGUE AND ITALICS STYLING FOR ALL THEMES === */
 
-/* Dialogue styling - text within quotes */
+/* Dialogue styling - text within quotes (color only; let ST theme control style/weight) */
 body[class*="theme-"] .mes_block .mes_text q,
 body[class*="theme-"] .mes_block .mes_text q::before,
 body[class*="theme-"] .mes_block .mes_text q::after {
     color: var(--dialogue-color, var(--SmartThemeQuoteColor)) !important;
-    font-style: italic !important;
-    font-weight: 500 !important;
 }
 
 /* Italics styling */
@@ -7416,11 +7414,9 @@ body[class*="theme-"] .mes_block .mes_text i {
     font-style: italic !important;
 }
 
-/* Reasoning block dialogue and italics */
+/* Reasoning block dialogue (color only; let ST theme control style/weight) */
 body[class*="theme-"] .mes_block .mes_reasoning q {
     color: var(--dialogue-color, var(--SmartThemeQuoteColor)) !important;
-    font-style: italic !important;
-    font-weight: 500 !important;
 }
 
 body[class*="theme-"] .mes_block .mes_reasoning em,
