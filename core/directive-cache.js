@@ -55,6 +55,8 @@ export function initializeDirectiveCache() {
                 exclusiveWith: directives.exclusiveWith || [],
                 conflictsWith: directives.conflictsWith || [],
                 autoDisable: directives.autoDisable || [],
+                maxOnePerCategory: directives.maxOnePerCategory || null,
+                mutualExclusiveGroup: directives.mutualExclusiveGroup || null,
             });
         } catch (e) {
             logger.warn(`Failed to parse directives for prompt ${prompt.identifier}:`, e);
@@ -119,6 +121,8 @@ export function invalidateCacheForPrompt(identifier) {
                 exclusiveWith: directives.exclusiveWith || [],
                 conflictsWith: directives.conflictsWith || [],
                 autoDisable: directives.autoDisable || [],
+                maxOnePerCategory: directives.maxOnePerCategory || null,
+                mutualExclusiveGroup: directives.mutualExclusiveGroup || null,
             });
             cacheVersion++;
             logger.debug(`Directive cache updated for prompt: ${identifier}`);
@@ -177,6 +181,8 @@ export function getPromptMetadataList() {
             categories: cachedDirectives.categories,
             tags: cachedDirectives.tags,
             group: cachedDirectives.group,
+            maxOnePerCategory: cachedDirectives.maxOnePerCategory,
+            mutualExclusiveGroup: cachedDirectives.mutualExclusiveGroup,
             // Note: No full content included - fetch on demand if needed
         };
     });

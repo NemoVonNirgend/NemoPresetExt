@@ -51,12 +51,18 @@ export function ensureSettingsNamespace() {
 
     // Initialize default settings if they don't exist
     const defaults = {
-        nemoEnableWidePanels: false,  // Default to disabled
+        nemoEnableWidePanels: false,
+        enableConnectionPanelOverhaul: true,
+        enableTabOverhauls: true,
+        nemoEnableExtensionsTabOverhaul: true,
         enablePromptManager: true,
+        dropdownStyle: 'tray',
+        dropdownTheme: 'st',
         enablePresetNavigator: true,
         enableDirectives: true,
         enableAnimatedBackgrounds: true,
         enablePanelToggle: true,
+        enableReasoningSection: true,
         enableLorebookManagement: true,
         enableHTMLTrimming: false,
         htmlTrimmingKeepCount: 0,  // Default to 0 (no auto-trim)
@@ -74,6 +80,30 @@ export function ensureSettingsNamespace() {
         if (extension_settings[NEMO_EXTENSION_NAME][key] === undefined) {
             extension_settings[NEMO_EXTENSION_NAME][key] = value;
         }
+    }
+
+    // The dropdown theme setting was introduced with Nemo Blue as the first
+    // draft default. Prefer ST theme integration unless users change it later.
+    if (extension_settings[NEMO_EXTENSION_NAME]._dropdownThemeDefaultStV1 !== true) {
+        if (extension_settings[NEMO_EXTENSION_NAME].dropdownTheme === undefined || extension_settings[NEMO_EXTENSION_NAME].dropdownTheme === 'nemo') {
+            extension_settings[NEMO_EXTENSION_NAME].dropdownTheme = 'st';
+        }
+        extension_settings[NEMO_EXTENSION_NAME]._dropdownThemeDefaultStV1 = true;
+    }
+
+    // Correct a short-lived dev migration that disabled primary NemoPresetExt UI
+    // systems. These overhauls are core extension functionality, so restore them
+    // once and leave future user changes alone.
+    if (extension_settings[NEMO_EXTENSION_NAME]._restorePrimaryUiDefaultsV1 !== true) {
+        Object.assign(extension_settings[NEMO_EXTENSION_NAME], {
+            enableConnectionPanelOverhaul: true,
+            enableTabOverhauls: true,
+            nemoEnableExtensionsTabOverhaul: true,
+            enableModelSelector: true,
+            enableReasoningSection: true,
+            enableLorebookManagement: true,
+            _restorePrimaryUiDefaultsV1: true,
+        });
     }
 
     return true;

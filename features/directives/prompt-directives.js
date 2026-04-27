@@ -270,6 +270,11 @@ function parseDirectiveLine(line, directives) {
     else if (line.startsWith('@mutual-exclusive-group ')) {
         directives.mutualExclusiveGroup = line.substring(24).trim();
     }
+    // Legacy alias used by older Nemo Engine presets. Canonical directive is
+    // @mutual-exclusive-group.
+    else if (line.startsWith('@exclusive-with-category ')) {
+        directives.mutualExclusiveGroup = line.substring(25).trim();
+    }
     else if (line.startsWith('@priority ')) {
         directives.priority = parseInt(line.substring(10).trim());
     }
@@ -420,6 +425,22 @@ function parseDirectiveLine(line, directives) {
     }
 }
 
+function normalizePromptReference(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/^[^\p{Letter}\p{Number}]+/u, '')
+        .replace(/\s+/g, ' ');
+}
+
+function promptMatchesReference(prompt, reference) {
+    if (!prompt || !reference) return false;
+    const normalizedReference = normalizePromptReference(reference);
+    return prompt.identifier === reference ||
+        normalizePromptReference(prompt.identifier) === normalizedReference ||
+        normalizePromptReference(prompt.name) === normalizedReference;
+}
+
 /**
  * Validate a prompt activation and return any issues
  * @param {string} promptId - ID of prompt being enabled
@@ -435,7 +456,7 @@ export function validatePromptActivation(promptId, allPrompts) {
 
     // Check exclusive-with (hard conflict - cannot enable both)
     for (const exclusiveId of directives.exclusiveWith) {
-        const conflictingPrompt = allPrompts.find(p => p.identifier === exclusiveId && p.enabled);
+        const conflictingPrompt = allPrompts.find(p => promptMatchesReference(p, exclusiveId) && p.enabled);
         if (conflictingPrompt) {
             issues.push({
                 type: 'exclusive',
@@ -455,7 +476,7 @@ export function validatePromptActivation(promptId, allPrompts) {
 
         const otherDirectives = parsePromptDirectives(otherPrompt.content);
 
-        if (otherDirectives.exclusiveWith.includes(promptId)) {
+        if (otherDirectives.exclusiveWith.some(ref => promptMatchesReference(prompt, ref))) {
             issues.push({
                 type: 'exclusive',
                 severity: 'error',
@@ -470,7 +491,7 @@ export function validatePromptActivation(promptId, allPrompts) {
 
     // Check requires (missing dependencies)
     for (const requiredId of directives.requires) {
-        const requiredPrompt = allPrompts.find(p => p.identifier === requiredId);
+        const requiredPrompt = allPrompts.find(p => promptMatchesReference(p, requiredId));
         if (!requiredPrompt || !requiredPrompt.enabled) {
             issues.push({
                 type: 'missing-dependency',
@@ -518,7 +539,8 @@ export function validatePromptActivation(promptId, allPrompts) {
             issues.push({
                 type: 'mutual-exclusive-group',
                 severity: 'error',
-                message: `Only one prompt from group "${directives.mutualExclusiveGroup}" can be active at a time. Already active: ${sameGroup.map(p => `"${p.name}"`).join(', ')}`,
+                message: directives.exclusiveWithMessage ||
+                         `Only one prompt from group "${directives.mutualExclusiveGroup}" can be active at a time. Already active: ${sameGroup.map(p => `"${p.name}"`).join(', ')}`,
                 conflictingPrompts: sameGroup,
                 currentPrompt: prompt,
                 group: directives.mutualExclusiveGroup,
@@ -529,7 +551,7 @@ export function validatePromptActivation(promptId, allPrompts) {
 
     // Check conflicts-with (soft conflict - warning only)
     for (const conflictId of directives.conflictsWith) {
-        const conflictingPrompt = allPrompts.find(p => p.identifier === conflictId && p.enabled);
+        const conflictingPrompt = allPrompts.find(p => promptMatchesReference(p, conflictId) && p.enabled);
         if (conflictingPrompt) {
             issues.push({
                 type: 'soft-conflict',
@@ -549,7 +571,7 @@ export function validatePromptActivation(promptId, allPrompts) {
 
         const otherDirectives = parsePromptDirectives(otherPrompt.content);
 
-        if (otherDirectives.conflictsWith.includes(promptId)) {
+        if (otherDirectives.conflictsWith.some(ref => promptMatchesReference(prompt, ref))) {
             issues.push({
                 type: 'soft-conflict',
                 severity: 'warning',
@@ -739,6 +761,15 @@ Only one prompt from this category can be active at a time.
 **Example:**
 \\{\\{// @category response-length }}
 \\{\\{// @max-one-per-category response-length }}
+
+---
+
+### @mutual-exclusive-group <group>
+Only one prompt with the same mutual-exclusive group can be active at a time.
+
+**Example:**
+\\{\\{// @category response-length }}
+\\{\\{// @mutual-exclusive-group response-length }}
 
 ---
 
