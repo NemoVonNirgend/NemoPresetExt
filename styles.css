@@ -7259,11 +7259,11 @@ select:disabled {
 
 /* --- Generic Message Styling --- */
 body[class*="theme-"] .mes_block {
-    font-family: var(--panel-font) !important;
-    border: 1px solid var(--panel-border) !important;
-    background-color: var(--panel-bg-primary) !important;
-    box-shadow: 0 2px 5px var(--panel-shadow) !important;
-    color: var(--text-primary) !important;
+    font-family: var(--panel-font, var(--SmartThemeFontFamily)) !important;
+    border: 1px solid var(--panel-border, var(--SmartThemeBorderColor)) !important;
+    background-color: var(--panel-bg-primary, var(--SmartThemeBotMesBlurTintColor)) !important;
+    box-shadow: 0 2px 5px var(--panel-shadow, var(--SmartThemeShadowColor)) !important;
+    color: var(--text-primary, var(--SmartThemeBodyColor)) !important;
     border-radius: 8px !important;
     margin-bottom: 10px !important;
     overflow: hidden !important;
@@ -7299,20 +7299,18 @@ body[class*="theme-"] .mes_block .ch_name svg {
 }
 
 body[class*="theme-"] .mes_block .mes_text {
-    color: var(--text-primary) !important;
+    color: var(--text-primary, var(--SmartThemeBodyColor)) !important;
     padding: 12px !important;
-    background-color: var(--panel-bg-primary) !important;
+    background-color: var(--panel-bg-primary, var(--SmartThemeBotMesBlurTintColor)) !important;
     border-radius: 0 0 8px 8px !important;
 }
 
-/* Ensure all text elements within mes_text inherit the theme colors */
+/* Ensure block text elements within mes_text inherit the theme color
+   (q/em/strong are handled by their own dialogue/italics rules below) */
 body[class*="theme-"] .mes_block .mes_text p,
 body[class*="theme-"] .mes_block .mes_text div,
-body[class*="theme-"] .mes_block .mes_text span,
-body[class*="theme-"] .mes_block .mes_text q,
-body[class*="theme-"] .mes_block .mes_text em,
-body[class*="theme-"] .mes_block .mes_text strong {
-    color: var(--text-primary) !important;
+body[class*="theme-"] .mes_block .mes_text span {
+    color: var(--text-primary, var(--SmartThemeBodyColor)) !important;
 }
 
 /* Code blocks need high contrast for readability */
