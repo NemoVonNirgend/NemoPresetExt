@@ -1,0 +1,188 @@
+<div id="nemo_rewrite_settings" class="nemo-rewrite-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>Nemo Rewrite</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div class="nemo-rewrite-intro">
+                <p>Select text inside a chat message to rewrite, shorten, expand, customize, or delete that exact span. Notes can be attached as private guidance for the AI edit.</p>
+                <div id="nemo_rewrite_standalone_notice" class="nemo-rewrite-notice" style="display: none;"></div>
+            </div>
+
+            <div class="nemo-rewrite-card">
+                <div class="nemo-rewrite-row">
+                    <label class="checkbox_label" title="Enables the native Nemo Rewrite floating menu when selecting text in a chat message.">
+                        <input type="checkbox" id="nemo_rewrite_enabled" checked>
+                        <span>Enable native rewrite menu <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Enables the native Nemo Rewrite floating menu when selecting text in a chat message."></i></span>
+                    </label>
+                </div>
+                <div class="nemo-rewrite-row">
+                    <label class="checkbox_label" title="Prevents duplicate selection menus while the standalone rewrite-extension is also loaded.">
+                        <input type="checkbox" id="nemo_rewrite_disable_standalone" checked>
+                        <span>Pause native menu if standalone rewrite-extension is active <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Prevents duplicate selection menus while the standalone rewrite-extension is also loaded."></i></span>
+                    </label>
+                </div>
+                <div class="nemo-rewrite-row">
+                    <label class="checkbox_label" title="Advanced behavior for users who want every edit to include a reason. Leave off for the normal fast rewrite/delete flow.">
+                        <input type="checkbox" id="nemo_rewrite_ask_note">
+                        <span>Ask for a note before every action <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Advanced behavior for users who want every edit to include a reason."></i></span>
+                    </label>
+                </div>
+                <div class="nemo-rewrite-row">
+                    <label class="checkbox_label" title="Optional advanced flow. Leave this off for the normal Rewrite, Shorten, Expand, Custom, and Delete menu.">
+                        <input type="checkbox" id="nemo_rewrite_show_note_action">
+                        <span>Show optional Leave Note action <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Optional advanced flow. Leave this off for the normal rewrite/delete menu."></i></span>
+                    </label>
+                </div>
+                <div class="nemo-rewrite-row">
+                    <label class="checkbox_label" title="Store recent edit notes in NemoPresetExt settings for debugging/undo context. Notes are not sent anywhere unless used in an AI rewrite request.">
+                        <input type="checkbox" id="nemo_rewrite_store_notes" checked>
+                        <span>Store recent edit notes locally <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Store recent edit notes in NemoPresetExt settings for debugging/undo context."></i></span>
+                    </label>
+                </div>
+                <div class="nemo-rewrite-row">
+                    <label class="checkbox_label" title="When NemoLore is loaded, rewrite notes become preference evidence/signals for review instead of being isolated rewrite metadata.">
+                        <input type="checkbox" id="nemo_rewrite_notes_to_nemolore" checked>
+                        <span>Use notes as NemoLore preference indicators <i class="fa-solid fa-circle-info nemo-rewrite-info" title="When NemoLore is loaded, rewrite notes become preference evidence/signals for review."></i></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="inline-drawer nemo-rewrite-subdrawer">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-plug"></i> Model Routing</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content">
+                    <div class="nemo-rewrite-grid">
+                        <label title="Chat Completion uses selected ST presets. Text Completion/NovelAI uses prompt templates below.">
+                            Configure model type <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Chat Completion uses selected ST presets. Text Completion/NovelAI uses prompt templates below."></i>
+                            <select id="nemo_rewrite_model_select" class="text_pole">
+                                <option value="chat_completion">Chat Completion</option>
+                                <option value="textgenerationwebui">Text Completion / NovelAI</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div id="nemo_rewrite_chat_settings" class="nemo-rewrite-card">
+                        <div class="nemo-rewrite-actions">
+                            <button id="nemo_rewrite_refresh_presets" class="menu_button" type="button" title="Reload Chat Completion preset names from SillyTavern.">Refresh Presets</button>
+                        </div>
+                        <div class="nemo-rewrite-grid">
+                            <label>Rewrite preset <select id="nemo_rewrite_preset" class="text_pole" data-preset-manager-for="nemo-rewrite"></select></label>
+                            <label>Shorten preset <select id="nemo_rewrite_shorten_preset" class="text_pole" data-preset-manager-for="nemo-rewrite-shorten"></select></label>
+                            <label>Expand preset <select id="nemo_rewrite_expand_preset" class="text_pole" data-preset-manager-for="nemo-rewrite-expand"></select></label>
+                            <label>Custom preset <select id="nemo_rewrite_custom_preset" class="text_pole" data-preset-manager-for="nemo-rewrite-custom"></select></label>
+                        </div>
+                        <label class="checkbox_label" title="Overrides the selected preset max token value with Nemo Rewrite's dynamic/static token estimate.">
+                            <input type="checkbox" id="nemo_rewrite_override_tokens" checked>
+                            <span>Override preset max tokens <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Overrides the selected preset max token value with Nemo Rewrite's dynamic/static token estimate."></i></span>
+                        </label>
+                    </div>
+
+                    <div id="nemo_rewrite_text_settings" class="nemo-rewrite-card" style="display: none;">
+                        <label>Rewrite prompt <textarea id="nemo_rewrite_text_prompt" class="text_pole" rows="4"></textarea></label>
+                        <label>Shorten prompt <textarea id="nemo_rewrite_shorten_prompt" class="text_pole" rows="4"></textarea></label>
+                        <label>Expand prompt <textarea id="nemo_rewrite_expand_prompt" class="text_pole" rows="4"></textarea></label>
+                        <label>Custom prompt <textarea id="nemo_rewrite_custom_prompt" class="text_pole" rows="4" title="Use {{custom_instructions}} for the custom instructions popup text."></textarea></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="inline-drawer nemo-rewrite-subdrawer">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-note-sticky"></i> Notes</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content">
+                    <div class="nemo-rewrite-card">
+                        <label title="Template appended to prompts when a note is provided. Keep {{note}} in the template.">
+                            Note instruction template <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Template appended to prompts when a note is provided. Keep {{note}} in the template."></i>
+                            <textarea id="nemo_rewrite_note_template" class="text_pole" rows="4"></textarea>
+                        </label>
+                        <small class="nemo-rewrite-hint">Available macros: {{rewrite}}, {{targetmessage}}, {{rewritecount}}, {{custom_instructions}}, {{note}}.</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="inline-drawer nemo-rewrite-subdrawer">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-sliders"></i> Behavior</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content">
+                    <div class="nemo-rewrite-card">
+                        <label class="checkbox_label" title="Stream rewritten text into the selected span when the active backend supports streaming.">
+                            <input type="checkbox" id="nemo_rewrite_use_streaming" checked>
+                            <span>Use streaming <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Stream rewritten text into the selected span when the active backend supports streaming."></i></span>
+                        </label>
+                        <label class="checkbox_label" title="Apply SillyTavern AI Output regex scripts to the rewritten span before saving it.">
+                            <input type="checkbox" id="nemo_rewrite_apply_regex" checked>
+                            <span>Apply AI Output regex on rewrite <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Apply SillyTavern AI Output regex scripts to the rewritten span before saving it."></i></span>
+                        </label>
+                        <label class="checkbox_label" title="Calculate output token budget from the selected text length.">
+                            <input type="checkbox" id="nemo_rewrite_dynamic_tokens" checked>
+                            <span>Use dynamic token calculation <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Calculate output token budget from the selected text length."></i></span>
+                        </label>
+                        <div class="nemo-rewrite-grid">
+                            <label>Dynamic token mode
+                                <select id="nemo_rewrite_dynamic_mode" class="text_pole">
+                                    <option value="multiplicative">Multiplicative</option>
+                                    <option value="additive">Additive</option>
+                                </select>
+                            </label>
+                            <label>Highlight duration (ms) <input id="nemo_rewrite_highlight_duration" class="text_pole" type="number" min="0" step="100"></label>
+                            <label>Remove prefix <input id="nemo_rewrite_remove_prefix" class="text_pole" type="text"></label>
+                            <label>Remove suffix <input id="nemo_rewrite_remove_suffix" class="text_pole" type="text"></label>
+                        </div>
+                    </div>
+
+                    <div id="nemo_rewrite_static_tokens" class="nemo-rewrite-card">
+                        <div class="nemo-rewrite-grid">
+                            <label>Rewrite tokens <input id="nemo_rewrite_tokens" class="text_pole" type="number" min="1"></label>
+                            <label>Shorten tokens <input id="nemo_rewrite_shorten_tokens" class="text_pole" type="number" min="1"></label>
+                            <label>Expand tokens <input id="nemo_rewrite_expand_tokens" class="text_pole" type="number" min="1"></label>
+                            <label>Custom tokens <input id="nemo_rewrite_custom_tokens" class="text_pole" type="number" min="1"></label>
+                        </div>
+                    </div>
+
+                    <div id="nemo_rewrite_dynamic_token_settings" class="nemo-rewrite-card">
+                        <div id="nemo_rewrite_additive_tokens">
+                            <div class="nemo-rewrite-grid">
+                                <label>Rewrite token difference <input id="nemo_rewrite_tokens_add" class="text_pole" type="number"></label>
+                                <label>Shorten token difference <input id="nemo_rewrite_shorten_tokens_add" class="text_pole" type="number"></label>
+                                <label>Expand token difference <input id="nemo_rewrite_expand_tokens_add" class="text_pole" type="number"></label>
+                                <label>Custom token difference <input id="nemo_rewrite_custom_tokens_add" class="text_pole" type="number"></label>
+                            </div>
+                        </div>
+                        <div id="nemo_rewrite_multiplicative_tokens">
+                            <div class="nemo-rewrite-grid">
+                                <label>Rewrite multiplier <input id="nemo_rewrite_tokens_mult" class="text_pole" type="number" step="0.05"></label>
+                                <label>Shorten multiplier <input id="nemo_rewrite_shorten_tokens_mult" class="text_pole" type="number" step="0.05"></label>
+                                <label>Expand multiplier <input id="nemo_rewrite_expand_tokens_mult" class="text_pole" type="number" step="0.05"></label>
+                                <label>Custom multiplier <input id="nemo_rewrite_custom_tokens_mult" class="text_pole" type="number" step="0.05"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="inline-drawer nemo-rewrite-subdrawer">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-eye"></i> Button Visibility</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-up up"></div>
+                </div>
+                <div class="inline-drawer-content" style="display: none;">
+                    <div class="nemo-rewrite-card nemo-rewrite-button-grid">
+                        <label class="checkbox_label"><input type="checkbox" id="nemo_rewrite_show_rewrite" checked><span>Rewrite</span></label>
+                        <label class="checkbox_label"><input type="checkbox" id="nemo_rewrite_show_shorten" checked><span>Shorten</span></label>
+                        <label class="checkbox_label"><input type="checkbox" id="nemo_rewrite_show_expand" checked><span>Expand</span></label>
+                        <label class="checkbox_label"><input type="checkbox" id="nemo_rewrite_show_custom" checked><span>Custom</span></label>
+                        <label class="checkbox_label"><input type="checkbox" id="nemo_rewrite_show_delete" checked><span>Delete</span></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
