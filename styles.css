@@ -7313,10 +7313,10 @@ body[class*="theme-"] .mes_block .mes_text span {
     color: var(--text-primary, var(--SmartThemeBodyColor)) !important;
 }
 
-/* Code blocks need high contrast for readability */
+/* Code blocks - chain to ST theme so light themes stay legible */
 body[class*="theme-"] .mes_block .mes_text code {
-    background-color: rgba(0, 0, 0, 0.8) !important;
-    color: #ffffff !important;
+    background-color: var(--panel-bg-secondary, rgba(0, 0, 0, 0.3)) !important;
+    color: var(--text-primary, var(--SmartThemeBodyColor)) !important;
     padding: 2px 6px !important;
     border-radius: 3px !important;
     font-family: 'Courier New', Courier, monospace !important;
@@ -7341,15 +7341,15 @@ body[class*="theme-"] .mes_block.is_user .mes_text {
 
 /* Additional reasoning header elements */
 body[class*="theme-"] .mes_block .mes_reasoning_summary * {
-    color: var(--header-text, #333333) !important;
+    color: var(--header-text, var(--SmartThemeBodyColor)) !important;
 }
 
 body[class*="theme-"] .mes_block .mes_reasoning_summary .mes_reasoning_arrow {
-    color: var(--header-text, #333333) !important;
+    color: var(--header-text, var(--SmartThemeBodyColor)) !important;
 }
 
 body[class*="theme-"] .mes_block .mes_reasoning_summary svg {
-    fill: var(--header-text, #333333) !important;
+    fill: var(--header-text, var(--SmartThemeBodyColor)) !important;
 }
 
 /* Emergency contrast fix for reasoning title */
