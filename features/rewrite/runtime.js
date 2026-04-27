@@ -710,16 +710,24 @@ async function handleChatCompletionRewrite(selectionInfo, actionKey, customInstr
     getContext().deactivateSendButtons();
 
     let response;
+    let presetRequestFailed = false;
+    let presetRequestError;
     try {
         response = await sendOpenAIRequest('normal', chatToSend, abortController.signal);
     } catch (error) {
         if (!abortController.signal.aborted) {
-            logger.error('Nemo Rewrite OpenAI request failed', error);
-            toastr.error('Rewrite failed. Check the console for details.', 'Nemo Rewrite');
+            presetRequestFailed = true;
+            presetRequestError = error;
         }
     } finally {
         Object.assign(oai_settings, previousOaiSettings);
         getContext().activateSendButtons();
+    }
+
+    if (presetRequestFailed) {
+        logger.warn(`Nemo Rewrite preset "${selectedPreset}" failed; falling back to active connection profile`, presetRequestError);
+        toastr.warning(`Preset "${selectedPreset}" failed. Retrying with the active connection profile.`, 'Nemo Rewrite');
+        return handleSimplifiedChatCompletionRewrite(selectionInfo, actionKey, customInstructions, note);
     }
 
     if (response === undefined) {
