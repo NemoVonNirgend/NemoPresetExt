@@ -3,6 +3,11 @@
  * Adds interactive elements like system tray clock, Start menu, and window controls
  */
 
+// Resources tracked for cleanup when switching away from this theme
+let clockIntervalId = null;
+let titleObserver = null;
+let menuListenerCtrl = null;
+
 // Check if Win98 theme is active (check for CSS file OR body class)
 function isWin98ThemeActive() {
     // Check if the theme stylesheet is loaded
@@ -108,7 +113,8 @@ function addSystemTray() {
 
     // Update clock every second
     updateClock();
-    setInterval(updateClock, 1000);
+    if (clockIntervalId) clearInterval(clockIntervalId);
+    clockIntervalId = setInterval(updateClock, 1000);
 }
 
 function updateClock() {
@@ -326,6 +332,11 @@ function initStartMenu() {
         `;
     });
 
+    // AbortController so start-menu listeners can be removed on cleanup
+    if (menuListenerCtrl) menuListenerCtrl.abort();
+    menuListenerCtrl = new AbortController();
+    const signal = menuListenerCtrl.signal;
+
     // Add click handler to Start button area
     settingsHolder.addEventListener('click', (e) => {
         // Check if clicking on the Start button (::before pseudo-element area)
@@ -333,14 +344,14 @@ function initStartMenu() {
         if (e.clientX < rect.left + 80 && e.clientY > rect.top) {
             toggleStartMenu();
         }
-    });
+    }, { signal });
 
     // Close menu when clicking elsewhere
     document.addEventListener('click', (e) => {
         if (!startMenu.contains(e.target) && !e.target.closest('#top-settings-holder')) {
             startMenu.style.display = 'none';
         }
-    });
+    }, { signal });
 }
 
 function toggleStartMenu() {
@@ -512,8 +523,13 @@ function addStartupSound() {
 
 // Update chat window title with character name
 function updateChatWindowTitle() {
-    // Observer to update title when character changes
-    const observer = new MutationObserver(() => {
+    // Observer to update title when character changes.
+    // The previous version watched document.body with subtree+childList, which
+    // fired on virtually every DOM mutation in the page. Narrowed to body's
+    // own class attribute (which is the only thing ST actually toggles to
+    // signal character changes here).
+    if (titleObserver) titleObserver.disconnect();
+    titleObserver = new MutationObserver(() => {
         if (!isWin98ThemeActive()) return;
 
         const charName = document.getElementById('selected_chat_pole')?.value ||
@@ -524,12 +540,32 @@ function updateChatWindowTitle() {
         document.documentElement.style.setProperty('--win98-chat-title', `'MSN Messenger - ${charName}'`);
     });
 
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true,
+    titleObserver.observe(document.body, {
         attributes: true,
-        attributeFilter: ['class']
+        attributeFilter: ['class'],
     });
+}
+
+// Cleanup function called by theme-manager when switching away from Win98
+export function cleanupWin98Enhancements() {
+    if (clockIntervalId) {
+        clearInterval(clockIntervalId);
+        clockIntervalId = null;
+    }
+    if (titleObserver) {
+        titleObserver.disconnect();
+        titleObserver = null;
+    }
+    if (menuListenerCtrl) {
+        menuListenerCtrl.abort();
+        menuListenerCtrl = null;
+    }
+    document.getElementById('win98-systray')?.remove();
+    document.getElementById('win98-start-menu')?.remove();
+    document.querySelectorAll('.win98-window-controls').forEach(c => c.remove());
+    document.querySelectorAll('.win98-shutdown-dialog').forEach(d => d.remove());
+    document.documentElement.style.removeProperty('--win98-chat-title');
+    console.log('[Win98 Theme] Cleaned up');
 }
 
 // Auto-initialize when DOM is ready
@@ -575,4 +611,4 @@ const themeObserver = new MutationObserver((mutations) => {
 themeObserver.observe(document.body, { attributes: true });
 themeObserver.observe(document.head, { childList: true });
 
-export default { initWin98Enhancements, ensureBodyClass };
+export default { initWin98Enhancements, ensureBodyClass, cleanupWin98Enhancements };

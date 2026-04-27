@@ -96,6 +96,9 @@ function startPeriodicClassCheck() {
 // Track if we've initialized
 let initialized = false;
 
+// Clock interval — tracked so cleanup can clear it
+let clockIntervalId = null;
+
 // Initialize Cyberpunk enhancements
 export function initCyberpunkEnhancements() {
     console.log('[Cyberpunk Theme] initCyberpunkEnhancements called');
@@ -327,7 +330,8 @@ function addSystemClock() {
     }
 
     updateClock();
-    setInterval(updateClock, 1000);
+    if (clockIntervalId) clearInterval(clockIntervalId);
+    clockIntervalId = setInterval(updateClock, 1000);
 
     console.log('[Cyberpunk Theme] System clock started');
 }
@@ -892,6 +896,12 @@ export function cleanupCyberpunkEnhancements() {
     if (classCheckInterval) {
         clearInterval(classCheckInterval);
         classCheckInterval = null;
+    }
+
+    // Stop the system clock
+    if (clockIntervalId) {
+        clearInterval(clockIntervalId);
+        clockIntervalId = null;
     }
 
     // Remove header bar

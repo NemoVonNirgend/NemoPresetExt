@@ -25,6 +25,12 @@ export function ensureBodyClass() {
 // Track if we've initialized
 let initialized = false;
 
+// Resources tracked for cleanup when switching away from Discord theme
+let hotswapObserver = null;
+let chatObserver = null;
+let hotswapRetryTimeout = null;
+let listenerCtrl = null;
+
 // Initialize Discord enhancements
 export function initDiscordEnhancements() {
     ensureBodyClass();
@@ -40,6 +46,11 @@ export function initDiscordEnhancements() {
     }
 
     console.log('[Discord Theme] Initializing enhancements...');
+
+    // Fresh AbortController for any document-level listeners we add below.
+    // cleanupDiscordEnhancements() aborts it to remove all those listeners.
+    if (listenerCtrl) listenerCtrl.abort();
+    listenerCtrl = new AbortController();
 
     // Setup Discord-style modal for drawers
     setupDiscordModals();
@@ -88,12 +99,12 @@ function setupDiscordModals() {
         }, true);
     });
 
-    // Handle ESC key globally
+    // Handle ESC key globally (removed via AbortController on cleanup)
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeDiscordModal();
         }
-    });
+    }, { signal: listenerCtrl?.signal });
 
     console.log('[Discord Theme] Modal system initialized');
 }
@@ -591,27 +602,34 @@ function populateDMList() {
 
 // Observe HotSwap container for changes
 function observeHotSwapChanges() {
+    // If theme was switched off mid-retry, don't keep observing
+    if (!initialized) return;
+
     const hotswapContainer = document.querySelector('#right-nav-panel .hotswap');
     if (!hotswapContainer) {
-        // Retry later if container not found
-        setTimeout(observeHotSwapChanges, 1000);
+        // Retry later if container not found.
+        // Tracked so cleanup can cancel it.
+        clearTimeout(hotswapRetryTimeout);
+        hotswapRetryTimeout = setTimeout(observeHotSwapChanges, 1000);
         return;
     }
 
-    const observer = new MutationObserver(() => {
+    if (hotswapObserver) hotswapObserver.disconnect();
+    hotswapObserver = new MutationObserver(() => {
         populateDMList();
     });
 
-    observer.observe(hotswapContainer, {
+    hotswapObserver.observe(hotswapContainer, {
         childList: true,
         subtree: true,
-        attributes: true
+        attributes: true,
     });
 
     // Also observe for character selection changes
     const chatContainer = document.getElementById('chat');
     if (chatContainer) {
-        const chatObserver = new MutationObserver(() => {
+        if (chatObserver) chatObserver.disconnect();
+        chatObserver = new MutationObserver(() => {
             // Update active state based on current character
             updateActiveDMItem();
         });
@@ -723,14 +741,14 @@ function setupImageDrawer() {
         if (e.target === modal) closeImageModal();
     });
 
-    // ESC key handler
+    // ESC key handler (removed via AbortController on cleanup)
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             if (modal.classList.contains('open')) {
                 closeImageModal();
             }
         }
-    });
+    }, { signal: listenerCtrl?.signal });
 
     // Add click handler for chat message avatars using event delegation
     const chat = document.getElementById('chat');
@@ -876,6 +894,52 @@ function getDrawerTitle(drawerId) {
     return titles[drawerId] || 'Settings';
 }
 
+// Cleanup function called by theme-manager when switching away from Discord.
+// Without this, body { overflow: hidden } from an open modal stays stuck,
+// observers and the retry timeout keep running, and DM/profile state lingers.
+export function cleanupDiscordEnhancements() {
+    // Mark as uninitialized so any in-flight retry exits early
+    initialized = false;
+
+    // Stop any pending retry of observeHotSwapChanges
+    if (hotswapRetryTimeout) {
+        clearTimeout(hotswapRetryTimeout);
+        hotswapRetryTimeout = null;
+    }
+
+    // Disconnect observers
+    if (hotswapObserver) { hotswapObserver.disconnect(); hotswapObserver = null; }
+    if (chatObserver) { chatObserver.disconnect(); chatObserver = null; }
+
+    // Remove document-level keydown listeners (ESC handlers)
+    if (listenerCtrl) {
+        listenerCtrl.abort();
+        listenerCtrl = null;
+    }
+
+    // Restore any modal state (returns drawer content to its original parent)
+    try { closeDiscordModal(); } catch (_) { /* best-effort */ }
+    try { closeProfilePanel(); } catch (_) { /* best-effort */ }
+    try { closeImageModal(); } catch (_) { /* best-effort */ }
+
+    // Make absolutely sure body scroll is restored
+    document.body.style.overflow = '';
+
+    // Remove injected DOM
+    document.getElementById('discord-modal-overlay')?.remove();
+    document.getElementById('discord-dm-sidebar')?.remove();
+    document.getElementById('discord-dm-toggle')?.remove();
+    document.getElementById('discord-links-folder')?.remove();
+    document.getElementById('discord-profile-panel')?.remove();
+    document.getElementById('discord-image-modal')?.remove();
+
+    // Drop body classes the theme added
+    document.body.classList.remove('discord-dm-open');
+    document.body.classList.remove('discord-profile-open');
+
+    console.log('[Discord Theme] Cleaned up');
+}
+
 // Auto-initialize when DOM is ready
 function autoInit() {
     ensureBodyClass();
@@ -913,4 +977,4 @@ const themeObserver = new MutationObserver((mutations) => {
 themeObserver.observe(document.body, { attributes: true });
 themeObserver.observe(document.head, { childList: true });
 
-export default { initDiscordEnhancements, ensureBodyClass };
+export default { initDiscordEnhancements, ensureBodyClass, cleanupDiscordEnhancements };
