@@ -7407,11 +7407,10 @@ body[class*="theme-"] .mes_block .mes_text q::after {
     color: var(--dialogue-color, var(--SmartThemeQuoteColor)) !important;
 }
 
-/* Italics styling */
+/* Italics styling (color only; let ST theme decide whether to italicize) */
 body[class*="theme-"] .mes_block .mes_text em,
 body[class*="theme-"] .mes_block .mes_text i {
-    color: var(--italics-color, #666666) !important;
-    font-style: italic !important;
+    color: var(--italics-color, var(--SmartThemeEmColor)) !important;
 }
 
 /* Reasoning block dialogue (color only; let ST theme control style/weight) */
@@ -7421,8 +7420,7 @@ body[class*="theme-"] .mes_block .mes_reasoning q {
 
 body[class*="theme-"] .mes_block .mes_reasoning em,
 body[class*="theme-"] .mes_block .mes_reasoning i {
-    color: var(--italics-color, #666666) !important;
-    font-style: italic !important;
+    color: var(--italics-color, var(--SmartThemeEmColor)) !important;
 }
 
 /* --- Theme Definitions --- */
