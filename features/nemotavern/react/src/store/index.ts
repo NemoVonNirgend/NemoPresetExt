@@ -49,6 +49,7 @@ export interface Command {
 interface NemoStore {
     // Hydration state - components should check this before rendering panel-dependent UI
     _hasHydrated: boolean;
+    setHasHydrated: (hydrated: boolean) => void;
 
     // Panel State
     panels: Record<string, PanelState>;
@@ -268,6 +269,7 @@ export const useNemoStore = create<NemoStore>()(
         (set, get) => ({
             // Hydration flag - starts false, set to true after storage rehydration completes
             _hasHydrated: false,
+            setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
 
             // Initial state
             panels: { ...DEFAULT_PANELS },
@@ -569,7 +571,7 @@ export const useNemoStore = create<NemoStore>()(
                 }
                 // Mark hydration as complete - components can now safely render panel-dependent UI
                 // This runs after persist middleware has finished loading from storage
-                useNemoStore.setState({ _hasHydrated: true });
+                state?.setHasHydrated(true);
             }
         }
     )
