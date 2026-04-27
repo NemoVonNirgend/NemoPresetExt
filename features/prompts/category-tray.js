@@ -1144,10 +1144,12 @@ function openTray(section) {
         const requires = cachedDirectives.requires || [];
         const exclusiveWith = cachedDirectives.exclusiveWith || [];
         const conflictsWith = cachedDirectives.conflictsWith || [];
+        const maxOnePerCategory = cachedDirectives.maxOnePerCategory || null;
+        const mutualExclusiveGroup = cachedDirectives.mutualExclusiveGroup || null;
 
         prompts.push({
             identifier, name, isEnabled, tooltip, badge, color, highlight,
-            requires, exclusiveWith, conflictsWith
+            requires, exclusiveWith, conflictsWith, maxOnePerCategory, mutualExclusiveGroup
         });
     });
 
@@ -1240,11 +1242,21 @@ function openTray(section) {
 
         // Build dependency indicators
         let depIndicatorsHtml = '';
-        const hasDeps = p.requires.length > 0 || p.exclusiveWith.length > 0 || p.conflictsWith.length > 0;
+        const hasDeps = p.requires.length > 0 ||
+            p.exclusiveWith.length > 0 ||
+            p.conflictsWith.length > 0 ||
+            Boolean(p.maxOnePerCategory) ||
+            Boolean(p.mutualExclusiveGroup);
         if (hasDeps) {
             depIndicatorsHtml = '<div class="nemo-prompt-card-deps">';
             if (p.requires.length > 0) {
                 depIndicatorsHtml += `<span class="nemo-dep-requires" title="Requires: ${escapeHtml(p.requires.join(', '))}"><i class="fa-solid fa-link fa-xs"></i></span>`;
+            }
+            if (p.mutualExclusiveGroup) {
+                depIndicatorsHtml += `<span class="nemo-dep-exclusive" title="Mutually exclusive group: ${escapeHtml(p.mutualExclusiveGroup)}"><i class="fa-solid fa-object-ungroup fa-xs"></i></span>`;
+            }
+            if (p.maxOnePerCategory) {
+                depIndicatorsHtml += `<span class="nemo-dep-exclusive" title="Only one active in category: ${escapeHtml(p.maxOnePerCategory)}"><i class="fa-solid fa-layer-group fa-xs"></i></span>`;
             }
             if (p.exclusiveWith.length > 0) {
                 depIndicatorsHtml += `<span class="nemo-dep-exclusive" title="Exclusive with: ${escapeHtml(p.exclusiveWith.join(', '))}"><i class="fa-solid fa-code-branch fa-xs"></i></span>`;

@@ -165,6 +165,9 @@ function handleTooltipHover(e) {
 
 // 3. MAIN OBJECT
 export const NemoPresetManager = {
+    _optionalSectionSyncTimeout: null,
+    _reasoningSyncAbortController: null,
+
     // UI Functions
     showStatusMessage: function(message, type = 'info', duration = 4000) {
         const statusDiv = document.getElementById('nemoSnapshotStatus');
@@ -235,6 +238,11 @@ export const NemoPresetManager = {
     },
 
     createReasoningSection: function(container) {
+        if (this._reasoningSyncAbortController) {
+            this._reasoningSyncAbortController.abort();
+            this._reasoningSyncAbortController = null;
+        }
+
         // Remove existing Reasoning section if it exists
         const existing = document.getElementById('nemoReasoningSection');
         if (existing) {
@@ -244,9 +252,11 @@ export const NemoPresetManager = {
         // Find the Chat Completion Settings drawer to insert after it
         const chatCompletionDrawer = document.getElementById('nemo-drawer-openai_chat_settings');
         if (!chatCompletionDrawer) {
-            logger.warn('Chat Completion Settings drawer not found, cannot position Reasoning section');
-            return;
+            logger.debug('Chat Completion Settings drawer not ready yet; deferring Reasoning section creation');
+            return false;
         }
+
+        this._reasoningSyncAbortController = typeof AbortController === 'function' ? new AbortController() : null;
 
         const reasoningSection = document.createElement('div');
         reasoningSection.id = 'nemoReasoningSection';
@@ -366,8 +376,10 @@ export const NemoPresetManager = {
         
         // Insert after the Chat Completion Settings drawer
         chatCompletionDrawer.parentNode.insertBefore(reasoningSection, chatCompletionDrawer.nextSibling);
-        
+        this.setupReasoningSync();
+        this.setupStartReplyWithSync();
         logger.debug('Created Reasoning section after Chat Completion Settings');
+        return true;
     },
 
     createLorebookSection: function(container) {
@@ -383,8 +395,8 @@ export const NemoPresetManager = {
         
         let insertAfter = reasoningSection || chatCompletionDrawer;
         if (!insertAfter) {
-            logger.warn('No suitable position found for Lorebook section');
-            return;
+            logger.debug('Lorebook section anchor not ready yet; deferring creation');
+            return false;
         }
 
         const lorebookSection = document.createElement('div');
@@ -429,9 +441,10 @@ export const NemoPresetManager = {
         
         // Insert after the determined position
         insertAfter.parentNode.insertBefore(lorebookSection, insertAfter.nextSibling);
-        
+        this.setupLorebookEventListeners();
         const positionName = reasoningSection ? 'Reasoning section' : 'Chat Completion Settings';
         logger.debug(`Created Lorebook Management section after ${positionName}`);
+        return true;
     },
 
     refreshActiveLorebooksDisplay: function() {
@@ -886,35 +899,13 @@ export const NemoPresetManager = {
         if (container) {
             // Check if UI elements exist, if not recreate them
             const searchContainer = document.getElementById('nemoPresetSearchContainer');
-            const reasoningSection = document.getElementById('nemoReasoningSection');
-            const lorebookSection = document.getElementById('nemoLorebookSection');
-            const chatCompletionDrawer = document.getElementById('nemo-drawer-openai_chat_settings');
             
             if (!searchContainer) {
                 console.log(`${LOG_PREFIX} Search UI missing, recreating...`);
                 this.createSearchAndStatusUI(container);
             }
-            
-            // Check if reasoning section should be shown
-            const shouldShowReasoning = extension_settings[NEMO_EXTENSION_NAME]?.enableReasoningSection !== false;
-            if (shouldShowReasoning && !reasoningSection && chatCompletionDrawer) {
-                console.log(`${LOG_PREFIX} Reasoning section missing, recreating...`);
-                this.createReasoningSection(container);
-            } else if (!shouldShowReasoning && reasoningSection) {
-                console.log(`${LOG_PREFIX} Reasoning section disabled, removing...`);
-                reasoningSection.remove();
-            }
-            
-            // Check if lorebook management section should be shown
-            const shouldShowLorebook = extension_settings[NEMO_EXTENSION_NAME]?.enableLorebookManagement !== false;
-            const currentReasoningSection = document.getElementById('nemoReasoningSection');
-            if (shouldShowLorebook && !lorebookSection && (currentReasoningSection || chatCompletionDrawer)) {
-                console.log(`${LOG_PREFIX} Lorebook section missing, recreating...`);
-                this.createLorebookSection(container);
-            } else if (!shouldShowLorebook && lorebookSection) {
-                console.log(`${LOG_PREFIX} Lorebook section disabled, removing...`);
-                lorebookSection.remove();
-            }
+
+            this.syncOptionalSections(container);
             
             // Re-setup event listeners in case they were lost during preset changes
             setTimeout(() => {
@@ -923,6 +914,39 @@ export const NemoPresetManager = {
                 // Re-sync values after UI refresh
                 this.syncStartReplyWithValues();
             }, 100);
+        }
+    },
+
+    scheduleOptionalSectionSync: function(container, delayMs = 50) {
+        clearTimeout(this._optionalSectionSyncTimeout);
+        this._optionalSectionSyncTimeout = setTimeout(() => {
+            this._optionalSectionSyncTimeout = null;
+            this.syncOptionalSections(container);
+        }, delayMs);
+    },
+
+    syncOptionalSections: function(container) {
+        if (!container) return;
+
+        const shouldShowReasoning = extension_settings[NEMO_EXTENSION_NAME]?.enableReasoningSection !== false;
+        const shouldShowLorebook = extension_settings[NEMO_EXTENSION_NAME]?.enableLorebookManagement !== false;
+
+        let reasoningSection = document.getElementById('nemoReasoningSection');
+        let lorebookSection = document.getElementById('nemoLorebookSection');
+        const chatCompletionDrawer = document.getElementById('nemo-drawer-openai_chat_settings');
+
+        if (!shouldShowReasoning && reasoningSection) {
+            reasoningSection.remove();
+            reasoningSection = null;
+        } else if (shouldShowReasoning && !reasoningSection && chatCompletionDrawer) {
+            this.createReasoningSection(container);
+            reasoningSection = document.getElementById('nemoReasoningSection');
+        }
+
+        if (!shouldShowLorebook && lorebookSection) {
+            lorebookSection.remove();
+        } else if (shouldShowLorebook && !lorebookSection && (reasoningSection || chatCompletionDrawer)) {
+            this.createLorebookSection(container);
         }
     },
 
@@ -1395,15 +1419,7 @@ export const NemoPresetManager = {
         container.dataset.nemoPromptsInitialized = 'true';
 
         this.createSearchAndStatusUI(container);
-
-        // Check settings before creating optional sections
-        if (extension_settings[NEMO_EXTENSION_NAME]?.enableReasoningSection !== false) {
-            this.createReasoningSection(container);
-        }
-
-        if (extension_settings[NEMO_EXTENSION_NAME]?.enableLorebookManagement !== false) {
-            this.createLorebookSection(container);
-        }
+        this.scheduleOptionalSectionSync(container, 0);
 
         // Add event listeners with error handling
         this.setupEventListeners();
@@ -1444,6 +1460,7 @@ export const NemoPresetManager = {
 
     setupEventListeners: function() {
         try {
+            const container = document.querySelector(SELECTORS.promptsContainer);
             const searchInput = document.getElementById('nemoPresetSearchInput');
             const searchClear = document.getElementById('nemoPresetSearchClear');
             const takeSnapshotBtn = document.getElementById('nemoTakeSnapshotBtn');
@@ -1574,11 +1591,7 @@ export const NemoPresetManager = {
                     this.showArchiveNavigator();
                 });
             }
-
-            // Setup Reasoning and Start Reply With synchronization
-            this.setupReasoningSync();
-            this.setupStartReplyWithSync();
-            this.setupLorebookEventListeners();
+            this.scheduleOptionalSectionSync(container, 0);
 
             // Setup prompt state preservation on preset changes
             this.setupPromptStatePreservation();
@@ -1717,6 +1730,9 @@ export const NemoPresetManager = {
         try {
             const checkbox = document.getElementById(checkboxId);
             const originalCheckbox = document.getElementById(originalCheckboxId);
+            const listenerOptions = this._reasoningSyncAbortController
+                ? { signal: this._reasoningSyncAbortController.signal }
+                : undefined;
 
             if (!checkbox) {
                 console.warn(`${LOG_PREFIX} Checkbox not found: ${checkboxId}`);
@@ -1734,7 +1750,7 @@ export const NemoPresetManager = {
                     originalCheckbox.checked = checkbox.checked;
                     originalCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
                 }
-            });
+            }, listenerOptions);
 
             // Listen for changes from original
             if (originalCheckbox) {
@@ -1742,7 +1758,7 @@ export const NemoPresetManager = {
                     if (checkbox.checked !== originalCheckbox.checked) {
                         checkbox.checked = originalCheckbox.checked;
                     }
-                });
+                }, listenerOptions);
             }
         } catch (error) {
             console.error(`${LOG_PREFIX} Error setting up checkbox sync ${checkboxId}:`, error);
@@ -1753,6 +1769,9 @@ export const NemoPresetManager = {
         try {
             const input = document.getElementById(inputId);
             const originalInput = document.getElementById(originalInputId);
+            const listenerOptions = this._reasoningSyncAbortController
+                ? { signal: this._reasoningSyncAbortController.signal }
+                : undefined;
 
             if (!input) {
                 console.warn(`${LOG_PREFIX} Number input not found: ${inputId}`);
@@ -1770,7 +1789,7 @@ export const NemoPresetManager = {
                     originalInput.value = input.value;
                     originalInput.dispatchEvent(new Event('input', { bubbles: true }));
                 }
-            });
+            }, listenerOptions);
 
             // Listen for changes from original
             if (originalInput) {
@@ -1778,7 +1797,7 @@ export const NemoPresetManager = {
                     if (input.value !== originalInput.value) {
                         input.value = originalInput.value;
                     }
-                });
+                }, listenerOptions);
             }
         } catch (error) {
             console.error(`${LOG_PREFIX} Error setting up number input sync ${inputId}:`, error);
@@ -1789,6 +1808,9 @@ export const NemoPresetManager = {
         try {
             const select = document.getElementById(selectId);
             const originalSelect = document.getElementById(originalSelectId);
+            const listenerOptions = this._reasoningSyncAbortController
+                ? { signal: this._reasoningSyncAbortController.signal }
+                : undefined;
 
             if (!select) {
                 console.warn(`${LOG_PREFIX} Select not found: ${selectId}`);
@@ -1806,7 +1828,7 @@ export const NemoPresetManager = {
                     originalSelect.value = select.value;
                     originalSelect.dispatchEvent(new Event('change', { bubbles: true }));
                 }
-            });
+            }, listenerOptions);
 
             // Listen for changes from original
             if (originalSelect) {
@@ -1814,7 +1836,7 @@ export const NemoPresetManager = {
                     if (select.value !== originalSelect.value) {
                         select.value = originalSelect.value;
                     }
-                });
+                }, listenerOptions);
             }
         } catch (error) {
             console.error(`${LOG_PREFIX} Error setting up select sync ${selectId}:`, error);
@@ -1825,6 +1847,9 @@ export const NemoPresetManager = {
         try {
             const textarea = document.getElementById(textareaId);
             const originalTextarea = document.getElementById(originalTextareaId);
+            const listenerOptions = this._reasoningSyncAbortController
+                ? { signal: this._reasoningSyncAbortController.signal }
+                : undefined;
 
             if (!textarea) {
                 console.warn(`${LOG_PREFIX} Textarea not found: ${textareaId}`);
@@ -1842,7 +1867,7 @@ export const NemoPresetManager = {
                     originalTextarea.value = textarea.value;
                     originalTextarea.dispatchEvent(new Event('input', { bubbles: true }));
                 }
-            });
+            }, listenerOptions);
 
             // Listen for changes from original
             if (originalTextarea) {
@@ -1850,7 +1875,7 @@ export const NemoPresetManager = {
                     if (textarea.value !== originalTextarea.value) {
                         textarea.value = originalTextarea.value;
                     }
-                });
+                }, listenerOptions);
             }
         } catch (error) {
             console.error(`${LOG_PREFIX} Error setting up textarea sync ${textareaId}:`, error);
@@ -1863,6 +1888,9 @@ export const NemoPresetManager = {
             const nemoCheckbox = document.getElementById('nemo-chat-show-reply-prefix-checkbox');
             const originalTextarea = document.getElementById('start_reply_with');
             const originalCheckbox = document.getElementById('chat-show-reply-prefix-checkbox');
+            const listenerOptions = this._reasoningSyncAbortController
+                ? { signal: this._reasoningSyncAbortController.signal }
+                : undefined;
 
             if (!nemoTextarea || !nemoCheckbox) {
                 console.warn(`${LOG_PREFIX} Nemo Start Reply With elements not found`);
@@ -1880,7 +1908,7 @@ export const NemoPresetManager = {
                         // Trigger input event on original to ensure proper saving
                         originalTextarea.dispatchEvent(new Event('input', { bubbles: true }));
                     }
-                });
+                }, listenerOptions);
             }
 
             if (nemoCheckbox) {
@@ -1890,7 +1918,7 @@ export const NemoPresetManager = {
                         // Trigger change event on original to ensure proper saving
                         originalCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
                     }
-                });
+                }, listenerOptions);
             }
 
             // Listen for changes from the original elements
@@ -1899,7 +1927,7 @@ export const NemoPresetManager = {
                     if (nemoTextarea && nemoTextarea.value !== originalTextarea.value) {
                         nemoTextarea.value = originalTextarea.value;
                     }
-                });
+                }, listenerOptions);
             }
 
             if (originalCheckbox) {
@@ -1907,7 +1935,7 @@ export const NemoPresetManager = {
                     if (nemoCheckbox && nemoCheckbox.checked !== originalCheckbox.checked) {
                         nemoCheckbox.checked = originalCheckbox.checked;
                     }
-                });
+                }, listenerOptions);
             }
 
             console.log(`${LOG_PREFIX} Start Reply With sync setup complete`);
@@ -2390,6 +2418,28 @@ export const NemoPresetManager = {
         this.observers.listObserverContainer = container;
         listObserver.observe(container, { childList: true, subtree: true });
         console.log(`${LOG_PREFIX} List observer initialized`);
+
+        if (this.observers.optionalSectionObserver) {
+            this.observers.optionalSectionObserver.disconnect();
+        }
+
+        const optionalSectionObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type !== 'childList') continue;
+
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType !== Node.ELEMENT_NODE) continue;
+
+                    if (node.id === 'nemo-drawer-openai_chat_settings' || node.querySelector?.('#nemo-drawer-openai_chat_settings')) {
+                        this.scheduleOptionalSectionSync(container);
+                        return;
+                    }
+                }
+            }
+        });
+
+        optionalSectionObserver.observe(document.body, { childList: true, subtree: true });
+        this.observers.optionalSectionObserver = optionalSectionObserver;
     },
 
     /**
@@ -4238,6 +4288,16 @@ export const NemoPresetManager = {
         if (worldInfoSelect) {
             $(worldInfoSelect).off('change.nemoLorebook');
             delete worldInfoSelect.dataset.nemoLorebookListenerAttached;
+        }
+
+        if (this._optionalSectionSyncTimeout) {
+            clearTimeout(this._optionalSectionSyncTimeout);
+            this._optionalSectionSyncTimeout = null;
+        }
+
+        if (this._reasoningSyncAbortController) {
+            this._reasoningSyncAbortController.abort();
+            this._reasoningSyncAbortController = null;
         }
 
         // Destroy all Sortable instances
