@@ -61,6 +61,21 @@
 
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
+                                <select id="nemoDropdownTheme" class="nemo-select-control">
+                                    <option value="st">SillyTavern Theme</option>
+                                    <option value="nemo">Nemo Blue</option>
+                                </select>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Section Dropdown Theme</div>
+                                <div class="nemo-setting-description">
+                                    Choose the visual palette for prompt section dropdowns. <strong>SillyTavern Theme</strong> follows ST theme variables; custom CSS can target <code>body.nemo-dropdown-theme-st</code> or override the <code>--nemo-dropdown-*</code> variables.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
                                     <input type="checkbox" id="nemoEnablePresetNavigator" checked>
                                     <span class="nemo-toggle-slider"></span>
@@ -129,7 +144,7 @@
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
-                                    <input type="checkbox" id="nemoEnableTabOverhauls">
+                                    <input type="checkbox" id="nemoEnableTabOverhauls" checked>
                                     <span class="nemo-toggle-slider"></span>
                                 </label>
                             </div>
@@ -137,6 +152,22 @@
                                 <div class="nemo-setting-title">Settings Tab Overhauls</div>
                                 <div class="nemo-setting-description">
                                     Tabbed interface for User Settings and Advanced Formatting
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableConnectionPanelOverhaul" checked>
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Connection Panel Organization</div>
+                                <div class="nemo-setting-description">
+                                    Experimental drawer grouping for API and generation controls. Leave off to keep SillyTavern's native connection panel.
                                     <span class="nemo-refresh-note">Requires refresh</span>
                                 </div>
                             </div>
@@ -233,7 +264,7 @@
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
-                                    <input type="checkbox" id="nemoEnableWidePanels" checked>
+                                    <input type="checkbox" id="nemoEnableWidePanels">
                                     <span class="nemo-toggle-slider"></span>
                                 </label>
                             </div>

@@ -5,9 +5,6 @@ import { eventSource, event_types } from '../../../../../script.js';
 import { LOG_PREFIX, NEMO_EXTENSION_NAME } from '../core/utils.js';
 import logger from '../core/logger.js';
 
-// AF tabs that are irrelevant in Chat Completion mode
-const CC_HIDDEN_TABS = ['context-template', 'instruct-template', 'system-prompt'];
-
 // The 3 checkboxes useful in CC mode (moved to Reasoning/Misc when in CC mode)
 // We identify them by their checkbox IDs inside #ContextSettings
 const CC_USEFUL_CHECKBOX_IDS = [
@@ -295,31 +292,13 @@ export const UserSettingsTabs = {
         return mainApiSelect ? mainApiSelect.value === 'openai' : false;
     },
 
-    _applyCCMode: function(isCC, initial) {
+    _applyCCMode: function(_isCC, _initial) {
         const tabNavigation = document.querySelector('.nemo-user-settings-tabs');
         if (!tabNavigation) return;
 
-        CC_HIDDEN_TABS.forEach(tabName => {
-            const btn = tabNavigation.querySelector(`[data-tab="${tabName}"]`);
-            if (btn) {
-                btn.style.display = isCC ? 'none' : '';
-            }
-        });
-
-        if (isCC) {
-            // Move the 3 CC-useful checkboxes into the Reasoning/Misc tab
-            this._moveCheckboxesToReasoning();
-
-            // If the active tab is one being hidden, switch to first visible
-            if (CC_HIDDEN_TABS.includes(this.activeTab)) {
-                this.switchTab('reasoning-misc');
-            }
-        } else {
-            // Move them back to Context Template (ContextSettings)
-            this._restoreCheckboxesToContext();
-
-            // Restore whatever the active tab was (if it's now visible, keep it)
-        }
+        // Keep all absorbed Advanced Formatting tabs available in every API mode.
+        // The underlying SillyTavern controls still decide whether individual
+        // inputs are meaningful, but the user can always find the moved drawer.
     },
 
     _moveCheckboxesToReasoning: function() {

@@ -55,7 +55,7 @@ export const ExtensionsTabOverhaul = {
         'timelines_container': 'Timelines',
         'spotify_settings': 'Spotify',
         'tunnelvision_settings': 'TunnelVision',
-        'ng-settings': "Nemo's Guides",
+        'nemo_lore_settings': 'NemoLore',
     },
 
     // Define default categories for extensions
@@ -72,7 +72,7 @@ export const ExtensionsTabOverhaul = {
             'nemo-preset-ext-settings',
             // Nemo companion extensions
             'tunnelvision_settings',
-            'ng-settings',
+            'nemo_lore_settings',
             // Standalone Nemo extensions (if installed separately)
             'nemo-ext-prose-polisher',
             'nemo-ext-prosepolisher',
@@ -178,8 +178,13 @@ export const ExtensionsTabOverhaul = {
         setTimeout(hideAttempt, 1000);
         setTimeout(hideAttempt, 2000);
 
-        // Also set up a MutationObserver to catch any future duplicates
-        const observer = new MutationObserver(() => {
+        // Disconnect any prior observer so we don't stack them on re-init
+        if (this._dupObserver) {
+            this._dupObserver.disconnect();
+        }
+
+        // Set up a MutationObserver to catch any future duplicates
+        this._dupObserver = new MutationObserver(() => {
             hideAttempt();
         });
 
@@ -188,10 +193,10 @@ export const ExtensionsTabOverhaul = {
         const extensionsContainer2 = document.getElementById('extensions_settings2');
 
         if (extensionsContainer1) {
-            observer.observe(extensionsContainer1, { childList: true, subtree: true });
+            this._dupObserver.observe(extensionsContainer1, { childList: true, subtree: true });
         }
         if (extensionsContainer2) {
-            observer.observe(extensionsContainer2, { childList: true, subtree: true });
+            this._dupObserver.observe(extensionsContainer2, { childList: true, subtree: true });
         }
     },
 
@@ -495,6 +500,14 @@ export const ExtensionsTabOverhaul = {
     },
 
     setupEventListeners: function() {
+        // Abort any prior listeners so toggling the feature off-then-on
+        // doesn't stack multiple document-level handlers.
+        if (this._listenerCtrl) {
+            this._listenerCtrl.abort();
+        }
+        this._listenerCtrl = new AbortController();
+        const signal = this._listenerCtrl.signal;
+
         // Extension card clicks
         document.addEventListener('click', (e) => {
             const card = e.target.closest('.nemo-extension-card');
@@ -503,17 +516,17 @@ export const ExtensionsTabOverhaul = {
                     this.openExtensionFullScreen(card._extensionData);
                 }
             }
-            
+
             // Back button
             if (e.target.closest('#nemo-back-to-main')) {
                 this.closeFullScreen();
             }
-            
+
             // Add custom folder
             if (e.target.closest('#nemo-add-custom-folder')) {
                 this.promptForCustomFolder();
             }
-            
+
             // Delete custom folder
             if (e.target.closest('.nemo-folder-delete')) {
                 e.stopPropagation();
@@ -522,7 +535,7 @@ export const ExtensionsTabOverhaul = {
                 const folderName = folder.dataset.category;
                 this.confirmDeleteCustomFolder(folderName);
             }
-            
+
             // Folder button
             if (e.target.closest('.nemo-folder-button')) {
                 e.stopPropagation();
@@ -530,8 +543,8 @@ export const ExtensionsTabOverhaul = {
                 const extensionId = card.dataset.extensionId;
                 this.showFolderSelectionDialog(extensionId);
             }
-        });
-        
+        }, { signal });
+
         // Context menu
         document.addEventListener('contextmenu', (e) => {
             const card = e.target.closest('.nemo-extension-card');
@@ -539,12 +552,12 @@ export const ExtensionsTabOverhaul = {
                 e.preventDefault();
                 this.showContextMenu(card, e.clientX, e.clientY);
             }
-        });
-        
+        }, { signal });
+
         // Hide context menu on click elsewhere
         document.addEventListener('click', () => {
             this.hideContextMenu();
-        });
+        }, { signal });
     },
 
     openExtensionFullScreen: function(extensionData) {
@@ -1056,6 +1069,18 @@ export const ExtensionsTabOverhaul = {
     },
 
     cleanup: function() {
+        // Disconnect the duplicate-detector observer so it stops firing
+        if (this._dupObserver) {
+            this._dupObserver.disconnect();
+            this._dupObserver = null;
+        }
+
+        // Abort document-level click/contextmenu listeners
+        if (this._listenerCtrl) {
+            this._listenerCtrl.abort();
+            this._listenerCtrl = null;
+        }
+
         // First, make sure we're showing the main interface
         this.showMainInterface();
 

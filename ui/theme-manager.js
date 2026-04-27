@@ -6,10 +6,10 @@
 import { saveSettingsDebounced } from '../../../../../script.js';
 import { extension_settings } from '../../../../extensions.js';
 import { LOG_PREFIX, NEMO_EXTENSION_NAME, getExtensionPath } from '../core/utils.js';
-import { initWin98Enhancements } from '../themes/win98-enhancements.js';
-import { initDiscordEnhancements } from '../themes/discord-enhancements.js';
-import { initCyberpunkEnhancements } from '../themes/cyberpunk-enhancements.js';
-import { initNemoTavernEnhancements } from '../themes/nemotavern/nemotavern-enhancements.js';
+import { initWin98Enhancements, cleanupWin98Enhancements } from '../themes/win98-enhancements.js';
+import { initDiscordEnhancements, cleanupDiscordEnhancements } from '../themes/discord-enhancements.js';
+import { initCyberpunkEnhancements, cleanupCyberpunkEnhancements } from '../themes/cyberpunk-enhancements.js';
+import { initNemoTavernEnhancements, cleanupNemoTavernEnhancements } from '../themes/nemotavern/nemotavern-enhancements.js';
 
 // Available themes configuration
 const THEMES = {
@@ -68,6 +68,18 @@ function isMobileViewport() {
 }
 
 /**
+ * Run cleanup for every theme's enhancements. Each cleanup is a best-effort
+ * teardown that no-ops if its DOM/observers were never created. Calling all
+ * four every time avoids needing to track which theme was previously active.
+ */
+function cleanupAllThemeEnhancements() {
+    try { cleanupWin98Enhancements(); } catch (e) { console.warn(`${LOG_PREFIX} Win98 cleanup failed`, e); }
+    try { cleanupDiscordEnhancements(); } catch (e) { console.warn(`${LOG_PREFIX} Discord cleanup failed`, e); }
+    try { cleanupCyberpunkEnhancements(); } catch (e) { console.warn(`${LOG_PREFIX} Cyberpunk cleanup failed`, e); }
+    try { cleanupNemoTavernEnhancements(); } catch (e) { console.warn(`${LOG_PREFIX} NemoTavern cleanup failed`, e); }
+}
+
+/**
  * Strip any applied theme class/stylesheet from the page without
  * mutating the saved setting.
  */
@@ -80,6 +92,7 @@ function stripAppliedTheme() {
         loadedThemeStylesheet = null;
     }
     document.getElementById('nemo-theme-stylesheet')?.remove();
+    cleanupAllThemeEnhancements();
 }
 
 /**
@@ -179,6 +192,11 @@ export async function applyTheme(themeName) {
         loadedThemeStylesheet = null;
         console.log(`${LOG_PREFIX} Removed previous stylesheet`);
     }
+
+    // Tear down enhancements from any previously-active theme (clocks,
+    // observers, modal overlays, body-scroll locks, etc.). Each cleanup is
+    // a no-op if its theme wasn't active.
+    cleanupAllThemeEnhancements();
 
     // If theme is 'none', we're done
     if (themeName === 'none' || !theme.cssFile) {
