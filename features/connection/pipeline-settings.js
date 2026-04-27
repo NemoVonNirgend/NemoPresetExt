@@ -57,6 +57,9 @@ const PROVIDER_NAMES = {
 };
 
 /** @type {HTMLElement|null} */
+/** Abort controllers for per-picker document-click listeners; cleared on destroy/rerender. */
+const pickerAbortControllers = new Set();
+
 let btnEl = null;
 
 /** @type {HTMLElement|null} */
@@ -238,14 +241,19 @@ function createModelPicker(currentValue, fieldName) {
         }
     });
 
-    // Close on click outside
+    // Close on click outside.
+    // Use AbortController so the listener can be removed on destroy/rerender.
+    // Old code attached an anonymous handler with no removal path, leaking
+    // a document listener for every picker created across the session.
+    const abortCtrl = new AbortController();
+    pickerAbortControllers.add(abortCtrl);
     document.addEventListener('click', (e) => {
         if (!container.contains(/** @type {Node} */ (e.target))) {
             dropdown.classList.remove('open');
             // Restore display value if user didn't select
             input.value = container.dataset.value ? formatDisplayValue(container.dataset.value) : '';
         }
-    });
+    }, { signal: abortCtrl.signal });
 
     // Clear button
     const clearBtn = document.createElement('button');
@@ -628,6 +636,9 @@ function loadPreset(presetId) {
  */
 function renderPanel(preset) {
     if (!panelEl) return;
+    // Abort all picker document-listeners attached by the previous render
+    pickerAbortControllers.forEach(c => c.abort());
+    pickerAbortControllers.clear();
     panelEl.innerHTML = '';
     panelEl.appendChild(buildPanelDom(preset));
     bindPanelEvents();
@@ -924,6 +935,9 @@ export const PipelineSettingsUI = {
      * Remove the panel and button from the DOM.
      */
     destroy() {
+        // Abort any leftover picker document-listeners
+        pickerAbortControllers.forEach(c => c.abort());
+        pickerAbortControllers.clear();
         if (panelEl) {
             panelEl.remove();
             panelEl = null;
