@@ -50,7 +50,9 @@ import { NemoCharacterManager } from './features/character-manager/character-man
 import { NemoWorldInfoUI } from './features/world-info/world-info-ui.js';
 import { NemoMarketplace } from './features/marketplace/marketplace.js';
 import { NemoPersonaUI } from './features/persona/persona-ui.js';
-import { initGuides } from './features/guides/index.js';
+import { initNemoLore, cleanupNemoLore } from './features/nemolore/runtime.js';
+import { initNemoRewrite, cleanupNemoRewrite } from './features/rewrite/runtime.js';
+import { initNemoEngineInstaller, cleanupNemoEngineInstaller } from './features/preset-installer/runtime.js';
 import domCache from './features/character-manager/dom-cache.js';
 
 // Feature modules - Emoji Picker
@@ -107,6 +109,7 @@ async function initializeExtension() {
 
         console.log('🔧 NemoNet: Ensuring settings namespace...');
         ensureSettingsNamespace();
+        NemoSettingsUI.applyDropdownTheme(extension_settings.NemoPresetExt?.dropdownTheme || 'st');
 
         // Initialize storage and run one-time migration from localStorage
         initializeStorage();
@@ -128,19 +131,31 @@ async function initializeExtension() {
         // Initialize theme selector UI handlers (after settings UI is loaded)
         initThemeSelector();
 
-        NemoGlobalUI.initialize();
+        if (extension_settings.NemoPresetExt?.enableConnectionPanelOverhaul !== false) {
+            NemoGlobalUI.initialize();
+        } else {
+            logger.info('Connection panel overhaul is disabled, preserving native SillyTavern layout');
+        }
         NemoMarketplace.initialize();
         NemoPersonaUI.initialize();
         // NemoPromptArchiveUI.initialize(); // Disabled — replaced by category tray archive
 
-        // Initialize Nemo's Guides (AI-driven narrative guidance tools)
-        // Always init so settings panel renders; functional features gated inside
-        await initGuides();
+        try {
+            await initNemoLore();
+        } catch (error) {
+            logger.error('NemoLore failed to initialize; continuing with core NemoPresetExt UI', error);
+        }
+
+        try {
+            await initNemoRewrite();
+        } catch (error) {
+            logger.error('Nemo Rewrite failed to initialize; continuing with core NemoPresetExt UI', error);
+        }
 
         // Initialize tab overhauls only if enabled
         if (extension_settings.NemoPresetExt?.enableTabOverhauls !== false) {
             UserSettingsTabs.initialize(); // Handles both User Settings AND Advanced Formatting tabs
-            // AdvancedFormattingTabs.initialize(); // Disabled — absorbed into UserSettingsTabs
+            // AdvancedFormattingTabs.initialize(); // Disabled - absorbed into UserSettingsTabs
         }
 
         if (extension_settings.NemoPresetExt?.enableLorebookOverhaul !== false) {
@@ -196,6 +211,7 @@ async function initializeExtension() {
         // Initialize tutorial system
         tutorialManager.initialize();
         tutorialLauncher.initialize();
+        initNemoEngineInstaller();
 
         // Check if welcome tutorial should auto-start (for first-time users)
         tutorialLauncher.checkWelcomeTutorial();
@@ -221,6 +237,9 @@ async function initializeExtension() {
         //        window.PollinationsInterceptor.extractPrompts(html) - Extract prompts without replacing
         window.PollinationsInterceptor = PollinationsInterceptor;
 
+        // Event listener management with cleanup
+        const eventCleanupFunctions = [];
+
         const isEnabled = extension_settings.NemoPresetExt?.nemoEnableExtensionsTabOverhaul !== false;
         logger.debug('Extensions Tab Overhaul setting check', { isEnabled, fullValue: extension_settings.NemoPresetExt?.nemoEnableExtensionsTabOverhaul });
 
@@ -244,7 +263,7 @@ async function initializeExtension() {
         }
 
         // Add event listener for settings changes to update the panel width behavior
-        eventSource.on(event_types.SETTINGS_UPDATED, () => {
+        const settingsUpdatedHandler = () => {
             setTimeout(() => {
                 const newWidePanelsEnabled = extension_settings.NemoPresetExt?.nemoEnableWidePanels !== false;
                 logger.debug('Wide Panels setting changed', { newWidePanelsEnabled });
@@ -260,11 +279,15 @@ async function initializeExtension() {
                 // Refresh directive cache when settings change (prompts may have been modified)
                 initializeDirectiveCache();
             }, 100); // Small delay to ensure settings are fully updated
+        };
+        eventSource.on(event_types.SETTINGS_UPDATED, settingsUpdatedHandler);
+        eventCleanupFunctions.push(() => {
+            eventSource.removeListener(event_types.SETTINGS_UPDATED, settingsUpdatedHandler);
         });
 
         // Handle viewport resize for wide panels (disable on mobile)
         let resizeTimeout;
-        window.addEventListener('resize', () => {
+        const resizeHandler = () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
                 const widePanelsEnabled = extension_settings.NemoPresetExt?.nemoEnableWidePanels !== false;
@@ -272,10 +295,18 @@ async function initializeExtension() {
                     applyWidePanelsStyles(); // Will auto-disable on mobile
                 }
             }, 150);
+        };
+        window.addEventListener('resize', resizeHandler);
+        eventCleanupFunctions.push(() => {
+            clearTimeout(resizeTimeout);
+            window.removeEventListener('resize', resizeHandler);
         });
 
         // Initialize Mobile Enhancements - auto-detect touch devices
-        initializeMobileEnhancements();
+        const cleanupMobileEnhancements = initializeMobileEnhancements();
+        if (typeof cleanupMobileEnhancements === 'function') {
+            eventCleanupFunctions.push(cleanupMobileEnhancements);
+        }
 
         // Initialize Enhanced Model Selector (searchable dropdowns + favorites + chips)
         // Must run LATE - after ST's own Select2 init on OpenRouter/etc.
@@ -295,7 +326,7 @@ async function initializeExtension() {
                 }
             }, 1500); // Delay to ensure ST's own Select2 init has completed
         } else {
-            // Feature disabled — show re-enable button in the connection panel
+            // Feature disabled - show re-enable button in the connection panel
             setTimeout(() => {
                 try {
                     ModelSelector.injectReEnableButton();
@@ -497,9 +528,6 @@ async function initializeExtension() {
         sentinelObserver.observe(document.body, { childList: true, subtree: false });
         ExtensionManager.observers.set('sentinel', sentinelObserver);
 
-        // Event listener management with cleanup
-        const eventCleanupFunctions = [];
-
         // Listen for events that might require UI refresh
         const chatCompletionChangeHandler = () => {
             logger.info('Chat completion source changed, will refresh UI');
@@ -529,6 +557,10 @@ async function initializeExtension() {
             if (window.NemoPresetManager && typeof window.NemoPresetManager.destroy === 'function') {
                 window.NemoPresetManager.destroy();
             }
+
+            try { cleanupNemoLore(); } catch (e) { /* ignore */ }
+            try { cleanupNemoRewrite(); } catch (e) { /* ignore */ }
+            try { cleanupNemoEngineInstaller(); } catch (e) { /* ignore */ }
 
             // Clean up Model Selectors
             try { ModelSelector.destroy(); } catch (e) { /* ignore */ }
@@ -602,7 +634,8 @@ function removeWidePanelsStyles() {
 // Mobile Enhancements - Auto-detect touch devices and apply enhanced mobile styles
 function initializeMobileEnhancements() {
     const isEnabled = extension_settings.NemoPresetExt?.enableMobileEnhancements !== false;
-    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    const touchMediaQuery = window.matchMedia('(pointer: coarse)');
+    const isTouchDevice = touchMediaQuery.matches;
 
     logger.debug('Mobile enhancements check', { isEnabled, isTouchDevice });
 
@@ -619,7 +652,7 @@ function initializeMobileEnhancements() {
     }
 
     // Listen for device changes (e.g., connecting external mouse on tablet)
-    window.matchMedia('(pointer: coarse)').addEventListener('change', (e) => {
+    const pointerChangeHandler = (e) => {
         const isEnabled = extension_settings.NemoPresetExt?.enableMobileEnhancements !== false;
         if (isEnabled && e.matches) {
             document.body.classList.add('nemo-mobile-enhanced');
@@ -628,7 +661,19 @@ function initializeMobileEnhancements() {
             document.body.classList.remove('nemo-mobile-enhanced');
             logger.info('Non-touch device detected - disabling mobile enhancements');
         }
-    });
+    };
+
+    if (typeof touchMediaQuery.addEventListener === 'function') {
+        touchMediaQuery.addEventListener('change', pointerChangeHandler);
+        return () => touchMediaQuery.removeEventListener('change', pointerChangeHandler);
+    }
+
+    if (typeof touchMediaQuery.addListener === 'function') {
+        touchMediaQuery.addListener(pointerChangeHandler);
+        return () => touchMediaQuery.removeListener(pointerChangeHandler);
+    }
+
+    return undefined;
 }
 
 // Enhanced preset navigator initialization that works with both new and legacy code
