@@ -7404,7 +7404,7 @@ body[class*="theme-"] .main-container {
 body[class*="theme-"] .mes_block .mes_text q,
 body[class*="theme-"] .mes_block .mes_text q::before,
 body[class*="theme-"] .mes_block .mes_text q::after {
-    color: var(--dialogue-color, #0066cc) !important;
+    color: var(--dialogue-color, var(--SmartThemeQuoteColor)) !important;
     font-style: italic !important;
     font-weight: 500 !important;
 }
@@ -7418,7 +7418,7 @@ body[class*="theme-"] .mes_block .mes_text i {
 
 /* Reasoning block dialogue and italics */
 body[class*="theme-"] .mes_block .mes_reasoning q {
-    color: var(--dialogue-color, #0066cc) !important;
+    color: var(--dialogue-color, var(--SmartThemeQuoteColor)) !important;
     font-style: italic !important;
     font-weight: 500 !important;
 }
