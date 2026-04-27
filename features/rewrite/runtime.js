@@ -747,7 +747,10 @@ async function handleSimplifiedChatCompletionRewrite(selectionInfo, actionKey, c
     getContext().deactivateSendButtons();
     let response;
     try {
-        response = await sendOpenAIRequest('normal', [{ role: 'system', content: prompt }], abortController.signal);
+        response = await sendOpenAIRequest('normal', [
+            { role: 'system', content: 'You are a precise text rewriter. Output only the rewritten text - no preface, no commentary, no quotes.' },
+            { role: 'user', content: prompt },
+        ], abortController.signal);
     } catch (error) {
         if (!abortController.signal.aborted) {
             logger.error('Nemo Rewrite simplified OpenAI request failed', error);
