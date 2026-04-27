@@ -7259,11 +7259,11 @@ select:disabled {
 
 /* --- Generic Message Styling --- */
 body[class*="theme-"] .mes_block {
-    font-family: var(--panel-font, var(--SmartThemeFontFamily)) !important;
-    border: 1px solid var(--panel-border, var(--SmartThemeBorderColor)) !important;
-    background-color: var(--panel-bg-primary, var(--SmartThemeBotMesBlurTintColor)) !important;
-    box-shadow: 0 2px 5px var(--panel-shadow, var(--SmartThemeShadowColor)) !important;
-    color: var(--text-primary, var(--SmartThemeBodyColor)) !important;
+    font-family: var(--panel-font) !important;
+    border: 1px solid var(--panel-border) !important;
+    background-color: var(--panel-bg-primary) !important;
+    box-shadow: 0 2px 5px var(--panel-shadow) !important;
+    color: var(--text-primary) !important;
     border-radius: 8px !important;
     margin-bottom: 10px !important;
     overflow: hidden !important;
@@ -7299,9 +7299,9 @@ body[class*="theme-"] .mes_block .ch_name svg {
 }
 
 body[class*="theme-"] .mes_block .mes_text {
-    color: var(--text-primary, var(--SmartThemeBodyColor)) !important;
+    color: var(--text-primary) !important;
     padding: 12px !important;
-    background-color: var(--panel-bg-primary, var(--SmartThemeBotMesBlurTintColor)) !important;
+    background-color: var(--panel-bg-primary) !important;
     border-radius: 0 0 8px 8px !important;
 }
 
@@ -7310,13 +7310,13 @@ body[class*="theme-"] .mes_block .mes_text {
 body[class*="theme-"] .mes_block .mes_text p,
 body[class*="theme-"] .mes_block .mes_text div,
 body[class*="theme-"] .mes_block .mes_text span {
-    color: var(--text-primary, var(--SmartThemeBodyColor)) !important;
+    color: var(--text-primary) !important;
 }
 
-/* Code blocks - chain to ST theme so light themes stay legible */
+/* Code blocks need high contrast for readability */
 body[class*="theme-"] .mes_block .mes_text code {
-    background-color: var(--panel-bg-secondary, rgba(0, 0, 0, 0.3)) !important;
-    color: var(--text-primary, var(--SmartThemeBodyColor)) !important;
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    color: #ffffff !important;
     padding: 2px 6px !important;
     border-radius: 3px !important;
     font-family: 'Courier New', Courier, monospace !important;
@@ -7341,15 +7341,15 @@ body[class*="theme-"] .mes_block.is_user .mes_text {
 
 /* Additional reasoning header elements */
 body[class*="theme-"] .mes_block .mes_reasoning_summary * {
-    color: var(--header-text, var(--SmartThemeBodyColor)) !important;
+    color: var(--header-text, #333333) !important;
 }
 
 body[class*="theme-"] .mes_block .mes_reasoning_summary .mes_reasoning_arrow {
-    color: var(--header-text, var(--SmartThemeBodyColor)) !important;
+    color: var(--header-text, #333333) !important;
 }
 
 body[class*="theme-"] .mes_block .mes_reasoning_summary svg {
-    fill: var(--header-text, var(--SmartThemeBodyColor)) !important;
+    fill: var(--header-text, #333333) !important;
 }
 
 /* Emergency contrast fix for reasoning title */
