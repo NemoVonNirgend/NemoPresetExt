@@ -1,4 +1,4 @@
-import { sendOpenAIRequest, oai_settings } from '../../../../../openai.js';
+import { sendOpenAIRequest } from '../../../../../openai.js';
 import { extractAllWords } from '../../../../../utils.js';
 import { getTokenCount } from '../../../../../tokenizers.js';
 import { getNovelGenerationData, generateNovelWithStreaming, nai_settings } from '../../../../../nai-settings.js';
@@ -44,12 +44,7 @@ const DEFAULT_SETTINGS = {
     storeEditNotes: true,
     sendNotesToNemoLore: true,
     noteHistoryLimit: 50,
-    rewritePreset: '',
-    shortenPreset: '',
-    expandPreset: '',
-    customPreset: '',
     highlightDuration: 3000,
-    selectedModel: 'chat_completion',
     textRewritePrompt: `[INST]Rewrite this section of text: """{{rewrite}}""" while keeping the same content, general style and length. Do not list alternatives and only print the result without prefix or suffix.[/INST]
 
 Sure, here is only the rewritten text without any comments: `,
@@ -81,7 +76,6 @@ Use this as private guidance for the edit. Do not mention the note unless the re
     customTokensMult: 1.0,
     removePrefix: '"',
     removeSuffix: '"',
-    overrideMaxTokens: true,
     showRewrite: true,
     showShorten: true,
     showExpand: true,
@@ -155,42 +149,6 @@ async function ensureSettingsUi() {
     container.insertAdjacentHTML('beforeend', await response.text());
 }
 
-async function populatePresetDropdowns() {
-    let presets = [];
-    try {
-        const context = getContext();
-        const result = await fetch('/api/settings/get', {
-            method: 'POST',
-            headers: context.getRequestHeaders?.() || {},
-            body: JSON.stringify({}),
-        });
-        if (result.ok) {
-            const data = await result.json();
-            presets = Array.isArray(data.openai_setting_names) ? data.openai_setting_names : [];
-        }
-    } catch (error) {
-        logger.warn('Nemo Rewrite could not load OpenAI presets', error);
-    }
-
-    for (const id of ['nemo_rewrite_preset', 'nemo_rewrite_shorten_preset', 'nemo_rewrite_expand_preset', 'nemo_rewrite_custom_preset']) {
-        const select = document.getElementById(id);
-        if (!(select instanceof HTMLSelectElement)) continue;
-        select.innerHTML = '';
-        for (const preset of presets) {
-            const option = document.createElement('option');
-            option.value = preset;
-            option.textContent = preset;
-            select.appendChild(option);
-        }
-    }
-
-    const cfg = getSettings();
-    for (const key of ['rewritePreset', 'shortenPreset', 'expandPreset', 'customPreset']) {
-        if (!cfg[key] && presets.length) cfg[key] = presets[0];
-    }
-    saveSettings();
-}
-
 function setInputValue(id, value) {
     const input = document.getElementById(id);
     if (!input) return;
@@ -230,11 +188,6 @@ function syncSettingsToUi() {
     setInputValue('nemo_rewrite_show_note_action', cfg.showNoteAction);
     setInputValue('nemo_rewrite_store_notes', cfg.storeEditNotes);
     setInputValue('nemo_rewrite_notes_to_nemolore', cfg.sendNotesToNemoLore);
-    setInputValue('nemo_rewrite_model_select', cfg.selectedModel);
-    setInputValue('nemo_rewrite_preset', cfg.rewritePreset);
-    setInputValue('nemo_rewrite_shorten_preset', cfg.shortenPreset);
-    setInputValue('nemo_rewrite_expand_preset', cfg.expandPreset);
-    setInputValue('nemo_rewrite_custom_preset', cfg.customPreset);
     setInputValue('nemo_rewrite_text_prompt', cfg.textRewritePrompt);
     setInputValue('nemo_rewrite_shorten_prompt', cfg.textShortenPrompt);
     setInputValue('nemo_rewrite_expand_prompt', cfg.textExpandPrompt);
@@ -258,14 +211,12 @@ function syncSettingsToUi() {
     setInputValue('nemo_rewrite_custom_tokens_mult', cfg.customTokensMult);
     setInputValue('nemo_rewrite_remove_prefix', cfg.removePrefix);
     setInputValue('nemo_rewrite_remove_suffix', cfg.removeSuffix);
-    setInputValue('nemo_rewrite_override_tokens', cfg.overrideMaxTokens);
     setInputValue('nemo_rewrite_highlight_duration', cfg.highlightDuration);
     setInputValue('nemo_rewrite_show_rewrite', cfg.showRewrite);
     setInputValue('nemo_rewrite_show_shorten', cfg.showShorten);
     setInputValue('nemo_rewrite_show_expand', cfg.showExpand);
     setInputValue('nemo_rewrite_show_custom', cfg.showCustom);
     setInputValue('nemo_rewrite_show_delete', cfg.showDelete);
-    updateModelSettingsUi();
     updateTokenSettingsUi();
     updateStandaloneNotice();
 }
@@ -279,11 +230,6 @@ function readSettingsFromUi() {
         showNoteAction: getCheckboxValue('nemo_rewrite_show_note_action'),
         storeEditNotes: getCheckboxValue('nemo_rewrite_store_notes'),
         sendNotesToNemoLore: getCheckboxValue('nemo_rewrite_notes_to_nemolore'),
-        selectedModel: getTextValue('nemo_rewrite_model_select') || DEFAULT_SETTINGS.selectedModel,
-        rewritePreset: getTextValue('nemo_rewrite_preset'),
-        shortenPreset: getTextValue('nemo_rewrite_shorten_preset'),
-        expandPreset: getTextValue('nemo_rewrite_expand_preset'),
-        customPreset: getTextValue('nemo_rewrite_custom_preset'),
         textRewritePrompt: getTextValue('nemo_rewrite_text_prompt'),
         textShortenPrompt: getTextValue('nemo_rewrite_shorten_prompt'),
         textExpandPrompt: getTextValue('nemo_rewrite_expand_prompt'),
@@ -307,7 +253,6 @@ function readSettingsFromUi() {
         customTokensMult: getFloatValue('nemo_rewrite_custom_tokens_mult', DEFAULT_SETTINGS.customTokensMult),
         removePrefix: getTextValue('nemo_rewrite_remove_prefix'),
         removeSuffix: getTextValue('nemo_rewrite_remove_suffix'),
-        overrideMaxTokens: getCheckboxValue('nemo_rewrite_override_tokens'),
         highlightDuration: getIntegerValue('nemo_rewrite_highlight_duration', DEFAULT_SETTINGS.highlightDuration),
         showRewrite: getCheckboxValue('nemo_rewrite_show_rewrite'),
         showShorten: getCheckboxValue('nemo_rewrite_show_shorten'),
@@ -316,17 +261,8 @@ function readSettingsFromUi() {
         showDelete: getCheckboxValue('nemo_rewrite_show_delete'),
     });
     saveSettings();
-    updateModelSettingsUi();
     updateTokenSettingsUi();
     updateStandaloneNotice();
-}
-
-function updateModelSettingsUi() {
-    const chatSettings = document.getElementById('nemo_rewrite_chat_settings');
-    const textSettings = document.getElementById('nemo_rewrite_text_settings');
-    const modelMode = getTextValue('nemo_rewrite_model_select') || getSettings().selectedModel;
-    if (chatSettings) chatSettings.style.display = modelMode === 'chat_completion' ? 'block' : 'none';
-    if (textSettings) textSettings.style.display = modelMode === 'chat_completion' ? 'none' : 'block';
 }
 
 function updateTokenSettingsUi() {
@@ -365,10 +301,6 @@ function bindSettingsUi() {
     root.querySelectorAll('input, select, textarea').forEach(element => {
         const eventName = element instanceof HTMLInputElement && ['number', 'text'].includes(element.type) ? 'input' : 'change';
         element.addEventListener(eventName, readSettingsFromUi);
-    });
-    document.getElementById('nemo_rewrite_refresh_presets')?.addEventListener('click', async () => {
-        await populatePresetDropdowns();
-        syncSettingsToUi();
     });
 }
 
@@ -620,24 +552,9 @@ async function handleDeleteSelection(selectionInfo, note = '') {
 
 async function handleRewrite(selectionInfo, actionKey, customInstructions, note) {
     if (main_api === 'openai') {
-        const cfg = getSettings();
-        if (cfg.selectedModel === 'chat_completion') {
-            return handleChatCompletionRewrite(selectionInfo, actionKey, customInstructions, note);
-        }
-        return handleSimplifiedChatCompletionRewrite(selectionInfo, actionKey, customInstructions, note);
+        return handleChatCompletionRewrite(selectionInfo, actionKey, customInstructions, note);
     }
     return handleTextBasedRewrite(selectionInfo, actionKey, customInstructions, note);
-}
-
-function getPresetForAction(actionKey) {
-    const cfg = getSettings();
-    switch (actionKey) {
-        case 'rewrite': return cfg.rewritePreset;
-        case 'shorten': return cfg.shortenPreset;
-        case 'expand': return cfg.expandPreset;
-        case 'custom': return cfg.customPreset;
-        default: return '';
-    }
 }
 
 function getPromptTemplateForAction(actionKey) {
@@ -652,92 +569,6 @@ function getPromptTemplateForAction(actionKey) {
 }
 
 async function handleChatCompletionRewrite(selectionInfo, actionKey, customInstructions, note) {
-    const { mesId, swipeId, fullMessage, selectedRawText, rawStartOffset, rawEndOffset, range } = selectionInfo;
-    const mesDiv = document.querySelector(`[mesid="${CSS.escape(mesId)}"] .mes_text`);
-    if (!mesDiv) return;
-
-    const selectedPreset = getPresetForAction(actionKey);
-    if (!selectedPreset) {
-        toastr.error('Select a Nemo Rewrite preset first.', 'Nemo Rewrite');
-        return;
-    }
-
-    const result = await fetch('/api/settings/get', {
-        method: 'POST',
-        headers: getContext().getRequestHeaders?.() || {},
-        body: JSON.stringify({}),
-    });
-    if (!result.ok) {
-        toastr.error('Failed to load OpenAI preset settings.', 'Nemo Rewrite');
-        return;
-    }
-
-    const data = await result.json();
-    const presetIndex = data.openai_setting_names.indexOf(selectedPreset);
-    if (presetIndex === -1) {
-        toastr.error(`Preset not found: ${selectedPreset}`, 'Nemo Rewrite');
-        return;
-    }
-
-    const previousOaiSettings = { ...oai_settings };
-    let selectedPresetSettings;
-    try {
-        selectedPresetSettings = JSON.parse(data.openai_settings[presetIndex]);
-    } catch (error) {
-        logger.error('Failed to parse Nemo Rewrite preset settings', error);
-        toastr.error('Failed to parse selected preset settings.', 'Nemo Rewrite');
-        return;
-    }
-
-    const cfg = getSettings();
-    selectedPresetSettings.stream_openai = cfg.useStreaming;
-    if (cfg.overrideMaxTokens) {
-        selectedPresetSettings.openai_max_tokens = calculateTargetTokenCount(selectedRawText, actionKey);
-    }
-
-    Object.assign(oai_settings, selectedPresetSettings);
-    const promptReadyPromise = new Promise(resolve => eventSource.once(event_types.CHAT_COMPLETION_PROMPT_READY, resolve));
-    getContext().generate('normal', {}, true);
-    const promptData = await promptReadyPromise;
-    let chatToSend = Array.isArray(promptData?.chat) ? promptData.chat : [];
-
-    const hasCustomMacro = chatContainsMacro(chatToSend, /{{custom_instructions}}/i);
-    const hasNoteMacro = chatContainsMacro(chatToSend, /{{(?:note|edit_note|rewrite_note)}}/i);
-    chatToSend = injectAdditionalInstructions(chatToSend, customInstructions, note, actionKey, { hasCustomMacro, hasNoteMacro });
-    chatToSend = substituteChatMacros(chatToSend, selectionInfo, customInstructions, note);
-
-    abortController = createAbortController(mesDiv, mesId, swipeId, previousOaiSettings);
-    getContext().deactivateSendButtons();
-
-    let response;
-    let presetRequestFailed = false;
-    let presetRequestError;
-    try {
-        response = await sendOpenAIRequest('normal', chatToSend, abortController.signal);
-    } catch (error) {
-        if (!abortController.signal.aborted) {
-            presetRequestFailed = true;
-            presetRequestError = error;
-        }
-    } finally {
-        Object.assign(oai_settings, previousOaiSettings);
-        getContext().activateSendButtons();
-    }
-
-    if (presetRequestFailed) {
-        logger.warn(`Nemo Rewrite preset "${selectedPreset}" failed; falling back to active connection profile`, presetRequestError);
-        toastr.warning(`Preset "${selectedPreset}" failed. Retrying with the active connection profile.`, 'Nemo Rewrite');
-        return handleSimplifiedChatCompletionRewrite(selectionInfo, actionKey, customInstructions, note);
-    }
-
-    if (response === undefined) {
-        removeHighlight(mesDiv, mesId, swipeId);
-        return;
-    }
-    await processRewriteResponse(response, selectionInfo, range, fullMessage, rawStartOffset, rawEndOffset, actionKey, note, mesDiv);
-}
-
-async function handleSimplifiedChatCompletionRewrite(selectionInfo, actionKey, customInstructions, note) {
     const prompt = buildTextPrompt(selectionInfo, actionKey, customInstructions, note);
     if (!prompt) return;
     const mesDiv = document.querySelector(`[mesid="${CSS.escape(selectionInfo.mesId)}"] .mes_text`);
@@ -753,7 +584,7 @@ async function handleSimplifiedChatCompletionRewrite(selectionInfo, actionKey, c
         ], abortController.signal);
     } catch (error) {
         if (!abortController.signal.aborted) {
-            logger.error('Nemo Rewrite simplified OpenAI request failed', error);
+            logger.error('Nemo Rewrite OpenAI request failed', error);
             toastr.error('Rewrite failed. Check the console for details.', 'Nemo Rewrite');
         }
     } finally {
@@ -823,21 +654,19 @@ async function handleTextBasedRewrite(selectionInfo, actionKey, customInstructio
     await processRewriteResponse(response, selectionInfo, selectionInfo.range, selectionInfo.fullMessage, selectionInfo.rawStartOffset, selectionInfo.rawEndOffset, actionKey, note, mesDiv);
 }
 
-function createAbortController(mesDiv, mesId, swipeId, previousOaiSettings = null) {
+function createAbortController(mesDiv, mesId, swipeId) {
     const controller = new AbortController();
     controller.signal.mesDiv = mesDiv;
     controller.signal.mesId = mesId;
     controller.signal.swipeId = swipeId;
     controller.signal.highlightDuration = getSettings().highlightDuration;
-    controller.signal.previousOaiSettings = previousOaiSettings;
     return controller;
 }
 
 function handleStopRewrite() {
     if (!abortController) return;
-    const { mesDiv, mesId, swipeId, highlightDuration, previousOaiSettings } = abortController.signal;
+    const { mesDiv, mesId, swipeId, highlightDuration } = abortController.signal;
     abortController.abort();
-    if (previousOaiSettings) Object.assign(oai_settings, previousOaiSettings);
     getContext().activateSendButtons();
     setTimeout(() => removeHighlight(mesDiv, mesId, swipeId), highlightDuration || DEFAULT_SETTINGS.highlightDuration);
 }
@@ -1402,7 +1231,6 @@ export async function initNemoRewrite() {
         getSettings();
         ensureFeatureStyles();
         await ensureSettingsUi();
-        await populatePresetDropdowns();
         bindSettingsUi();
         syncSettingsToUi();
 

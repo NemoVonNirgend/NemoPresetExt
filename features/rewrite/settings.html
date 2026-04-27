@@ -51,37 +51,12 @@
 
             <div class="inline-drawer nemo-rewrite-subdrawer">
                 <div class="inline-drawer-toggle inline-drawer-header">
-                    <span><i class="fa-solid fa-plug"></i> Model Routing</span>
+                    <span><i class="fa-solid fa-pen-nib"></i> Prompt Templates</span>
                     <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
                 </div>
                 <div class="inline-drawer-content">
-                    <div class="nemo-rewrite-grid">
-                        <label title="Chat Completion uses selected ST presets. Text Completion/NovelAI uses prompt templates below.">
-                            Configure model type <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Chat Completion uses selected ST presets. Text Completion/NovelAI uses prompt templates below."></i>
-                            <select id="nemo_rewrite_model_select" class="text_pole">
-                                <option value="chat_completion">Chat Completion</option>
-                                <option value="textgenerationwebui">Text Completion / NovelAI</option>
-                            </select>
-                        </label>
-                    </div>
-
-                    <div id="nemo_rewrite_chat_settings" class="nemo-rewrite-card">
-                        <div class="nemo-rewrite-actions">
-                            <button id="nemo_rewrite_refresh_presets" class="menu_button" type="button" title="Reload Chat Completion preset names from SillyTavern.">Refresh Presets</button>
-                        </div>
-                        <div class="nemo-rewrite-grid">
-                            <label>Rewrite preset <select id="nemo_rewrite_preset" class="text_pole" data-preset-manager-for="nemo-rewrite"></select></label>
-                            <label>Shorten preset <select id="nemo_rewrite_shorten_preset" class="text_pole" data-preset-manager-for="nemo-rewrite-shorten"></select></label>
-                            <label>Expand preset <select id="nemo_rewrite_expand_preset" class="text_pole" data-preset-manager-for="nemo-rewrite-expand"></select></label>
-                            <label>Custom preset <select id="nemo_rewrite_custom_preset" class="text_pole" data-preset-manager-for="nemo-rewrite-custom"></select></label>
-                        </div>
-                        <label class="checkbox_label" title="Overrides the selected preset max token value with Nemo Rewrite's dynamic/static token estimate.">
-                            <input type="checkbox" id="nemo_rewrite_override_tokens" checked>
-                            <span>Override preset max tokens <i class="fa-solid fa-circle-info nemo-rewrite-info" title="Overrides the selected preset max token value with Nemo Rewrite's dynamic/static token estimate."></i></span>
-                        </label>
-                    </div>
-
-                    <div id="nemo_rewrite_text_settings" class="nemo-rewrite-card" style="display: none;">
+                    <p class="nemo-rewrite-hint">Rewrite uses your currently active SillyTavern connection profile. These templates wrap the selected text before it is sent.</p>
+                    <div id="nemo_rewrite_text_settings" class="nemo-rewrite-card">
                         <label>Rewrite prompt <textarea id="nemo_rewrite_text_prompt" class="text_pole" rows="4"></textarea></label>
                         <label>Shorten prompt <textarea id="nemo_rewrite_shorten_prompt" class="text_pole" rows="4"></textarea></label>
                         <label>Expand prompt <textarea id="nemo_rewrite_expand_prompt" class="text_pole" rows="4"></textarea></label>
