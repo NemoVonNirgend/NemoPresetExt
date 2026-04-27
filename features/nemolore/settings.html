@@ -1,0 +1,648 @@
+<div id="nemo_lore_settings" class="nemo-lore-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>NemoLore</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div class="nemo-lore-panel-intro">
+                <p>NemoLore combines long-horizon memory, archive retrieval, preference learning, and AI tool guidance into one system.</p>
+                <p>Memory and Guides share the same settings surface here so you can tune the whole pipeline in one place.</p>
+                <div class="nemo-lore-actions">
+                    <button id="nemo_lore_disable_all" class="menu_button redWarningBG" type="button" title="Turn off NemoLore memory management and NemoLore Guides tool calls. This does not delete stored memories, trackers, or preferences.">
+                        Disable All NemoLore
+                    </button>
+                    <small class="nlg-hint">Turns off memory management and Guides tool calls without deleting stored data.</small>
+                </div>
+            </div>
+
+            <div id="nemo_lore_memory_section" class="inline-drawer nlg-feature-group nemo-lore-section">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-brain"></i> Memory</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content nlg-feature-content">
+                    <div class="nemo-lore-section-intro">
+                        <p>Controls timeline compression, archive retrieval, lorebook promotion, and cross-chat preference learning.</p>
+                    </div>
+
+                    <div class="nemo-lore-stack">
+                        <label class="checkbox_label" title="Turns on timeline summaries, archived memory, and memory prompt injection for the active chat.">
+                            <input id="nemo_lore_enabled" type="checkbox">
+                            <span>Enable NemoLore memory <i class="fa-solid fa-circle-info nlg-info-icon" title="Turns on timeline summaries, archived memory, and memory prompt injection for the active chat."></i></span>
+                        </label>
+
+                        <label class="checkbox_label" title="Runs summarization and archive work after messages so it does not block normal chat flow.">
+                            <input id="nemo_lore_background_enabled" type="checkbox">
+                            <span>Run memory work in the background <i class="fa-solid fa-circle-info nlg-info-icon" title="Runs summarization and archive work after messages so it does not block normal chat flow."></i></span>
+                        </label>
+
+                        <label class="checkbox_label" title="Removes messages that have already been summarized from future API context to reduce token load.">
+                            <input id="nemo_lore_auto_hide" type="checkbox">
+                            <span>Hide summarized source messages from API context <i class="fa-solid fa-circle-info nlg-info-icon" title="Removes messages that have already been summarized from future API context to reduce token load."></i></span>
+                        </label>
+
+                        <label class="checkbox_label" title="Stores archived turns in SillyTavern vector storage so relevant old context can be retrieved later.">
+                            <input id="nemo_lore_vector_enabled" type="checkbox">
+                            <span>Vectorize and retrieve archived turns <i class="fa-solid fa-circle-info nlg-info-icon" title="Stores archived turns in SillyTavern vector storage so relevant old context can be retrieved later."></i></span>
+                        </label>
+
+                        <label class="checkbox_label" title="Writes remembered user preferences into a Nemo Engine core-pack variable instead of injecting a separate context block.">
+                            <input id="nemo_lore_preferences_enabled" type="checkbox">
+                            <span>Expose cross-chat preferences to core pack <i class="fa-solid fa-circle-info nlg-info-icon" title="Writes remembered user preferences into a Nemo Engine core-pack variable instead of injecting a separate context block."></i></span>
+                        </label>
+
+                        <label class="checkbox_label" title="Uses rejected swipes and edited assistant messages as evidence for possible preference candidates.">
+                            <input id="nemo_lore_inference_enabled" type="checkbox">
+                            <span>Learn preference candidates from rejected swipes and edits <i class="fa-solid fa-circle-info nlg-info-icon" title="Uses rejected swipes and edited assistant messages as evidence for possible preference candidates."></i></span>
+                        </label>
+
+                        <label class="checkbox_label" title="Adds a small action menu when you select assistant text so you can mark a specific line as a problem.">
+                            <input id="nemo_lore_selection_problem_menu" type="checkbox">
+                            <span>Show Report Problem Line on selected message text <i class="fa-solid fa-circle-info nlg-info-icon" title="Adds a small action menu when you select assistant text so you can mark a specific line as a problem."></i></span>
+                        </label>
+                    </div>
+
+                    <div class="nemo-lore-grid">
+                        <label title="Connection profile used for background summarization, preference reflection, and lorebook proposal calls.">
+                            Memory model profile <i class="fa-solid fa-circle-info nlg-info-icon" title="Connection profile used for background summarization, preference reflection, and lorebook proposal calls."></i>
+                            <select id="nemo_lore_profile" class="text_pole"></select>
+                        </label>
+                        <label title="Lorebook that receives reviewed memory entries and generated lore updates.">
+                            Managed lorebook <i class="fa-solid fa-circle-info nlg-info-icon" title="Lorebook that receives reviewed memory entries and generated lore updates."></i>
+                            <select id="nemo_lore_world" class="text_pole"></select>
+                        </label>
+                        <label title="Number of recent messages kept live before older messages are summarized and archived.">
+                            Live window messages <i class="fa-solid fa-circle-info nlg-info-icon" title="Number of recent messages kept live before older messages are summarized and archived."></i>
+                            <input id="nemo_lore_live_window" class="text_pole" type="number" min="2" max="100" step="2">
+                        </label>
+                        <label title="Maximum token budget requested for each timeline summary.">
+                            Max summary tokens <i class="fa-solid fa-circle-info nlg-info-icon" title="Maximum token budget requested for each timeline summary."></i>
+                            <input id="nemo_lore_max_tokens" class="text_pole" type="number" min="64" max="2048" step="32">
+                        </label>
+                        <label title="Depth where timeline summaries are inserted into the prompt context. Lower values place them closer to the latest messages.">
+                            Injection depth <i class="fa-solid fa-circle-info nlg-info-icon" title="Depth where timeline summaries are inserted into the prompt context. Lower values place them closer to the latest messages."></i>
+                            <input id="nemo_lore_injection_depth" class="text_pole" type="number" min="0" max="20" step="1">
+                        </label>
+                        <label title="How many summaries must exist before older source messages are hidden from API context. Use 0 to disable automatic hiding.">
+                            Hide after summaries <i class="fa-solid fa-circle-info nlg-info-icon" title="How many summaries must exist before older source messages are hidden from API context. Use 0 to disable automatic hiding."></i>
+                            <input id="nemo_lore_hide_after" class="text_pole" type="number" min="0" max="1000" step="2">
+                        </label>
+                        <label title="Maximum number of vector-retrieved archive snippets to inject for a generation.">
+                            Retrieved archive snippets <i class="fa-solid fa-circle-info nlg-info-icon" title="Maximum number of vector-retrieved archive snippets to inject for a generation."></i>
+                            <input id="nemo_lore_retrieval_count" class="text_pole" type="number" min="1" max="10" step="1">
+                        </label>
+                        <label title="Depth where retrieved archive snippets are inserted into the prompt context.">
+                            Retrieval depth <i class="fa-solid fa-circle-info nlg-info-icon" title="Depth where retrieved archive snippets are inserted into the prompt context."></i>
+                            <input id="nemo_lore_retrieval_depth" class="text_pole" type="number" min="0" max="20" step="1">
+                        </label>
+                        <label title="Minimum similarity score for retrieved archive snippets. Higher values are stricter.">
+                            Vector threshold <i class="fa-solid fa-circle-info nlg-info-icon" title="Minimum similarity score for retrieved archive snippets. Higher values are stricter."></i>
+                            <input id="nemo_lore_vector_threshold" class="text_pole" type="number" min="0" max="1" step="0.01">
+                        </label>
+                        <label title="Global ST variable read by the Nemo Engine core pack. The latest preset uses {{getglobalvar::NemoLorePreferences}}.">
+                            Preference variable <i class="fa-solid fa-circle-info nlg-info-icon" title="Global ST variable read by the Nemo Engine core pack. The latest preset uses {{getglobalvar::NemoLorePreferences}}."></i>
+                            <input id="nemo_lore_preference_variable" class="text_pole" type="text">
+                        </label>
+                        <label title="Maximum number of active preferences exposed to the core pack variable at once.">
+                            Max active preferences <i class="fa-solid fa-circle-info nlg-info-icon" title="Maximum number of active preferences exposed to the core pack variable at once."></i>
+                            <input id="nemo_lore_preference_limit" class="text_pole" type="number" min="1" max="20" step="1">
+                        </label>
+                        <label title="Amount of evidence needed before NemoLore promotes repeated swipe/edit patterns into a preference candidate.">
+                            Inference threshold <i class="fa-solid fa-circle-info nlg-info-icon" title="Amount of evidence needed before NemoLore promotes repeated swipe/edit patterns into a preference candidate."></i>
+                            <input id="nemo_lore_inference_threshold" class="text_pole" type="number" min="2" max="20" step="1">
+                        </label>
+                    </div>
+
+                    <div class="nemo-lore-card">
+                        <label for="nemo_lore_template" title="Template used when injecting timeline summaries into the prompt. Keep the placeholder variables intact if you customize it.">Timeline injection template <i class="fa-solid fa-circle-info nlg-info-icon" title="Template used when injecting timeline summaries into the prompt. Keep the placeholder variables intact if you customize it."></i></label>
+                        <textarea id="nemo_lore_template" class="text_pole textarea_compact" rows="4" title="Template used when injecting timeline summaries into the prompt."></textarea>
+                    </div>
+
+                    <div class="nemo-lore-card">
+                        <label for="nemo_lore_retrieval_template" title="Template used when injecting vector-retrieved archived turns.">Retrieved archive injection template <i class="fa-solid fa-circle-info nlg-info-icon" title="Template used when injecting vector-retrieved archived turns."></i></label>
+                        <textarea id="nemo_lore_retrieval_template" class="text_pole textarea_compact" rows="4" title="Template used when injecting vector-retrieved archived turns."></textarea>
+                    </div>
+
+                    <div class="nemo-lore-card">
+                        <label for="nemo_lore_preference_template" title="Template written into the preference variable. Keep {{preferences}} where the preference list should appear.">Preference variable template <i class="fa-solid fa-circle-info nlg-info-icon" title="Template written into the preference variable. Keep {{preferences}} where the preference list should appear."></i></label>
+                        <textarea id="nemo_lore_preference_template" class="text_pole textarea_compact" rows="4" title="Template written into the preference variable."></textarea>
+                    </div>
+
+                    <div class="nemo-lore-card">
+                        <label for="nemo_lore_teach_input" title="Add an explicit preference or instruction to NemoLore's cross-chat preference memory.">Teach NemoLore <i class="fa-solid fa-circle-info nlg-info-icon" title="Add an explicit preference or instruction to NemoLore's cross-chat preference memory."></i></label>
+                        <div class="flex-container">
+                            <input id="nemo_lore_teach_input" class="text_pole" type="text" placeholder="Example: Don't use the word ozone anymore." title="Type a preference or writing instruction you want NemoLore to remember.">
+                            <button id="nemo_lore_teach_button" class="menu_button" title="Save this text as an active cross-chat preference.">Remember</button>
+                            <button id="nemo_lore_reflect_preferences" class="menu_button" title="Ask the configured memory model to review evidence and propose preference updates.">Reflect on Evidence</button>
+                        </div>
+                    </div>
+
+                    <div class="nemo-lore-actions">
+                        <button id="nemo_lore_scan" class="menu_button" title="Queue recent chat messages for memory summarization.">Scan Recent Chat</button>
+                        <button id="nemo_lore_process" class="menu_button" title="Process pending memory jobs immediately.">Process Queue</button>
+                        <button id="nemo_lore_vectorize_archive" class="menu_button" title="Send archived turns into vector storage for semantic retrieval.">Vectorize Archive</button>
+                        <button id="nemo_lore_refresh" class="menu_button" title="Reload visible NemoLore state from storage.">Refresh</button>
+                    </div>
+
+                    <div class="nemo-lore-card">
+                        <label for="nemo_lore_archive_search" title="Search the raw archived turn store without waiting for vector retrieval.">Archive search <i class="fa-solid fa-circle-info nlg-info-icon" title="Search the raw archived turn store without waiting for vector retrieval."></i></label>
+                        <div class="flex-container">
+                            <input id="nemo_lore_archive_search" class="text_pole" type="text" placeholder="Search hidden/raw archived turns" title="Search text stored in the raw archive.">
+                            <button id="nemo_lore_archive_search_button" class="menu_button" title="Run a raw archive text search.">Search</button>
+                        </div>
+                    </div>
+
+                    <div class="nemo-lore-status">
+                        <span id="nemo_lore_status">Idle</span>
+                    </div>
+
+                    <div class="nemo-lore-data-block">
+                        <h4>Memory Inbox</h4>
+                        <div id="nemo_lore_inbox" class="nemo-lore-inbox"></div>
+                    </div>
+
+                    <div class="nemo-lore-data-block">
+                        <h4>Preference Review Queue</h4>
+                        <p class="nemo-lore-muted">Inferred preferences stay here until you accept, edit, discuss, or reject them. Only accepted preferences are exposed through the core-pack preference variable.</p>
+                        <div id="nemo_lore_preference_review_queue" class="nemo-lore-preference-review"></div>
+                    </div>
+
+                    <div class="nemo-lore-data-block">
+                        <h4>Cross-Chat Preferences</h4>
+                        <div id="nemo_lore_preferences" class="nemo-lore-preferences"></div>
+                    </div>
+
+                    <div class="nemo-lore-data-block">
+                        <h4>Preference Signals</h4>
+                        <div class="flex-container">
+                            <button id="nemo_lore_clear_ignored_signals" class="menu_button">Clear Ignored Signals</button>
+                        </div>
+                        <div id="nemo_lore_preference_signals" class="nemo-lore-signals"></div>
+                    </div>
+
+                    <div class="nemo-lore-data-block">
+                        <h4>Preference Evidence</h4>
+                        <div class="flex-container">
+                            <button id="nemo_lore_clear_evidence" class="menu_button">Clear Evidence Log</button>
+                        </div>
+                        <div id="nemo_lore_preference_evidence" class="nemo-lore-evidence"></div>
+                    </div>
+
+                    <div class="nemo-lore-data-block">
+                        <h4>Timeline Summaries</h4>
+                        <div id="nemo_lore_inspector" class="nemo-lore-inspector"></div>
+                    </div>
+
+                    <div class="nemo-lore-data-block">
+                        <h4>Raw Archive</h4>
+                        <div id="nemo_lore_archive" class="nemo-lore-archive"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="inline-drawer nlg-feature-group nemo-lore-section">
+                <div class="inline-drawer-toggle inline-drawer-header">
+                    <span><i class="fa-solid fa-wand-magic-sparkles"></i> Guides</span>
+                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                </div>
+                <div class="inline-drawer-content nlg-feature-content">
+                    <div class="nlg-description">
+                        <p>Your AI gets its own creative toolkit. Instead of you toggling helpers manually, the model decides when it needs scene analysis, story planning, or writing feedback.</p>
+                        <p><strong>Requires:</strong> An API that supports tool calling.</p>
+                    </div>
+
+                    <div class="nlg-master-toggle">
+                        <label class="checkbox_label" for="nlg_enabled" title="Registers the enabled Guides tools so compatible models can call them during generation.">
+                            <input type="checkbox" id="nlg_enabled" />
+                            <span>Enable NemoLore Guides <i class="fa-solid fa-circle-info nlg-info-icon" title="Registers the enabled Guides tools so compatible models can call them during generation."></i></span>
+                        </label>
+                        <small class="nlg-hint">Registers enabled tools with SillyTavern's tool calling system.</small>
+                    </div>
+
+                    <div class="nlg-master-toggle">
+                        <label class="checkbox_label" for="nlg_stealth_tool_calls" title="Runs NemoLore Guides tools as SillyTavern stealth tools, stores their output in the core-pack variable, then triggers one normal follow-up response.">
+                            <input type="checkbox" id="nlg_stealth_tool_calls" checked />
+                            <span>Seamless stealth tool calls <i class="fa-solid fa-circle-info nlg-info-icon" title="Prevents ST's visible tool-call/result message for NemoLore Guides tools while still giving the model the tool result through NemoGuidesToolResults."></i></span>
+                        </label>
+                        <small class="nlg-hint">Recommended. Tool output is written to the core-pack variable and consumed by a controlled follow-up response.</small>
+                    </div>
+
+                    <div class="nlg-master-toggle">
+                        <label title="Global ST variable read by the Nemo Engine 9.3 core pack. The bundled preset uses {{getglobalvar::NemoGuidesToolResults}}.">
+                            Tool results variable <i class="fa-solid fa-circle-info nlg-info-icon" title="Only change this if your core pack uses a different {{getglobalvar::...}} slot for Guides tool results."></i>
+                            <input type="text" id="nlg_tool_results_variable" class="text_pole" value="NemoGuidesToolResults" />
+                        </label>
+                        <small class="nlg-hint">The follow-up response reads this variable, then NemoLore clears it to prevent stale tool results.</small>
+                    </div>
+
+                    <div class="nlg-master-toggle">
+                        <label class="checkbox_label" for="nlg_preflight_enabled" title="Runs one hidden guide generation through a selected Connection Manager profile before the normal response.">
+                            <input type="checkbox" id="nlg_preflight_enabled" />
+                            <span>Silent preflight guidance <i class="fa-solid fa-circle-info nlg-info-icon" title="Alternative to native tool calls. NemoLore generates hidden guide notes, writes them to NemoGuidesToolResults, then the normal response uses that variable."></i></span>
+                        </label>
+                        <small class="nlg-hint">Use this when you want Guided-Generations-style precomputed context instead of model-initiated tool calls.</small>
+
+                        <label class="checkbox_label" for="nlg_preflight_replace_tools" title="When silent preflight is on, skip registering NemoLore's native ST tool schemas.">
+                            <input type="checkbox" id="nlg_preflight_replace_tools" checked />
+                            <span>Use preflight instead of tool calls</span>
+                        </label>
+
+                        <label class="checkbox_label" for="nlg_preflight_require_input" title="Only run preflight when there is pending text in the send box.">
+                            <input type="checkbox" id="nlg_preflight_require_input" checked />
+                            <span>Only run on user sends</span>
+                        </label>
+
+                        <label title="Optional Connection Manager profile for silent preflight. Blank uses the NemoLore Memory profile, then falls back to the active chat API.">
+                            Preflight profile <i class="fa-solid fa-circle-info nlg-info-icon" title="Pick a cheap/fast model profile for guide notes, or leave blank to inherit NemoLore's memory profile."></i>
+                            <select id="nlg_preflight_profile" class="text_pole"></select>
+                        </label>
+
+                        <label title="Maximum tokens for the hidden preflight guide result.">
+                            Preflight max tokens <i class="fa-solid fa-circle-info nlg-info-icon" title="Higher values allow more detailed guide notes but cost more and add latency."></i>
+                            <input type="number" id="nlg_preflight_max_tokens" class="text_pole" min="128" max="4000" value="900" />
+                        </label>
+
+                        <div class="inline-drawer nlg-sub-drawer">
+                            <div class="inline-drawer-toggle inline-drawer-header">
+                                <span><i class="fa-solid fa-pen-fancy"></i> Silent Preflight Prompt</span>
+                                <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                            </div>
+                            <div class="inline-drawer-content">
+                                <small class="nlg-hint">Override only if you want to replace the default hidden guide-note behavior. Supported variables: {{input}}, {{recent}}, {{guides}}.</small>
+                                <textarea id="nlg_preflight_prompt" class="text_pole" rows="7" placeholder="Leave empty for default silent preflight prompt."></textarea>
+                                <div id="nlg_reset_preflight_prompt" class="menu_button menu_button_icon" title="Clear the custom preflight prompt and return to the bundled default.">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                    <span>Reset to Default</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="nlg-master-toggle">
+                        <label class="checkbox_label" for="nlg_cleanup_tool_intermediates" title="Removes NemoLore Guides tool-call messages when they only contain hidden thinking/reasoning and no visible story content.">
+                            <input type="checkbox" id="nlg_cleanup_tool_intermediates" checked />
+                            <span>Hide thinking-only tool-call messages <i class="fa-solid fa-circle-info nlg-info-icon" title="Keeps the visible tool result and final response, but removes empty or &lt;think&gt;/&lt;cot&gt;-only intermediary assistant messages created by SillyTavern's native tool-call loop."></i></span>
+                        </label>
+                        <small class="nlg-hint">Fallback cleanup for non-stealth mode or other native ST tool-call flows.</small>
+                    </div>
+
+                    <div class="inline-drawer nlg-feature-group">
+                        <div class="inline-drawer-toggle inline-drawer-header">
+                            <span><i class="fa-solid fa-scroll"></i> Story Foundation</span>
+                            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                        </div>
+                        <div class="inline-drawer-content nlg-feature-content">
+                            <div class="nlg-feature-description">
+                                <p>Generates current-chat story rules, narrator voice, and setup guidance from the current card and opening context.</p>
+                            </div>
+
+                            <div class="nlg-tool-section" data-tool="NLG_rule_setup">
+                                <div class="nlg-tool-header">
+                                    <label class="checkbox_label" title="Lets the model generate story rules, narrator voice, and setup guidance for the current chat.">
+                                        <input type="checkbox" class="nlg-tool-enabled" />
+                                        <span><i class="fa-solid fa-scroll"></i> Rule Setup <i class="fa-solid fa-circle-info nlg-info-icon" title="Lets the model generate story rules, narrator voice, and setup guidance for the current chat."></i></span>
+                                    </label>
+                                </div>
+                                <div class="nlg-tool-body">
+                                    <label class="checkbox_label" for="nlg_auto_rules" title="Generate rules automatically when a fresh chat begins.">
+                                        <input type="checkbox" id="nlg_auto_rules" checked />
+                                        <span>Auto-generate on new chat <i class="fa-solid fa-circle-info nlg-info-icon" title="Runs Rule Setup automatically when NemoLore detects a fresh chat."></i></span>
+                                    </label>
+                                    <label title="Optional Connection Manager profile for rule generation. Leave blank to use the Memory profile above; if that is blank, NemoLore uses the active chat API.">
+                                        <span>Profile Override <i class="fa-solid fa-circle-info nlg-info-icon" title="Optional Connection Manager profile for this tool. Blank uses the NemoLore Memory profile, then falls back to the active chat API."></i></span>
+                                        <select class="nlg-tool-profile text_pole" title="Optional Connection Manager profile for this tool."></select>
+                                    </label>
+                                    <div class="nlg-tool-actions">
+                                        <div id="nlg_generate_rules" class="menu_button menu_button_icon" title="Generate story rules immediately.">
+                                            <i class="fa-solid fa-scroll"></i>
+                                            <span>Generate Rules Now</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="inline-drawer nlg-sub-drawer">
+                                <div class="inline-drawer-toggle inline-drawer-header">
+                                    <span><i class="fa-solid fa-pen-fancy"></i> Custom Rule Prompt</span>
+                                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                                </div>
+                                <div class="inline-drawer-content">
+                                    <small class="nlg-hint">Override the rule-generation prompt only if you want to replace the default behavior.</small>
+                                    <div class="nlg-tool-section" data-tool="NLG_rule_setup">
+                                        <textarea class="nlg-tool-prompt text_pole" rows="6" placeholder="Leave empty for default prompt." title="Optional replacement prompt for Rule Setup. Leave empty to use the bundled default."></textarea>
+                                        <div class="nlg-reset-prompt menu_button menu_button_icon" title="Clear the custom prompt and return to the bundled default.">
+                                            <i class="fa-solid fa-rotate-left"></i>
+                                            <span>Reset to Default</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inline-drawer nlg-feature-group">
+                        <div class="inline-drawer-toggle inline-drawer-header">
+                            <span><i class="fa-solid fa-magnifying-glass-chart"></i> Scene Tracking</span>
+                            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                        </div>
+                        <div class="inline-drawer-content nlg-feature-content">
+                            <div class="nlg-feature-description">
+                                <p>Tracks current-chat scene state like thoughts, clothing, positions, and situation summaries as live lorebook tracker entries.</p>
+                            </div>
+
+                            <div class="nlg-tool-section" data-tool="NLG_scene_assessment">
+                                <div class="nlg-tool-header">
+                                    <label class="checkbox_label" title="Lets the model capture current scene state such as situation, thoughts, clothing, and positions.">
+                                        <input type="checkbox" class="nlg-tool-enabled" />
+                                        <span><i class="fa-solid fa-magnifying-glass-chart"></i> Scene Assessment <i class="fa-solid fa-circle-info nlg-info-icon" title="Lets the model capture current scene state such as situation, thoughts, clothing, and positions."></i></span>
+                                    </label>
+                                </div>
+                                <div class="nlg-tool-body">
+                                    <label class="checkbox_label" title="Also inject the result into the prompt as a temporary block.">
+                                        <input type="checkbox" class="nlg-tool-inject" />
+                                        <span>Inject result into context <i class="fa-solid fa-circle-info nlg-info-icon" title="Also inject the result into the prompt as a temporary context block."></i></span>
+                                    </label>
+                                    <div class="nlg-inject-options" style="display:none">
+                                        <label title="Where the temporary injected tool result should be placed in prompt context.">
+                                            <span>Position <i class="fa-solid fa-circle-info nlg-info-icon" title="Where the temporary injected tool result should be placed in prompt context."></i></span>
+                                            <select class="nlg-tool-inject-position text_pole">
+                                                <option value="chat">In Chat</option>
+                                                <option value="before">Before Prompt</option>
+                                                <option value="after">After Prompt</option>
+                                            </select>
+                                        </label>
+                                        <label title="Prompt depth for the temporary injected tool result.">
+                                            <span>Depth <i class="fa-solid fa-circle-info nlg-info-icon" title="Prompt depth for the temporary injected tool result."></i></span>
+                                            <input type="number" class="nlg-tool-inject-depth text_pole" min="0" max="100" value="1" />
+                                        </label>
+                                        <label class="checkbox_label" title="Remove this injected result after the next generation.">
+                                            <input type="checkbox" class="nlg-tool-inject-ephemeral" checked />
+                                            <span>Ephemeral <i class="fa-solid fa-circle-info nlg-info-icon" title="Remove this injected result after the next generation."></i></span>
+                                        </label>
+                                    </div>
+                                    <label title="Optional Connection Manager profile for scene assessment. Leave blank to use the Memory profile above; if that is blank, NemoLore uses the active chat API.">
+                                        <span>Profile Override <i class="fa-solid fa-circle-info nlg-info-icon" title="Optional Connection Manager profile for this tool. Blank uses the NemoLore Memory profile, then falls back to the active chat API."></i></span>
+                                        <select class="nlg-tool-profile text_pole" title="Optional Connection Manager profile for this tool."></select>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="nlg-lorebook-settings">
+                                <h4><i class="fa-solid fa-book"></i> Current-Chat Trackers</h4>
+                                <div class="nlg-feature-description">
+                                    <p>Scene state is stored as always-on lorebook entries, but each entry is scoped to the chat that created it.</p>
+                                </div>
+                                <label title="Name of the lorebook where current-chat scene trackers and generated story rules are stored. Leave empty to use NemoLore-Trackers.">
+                                    <span>Lorebook Name <i class="fa-solid fa-circle-info nlg-info-icon" title="Name of the lorebook where scene trackers and generated story rules are stored. Leave empty to use NemoLore-Trackers."></i></span>
+                                    <input type="text" id="nlg_lorebook_name" class="text_pole" placeholder="NemoLore-Trackers" title="Leave empty to use NemoLore-Trackers." />
+                                </label>
+                                <div id="nlg_clear_trackers" class="menu_button menu_button_icon" title="Disable and clear all NemoLore tracker entries in the configured lorebook.">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                    <span>Clear All Trackers</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inline-drawer nlg-feature-group">
+                        <div class="inline-drawer-toggle inline-drawer-header">
+                            <span><i class="fa-solid fa-compass-drafting"></i> Response Planning</span>
+                            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                        </div>
+                        <div class="inline-drawer-content nlg-feature-content">
+                            <div class="nlg-feature-description">
+                                <p>Gives the AI planning, brainstorming, refining, and prose-polish tools for important scenes.</p>
+                            </div>
+
+                            <div class="nlg-tool-section" data-tool="NLG_plan_and_refine">
+                                <div class="nlg-tool-header">
+                                    <label class="checkbox_label" title="Lets the model plan, brainstorm, refine, or run the full response-planning pipeline.">
+                                        <input type="checkbox" class="nlg-tool-enabled" />
+                                        <span><i class="fa-solid fa-compass-drafting"></i> Plan & Refine <i class="fa-solid fa-circle-info nlg-info-icon" title="Lets the model plan, brainstorm, refine, or run the full response-planning pipeline."></i></span>
+                                    </label>
+                                </div>
+                                <div class="nlg-tool-body">
+                                    <small class="nlg-hint">Modes: plan, brainstorm, refine, or full pipeline.</small>
+                                    <label class="checkbox_label" title="Inject the planning result into prompt context so later generations can use it.">
+                                        <input type="checkbox" class="nlg-tool-inject" />
+                                        <span>Inject result into context <i class="fa-solid fa-circle-info nlg-info-icon" title="Inject the planning result into prompt context so later generations can use it."></i></span>
+                                    </label>
+                                    <div class="nlg-inject-options" style="display:none">
+                                        <label title="Where the injected planning result should be placed in prompt context.">
+                                            <span>Position <i class="fa-solid fa-circle-info nlg-info-icon" title="Where the injected planning result should be placed in prompt context."></i></span>
+                                            <select class="nlg-tool-inject-position text_pole">
+                                                <option value="chat">In Chat</option>
+                                                <option value="before">Before Prompt</option>
+                                                <option value="after">After Prompt</option>
+                                            </select>
+                                        </label>
+                                        <label title="Prompt depth for the injected planning result.">
+                                            <span>Depth <i class="fa-solid fa-circle-info nlg-info-icon" title="Prompt depth for the injected planning result."></i></span>
+                                            <input type="number" class="nlg-tool-inject-depth text_pole" min="0" max="100" value="1" />
+                                        </label>
+                                        <label class="checkbox_label" title="Remove this injected result after the next generation.">
+                                            <input type="checkbox" class="nlg-tool-inject-ephemeral" checked />
+                                            <span>Ephemeral <i class="fa-solid fa-circle-info nlg-info-icon" title="Remove this injected result after the next generation."></i></span>
+                                        </label>
+                                    </div>
+                                    <label title="Optional Connection Manager profile for planning. Leave blank to use the Memory profile above; if that is blank, NemoLore uses the active chat API.">
+                                        <span>Profile Override <i class="fa-solid fa-circle-info nlg-info-icon" title="Optional Connection Manager profile for this tool. Blank uses the NemoLore Memory profile, then falls back to the active chat API."></i></span>
+                                        <select class="nlg-tool-profile text_pole" title="Optional Connection Manager profile for this tool."></select>
+                                    </label>
+                                    <label title="Optional NemoStack preset used only when Plan & Refine runs mode=full. Leave off to use the normal Guides planning pipeline.">
+                                        <span>NemoStack for Full Mode <i class="fa-solid fa-circle-info nlg-info-icon" title="When selected, mode=full uses NemoStack's multi-model pipeline and falls back to the normal Guides pipeline if the preset is not configured."></i></span>
+                                        <select id="nlg_plan_stack_preset" class="text_pole" title="Optional NemoStack preset for high-effort Plan & Refine full mode."></select>
+                                    </label>
+                                    <small class="nlg-hint">Use this for high-value scenes. NemoStack can be slower and more expensive because it runs recall, analysis, parallel drafters, and consolidation.</small>
+                                </div>
+                            </div>
+
+                            <div class="nlg-tool-section" data-tool="NLG_polish_prose">
+                                <div class="nlg-tool-header">
+                                    <label class="checkbox_label" title="Lets the model line-edit draft prose while preserving character voice and scene intent.">
+                                        <input type="checkbox" class="nlg-tool-enabled" />
+                                        <span><i class="fa-solid fa-feather-pointed"></i> Polish Prose <i class="fa-solid fa-circle-info nlg-info-icon" title="Lets the model line-edit draft prose while preserving character voice and scene intent."></i></span>
+                                    </label>
+                                </div>
+                                <div class="nlg-tool-body">
+                                    <small class="nlg-hint">Line-edits draft prose while preserving character voice.</small>
+                                    <label title="Optional Connection Manager profile for prose polishing. Leave blank to use the Memory profile above; if that is blank, NemoLore uses the active chat API.">
+                                        <span>Profile Override <i class="fa-solid fa-circle-info nlg-info-icon" title="Optional Connection Manager profile for this tool. Blank uses the NemoLore Memory profile, then falls back to the active chat API."></i></span>
+                                        <select class="nlg-tool-profile text_pole" title="Optional Connection Manager profile for this tool."></select>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inline-drawer nlg-feature-group">
+                        <div class="inline-drawer-toggle inline-drawer-header">
+                            <span><i class="fa-solid fa-book-open"></i> Narrative Scratchpad</span>
+                            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                        </div>
+                        <div class="inline-drawer-content nlg-feature-content">
+                            <div class="nlg-feature-description">
+                                <p>A current-chat narrative scratchpad the AI can maintain across scenes.</p>
+                            </div>
+
+                            <div class="nlg-tool-section" data-tool="NLG_dm_notes">
+                                <div class="nlg-tool-header">
+                                    <label class="checkbox_label" title="Lets the model maintain a private narrative scratchpad for continuity, hooks, and unresolved details.">
+                                        <input type="checkbox" class="nlg-tool-enabled" />
+                                        <span><i class="fa-solid fa-book-open"></i> DM Notes <i class="fa-solid fa-circle-info nlg-info-icon" title="Lets the model maintain a private narrative scratchpad for continuity, hooks, and unresolved details."></i></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inline-drawer nlg-feature-group">
+                        <div class="inline-drawer-toggle inline-drawer-header">
+                            <span><i class="fa-solid fa-spell-check"></i> Writing Quality</span>
+                            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                        </div>
+                        <div class="inline-drawer-content nlg-feature-content">
+                            <div class="nlg-feature-description">
+                                <p>Runs local writing analysis and gives the AI access to a detailed writing-check tool when needed.</p>
+                            </div>
+
+                            <div class="nlg-analysis-settings">
+                                <label class="checkbox_label" for="nlg_writing_analysis" title="Runs local writing-quality checks after generations and feeds warnings back into context.">
+                                    <input type="checkbox" id="nlg_writing_analysis" checked />
+                                    <span><i class="fa-solid fa-chart-line"></i> Auto-analyze writing quality <i class="fa-solid fa-circle-info nlg-info-icon" title="Runs local writing-quality checks after generations and feeds warnings back into context."></i></span>
+                                </label>
+                                <small class="nlg-hint">Runs every generation and feeds warnings back into context.</small>
+                            </div>
+
+                            <div class="nlg-tool-section" data-tool="NLG_writing_check">
+                                <div class="nlg-tool-header">
+                                    <label class="checkbox_label" title="Lets the model request a detailed local writing-quality report.">
+                                        <input type="checkbox" class="nlg-tool-enabled" />
+                                        <span><i class="fa-solid fa-spell-check"></i> Writing Check Tool <i class="fa-solid fa-circle-info nlg-info-icon" title="Lets the model request a detailed local writing-quality report."></i></span>
+                                    </label>
+                                </div>
+                                <div class="nlg-tool-body">
+                                    <small class="nlg-hint">Returns a detailed local writing-quality report without an API call.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inline-drawer nlg-feature-group">
+                        <div class="inline-drawer-toggle inline-drawer-header">
+                            <span><i class="fa-solid fa-dice-d20"></i> Game & Custom Tools</span>
+                            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                        </div>
+                        <div class="inline-drawer-content nlg-feature-content">
+                            <div class="nlg-feature-description">
+                                <p>Lets compatible models roll dice and call your own safe, template-based tools during generation.</p>
+                            </div>
+
+                            <div class="nlg-tool-section" data-tool="NLG_roll_dice">
+                                <div class="nlg-tool-header">
+                                    <label class="checkbox_label" title="Lets the model roll tabletop dice through SillyTavern tool calling.">
+                                        <input type="checkbox" class="nlg-tool-enabled" />
+                                        <span><i class="fa-solid fa-dice-d20"></i> Roll Dice <i class="fa-solid fa-circle-info nlg-info-icon" title="Supports formulas like 1d20+5, 2d20kh1, 2d20kl1, and 4d6kh3."></i></span>
+                                    </label>
+                                </div>
+                                <div class="nlg-tool-body">
+                                    <small class="nlg-hint">Supports d20, modifiers, advantage/disadvantage style keep-high/keep-low, and multi-dice formulas.</small>
+                                </div>
+                            </div>
+
+                            <div class="nlg-custom-tools-panel">
+                                <h4><i class="fa-solid fa-screwdriver-wrench"></i> Custom Tool Calls</h4>
+                                <div class="nlg-feature-description">
+                                    <p>Create tools the model can choose to call. Custom tools return a text template using the model-provided input; they do not run code or access files.</p>
+                                </div>
+                                <div id="nlg_custom_tools" class="nlg-custom-tools"></div>
+                                <div id="nlg_add_custom_tool" class="menu_button menu_button_icon" title="Create a new safe custom tool call.">
+                                    <i class="fa-solid fa-plus"></i>
+                                    <span>Add Custom Tool</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inline-drawer nlg-feature-group">
+                        <div class="inline-drawer-toggle inline-drawer-header">
+                            <span><i class="fa-solid fa-wand-sparkles"></i> Prompt Stack Advisor</span>
+                            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                        </div>
+                        <div class="inline-drawer-content nlg-feature-content">
+                            <div class="nlg-feature-description">
+                                <p>Analyzes your current prompt stack and recommends which prompts to enable or disable for the active character. It does not create NemoLore preferences.</p>
+                            </div>
+
+                            <div class="nlg-tool-actions">
+                                <div id="nlg_run_advisor" class="menu_button menu_button_icon" title="Analyze the current prompt stack.">
+                                    <i class="fa-solid fa-wand-sparkles"></i>
+                                    <span>Analyze Prompt Stack</span>
+                                </div>
+                                <div id="nlg_apply_recommendations" class="menu_button menu_button_icon" title="Apply the current advisor recommendations." style="display:none;">
+                                    <i class="fa-solid fa-check-double"></i>
+                                    <span>Apply Recommendations</span>
+                                </div>
+                            </div>
+
+                            <label class="checkbox_label" for="nlg_auto_advisor" title="Run the prompt stack advisor automatically on fresh chats.">
+                                <input type="checkbox" id="nlg_auto_advisor" />
+                                <span>Auto-analyze on fresh chats <i class="fa-solid fa-circle-info nlg-info-icon" title="Run the prompt stack advisor automatically on fresh chats."></i></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="inline-drawer nlg-feature-group">
+                        <div class="inline-drawer-toggle inline-drawer-header">
+                            <span><i class="fa-solid fa-microchip"></i> System Instruction</span>
+                            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                        </div>
+                        <div class="inline-drawer-content nlg-feature-content">
+                            <div class="nlg-feature-description">
+                                <p>Controls the instruction that teaches the AI when and how to use Guides tools.</p>
+                            </div>
+
+                            <label class="checkbox_label" for="nlg_inject_instruction" title="Inject an instruction block that explains available NemoLore Guides tools to the model.">
+                                <input type="checkbox" id="nlg_inject_instruction" />
+                                <span>Inject system instruction <i class="fa-solid fa-circle-info nlg-info-icon" title="Inject an instruction block that explains available NemoLore Guides tools to the model."></i></span>
+                            </label>
+
+                            <div class="nlg-instruction-options">
+                                <label title="Where the Guides tool instruction should be inserted in prompt context.">
+                                    <span>Position <i class="fa-solid fa-circle-info nlg-info-icon" title="Where the Guides tool instruction should be inserted in prompt context."></i></span>
+                                    <select id="nlg_instruction_position" class="text_pole">
+                                        <option value="in_chat">In Chat</option>
+                                        <option value="in_prompt">In Prompt</option>
+                                        <option value="before_prompt">Before Prompt</option>
+                                    </select>
+                                </label>
+                                <label title="Prompt depth for the Guides tool instruction.">
+                                    <span>Depth <i class="fa-solid fa-circle-info nlg-info-icon" title="Prompt depth for the Guides tool instruction."></i></span>
+                                    <input type="number" id="nlg_instruction_depth" class="text_pole" min="0" max="100" value="1" />
+                                </label>
+                                <label title="Prompt role used for the injected Guides tool instruction.">
+                                    <span>Role <i class="fa-solid fa-circle-info nlg-info-icon" title="Prompt role used for the injected Guides tool instruction."></i></span>
+                                    <select id="nlg_instruction_role" class="text_pole">
+                                        <option value="system">System</option>
+                                        <option value="user">User</option>
+                                        <option value="assistant">Assistant</option>
+                                    </select>
+                                </label>
+                            </div>
+
+                            <label title="Optional replacement for the default Guides instruction. Leave empty unless you want full control over tool-use guidance.">
+                                <span>Custom Instruction <i class="fa-solid fa-circle-info nlg-info-icon" title="Optional replacement for the default Guides instruction. Leave empty unless you want full control over tool-use guidance."></i></span>
+                                <textarea id="nlg_system_instruction" class="text_pole" rows="6" placeholder="Leave empty for default instruction." title="Optional replacement for the default Guides instruction."></textarea>
+                            </label>
+                            <div id="nlg_reset_instruction" class="menu_button menu_button_icon" title="Reset to the default instruction.">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>Reset to Default</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

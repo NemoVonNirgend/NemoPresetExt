@@ -1,0 +1,139 @@
+.nemo-lore-settings label {
+    display: block;
+    margin: 0.5rem 0;
+}
+
+.nemo-lore-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+}
+
+.nemo-lore-status {
+    margin: 0.75rem 0;
+    opacity: 0.85;
+}
+
+.nemo-lore-inspector,
+.nemo-lore-inbox,
+.nemo-lore-archive,
+.nemo-lore-preferences,
+.nemo-lore-preference-review,
+.nemo-lore-signals,
+.nemo-lore-evidence {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 260px;
+    overflow: auto;
+    margin-top: 0.75rem;
+}
+
+.nemo-lore-card {
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    padding: 0.65rem;
+    background: var(--SmartThemeBlurTintColor);
+}
+
+.nemo-lore-review-card {
+    border-color: color-mix(in srgb, var(--SmartThemeQuoteColor) 55%, var(--SmartThemeBorderColor));
+}
+
+.nemo-lore-card-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.9em;
+    opacity: 0.85;
+    margin-bottom: 0.35rem;
+}
+
+.nemo-lore-summary {
+    white-space: pre-wrap;
+}
+
+.nemo-lore-raw {
+    white-space: pre-wrap;
+    max-height: 8rem;
+    overflow: auto;
+    margin-top: 0.4rem;
+    padding: 0.4rem;
+    border-left: 2px solid var(--SmartThemeBorderColor);
+}
+
+.nemo-lore-match {
+    margin-top: 0.45rem;
+    font-size: 0.9em;
+    color: var(--SmartThemeQuoteColor);
+}
+
+.nemo-lore-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.nlg-custom-tools,
+.nlg-custom-tools-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.nlg-custom-tool-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.nlg-custom-tool-header,
+.nlg-custom-tool-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.nlg-custom-tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.65rem;
+}
+
+.nemo-lore-muted {
+    opacity: 0.72;
+    font-size: 0.9em;
+}
+
+.nemo-lore-selection-menu {
+    position: fixed;
+    z-index: 10000;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+    background: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    padding: 0.25rem;
+    box-shadow: 0 2px 10px var(--SmartThemeShadowColor);
+}
+
+.nemo-lore-selection-menu button {
+    margin: 0;
+}
+
+.nemo-lore-evidence-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 700px) {
+    .nemo-lore-evidence-grid {
+        grid-template-columns: 1fr;
+    }
+}
