@@ -35,7 +35,7 @@
     display: flex;
     flex-direction: row-reverse; /* Character on right */
     width: 100%;
-    max-height: 350px;
+    height: clamp(480px, 58vh, 640px);
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border-top: 3px solid rgba(100, 150, 255, 0.5);
     box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
@@ -105,8 +105,9 @@
     display: flex;
     flex-direction: column;
     padding: 25px 40px;
-    overflow-y: auto;
-    max-height: 350px;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
 }
 
 /* Speaker name */
@@ -162,7 +163,8 @@
 
 /* Dialog text */
 .nemo-vn-text {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 180px;
     font-size: 15px;
     line-height: 1.7;
     color: #e0e0e0;
@@ -240,6 +242,7 @@
 
 /* Highlight box */
 .nemo-vn-highlight {
+    flex: 0 0 auto;
     background: rgba(255, 215, 0, 0.15);
     border: 2px solid #ffd700;
     border-radius: 8px;
@@ -251,6 +254,7 @@
 
 /* Progress bar */
 .nemo-vn-progress {
+    flex: 0 0 auto;
     position: relative;
     margin: 20px 0;
     height: 8px;
@@ -279,6 +283,7 @@
 
 /* Button container */
 .nemo-vn-buttons {
+    flex: 0 0 auto;
     display: flex;
     gap: 10px;
     margin-top: 20px;
@@ -431,7 +436,7 @@
 /* Responsive design */
 @media (max-width: 1024px) {
     .nemo-vn-dialog {
-        max-height: 300px;
+        height: clamp(430px, 58vh, 560px);
     }
 
     .nemo-vn-character {
@@ -440,7 +445,10 @@
 
     .nemo-vn-content {
         padding: 20px 30px;
-        max-height: 300px;
+    }
+
+    .nemo-vn-text {
+        min-height: 150px;
     }
 
     .nemo-vn-buttons {
@@ -450,7 +458,7 @@
 
 @media (max-width: 768px) {
     .nemo-vn-dialog {
-        max-height: 280px;
+        height: clamp(390px, 64vh, 520px);
     }
 
     .nemo-vn-character {
@@ -467,6 +475,16 @@
 
     .nemo-vn-text {
         font-size: 14px;
+        min-height: 130px;
+    }
+
+    .nemo-vn-highlight {
+        padding: 12px;
+        margin: 12px 0;
+    }
+
+    .nemo-vn-progress {
+        margin: 16px 0;
     }
 
     .nemo-vn-button {
@@ -476,12 +494,13 @@
 
     .nemo-vn-buttons {
         gap: 8px;
+        margin-top: 14px;
     }
 }
 
 @media (max-width: 480px) {
     .nemo-vn-dialog {
-        max-height: 250px;
+        height: min(78vh, 500px);
     }
 
     .nemo-vn-character {
@@ -490,6 +509,10 @@
 
     .nemo-vn-content {
         padding: 12px 15px;
+    }
+
+    .nemo-vn-text {
+        min-height: 110px;
     }
 
     .nemo-vn-text h3 {

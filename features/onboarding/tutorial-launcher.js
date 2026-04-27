@@ -267,6 +267,7 @@ export class TutorialLauncher {
      */
     formatCategoryName(category) {
         const names = {
+            'setup': 'Setup',
             'getting-started': '🚀 Getting Started',
             'core': '⚙️ Core Features',
             'creation': '🎨 Creation Tools',

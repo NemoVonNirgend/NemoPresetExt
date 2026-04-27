@@ -76,7 +76,214 @@ function openPromptManager() {
     }
 }
 
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isVisibleElement(element) {
+    if (!element) return false;
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return rect.width > 1
+        && rect.height > 1
+        && style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && style.opacity !== '0';
+}
+
+function findDrawerIcon(title) {
+    const titleLower = String(title || '').toLowerCase();
+    return [...document.querySelectorAll('.drawer-icon, .interactable, [role="button"]')]
+        .find(element => {
+            const value = [
+                element.getAttribute('title'),
+                element.getAttribute('aria-label'),
+                element.getAttribute('data-i18n'),
+                element.textContent,
+            ].filter(Boolean).join(' ').toLowerCase();
+            return value.includes(titleLower);
+        });
+}
+
+async function focusDrawerTarget(title, targetSelector) {
+    const target = document.querySelector(targetSelector);
+    if (isVisibleElement(target)) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        await wait(350);
+        return target;
+    }
+
+    const icon = findDrawerIcon(title);
+    if (icon && (!icon.classList.contains('openIcon') || !isVisibleElement(target))) {
+        icon.click();
+        await wait(900);
+    }
+
+    const next = document.querySelector(targetSelector);
+    if (next) {
+        next.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        await wait(450);
+    }
+    return next;
+}
+
+async function focusInstallerCard() {
+    return focusDrawerTarget('Extensions', '.nemo-engine-installer-section');
+}
+
+async function focusConnectionPreset() {
+    return focusDrawerTarget('AI Response Configuration', '#settings_preset_openai');
+}
+
+async function focusPromptSections() {
+    await focusConnectionPreset();
+    openPromptManager();
+    const promptList = document.querySelector('#completion_prompt_manager_list');
+    if (promptList) {
+        promptList.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        await wait(450);
+    }
+}
+
 export const tutorials = {
+    nemoEngineSetup: {
+        name: 'Nemo Engine Setup',
+        description: 'Install the bundled Nemo Engine preset and verify the core settings',
+        category: 'setup',
+        steps: [
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Nemo Engine setup</h3>
+                    <p>This guide installs the bundled <strong>Nemo Engine 9.3.1</strong> Chat Completion preset and points out the settings that matter after install.</p>
+                    <p>The installer uses SillyTavern's normal preset save path, so the preset appears in the same dropdown as manually imported Chat Completion presets.</p>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Step 1: run the preset-aware setup wizard</h3>
+                    <p>I opened the Extensions panel and focused the installer card. Click <strong>Run Setup Wizard</strong> here. It installs or updates the bundled JSON when needed, selects the Nemo Engine preset, then checks that the core-pack variable slots match NemoLore and NemoGuides.</p>
+                    <p>If you only want to force-overwrite the preset without the checklist, use <strong>Install / Update Nemo Engine 9.3.1</strong>.</p>
+                `,
+                onBeforeHighlight: focusInstallerCard,
+                highlightSelector: '.nemo-engine-setup-button',
+                highlightText: 'The wizard installs/selects the latest preset and verifies the expected slots.',
+                actionButton: {
+                    text: 'Run setup wizard',
+                    onClick: async () => {
+                        await focusInstallerCard();
+                        document.querySelector('.nemo-engine-setup-button')?.click();
+                    }
+                }
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>Step 2: confirm the Chat Completion preset</h3>
+                    <p>After install, SillyTavern should select <strong>Nemo Engine 9.3.1</strong> in the Chat Completion preset dropdown.</p>
+                    <p>The wizard checklist will warn if another preset is active. If you do not see it immediately, reopen the Connection panel or refresh once. The preset file is already saved server-side.</p>
+                `,
+                onBeforeHighlight: focusConnectionPreset,
+                highlightSelector: '#settings_preset_openai',
+                highlightText: 'The installer selects Nemo Engine here.'
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Step 3: read the setup checklist</h3>
+                    <p>The setup report checks the bundled preset, the installed preset, active preset selection, and the NemoLore/NemoGuides variable names used by the core pack.</p>
+                    <p>Warnings usually mean the preset is usable but a setting differs from the bundled default. Errors mean the bundled preset file itself needs attention.</p>
+                `,
+                onBeforeHighlight: focusInstallerCard,
+                highlightSelector: '.nemo-engine-installer-status',
+                highlightText: 'This checklist is preset-aware and updates after install/setup.'
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Step 4: use the prompt sections</h3>
+                    <p>Nemo Engine is built around organized prompt sections. I opened the response configuration panel so you can see the section UI.</p>
+                    <p>Prompts that are marked exclusive should behave like one-choice profiles: turning one on turns conflicting prompts off.</p>
+                `,
+                onBeforeHighlight: focusPromptSections,
+                highlightSelector: '#completion_prompt_manager_list',
+                highlightText: 'NemoPresetExt adds the section UI around this prompt list.'
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
+                text: `
+                    <h3>Core and Vex Personality</h3>
+                    <p><strong>Core</strong> is the engine room: user autonomy, baseline prose rules, core variables, and safety rails. Keep it enabled unless you are intentionally building a different preset.</p>
+                    <p><strong>Vex Personality</strong> controls the narrator's broad voice. Use one when you want a strong tonal identity. Do not stack several personas unless you want muddy or contradictory style pressure.</p>
+                `,
+                onBeforeHighlight: focusPromptSections,
+                highlightSelector: '#completion_prompt_manager_list',
+                highlightText: 'Core is the baseline. Vex Persona is the main voice selector.'
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.talking,
+                text: `
+                    <h3>Genre, style, format, and language</h3>
+                    <p><strong>Genre</strong> tells the model what kind of story logic to use. Use it for horror, romance, fantasy, mystery, and similar strong genre expectations.</p>
+                    <p><strong>Writing Style / Formats / Language</strong> shape texture: prose density, output shape, tense, perspective, and language behavior. Use them when you want a distinct presentation. Leave them light when character cards already carry strong style instructions.</p>
+                `,
+                onBeforeHighlight: focusPromptSections,
+                highlightSelector: '#completion_prompt_manager_list',
+                highlightText: 'These sections shape tone and presentation. Avoid overstacking similar style prompts.'
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.default,
+                text: `
+                    <h3>Pacing, agency, world logic, and difficulty</h3>
+                    <p><strong>Plot Pacing</strong> changes how fast scenes move. Use slower pacing for intimacy and atmosphere; faster pacing for action or plot momentum.</p>
+                    <p><strong>Story Agency / World Logic / Difficulty</strong> decide how proactive the world is, how consequences behave, and how much resistance the user faces. Use them for game-like or high-stakes stories. Avoid strong difficulty/world-pressure prompts in cozy or low-conflict chats.</p>
+                `,
+                onBeforeHighlight: focusPromptSections,
+                highlightSelector: '#completion_prompt_manager_list',
+                highlightText: 'These sections change behavior and consequence, not just prose style.'
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
+                text: `
+                    <h3>NSFW, fetish, RPG, trackers, and utility</h3>
+                    <p><strong>NSFW / Fetish</strong> are opt-in pressure modules. Use them only when the chat actually needs that behavior; otherwise they can pull innocent scenes toward sexual framing.</p>
+                    <p><strong>RPG / Trackers / Utility</strong> add mechanics, state tracking, dice-like outcomes, names, combat, danger, or special handling. Use them for campaigns and complex scenes. For simple one-on-one prose, leave most of these off to keep the prompt compact.</p>
+                `,
+                onBeforeHighlight: focusPromptSections,
+                highlightSelector: '#completion_prompt_manager_list',
+                highlightText: 'These are high-impact modules. Enable them for a reason.'
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.thinking,
+                text: `
+                    <h3>Optional NemoLore and Guides</h3>
+                    <p>The bundled preset keeps SillyTavern function calling and tool reasoning disabled by default. That is fine for normal preset use.</p>
+                    <p>If you want NemoLore Guides tool calls, enable the NemoLore systems in this extension and enable compatible tool/function calling in SillyTavern for your provider.</p>
+                `
+            },
+            {
+                speaker: 'Vex',
+                characterImage: VEX_PORTRAITS.smiling,
+                text: `
+                    <h3>Final smoke test</h3>
+                    <p>Start a short chat response after selecting the preset. Confirm that the prompt dropdowns remain visible and that the enabled prompt sections match the tone/profile you want.</p>
+                    <p>If output looks wrong, check the active prompt section choices first. Most behavior changes come from those toggles, not from hidden extension state.</p>
+                `
+            }
+        ]
+    },
+
     // Welcome Tutorial
     welcome: {
         name: 'Welcome to NemoPresetExt',

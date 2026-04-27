@@ -123,7 +123,7 @@ export class VNDialog {
      * Show a tutorial step
      * @param {Object} step - Step data from tutorial
      */
-    show(step) {
+    async show(step) {
         if (!this.container) {
             this.createDialog();
         }
@@ -170,11 +170,25 @@ export class VNDialog {
             nextButton.classList.remove('nemo-vn-button-complete');
         }
 
+        if (step.onBeforeHighlight) {
+            try {
+                await step.onBeforeHighlight();
+            } catch (error) {
+                logger.error('Error in step onBeforeHighlight callback:', error);
+            }
+        }
+
         // Handle highlight (if step targets a specific UI element)
         if (step.highlightSelector) {
             this.highlightElement(step.highlightSelector, step.highlightText);
         } else {
             this.clearHighlight();
+        }
+
+        // Remove stale action buttons before rendering this step.
+        const existingAction = this.container.querySelector('.nemo-vn-button-action');
+        if (existingAction) {
+            existingAction.remove();
         }
 
         // Handle action buttons (interactive tutorial steps)
@@ -224,6 +238,26 @@ export class VNDialog {
             return;
         }
 
+        element.scrollIntoView?.({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        const hidden = rect.width <= 1
+            || rect.height <= 1
+            || style.display === 'none'
+            || style.visibility === 'hidden'
+            || style.opacity === '0';
+
+        if (hidden) {
+            logger.warn(`Element exists but is not visible enough to highlight: ${selector}`);
+            if (text) {
+                const highlightBox = this.container.querySelector('.nemo-vn-highlight');
+                highlightBox.textContent = text;
+                highlightBox.style.display = 'block';
+            }
+            return;
+        }
+
         // Add highlight class to target element
         element.classList.add('nemo-vn-highlighted');
 
@@ -232,7 +266,6 @@ export class VNDialog {
         spotlight.className = 'nemo-vn-spotlight';
         spotlight.dataset.vnSpotlight = 'true';
 
-        const rect = element.getBoundingClientRect();
         spotlight.style.top = `${rect.top - 10}px`;
         spotlight.style.left = `${rect.left - 10}px`;
         spotlight.style.width = `${rect.width + 20}px`;
@@ -279,12 +312,6 @@ export class VNDialog {
      */
     addActionButton(buttonConfig) {
         const buttonContainer = this.container.querySelector('.nemo-vn-buttons');
-
-        // Remove any existing action button
-        const existingAction = buttonContainer.querySelector('.nemo-vn-button-action');
-        if (existingAction) {
-            existingAction.remove();
-        }
 
         // Create new action button
         const actionButton = document.createElement('button');
