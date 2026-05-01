@@ -69,6 +69,7 @@ export const NemoGlobalUI = {
     groupNemoExtensions: function() {
         const nemoExtensions = [
             'NemoPresetExt',
+            'Nemo Rewrite',
             'Prose Polisher (Regex + AI)',
             'Mood Music Settings',
             'Qvink Memory',

@@ -10,9 +10,41 @@ export const ExtensionsTabOverhaul = {
     initialized: false,
     currentView: 'main', // 'main' or 'fullscreen'
     currentExtension: null,
+    currentCompanionExtensions: [],
+    hiddenCompanionExtensions: [],
     customFolders: {},
     extensionTags: {},
     originalExtensions: [], // Store original extension elements
+    imagePromptTemplates: [
+        {
+            id: 'anime_scene',
+            label: 'Anime Scene',
+            icon: 'fa-star',
+            positive: 'masterpiece, best quality, anime illustration, cohesive character design, expressive faces, clear scene composition, cinematic lighting, detailed background, clean linework, {prompt}',
+            negative: 'lowres, worst quality, low quality, bad anatomy, bad hands, extra fingers, missing fingers, malformed limbs, deformed face, bad eyes, text, watermark, signature, jpeg artifacts, blurry, cropped, duplicate characters, inconsistent outfit',
+        },
+        {
+            id: 'manga_panel',
+            label: 'Manga Panel',
+            icon: 'fa-book-open',
+            positive: 'manga illustration, comic panel composition, clean ink linework, screentone shading, expressive character acting, readable silhouettes, detailed environment, dramatic framing, {prompt}',
+            negative: 'lowres, messy panel layout, muddy screentones, broken lineart, bad anatomy, bad hands, malformed fingers, unreadable face, text, speech bubbles, watermark, signature, jpeg artifacts, blurry, cropped',
+        },
+        {
+            id: 'cinematic',
+            label: 'Cinematic',
+            icon: 'fa-film',
+            positive: 'cinematic composition, natural lighting, strong focal point, realistic materials, detailed environment, balanced depth of field, consistent character appearance, atmospheric color grading, {prompt}',
+            negative: 'lowres, overexposed, underexposed, motion blur, bad anatomy, distorted hands, deformed face, uncanny eyes, duplicate limbs, text, watermark, signature, compression artifacts, cropped subject',
+        },
+        {
+            id: 'clean_negative',
+            label: 'Clean Negative',
+            icon: 'fa-broom',
+            positive: 'best quality, clear composition, consistent character details, detailed scene, {prompt}',
+            negative: 'lowres, worst quality, low quality, normal quality, bad anatomy, bad hands, extra fingers, missing fingers, extra limbs, malformed limbs, deformed face, bad eyes, cross-eye, text, watermark, signature, username, jpeg artifacts, blurry, cropped, out of frame',
+        },
+    ],
     
     // IDs to skip — these aren't real extensions (stray style tags, etc.)
     skipIds: ['nemo-ext-unknown-extension'],
@@ -56,6 +88,7 @@ export const ExtensionsTabOverhaul = {
         'spotify_settings': 'Spotify',
         'tunnelvision_settings': 'TunnelVision',
         'nemo_lore_settings': 'NemoLore',
+        'nemo_rewrite_settings': 'Nemo Rewrite',
     },
 
     // Define default categories for extensions
@@ -73,6 +106,12 @@ export const ExtensionsTabOverhaul = {
             // Nemo companion extensions
             'tunnelvision_settings',
             'nemo_lore_settings',
+            'nemo_rewrite_settings',
+            'nemo-rewrite-settings',
+            'nemo-ext-nemo-rewrite',
+            'nemo-ext-nemorewrite',
+            'nemorewrite-settings',
+            'nemorewrite_settings',
             // Standalone Nemo extensions (if installed separately)
             'nemo-ext-prose-polisher',
             'nemo-ext-prosepolisher',
@@ -224,6 +263,7 @@ export const ExtensionsTabOverhaul = {
 
     discoverExtensions: function() {
         const extensions = [];
+        this.hiddenCompanionExtensions = [];
         const containers = document.querySelectorAll('#extensions_settings > *, #extensions_settings2 > *');
 
         containers.forEach(container => {
@@ -287,6 +327,24 @@ export const ExtensionsTabOverhaul = {
                 originalParent: container.parentNode
             });
         });
+
+        const hasSummarize = extensions.some(extension => extension.id === 'summarize_container');
+        const hasNemoLore = extensions.some(extension => extension.id === 'nemo_lore_settings');
+
+        if (hasSummarize && hasNemoLore) {
+            return extensions.filter(extension => {
+                if (extension.id === 'nemo_lore_settings') {
+                    this.hiddenCompanionExtensions.push({
+                        element: extension.element,
+                        originalParent: extension.originalParent,
+                        display: extension.element.style.display,
+                    });
+                    extension.element.style.display = 'none';
+                    return false;
+                }
+                return true;
+            });
+        }
 
         return extensions;
     },
@@ -598,10 +656,788 @@ export const ExtensionsTabOverhaul = {
             contentElement.appendChild(extensionElement);
         }
 
+        if (extensionElement.id === 'sd_container') {
+            this.enhanceImageGenerationSettings(extensionElement);
+        }
+
+        if (extensionElement.id === 'summarize_container') {
+            this.enhanceSummarizeSettings(extensionElement);
+        }
+
+        if (extensionElement.id === 'qr_container') {
+            this.enhanceQuickReplySettings(extensionElement);
+        }
+
+        if (extensionElement.id === 'regex_container') {
+            this.enhanceRegexSettings(extensionElement);
+        }
+
+        if (extensionElement.id === 'tts_container') {
+            this.enhanceTtsSettings(extensionElement);
+        }
+
+        if (extensionElement.id === 'vectors_container') {
+            this.enhanceVectorSettings(extensionElement);
+        }
+
         // Show overlay within the tab
         overlay.classList.add('active');
         this.currentView = 'extension';
         this.currentExtension = extensionData;
+    },
+
+    enhanceImageGenerationSettings: function(extensionElement) {
+        const mainDrawerContent = extensionElement.querySelector('.sd_settings > .inline-drawer:first-child > .inline-drawer-content');
+        if (!mainDrawerContent || mainDrawerContent.dataset.nemoSdEnhanced === 'true') {
+            return;
+        }
+
+        mainDrawerContent.dataset.nemoSdEnhanced = 'true';
+        extensionElement.classList.add('nemo-sd-enhanced');
+
+        const layout = document.createElement('div');
+        layout.className = 'nemo-sd-settings-layout';
+
+        const workflowSection = this.createImageGenerationSection('Workflow', 'fa-wand-magic-sparkles', 'nemo-sd-workflow-section');
+        const sourceSection = this.createImageGenerationSection('Source', 'fa-plug', 'nemo-sd-source-section');
+        const modelSection = this.createImageGenerationSection('Model', 'fa-cubes', 'nemo-sd-model-section');
+        const generationSection = this.createImageGenerationSection('Generation', 'fa-sliders', 'nemo-sd-generation-section');
+        const styleSection = this.createImageGenerationSection('Style', 'fa-palette', 'nemo-sd-style-section');
+        const visibilitySection = this.createImageGenerationSection('Visibility', 'fa-eye', 'nemo-sd-visibility-section');
+
+        const workflowGrid = document.createElement('div');
+        workflowGrid.className = 'nemo-sd-toggle-grid';
+        const workflowToggleIds = [
+            'sd_refine_mode',
+            'sd_function_tool',
+            'sd_interactive_mode',
+            'sd_multimodal_captioning',
+            'sd_free_extend',
+            'sd_snap',
+            'sd_minimal_prompt_processing',
+        ];
+        this.moveElements(workflowGrid, workflowToggleIds.map(id => mainDrawerContent.querySelector(`label[for="${id}"]`)));
+        workflowSection.body.appendChild(workflowGrid);
+
+        const sourcePicker = document.createElement('div');
+        sourcePicker.className = 'nemo-sd-source-picker';
+        this.moveElements(sourcePicker, [
+            mainDrawerContent.querySelector('label[for="sd_source"]'),
+            mainDrawerContent.querySelector('#sd_source'),
+        ]);
+        sourceSection.body.appendChild(sourcePicker);
+
+        const providerGrid = document.createElement('div');
+        providerGrid.className = 'nemo-sd-provider-grid';
+        const directChildren = Array.from(mainDrawerContent.children);
+        const firstModelRow = this.getDirectChildContaining(mainDrawerContent, '#sd_model');
+        const firstModelRowIndex = firstModelRow ? directChildren.indexOf(firstModelRow) : directChildren.length;
+        this.moveElements(providerGrid, directChildren.filter((element, index) => element.matches('[data-sd-source]') && index < firstModelRowIndex));
+        sourceSection.body.appendChild(providerGrid);
+
+        this.moveElements(modelSection.body, [
+            this.getDirectChildContaining(mainDrawerContent, '#sd_model'),
+            this.getDirectChildContaining(mainDrawerContent, '#sd_sampler'),
+            this.getDirectChildContaining(mainDrawerContent, '#sd_resolution'),
+        ]);
+
+        this.moveElements(generationSection.body, [
+            this.getDirectChildContaining(mainDrawerContent, '#sd_steps'),
+            this.getDirectChildContaining(mainDrawerContent, '#sd_dimensions_block'),
+            this.getDirectChildContaining(mainDrawerContent, '#sd_hr_scale'),
+            this.getDirectChildContaining(mainDrawerContent, '#sd_restore_faces'),
+            this.getDirectChildContaining(mainDrawerContent, '#sd_adetailer_face'),
+            this.getDirectChildContaining(mainDrawerContent, '#sd_novel_sm'),
+            this.getDirectChildContaining(mainDrawerContent, '#sd_seed'),
+        ]);
+
+        const styleHeading = Array.from(mainDrawerContent.children).find(element => element.matches('h4') && element.textContent.trim().includes('Style'));
+        const visibilityHeading = Array.from(mainDrawerContent.children).find(element => element.matches('h4') && element.textContent.trim().includes('Chat Message Visibility'));
+        const styleStart = styleHeading?.previousElementSibling?.tagName === 'HR' ? styleHeading.previousElementSibling : styleHeading;
+        const visibilityStart = visibilityHeading?.previousElementSibling?.tagName === 'HR' ? visibilityHeading.previousElementSibling : visibilityHeading;
+
+        this.moveElements(styleSection.body, this.collectSiblingRange(styleStart, visibilityStart));
+        this.addImagePromptSuggestions(styleSection.body);
+        this.moveElements(visibilitySection.body, this.collectSiblingRange(visibilityStart, null));
+
+        [
+            workflowSection.element,
+            sourceSection.element,
+            modelSection.element,
+            generationSection.element,
+            styleSection.element,
+            visibilitySection.element,
+        ].forEach(section => {
+            if (section.querySelector('.nemo-sd-card-body')?.children.length) {
+                layout.appendChild(section);
+            }
+        });
+
+        const remainder = Array.from(mainDrawerContent.children);
+        if (remainder.length) {
+            const advancedSection = this.createImageGenerationSection('Advanced', 'fa-layer-group', 'nemo-sd-advanced-section');
+            this.moveElements(advancedSection.body, remainder);
+            layout.appendChild(advancedSection.element);
+        }
+
+        mainDrawerContent.appendChild(layout);
+    },
+
+    createImageGenerationSection: function(title, icon, className) {
+        const element = document.createElement('section');
+        element.className = `nemo-sd-card ${className}`;
+        element.innerHTML = `
+            <div class="nemo-sd-card-header">
+                <i class="fa-solid ${icon}"></i>
+                <h3>${title}</h3>
+            </div>
+            <div class="nemo-sd-card-body"></div>
+        `;
+
+        return {
+            element,
+            body: element.querySelector('.nemo-sd-card-body'),
+        };
+    },
+
+    addImagePromptSuggestions: function(styleBody) {
+        const promptInput = styleBody.querySelector('#sd_prompt_prefix');
+        const negativeInput = styleBody.querySelector('#sd_negative_prompt');
+
+        if (!promptInput || !negativeInput || styleBody.querySelector('.nemo-sd-prompt-suggestions')) {
+            return;
+        }
+
+        const panel = document.createElement('div');
+        panel.className = 'nemo-sd-prompt-suggestions';
+        panel.innerHTML = `
+            <div class="nemo-sd-suggestions-header">
+                <i class="fa-solid fa-lightbulb"></i>
+                <span>Prompt Suggestions</span>
+            </div>
+            <div class="nemo-sd-suggestion-buttons"></div>
+        `;
+
+        const buttonsContainer = panel.querySelector('.nemo-sd-suggestion-buttons');
+        this.imagePromptTemplates.forEach(template => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'nemo-sd-template-button';
+            button.dataset.templateId = template.id;
+            button.innerHTML = `
+                <i class="fa-solid ${template.icon}"></i>
+                <span>${template.label}</span>
+            `;
+            button.addEventListener('click', () => {
+                this.applyImagePromptTemplate(template, promptInput, negativeInput);
+            });
+            buttonsContainer.appendChild(button);
+        });
+
+        const insertionPoint = styleBody.querySelector('label[for="sd_prompt_prefix"]') || promptInput;
+        styleBody.insertBefore(panel, insertionPoint);
+    },
+
+    applyImagePromptTemplate: function(template, promptInput, negativeInput) {
+        promptInput.value = template.positive;
+        negativeInput.value = template.negative;
+        this.dispatchNativeInput(promptInput);
+        this.dispatchNativeInput(negativeInput);
+        saveSettingsDebounced();
+    },
+
+    dispatchNativeInput: function(element) {
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+    },
+
+    enhanceQuickReplySettings: function(extensionElement) {
+        const settingsRoot = extensionElement.querySelector('#qr--settings');
+        const drawerContent = settingsRoot?.querySelector(':scope > .inline-drawer > .inline-drawer-content');
+
+        if (!settingsRoot || !drawerContent) {
+            return;
+        }
+
+        extensionElement.classList.add('nemo-qr-enhanced');
+        this.observeQuickReplyRerenders(extensionElement, drawerContent);
+
+        if (drawerContent.querySelector(':scope > .nemo-qr-settings-layout') || drawerContent.dataset.nemoQrEnhancing === 'true') {
+            return;
+        }
+
+        drawerContent.dataset.nemoQrEnhancing = 'true';
+
+        try {
+            drawerContent.querySelectorAll(':scope > hr').forEach(separator => separator.remove());
+
+            const layout = document.createElement('div');
+            layout.className = 'nemo-qr-settings-layout';
+
+            const generalSection = this.createQuickReplySection('General', 'fa-bolt', 'nemo-qr-general-section');
+            const scopesSection = this.createQuickReplySection('Active Sets', 'fa-layer-group', 'nemo-qr-scopes-section');
+            const editorSection = this.createQuickReplySection('Set Editor', 'fa-pen-to-square', 'nemo-qr-editor-section');
+
+            const toggleGrid = document.createElement('div');
+            toggleGrid.className = 'nemo-qr-toggle-grid';
+            this.moveElements(toggleGrid, [
+                this.getDirectChildContaining(drawerContent, '#qr--isEnabled'),
+                this.getDirectChildContaining(drawerContent, '#qr--isCombined'),
+                this.getDirectChildContaining(drawerContent, '#qr--showPopoutButton'),
+            ]);
+            generalSection.body.appendChild(toggleGrid);
+
+            const scopeGrid = document.createElement('div');
+            scopeGrid.className = 'nemo-qr-scope-grid';
+            this.moveElements(scopeGrid, [
+                this.getDirectChildContaining(drawerContent, '#qr--global'),
+                this.getDirectChildContaining(drawerContent, '#qr--chat'),
+                this.getDirectChildContaining(drawerContent, '#qr--character'),
+            ]);
+            scopesSection.body.appendChild(scopeGrid);
+
+            this.moveElements(editorSection.body, [
+                this.getDirectChildContaining(drawerContent, '#qr--editor'),
+            ]);
+
+            [
+                generalSection.element,
+                scopesSection.element,
+                editorSection.element,
+            ].forEach(section => {
+                if (section.querySelector('.nemo-qr-card-body')?.children.length) {
+                    layout.appendChild(section);
+                }
+            });
+
+            const remainder = Array.from(drawerContent.children);
+            if (remainder.length) {
+                const advancedSection = this.createQuickReplySection('Additional Options', 'fa-sliders', 'nemo-qr-advanced-section');
+                this.moveElements(advancedSection.body, remainder);
+                layout.appendChild(advancedSection.element);
+            }
+
+            drawerContent.appendChild(layout);
+        } finally {
+            delete drawerContent.dataset.nemoQrEnhancing;
+        }
+    },
+
+    createQuickReplySection: function(title, icon, className) {
+        const element = document.createElement('section');
+        element.className = `nemo-qr-card ${className}`;
+        element.innerHTML = `
+            <div class="nemo-qr-card-header">
+                <i class="fa-solid ${icon}"></i>
+                <h3>${title}</h3>
+            </div>
+            <div class="nemo-qr-card-body"></div>
+        `;
+
+        return {
+            element,
+            body: element.querySelector('.nemo-qr-card-body'),
+        };
+    },
+
+    observeQuickReplyRerenders: function(extensionElement, drawerContent) {
+        if (drawerContent._nemoQrObserver) {
+            return;
+        }
+
+        drawerContent._nemoQrObserver = new MutationObserver(() => {
+            if (drawerContent.dataset.nemoQrEnhancing === 'true' || drawerContent.querySelector(':scope > .nemo-qr-settings-layout')) {
+                return;
+            }
+
+            clearTimeout(drawerContent._nemoQrEnhanceTimer);
+            drawerContent._nemoQrEnhanceTimer = setTimeout(() => {
+                this.enhanceQuickReplySettings(extensionElement);
+            }, 0);
+        });
+        drawerContent._nemoQrObserver.observe(drawerContent, { childList: true });
+    },
+
+    enhanceRegexSettings: function(extensionElement) {
+        const drawerContent = extensionElement.querySelector('.regex_settings > .inline-drawer > .inline-drawer-content');
+
+        if (!drawerContent || drawerContent.dataset.nemoRegexEnhanced === 'true') {
+            return;
+        }
+
+        drawerContent.dataset.nemoRegexEnhanced = 'true';
+        extensionElement.classList.add('nemo-regex-enhanced');
+        drawerContent.querySelectorAll(':scope > hr').forEach(separator => separator.remove());
+
+        const layout = document.createElement('div');
+        layout.className = 'nemo-regex-settings-layout';
+
+        const actionsSection = this.createRegexSection('Actions', 'fa-wand-magic-sparkles', 'nemo-regex-actions-section');
+        const presetsSection = this.createRegexSection('Presets', 'fa-bookmark', 'nemo-regex-presets-section');
+        const scriptsSection = this.createRegexSection('Scripts', 'fa-code', 'nemo-regex-scripts-section');
+
+        const actionBar = this.getDirectChildContaining(drawerContent, '#open_regex_editor');
+        if (actionBar) {
+            actionBar.classList.add('nemo-regex-action-bar');
+            actionsSection.body.appendChild(actionBar);
+        }
+
+        const bulkOperations = this.getDirectChildContaining(drawerContent, '#bulk_select_all_toggle');
+        if (bulkOperations) {
+            bulkOperations.classList.add('nemo-regex-bulk-bar');
+            actionsSection.body.appendChild(bulkOperations);
+        }
+
+        this.moveElements(presetsSection.body, [
+            this.getDirectChildContaining(drawerContent, '#regex_presets_block'),
+        ]);
+
+        const scriptGrid = document.createElement('div');
+        scriptGrid.className = 'nemo-regex-script-grid';
+        this.moveElements(scriptGrid, [
+            this.getDirectChildContaining(drawerContent, '#global_scripts_block'),
+            this.getDirectChildContaining(drawerContent, '#preset_scripts_block'),
+            this.getDirectChildContaining(drawerContent, '#scoped_scripts_block'),
+        ]);
+        scriptsSection.body.appendChild(scriptGrid);
+
+        [
+            actionsSection.element,
+            presetsSection.element,
+            scriptsSection.element,
+        ].forEach(section => {
+            if (section.querySelector('.nemo-regex-card-body')?.children.length) {
+                layout.appendChild(section);
+            }
+        });
+
+        const remainder = Array.from(drawerContent.children);
+        if (remainder.length) {
+            const advancedSection = this.createRegexSection('Additional Options', 'fa-layer-group', 'nemo-regex-advanced-section');
+            this.moveElements(advancedSection.body, remainder);
+            layout.appendChild(advancedSection.element);
+        }
+
+        drawerContent.appendChild(layout);
+    },
+
+    createRegexSection: function(title, icon, className) {
+        const element = document.createElement('section');
+        element.className = `nemo-regex-card ${className}`;
+        element.innerHTML = `
+            <div class="nemo-regex-card-header">
+                <i class="fa-solid ${icon}"></i>
+                <h3>${title}</h3>
+            </div>
+            <div class="nemo-regex-card-body"></div>
+        `;
+
+        return {
+            element,
+            body: element.querySelector('.nemo-regex-card-body'),
+        };
+    },
+
+    enhanceTtsSettings: function(extensionElement) {
+        const drawerContent = extensionElement.querySelector('#tts_settings > .inline-drawer > .inline-drawer-content');
+
+        if (!drawerContent || drawerContent.dataset.nemoTtsEnhanced === 'true') {
+            return;
+        }
+
+        drawerContent.dataset.nemoTtsEnhanced = 'true';
+        extensionElement.classList.add('nemo-tts-enhanced');
+        drawerContent.querySelectorAll(':scope > hr, :scope > br').forEach(separator => separator.remove());
+
+        const layout = document.createElement('div');
+        layout.className = 'nemo-tts-settings-layout';
+
+        const providerSection = this.createTtsSection('Provider', 'fa-plug', 'nemo-tts-provider-section');
+        const behaviorSection = this.createTtsSection('Behavior', 'fa-sliders', 'nemo-tts-behavior-section');
+        const playbackSection = this.createTtsSection('Playback', 'fa-volume-high', 'nemo-tts-playback-section');
+        const voiceMapSection = this.createTtsSection('Voice Map', 'fa-users-gear', 'nemo-tts-voicemap-section');
+        const providerSettingsSection = this.createTtsSection('Provider Settings', 'fa-microchip', 'nemo-tts-provider-settings-section');
+
+        const providerPicker = document.createElement('div');
+        providerPicker.className = 'nemo-tts-provider-picker';
+        const providerLabel = Array.from(drawerContent.children).find(element => element.matches('span') && element.textContent.trim().includes('TTS Provider'));
+        this.moveElements(providerPicker, [
+            drawerContent.querySelector('#tts_status'),
+            providerLabel,
+            this.getDirectChildContaining(drawerContent, '#tts_provider'),
+            this.getDirectChildContaining(drawerContent, '#tts_voices'),
+        ]);
+        providerSection.body.appendChild(providerPicker);
+
+        const behaviorBlock = this.getDirectChildContaining(drawerContent, '#tts_enabled');
+        if (behaviorBlock) {
+            behaviorBlock.classList.add('nemo-tts-behavior-grid');
+            behaviorSection.body.appendChild(behaviorBlock);
+        }
+
+        this.moveElements(playbackSection.body, [
+            this.getDirectChildContaining(drawerContent, '#playback_rate_block'),
+        ]);
+
+        this.moveElements(voiceMapSection.body, [
+            this.getDirectChildContaining(drawerContent, '#tts_voicemap_block'),
+        ]);
+
+        this.moveElements(providerSettingsSection.body, [
+            this.getDirectChildContaining(drawerContent, '#tts_provider_settings'),
+        ]);
+
+        [
+            providerSection.element,
+            behaviorSection.element,
+            playbackSection.element,
+            voiceMapSection.element,
+            providerSettingsSection.element,
+        ].forEach(section => {
+            if (section.querySelector('.nemo-tts-card-body')?.children.length) {
+                layout.appendChild(section);
+            }
+        });
+
+        const remainder = Array.from(drawerContent.children);
+        if (remainder.length) {
+            const advancedSection = this.createTtsSection('Additional Options', 'fa-layer-group', 'nemo-tts-advanced-section');
+            this.moveElements(advancedSection.body, remainder);
+            layout.appendChild(advancedSection.element);
+        }
+
+        drawerContent.appendChild(layout);
+    },
+
+    createTtsSection: function(title, icon, className) {
+        const element = document.createElement('section');
+        element.className = `nemo-tts-card ${className}`;
+        element.innerHTML = `
+            <div class="nemo-tts-card-header">
+                <i class="fa-solid ${icon}"></i>
+                <h3>${title}</h3>
+            </div>
+            <div class="nemo-tts-card-body"></div>
+        `;
+
+        return {
+            element,
+            body: element.querySelector('.nemo-tts-card-body'),
+        };
+    },
+
+    enhanceVectorSettings: function(extensionElement) {
+        const drawerContent = extensionElement.querySelector('.vectors_settings > .inline-drawer > .inline-drawer-content');
+
+        if (!drawerContent || drawerContent.dataset.nemoVectorsEnhanced === 'true') {
+            return;
+        }
+
+        drawerContent.dataset.nemoVectorsEnhanced = 'true';
+        extensionElement.classList.add('nemo-vectors-enhanced');
+        drawerContent.querySelectorAll(':scope > hr').forEach(separator => separator.remove());
+
+        const layout = document.createElement('div');
+        layout.className = 'nemo-vectors-settings-layout';
+
+        const providerSection = this.createVectorSection('Provider', 'fa-plug', 'nemo-vectors-provider-section');
+        const retrievalSection = this.createVectorSection('Retrieval', 'fa-magnifying-glass', 'nemo-vectors-retrieval-section');
+        const worldInfoSection = this.createVectorSection('World Info', 'fa-book-atlas', 'nemo-vectors-world-info-section');
+        const filesSection = this.createVectorSection('Files', 'fa-file-lines', 'nemo-vectors-files-section');
+        const chatSection = this.createVectorSection('Chat', 'fa-comments', 'nemo-vectors-chat-section');
+
+        const providerGrid = document.createElement('div');
+        providerGrid.className = 'nemo-vectors-provider-grid';
+        this.moveElements(providerGrid, [
+            this.getDirectChildContaining(drawerContent, '#vectors_source'),
+            ...Array.from(drawerContent.querySelectorAll(':scope > [id$="_vectorsModel"], :scope > #vector_altEndpointUrl, :scope > #nomicai_apiKey')),
+        ]);
+        providerSection.body.appendChild(providerGrid);
+
+        const retrievalGrid = document.createElement('div');
+        retrievalGrid.className = 'nemo-vectors-retrieval-grid';
+        this.moveElements(retrievalGrid, [
+            this.getDirectChildContaining(drawerContent, '#vectors_query'),
+            this.getDirectChildContaining(drawerContent, '#vectors_include_wi'),
+        ]);
+        retrievalSection.body.appendChild(retrievalGrid);
+
+        this.moveElements(worldInfoSection.body, [
+            this.findDirectHeading(drawerContent, 'World Info settings'),
+            this.getDirectChildContaining(drawerContent, '#vectors_enabled_world_info'),
+            this.getDirectChildContaining(drawerContent, '#vectors_world_info_settings'),
+        ]);
+
+        this.moveElements(filesSection.body, [
+            this.findDirectHeading(drawerContent, 'File vectorization settings'),
+            this.getDirectChildContaining(drawerContent, '#vectors_enabled_files'),
+            this.getDirectChildContaining(drawerContent, '#vectors_files_settings'),
+        ]);
+
+        this.moveElements(chatSection.body, [
+            this.findDirectHeading(drawerContent, 'Chat vectorization settings'),
+            this.getDirectChildContaining(drawerContent, '#vectors_enabled_chats'),
+            this.getDirectChildContaining(drawerContent, '#vectors_chats_settings'),
+        ]);
+
+        [
+            providerSection.element,
+            retrievalSection.element,
+            worldInfoSection.element,
+            filesSection.element,
+            chatSection.element,
+        ].forEach(section => {
+            if (section.querySelector('.nemo-vectors-card-body')?.children.length) {
+                layout.appendChild(section);
+            }
+        });
+
+        const remainder = Array.from(drawerContent.children);
+        if (remainder.length) {
+            const advancedSection = this.createVectorSection('Additional Options', 'fa-layer-group', 'nemo-vectors-advanced-section');
+            this.moveElements(advancedSection.body, remainder);
+            layout.appendChild(advancedSection.element);
+        }
+
+        drawerContent.appendChild(layout);
+    },
+
+    createVectorSection: function(title, icon, className) {
+        const element = document.createElement('section');
+        element.className = `nemo-vectors-card ${className}`;
+        element.innerHTML = `
+            <div class="nemo-vectors-card-header">
+                <i class="fa-solid ${icon}"></i>
+                <h3>${title}</h3>
+            </div>
+            <div class="nemo-vectors-card-body"></div>
+        `;
+
+        return {
+            element,
+            body: element.querySelector('.nemo-vectors-card-body'),
+        };
+    },
+
+    findDirectHeading: function(parent, text) {
+        return Array.from(parent.children).find(element => element.matches('h4') && element.textContent.trim().includes(text)) || null;
+    },
+
+    enhanceSummarizeSettings: function(extensionElement) {
+        const drawerContent = extensionElement.querySelector('#memory_settings > .inline-drawer:first-child > .inline-drawer-content');
+        const summaryContents = extensionElement.querySelector('#summaryExtensionDrawerContents');
+
+        if (!drawerContent || !summaryContents) {
+            return;
+        }
+
+        extensionElement.classList.add('nemo-memory-enhanced');
+
+        let tabsShell = drawerContent.querySelector('.nemo-memory-tabs-shell');
+        let summaryPanel = drawerContent.querySelector('[data-nemo-memory-panel="summary"]');
+        let lorePanel = drawerContent.querySelector('[data-nemo-memory-panel="nemolore"]');
+
+        if (!tabsShell) {
+            tabsShell = document.createElement('div');
+            tabsShell.className = 'nemo-memory-tabs-shell';
+            tabsShell.innerHTML = `
+                <div class="nemo-memory-tabs" role="tablist" aria-label="Memory settings">
+                    <button class="nemo-memory-tab active" type="button" data-nemo-memory-tab="summary" role="tab" aria-selected="true">
+                        <i class="fa-solid fa-database"></i>
+                        <span>Summarize</span>
+                    </button>
+                    <button class="nemo-memory-tab" type="button" data-nemo-memory-tab="nemolore" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-brain"></i>
+                        <span>NemoLore</span>
+                    </button>
+                </div>
+                <div class="nemo-memory-tab-panels">
+                    <section class="nemo-memory-panel active" data-nemo-memory-panel="summary" role="tabpanel"></section>
+                    <section class="nemo-memory-panel" data-nemo-memory-panel="nemolore" role="tabpanel"></section>
+                </div>
+            `;
+            drawerContent.appendChild(tabsShell);
+
+            summaryPanel = tabsShell.querySelector('[data-nemo-memory-panel="summary"]');
+            lorePanel = tabsShell.querySelector('[data-nemo-memory-panel="nemolore"]');
+            summaryPanel.appendChild(summaryContents);
+
+            tabsShell.querySelectorAll('.nemo-memory-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    this.activateMemoryTab(tabsShell, tab.dataset.nemoMemoryTab);
+                });
+            });
+        }
+
+        this.enhanceSummaryPanel(summaryPanel);
+        this.attachNemoLoreToSummary(lorePanel);
+    },
+
+    enhanceSummaryPanel: function(summaryPanel) {
+        if (!summaryPanel || summaryPanel.dataset.nemoSummaryEnhanced === 'true') {
+            return;
+        }
+
+        const summaryContents = summaryPanel.querySelector('#summaryExtensionDrawerContents');
+        if (!summaryContents) {
+            return;
+        }
+
+        summaryPanel.dataset.nemoSummaryEnhanced = 'true';
+
+        const layout = document.createElement('div');
+        layout.className = 'nemo-summary-layout';
+
+        const currentSection = this.createMemorySection('Current Summary', 'fa-scroll', 'nemo-summary-current-section');
+        const controlsSection = this.createMemorySection('Controls', 'fa-sliders', 'nemo-summary-controls-section');
+        const settingsSection = this.createMemorySection('Settings', 'fa-gear', 'nemo-summary-settings-section');
+
+        const memoryContents = summaryContents.querySelector('#memory_contents');
+        const memoryHeader = memoryContents?.previousElementSibling;
+
+        this.moveElements(currentSection.body, [
+            summaryContents.querySelector('label[for="summary_source"]'),
+            summaryContents.querySelector('#summary_source'),
+            memoryHeader,
+            memoryContents,
+        ]);
+
+        this.moveElements(controlsSection.body, Array.from(summaryContents.querySelectorAll(':scope > .memory_contents_controls')));
+
+        const settingsBlock = summaryContents.querySelector('#summarySettingsBlock');
+        if (settingsBlock) {
+            settingsBlock.style.display = 'block';
+            settingsSection.body.appendChild(settingsBlock);
+        }
+
+        [
+            currentSection.element,
+            controlsSection.element,
+            settingsSection.element,
+        ].forEach(section => {
+            if (section.querySelector('.nemo-memory-card-body')?.children.length) {
+                layout.appendChild(section);
+            }
+        });
+
+        const remainder = Array.from(summaryContents.children);
+        if (remainder.length) {
+            const advancedSection = this.createMemorySection('Additional Options', 'fa-layer-group', 'nemo-summary-advanced-section');
+            this.moveElements(advancedSection.body, remainder);
+            layout.appendChild(advancedSection.element);
+        }
+
+        summaryContents.appendChild(layout);
+    },
+
+    createMemorySection: function(title, icon, className) {
+        const element = document.createElement('section');
+        element.className = `nemo-memory-card ${className}`;
+        element.innerHTML = `
+            <div class="nemo-memory-card-header">
+                <i class="fa-solid ${icon}"></i>
+                <h3>${title}</h3>
+            </div>
+            <div class="nemo-memory-card-body"></div>
+        `;
+
+        return {
+            element,
+            body: element.querySelector('.nemo-memory-card-body'),
+        };
+    },
+
+    attachNemoLoreToSummary: function(lorePanel) {
+        if (!lorePanel) {
+            return;
+        }
+
+        const loreElement = document.getElementById('nemo_lore_settings');
+        const loreTab = lorePanel.closest('.nemo-memory-tabs-shell')?.querySelector('[data-nemo-memory-tab="nemolore"]');
+
+        if (!loreElement) {
+            lorePanel.innerHTML = '<div class="nemo-memory-empty">NemoLore settings are not loaded.</div>';
+            loreTab?.setAttribute('disabled', 'disabled');
+            return;
+        }
+
+        loreTab?.removeAttribute('disabled');
+
+        if (loreElement.parentElement !== lorePanel) {
+            if (!this.hiddenCompanionExtensions.some(item => item.element === loreElement)) {
+                this.hiddenCompanionExtensions.push({
+                    element: loreElement,
+                    originalParent: loreElement.parentNode,
+                    display: loreElement.style.display,
+                });
+            }
+
+            this.currentCompanionExtensions = this.currentCompanionExtensions.filter(item => item.element !== loreElement);
+            this.currentCompanionExtensions.push({
+                element: loreElement,
+                originalParent: loreElement.parentNode,
+                display: loreElement.style.display,
+            });
+            loreElement.style.display = '';
+            lorePanel.innerHTML = '';
+            lorePanel.appendChild(loreElement);
+        }
+
+        this.enhanceNemoLoreCompanion(loreElement);
+    },
+
+    enhanceNemoLoreCompanion: function(loreElement) {
+        loreElement.classList.add('nemo-lore-memory-companion');
+
+        const drawerContent = loreElement.querySelector(':scope > .inline-drawer > .inline-drawer-content');
+        if (drawerContent) {
+            drawerContent.style.display = 'block';
+        }
+    },
+
+    activateMemoryTab: function(tabsShell, tabName) {
+        tabsShell.querySelectorAll('.nemo-memory-tab').forEach(tab => {
+            const isActive = tab.dataset.nemoMemoryTab === tabName;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', String(isActive));
+        });
+
+        tabsShell.querySelectorAll('.nemo-memory-panel').forEach(panel => {
+            panel.classList.toggle('active', panel.dataset.nemoMemoryPanel === tabName);
+        });
+    },
+
+    moveElements: function(target, elements) {
+        const seen = new Set();
+
+        elements.filter(Boolean).forEach(element => {
+            if (seen.has(element)) {
+                return;
+            }
+            seen.add(element);
+            target.appendChild(element);
+        });
+    },
+
+    getDirectChildContaining: function(parent, selector) {
+        const element = parent.querySelector(selector);
+        if (!element) {
+            return null;
+        }
+
+        return Array.from(parent.children).find(child => child === element || child.contains(element)) || null;
+    },
+
+    collectSiblingRange: function(startElement, endElement) {
+        const elements = [];
+        let current = startElement;
+
+        while (current && current !== endElement) {
+            elements.push(current);
+            current = current.nextElementSibling;
+        }
+
+        return elements;
     },
 
     closeFullScreen: function() {
@@ -626,6 +1462,14 @@ export const ExtensionsTabOverhaul = {
                 }
             }
         }
+
+        this.currentCompanionExtensions.forEach(companion => {
+            if (companion.originalParent && companion.originalParent.parentNode && companion.element) {
+                companion.originalParent.appendChild(companion.element);
+                companion.element.style.display = companion.display ?? 'none';
+            }
+        });
+        this.currentCompanionExtensions = [];
         
         // Show the main extension interface again
         this.showMainInterface();
@@ -1131,10 +1975,24 @@ export const ExtensionsTabOverhaul = {
             }
         });
 
+        this.hiddenCompanionExtensions.forEach(({ element, originalParent, display }) => {
+            let targetContainer = settings1;
+            if (originalParent && originalParent.id === 'extensions_settings2') {
+                targetContainer = settings2;
+            }
+
+            if (targetContainer && element) {
+                targetContainer.appendChild(element);
+                element.style.display = display ?? '';
+            }
+        });
+
         this.initialized = false;
         this.currentView = 'main';
         this.currentExtension = null;
         this.originalExtensions = [];
+        this.hiddenCompanionExtensions = [];
+        this.currentCompanionExtensions = [];
 
         // Ensure the disabled state is persisted
         this.saveSettings();

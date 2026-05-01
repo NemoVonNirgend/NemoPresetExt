@@ -2,7 +2,13 @@
 
 import { saveSettingsDebounced } from '../../../../../script.js';
 import { extension_settings } from '../../../../extensions.js';
-import { LOG_PREFIX, NEMO_EXTENSION_NAME, ensureSettingsNamespace } from '../core/utils.js';
+import {
+    DEFAULT_POLLINATIONS_NEGATIVE_BEST_PRACTICES,
+    DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES,
+    NEMO_EXTENSION_NAME,
+    POLLINATIONS_IMAGE_STYLE_PRESETS,
+    ensureSettingsNamespace
+} from '../core/utils.js';
 import { loadAndSetDividerRegex, NemoPresetManager } from '../features/prompts/prompt-manager.js';
 import logger from '../core/logger.js';
 
@@ -345,6 +351,62 @@ export const NemoSettingsUI = {
                             document.body.appendChild(notification);
                             setTimeout(() => notification.remove(), 3000);
                         }
+                    });
+                }
+
+                const pollinationsStyleSelect = /** @type {HTMLSelectElement} */ (document.getElementById('nemoPollinationsStylePreset'));
+                if (pollinationsStyleSelect) {
+                    pollinationsStyleSelect.innerHTML = '';
+                    POLLINATIONS_IMAGE_STYLE_PRESETS.forEach((preset) => {
+                        const option = document.createElement('option');
+                        option.value = preset.id;
+                        option.textContent = preset.label;
+                        pollinationsStyleSelect.appendChild(option);
+                    });
+
+                    pollinationsStyleSelect.value = extension_settings[NEMO_EXTENSION_NAME]?.nemoPollinationsStylePreset || 'none';
+                    pollinationsStyleSelect.addEventListener('change', () => {
+                        extension_settings[NEMO_EXTENSION_NAME].nemoPollinationsStylePreset = pollinationsStyleSelect.value;
+                        saveSettingsDebounced();
+                    });
+                }
+
+                const promptBestPracticesToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoPollinationsPromptBestPractices'));
+                const promptBestPracticesInput = /** @type {HTMLTextAreaElement} */ (document.getElementById('nemoPollinationsBestPracticesPrompt'));
+                const negativeBestPracticesInput = /** @type {HTMLTextAreaElement} */ (document.getElementById('nemoPollinationsNegativeBestPracticesPrompt'));
+                const resetPromptBestPracticesButton = document.getElementById('nemoResetPollinationsPromptBestPractices');
+
+                if (promptBestPracticesToggle) {
+                    promptBestPracticesToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.nemoPollinationsPromptBestPractices !== false;
+                    promptBestPracticesToggle.addEventListener('change', () => {
+                        extension_settings[NEMO_EXTENSION_NAME].nemoPollinationsPromptBestPractices = promptBestPracticesToggle.checked;
+                        saveSettingsDebounced();
+                    });
+                }
+
+                if (promptBestPracticesInput) {
+                    promptBestPracticesInput.value = extension_settings[NEMO_EXTENSION_NAME]?.nemoPollinationsBestPracticesPrompt || DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES;
+                    promptBestPracticesInput.addEventListener('input', () => {
+                        extension_settings[NEMO_EXTENSION_NAME].nemoPollinationsBestPracticesPrompt = promptBestPracticesInput.value.trim();
+                        saveSettingsDebounced();
+                    });
+                }
+
+                if (negativeBestPracticesInput) {
+                    negativeBestPracticesInput.value = extension_settings[NEMO_EXTENSION_NAME]?.nemoPollinationsNegativeBestPracticesPrompt || DEFAULT_POLLINATIONS_NEGATIVE_BEST_PRACTICES;
+                    negativeBestPracticesInput.addEventListener('input', () => {
+                        extension_settings[NEMO_EXTENSION_NAME].nemoPollinationsNegativeBestPracticesPrompt = negativeBestPracticesInput.value.trim();
+                        saveSettingsDebounced();
+                    });
+                }
+
+                if (resetPromptBestPracticesButton && promptBestPracticesInput && negativeBestPracticesInput) {
+                    resetPromptBestPracticesButton.addEventListener('click', () => {
+                        promptBestPracticesInput.value = DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES;
+                        negativeBestPracticesInput.value = DEFAULT_POLLINATIONS_NEGATIVE_BEST_PRACTICES;
+                        extension_settings[NEMO_EXTENSION_NAME].nemoPollinationsBestPracticesPrompt = DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES;
+                        extension_settings[NEMO_EXTENSION_NAME].nemoPollinationsNegativeBestPracticesPrompt = DEFAULT_POLLINATIONS_NEGATIVE_BEST_PRACTICES;
+                        saveSettingsDebounced();
                     });
                 }
 

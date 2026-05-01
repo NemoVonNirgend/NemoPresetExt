@@ -324,6 +324,53 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="nemo-control-group">
+                            <label for="nemoPollinationsStylePreset" class="nemo-control-label">
+                                <span>Image Style Preset</span>
+                                <i class="fa-solid fa-info-circle nemo-tooltip" title="Adds a reusable visual style prompt to intercepted image generations."></i>
+                            </label>
+                            <select id="nemoPollinationsStylePreset" class="nemo-select-control" style="width: 100%;"></select>
+                            <small class="nemo-help-text">Choose a general style layer for regenerated images. This is combined with your ST prompt prefix/suffix and the guidance below.</small>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoPollinationsPromptBestPractices" checked>
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Image Prompt Consistency Boost</div>
+                                <div class="nemo-setting-description">
+                                    Add reusable composition, character consistency, and cleanup guidance to intercepted image prompts
+                                    <span class="nemo-badge-info">Applied before the scene prompt</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-control-group">
+                            <label for="nemoPollinationsBestPracticesPrompt" class="nemo-control-label">
+                                <span>Positive Image Guidance</span>
+                                <i class="fa-solid fa-info-circle nemo-tooltip" title="Inserted between your ST prompt prefix and the cleaned scene prompt."></i>
+                            </label>
+                            <textarea id="nemoPollinationsBestPracticesPrompt" class="nemo-input" rows="3" style="width: 100%; resize: vertical;"></textarea>
+                            <small class="nemo-help-text">Use compact comma-separated guidance. Your SillyTavern prompt prefix and suffix are still respected.</small>
+                        </div>
+
+                        <div class="nemo-control-group">
+                            <label for="nemoPollinationsNegativeBestPracticesPrompt" class="nemo-control-label">
+                                <span>Negative Image Guidance</span>
+                                <i class="fa-solid fa-info-circle nemo-tooltip" title="Added after your ST negative prompt to reduce common generation artifacts."></i>
+                            </label>
+                            <textarea id="nemoPollinationsNegativeBestPracticesPrompt" class="nemo-input" rows="3" style="width: 100%; resize: vertical;"></textarea>
+                            <small class="nemo-help-text">Keep this focused on artifacts and consistency failures, not scene content.</small>
+                            <button type="button" id="nemoResetPollinationsPromptBestPractices" class="nemo-action-button" style="margin-top: 8px;">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>Reset Image Guidance</span>
+                            </button>
+                        </div>
                         </div>
                     </div>
                     </div>

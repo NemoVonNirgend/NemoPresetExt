@@ -16,6 +16,103 @@ export const NEMO_FAVORITE_PRESETS_KEY = 'nemo-favorite-presets';
 export const NEMO_FAVORITE_CHARACTERS_KEY = 'nemo-favorite-characters';
 export const NEMO_PROMPT_STATE_KEY = 'nemoPromptToggleState';
 
+export const DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES = [
+    'clear focal subject',
+    'coherent composition',
+    'consistent character design across panels',
+    'accurate anatomy and hands',
+    'expressive faces',
+    'clean readable silhouettes',
+    'consistent lighting and perspective',
+    'background matches the scene',
+    'polished finished illustration'
+].join(', ');
+
+export const DEFAULT_POLLINATIONS_NEGATIVE_BEST_PRACTICES = [
+    'inconsistent character design',
+    'off-model character',
+    'bad anatomy',
+    'bad hands',
+    'extra fingers',
+    'missing fingers',
+    'warped face',
+    'confusing composition',
+    'unreadable panel',
+    'unwanted text',
+    'garbled lettering',
+    'watermark',
+    'logo',
+    'signature'
+].join(', ');
+
+export const POLLINATIONS_IMAGE_STYLE_PRESETS = Object.freeze([
+    {
+        id: 'none',
+        label: 'No Style Preset',
+        prompt: '',
+        negative: ''
+    },
+    {
+        id: 'manga_panels',
+        label: 'Manga Panels',
+        prompt: 'manga panel illustration, clean ink linework, screentone shading, expressive character acting, dramatic panel composition, readable action flow',
+        negative: 'muddy screentones, broken panel flow, cluttered linework'
+    },
+    {
+        id: 'anime_key_visual',
+        label: 'Anime Key Visual',
+        prompt: 'anime key visual, crisp cel shading, vibrant color design, cinematic lighting, clean character consistency, polished promotional illustration',
+        negative: 'flat lighting, inconsistent cel shading, off-model character'
+    },
+    {
+        id: 'western_comic',
+        label: 'Western Comic',
+        prompt: 'western comic book illustration, bold inks, dynamic poses, controlled halftone texture, strong readable silhouettes, punchy color contrast',
+        negative: 'muddy colors, chaotic linework, unreadable action'
+    },
+    {
+        id: 'cinematic_realism',
+        label: 'Cinematic Realism',
+        prompt: 'cinematic realistic illustration, natural lighting, film still composition, believable materials, depth of field, grounded color grading',
+        negative: 'plastic skin, uncanny face, overprocessed HDR, waxy texture'
+    },
+    {
+        id: 'fantasy_concept',
+        label: 'Fantasy Concept Art',
+        prompt: 'fantasy concept art, atmospheric lighting, detailed costume design, believable environment design, painterly finish, epic scale',
+        negative: 'generic armor, noisy details, incoherent environment'
+    },
+    {
+        id: 'watercolor_storybook',
+        label: 'Watercolor Storybook',
+        prompt: 'watercolor storybook illustration, soft washes, gentle texture, warm expressive composition, delicate linework, charming hand-painted feel',
+        negative: 'harsh digital edges, muddy wash, over-rendered texture'
+    },
+    {
+        id: 'noir_ink',
+        label: 'Noir Ink',
+        prompt: 'noir ink illustration, high contrast lighting, deep shadows, rim light, moody composition, crisp black and white rendering',
+        negative: 'low contrast, gray muddy shadows, unclear silhouettes'
+    },
+    {
+        id: 'art_nouveau',
+        label: 'Art Nouveau Poster',
+        prompt: 'art nouveau poster style, flowing ornamental shapes, elegant linework, decorative framing, harmonious color palette, graceful composition',
+        negative: 'stiff posing, cluttered ornament, mismatched patterns'
+    },
+    {
+        id: 'ukiyo_e',
+        label: 'Woodblock Print',
+        prompt: 'ukiyo-e inspired woodblock print, flat color fields, flowing contour lines, patterned fabric detail, balanced negative space, print texture',
+        negative: 'photoreal rendering, noisy gradients, muddy print texture'
+    },
+    {
+        id: 'impressionist',
+        label: 'Impressionist Painting',
+        prompt: 'impressionist painting, visible brushwork, luminous color, soft natural light, atmospheric edges, expressive painterly texture',
+        negative: 'overly sharp digital detail, muddy color mixing, plastic finish'
+    }
+]);
 
 export const PREDEFINED_COLORS = [
     { name: 'Default', value: '' }, { name: 'Red', value: '#E53935' },
@@ -72,7 +169,12 @@ export function ensureSettingsNamespace() {
         // Mobile enhancements - auto-detected on touch devices, can be disabled
         enableMobileEnhancements: true,
         // Enhanced model selector with search, favorites, and quick-switch chips
-        enableModelSelector: true
+        enableModelSelector: true,
+        // Pollinations interceptor prompt consistency helpers
+        nemoPollinationsStylePreset: 'none',
+        nemoPollinationsPromptBestPractices: true,
+        nemoPollinationsBestPracticesPrompt: DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES,
+        nemoPollinationsNegativeBestPracticesPrompt: DEFAULT_POLLINATIONS_NEGATIVE_BEST_PRACTICES
     };
 
     // Apply defaults for any missing settings

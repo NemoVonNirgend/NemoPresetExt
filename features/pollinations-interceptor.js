@@ -9,8 +9,15 @@
  */
 
 import logger from '../core/logger.js';
+import {
+    DEFAULT_POLLINATIONS_NEGATIVE_BEST_PRACTICES,
+    DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES,
+    NEMO_EXTENSION_NAME,
+    POLLINATIONS_IMAGE_STYLE_PRESETS
+} from '../core/utils.js';
 import { getRequestHeaders, eventSource, event_types, chat, saveChatDebounced } from '../../../../../script.js';
 import { extension_settings } from '../../../../extensions.js';
+import { saveBase64AsFile } from '../../../../utils.js';
 
 const LOG_PREFIX = '[Pollinations Interceptor]';
 
@@ -20,13 +27,22 @@ const POLLINATIONS_URL_REGEX = /https?:\/\/image\.pollinations\.ai\/prompt\/([^?
 // Track which images are being processed to avoid duplicates
 const processingImages = new Set();
 
-// Track which Pollinations URLs have already been replaced (persisted in message content)
-// Key: original Pollinations URL, Value: true if already processed
-const completedReplacements = new Map();
-
 // Queue for automatic processing
 const imageQueue = [];
-let isProcessingQueue = false;
+const MAX_PARALLEL_GENERATIONS = 4;
+const SERIAL_IMAGE_GENERATION_SOURCES = new Set(['openai', 'horde']);
+const MAX_GENERATION_ATTEMPTS = 3;
+const SOURCE_GENERATION_ATTEMPTS = {
+    novel: 2
+};
+const GENERATION_RETRY_DELAY_MS = 1500;
+const SAVED_IMAGE_SUBFOLDER_FALLBACK = 'NemoPresetExt';
+const STREAMING_IMAGE_READY_CHECK_DELAY_MS = 350;
+const STREAMING_IMAGE_MAX_WAIT_MS = 12000;
+let activeQueueProcesses = 0;
+
+// Timers for images detected while a message is still streaming.
+const pendingStreamingImageTimers = new WeakMap();
 
 // MutationObserver for real-time streaming detection
 let streamingObserver = null;
@@ -88,6 +104,136 @@ function getUserPromptSettings() {
 }
 
 /**
+ * Join prompt fragments without introducing empty comma slots.
+ * @param {...string} parts - Prompt fragments
+ * @returns {string} Combined prompt
+ */
+function joinPromptParts(...parts) {
+    return parts
+        .map(part => (part || '').trim())
+        .filter(Boolean)
+        .join(', ');
+}
+
+/**
+ * Wait for a duration.
+ * @param {number} ms - Delay in milliseconds
+ * @returns {Promise<void>}
+ */
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Get the current SillyTavern image generation source.
+ * @returns {string} Configured source
+ */
+function getImageGenerationSource() {
+    return extension_settings.sd?.source || 'pollinations';
+}
+
+/**
+ * Get queue concurrency for the active image backend.
+ * @returns {number} Maximum active generations
+ */
+function getMaxParallelGenerations() {
+    const source = getImageGenerationSource();
+    return SERIAL_IMAGE_GENERATION_SOURCES.has(source) ? 1 : MAX_PARALLEL_GENERATIONS;
+}
+
+/**
+ * Get max generation attempts for the active backend.
+ * @returns {number} Attempt count
+ */
+function getMaxGenerationAttempts() {
+    const source = getImageGenerationSource();
+    return SOURCE_GENERATION_ATTEMPTS[source] || MAX_GENERATION_ATTEMPTS;
+}
+
+/**
+ * Check whether an image generation error is worth retrying.
+ * @param {Error & {status?: number}} error - Generation error
+ * @returns {boolean} True if retryable
+ */
+function isRetryableGenerationError(error) {
+    return !error.status || [429, 500, 502, 503, 504].includes(error.status);
+}
+
+/**
+ * Get NovelAI-safe dimensions and steps using the same Anlas guard as SillyTavern's SD extension.
+ * @returns {{steps: number, width: number, height: number}} NovelAI generation dimensions and steps
+ */
+function getNovelGenerationParams() {
+    let steps = Math.min(extension_settings.sd?.steps || 28, 50);
+    let width = extension_settings.sd?.width || 512;
+    let height = extension_settings.sd?.height || 512;
+
+    if (!extension_settings.sd?.novel_anlas_guard) {
+        return { steps, width, height };
+    }
+
+    const maxSteps = 28;
+    const maxPixels = 1024 * 1024;
+
+    if (width * height > maxPixels) {
+        const ratio = Math.sqrt(maxPixels / (width * height));
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+
+        if (width % 64 !== 0) {
+            width -= width % 64;
+        }
+
+        if (height % 64 !== 0) {
+            height -= height % 64;
+        }
+
+        while (width * height > maxPixels) {
+            if (width > height) {
+                width -= 64;
+            } else {
+                height -= 64;
+            }
+        }
+    }
+
+    if (steps > maxSteps) {
+        steps = maxSteps;
+    }
+
+    return { steps, width, height };
+}
+
+/**
+ * Get Nemo's optional image prompt consistency guidance.
+ * @returns {Object} Positive and negative prompt best-practice strings
+ */
+function getPromptBestPractices() {
+    const nemoSettings = extension_settings[NEMO_EXTENSION_NAME] || {};
+
+    if (nemoSettings.nemoPollinationsPromptBestPractices === false) {
+        return { positive: '', negative: '' };
+    }
+
+    return {
+        positive: nemoSettings.nemoPollinationsBestPracticesPrompt || DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES,
+        negative: nemoSettings.nemoPollinationsNegativeBestPracticesPrompt || DEFAULT_POLLINATIONS_NEGATIVE_BEST_PRACTICES
+    };
+}
+
+/**
+ * Get the currently selected image style preset.
+ * @returns {Object} Positive and negative style prompt strings
+ */
+function getImageStylePreset() {
+    const nemoSettings = extension_settings[NEMO_EXTENSION_NAME] || {};
+    const selectedStyle = nemoSettings.nemoPollinationsStylePreset || 'none';
+    const preset = POLLINATIONS_IMAGE_STYLE_PRESETS.find(style => style.id === selectedStyle);
+
+    return preset || POLLINATIONS_IMAGE_STYLE_PRESETS[0];
+}
+
+/**
  * Parse a Pollinations URL to extract prompt and parameters
  * @param {string} url - The full Pollinations URL
  * @returns {Object} Parsed data with prompt, width, height, model, negative_prompt, seed
@@ -137,25 +283,32 @@ async function generateImageWithST(params) {
     const { prompt: rawPrompt, negative_prompt: rawNegative, width, height, seed } = params;
 
     // Get the current SD source from extension settings
-    const source = extension_settings.sd?.source || 'pollinations';
+    const source = getImageGenerationSource();
 
     // Strip boilerplate from the prompt to get just the unique scene description
     const strippedPrompt = stripBoilerplate(rawPrompt);
 
     // Get user's configured prompt settings
     const userSettings = getUserPromptSettings();
+    const bestPractices = getPromptBestPractices();
+    const stylePreset = getImageStylePreset();
 
-    // Build the final prompt: user prefix + stripped content + user suffix
-    let finalPrompt = strippedPrompt;
-    if (userSettings.prefix) {
-        finalPrompt = `${userSettings.prefix}, ${finalPrompt}`;
-    }
-    if (userSettings.suffix) {
-        finalPrompt = `${finalPrompt}, ${userSettings.suffix}`;
-    }
+    // Build the final prompt: user prefix + selected style + consistency guidance + stripped content + user suffix
+    const finalPrompt = joinPromptParts(
+        userSettings.prefix,
+        stylePreset.prompt,
+        bestPractices.positive,
+        strippedPrompt,
+        userSettings.suffix
+    );
 
-    // Use user's negative prompt if configured, otherwise use the stripped Pollinations one
-    const finalNegative = userSettings.negativePrompt || stripBoilerplate(rawNegative);
+    // Preserve user negative prompt, then add style cleanup, consistency cleanup, and the stripped Pollinations negative.
+    const finalNegative = joinPromptParts(
+        userSettings.negativePrompt,
+        stylePreset.negative,
+        bestPractices.negative,
+        stripBoilerplate(rawNegative)
+    );
 
     console.log(`${LOG_PREFIX} Generating image with source: ${source}`);
     console.log(`${LOG_PREFIX} Original prompt: ${rawPrompt.substring(0, 80)}...`);
@@ -203,7 +356,7 @@ async function generateImageWithST(params) {
         case 'novel':
             endpoint = '/api/novelai/generate-image';
             // Get NAI-specific settings
-            const naiSteps = Math.min(extension_settings.sd?.steps || 28, 50);
+            const naiParams = getNovelGenerationParams();
             let naiSm = extension_settings.sd?.novel_sm || false;
             let naiSmDyn = extension_settings.sd?.novel_sm_dyn || false;
             // Disable sm/sm_dyn for certain models/samplers
@@ -216,18 +369,18 @@ async function generateImageWithST(params) {
                 prompt: finalPrompt,
                 negative_prompt: finalNegative,
                 model: extension_settings.sd?.model,
-                sampler: extension_settings.sd?.sampler || 'k_euler_ancestral',
+                sampler: extension_settings.sd?.sampler,
                 scheduler: extension_settings.sd?.scheduler || 'karras',
-                steps: naiSteps,
+                steps: naiParams.steps,
                 scale: extension_settings.sd?.scale || 7,
-                width,
-                height,
+                width: naiParams.width,
+                height: naiParams.height,
                 upscale_ratio: extension_settings.sd?.hr_scale || 1,
                 decrisper: extension_settings.sd?.novel_decrisper || false,
                 variety_boost: extension_settings.sd?.novel_variety_boost || false,
                 sm: naiSm,
-                sm_dyn: naiSmDyn
-                // No seed - let NAI use random. Pollinations seeds don't translate.
+                sm_dyn: naiSmDyn,
+                seed: extension_settings.sd?.seed >= 0 ? extension_settings.sd.seed : undefined
             };
             break;
 
@@ -307,56 +460,82 @@ async function generateImageWithST(params) {
             };
     }
 
-    try {
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: getRequestHeaders(),
-            body: JSON.stringify(body)
-        });
+    let lastError = null;
+    const maxAttempts = getMaxGenerationAttempts();
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            return await requestGeneratedImage(endpoint, body);
+        } catch (error) {
+            lastError = error;
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`API error: ${response.status} - ${errorText}`);
+            if (attempt < maxAttempts && isRetryableGenerationError(error)) {
+                logger.warn(`${LOG_PREFIX} Image generation failed; retrying (${attempt}/${maxAttempts})`, error);
+                await wait(GENERATION_RETRY_DELAY_MS * attempt);
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    logger.error(`${LOG_PREFIX} Image generation failed:`, lastError);
+    return null;
+}
+
+/**
+ * Send an image generation request and parse the response.
+ * @param {string} endpoint - API endpoint
+ * @param {Object} body - Request body
+ * @returns {Promise<string|null>} Base64 image data
+ */
+async function requestGeneratedImage(endpoint, body) {
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: getRequestHeaders(),
+        body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        const error = new Error(`API error: ${response.status} - ${errorText}`);
+        error.status = response.status;
+        throw error;
+    }
+
+    // Get the response as text first to check what format it is
+    const responseText = await response.text();
+
+    // Check if it's raw base64 (starts with base64 PNG/JPEG header characters)
+    // PNG base64 starts with "iVBOR", JPEG with "/9j/"
+    if (responseText.startsWith('iVBOR') || responseText.startsWith('/9j/')) {
+        console.log(`${LOG_PREFIX} Received raw base64 response`);
+        return responseText;
+    }
+
+    // Try to parse as JSON
+    try {
+        const data = JSON.parse(responseText);
+
+        // Different sources return data in different formats
+        if (data.image) {
+            return data.image; // Base64 string
+        } else if (data.images && data.images.length > 0) {
+            return data.images[0]; // Array of base64 strings
+        } else if (data.data) {
+            return data.data;
         }
 
-        // Get the response as text first to check what format it is
-        const responseText = await response.text();
-
-        // Check if it's raw base64 (starts with base64 PNG/JPEG header characters)
-        // PNG base64 starts with "iVBOR", JPEG with "/9j/"
-        if (responseText.startsWith('iVBOR') || responseText.startsWith('/9j/')) {
-            console.log(`${LOG_PREFIX} Received raw base64 response`);
+        // If we got JSON but no recognizable image field, log it
+        console.log(`${LOG_PREFIX} JSON response structure:`, Object.keys(data));
+        return null;
+    } catch (parseError) {
+        // Not JSON, might be raw base64 with different header
+        // Check if it looks like base64 (only valid base64 characters)
+        if (/^[A-Za-z0-9+/=]+$/.test(responseText.substring(0, 100))) {
+            console.log(`${LOG_PREFIX} Response appears to be base64`);
             return responseText;
         }
-
-        // Try to parse as JSON
-        try {
-            const data = JSON.parse(responseText);
-
-            // Different sources return data in different formats
-            if (data.image) {
-                return data.image; // Base64 string
-            } else if (data.images && data.images.length > 0) {
-                return data.images[0]; // Array of base64 strings
-            } else if (data.data) {
-                return data.data;
-            }
-
-            // If we got JSON but no recognizable image field, log it
-            console.log(`${LOG_PREFIX} JSON response structure:`, Object.keys(data));
-            return null;
-        } catch (parseError) {
-            // Not JSON, might be raw base64 with different header
-            // Check if it looks like base64 (only valid base64 characters)
-            if (/^[A-Za-z0-9+/=]+$/.test(responseText.substring(0, 100))) {
-                console.log(`${LOG_PREFIX} Response appears to be base64`);
-                return responseText;
-            }
-            throw new Error(`Unexpected response format: ${responseText.substring(0, 50)}...`);
-        }
-    } catch (error) {
-        logger.error(`${LOG_PREFIX} Image generation failed:`, error);
-        return null;
+        throw new Error(`Unexpected response format: ${responseText.substring(0, 50)}...`);
     }
 }
 
@@ -368,19 +547,20 @@ async function generateImageWithST(params) {
 function getMessageIdFromImage(imgElement) {
     const mesBlock = imgElement.closest('.mes');
     if (mesBlock && mesBlock.hasAttribute('mesid')) {
-        return parseInt(mesBlock.getAttribute('mesid'), 10);
+        const messageId = parseInt(mesBlock.getAttribute('mesid'), 10);
+        return Number.isFinite(messageId) ? messageId : null;
     }
     return null;
 }
 
 /**
- * Update the message content in the chat array, replacing a Pollinations URL with a data URL
+ * Update the message content in the chat array, replacing a source image URL with a saved image URL
  * @param {number} messageId - The message index in the chat array
- * @param {string} pollinationsUrl - The original Pollinations URL to replace
- * @param {string} base64Image - The base64 image data to replace with
+ * @param {string|string[]} sourceUrls - Candidate image URLs to replace
+ * @param {string} imageUrl - The saved image URL to replace with
  * @returns {boolean} True if successful
  */
-function updateMessageContent(messageId, pollinationsUrl, base64Image) {
+function updateMessageContent(messageId, sourceUrls, imageUrl) {
     try {
         if (!chat || messageId < 0 || messageId >= chat.length) {
             console.warn(`${LOG_PREFIX} Invalid message ID: ${messageId}`);
@@ -393,31 +573,117 @@ function updateMessageContent(messageId, pollinationsUrl, base64Image) {
             return false;
         }
 
-        // Create the data URL
-        const dataUrl = `data:image/png;base64,${base64Image}`;
-
-        // Replace the Pollinations URL with the data URL in the message content
-        // Need to escape special regex characters in the URL
-        const escapedUrl = pollinationsUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const urlRegex = new RegExp(escapedUrl, 'g');
-
         const originalContent = message.mes;
-        message.mes = message.mes.replace(urlRegex, dataUrl);
+        const candidates = getUrlReplacementCandidates(sourceUrls);
 
-        if (message.mes !== originalContent) {
-            console.log(`${LOG_PREFIX} Updated message ${messageId} content - replaced Pollinations URL`);
+        for (const sourceUrl of candidates) {
+            // Replace one matching image URL. This lets repeated URLs process as separate images.
+            const escapedUrl = sourceUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const urlRegex = new RegExp(escapedUrl);
+            message.mes = message.mes.replace(urlRegex, imageUrl);
 
-            // Save the chat to persist the change
-            saveChatDebounced();
+            if (message.mes !== originalContent) {
+                console.log(`${LOG_PREFIX} Updated message ${messageId} content - replaced image URL`);
 
-            return true;
-        } else {
-            console.warn(`${LOG_PREFIX} URL not found in message content`);
-            return false;
+                // Save the chat to persist the change
+                saveChatDebounced();
+
+                return true;
+            }
         }
+
+        console.warn(`${LOG_PREFIX} Image URL not found in message content`);
+        return false;
     } catch (error) {
         console.error(`${LOG_PREFIX} Error updating message content:`, error);
         return false;
+    }
+}
+
+/**
+ * Build candidate URL strings for replacing rendered image sources back in message text.
+ * @param {string|string[]} sourceUrls - Source URL or URLs
+ * @returns {string[]} Unique replacement candidates
+ */
+function getUrlReplacementCandidates(sourceUrls) {
+    const urls = Array.isArray(sourceUrls) ? sourceUrls : [sourceUrls];
+    const candidates = new Set();
+
+    for (const url of urls) {
+        if (!url) {
+            continue;
+        }
+
+        const sourceUrl = String(url);
+        candidates.add(sourceUrl);
+        candidates.add(sourceUrl.replace(/&/g, '&amp;'));
+
+        try {
+            candidates.add(decodeURI(sourceUrl));
+        } catch {
+            // Keep the original candidate if it is not a valid encoded URI.
+        }
+    }
+
+    return Array.from(candidates).filter(Boolean);
+}
+
+/**
+ * Build a filesystem-safe-ish generated image filename.
+ * @param {number|null} messageId - Chat message index
+ * @returns {string} Filename without extension
+ */
+function getGeneratedImageFileName(messageId) {
+    const messagePart = messageId !== null ? `mes-${messageId}` : 'manual';
+    return `nemo-pollinations-${messagePart}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Get the gallery subfolder for a generated image.
+ * @param {number|null} messageId - Chat message index
+ * @returns {string} Gallery subfolder name
+ */
+function getGeneratedImageSubfolder(messageId) {
+    if (chat && messageId !== null && messageId >= 0 && messageId < chat.length) {
+        const messageName = chat[messageId]?.name;
+        if (messageName) {
+            return messageName;
+        }
+    }
+
+    return SAVED_IMAGE_SUBFOLDER_FALLBACK;
+}
+
+/**
+ * Encode a saved image path so it is safe in markdown image URLs.
+ * @param {string} imagePath - Client-relative image path
+ * @returns {string} URL-encoded image path
+ */
+function encodeSavedImagePath(imagePath) {
+    return String(imagePath)
+        .split('/')
+        .map(segment => encodeURIComponent(segment).replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`))
+        .join('/');
+}
+
+/**
+ * Save generated base64 image data through SillyTavern's image upload endpoint.
+ * @param {string} base64Image - Base64 image data
+ * @param {number|null} messageId - Chat message index
+ * @returns {Promise<string|null>} Saved image URL or null
+ */
+async function saveGeneratedImageFile(base64Image, messageId) {
+    try {
+        const savedImagePath = await saveBase64AsFile(
+            base64Image,
+            getGeneratedImageSubfolder(messageId),
+            getGeneratedImageFileName(messageId),
+            'png'
+        );
+        return encodeSavedImagePath(savedImagePath);
+    } catch (error) {
+        logger.error(`${LOG_PREFIX} Failed to save generated image file:`, error);
+        return null;
     }
 }
 
@@ -431,22 +697,29 @@ function queueImage(imgElement) {
         return;
     }
 
+    clearPendingStreamingImage(imgElement);
+
     imageQueue.push({ element: imgElement });
     processQueue();
 }
 
 /**
- * Process the image queue sequentially
- * Starts next image immediately after current one completes
+ * Check if an image is queued or actively processing.
+ * @param {HTMLImageElement} imgElement - The image element to check
+ * @returns {boolean} True if queued or processing
  */
-async function processQueue() {
-    if (isProcessingQueue || imageQueue.length === 0) {
-        return;
-    }
+function isImageQueuedOrProcessing(imgElement) {
+    const processingKey = imgElement.dataset.nemoImageId || imgElement.dataset.originalPollinationsUrl || imgElement.src;
+    return imageQueue.some(item => item.element === imgElement) || processingImages.has(processingKey);
+}
 
-    isProcessingQueue = true;
-
-    while (imageQueue.length > 0) {
+/**
+ * Process the image queue with bounded concurrency.
+ * Manga panel responses commonly include 4 images, so allow those to launch together.
+ */
+function processQueue() {
+    const maxParallelGenerations = getMaxParallelGenerations();
+    while (activeQueueProcesses < maxParallelGenerations && imageQueue.length > 0) {
         const { element } = imageQueue.shift();
 
         // Skip if element was removed from DOM
@@ -454,32 +727,29 @@ async function processQueue() {
             continue;
         }
 
-        await processPollinationsImage(element, true);
-        // No delay - start next immediately after completion
+        activeQueueProcesses++;
+        processPollinationsImage(element)
+            .catch(error => {
+                logger.error(`${LOG_PREFIX} Queued image processing failed:`, error);
+            })
+            .finally(() => {
+                activeQueueProcesses--;
+                processQueue();
+            });
     }
-
-    isProcessingQueue = false;
 }
 
 /**
  * Process a single image element with a Pollinations URL
  * @param {HTMLImageElement} imgElement - The image element to process
- * @param {boolean} autoReplace - Whether to automatically replace without user interaction
- * @param {boolean} forceRegenerate - Force regeneration even if already processed (for manual clicks)
  */
-async function processPollinationsImage(imgElement, autoReplace = false, forceRegenerate = false) {
+async function processPollinationsImage(imgElement) {
     // Get the original URL - either from data attribute (for regeneration) or current src
     const originalSrc = imgElement.dataset.originalPollinationsUrl || imgElement.src;
 
     // Skip if this is already a data URL (already replaced)
     if (originalSrc.startsWith('data:')) {
         console.log(`${LOG_PREFIX} Skipping - already a data URL`);
-        return;
-    }
-
-    // Skip if already completed (unless forcing regeneration)
-    if (!forceRegenerate && completedReplacements.has(originalSrc)) {
-        console.log(`${LOG_PREFIX} Skipping - already processed: ${originalSrc.substring(0, 60)}...`);
         return;
     }
 
@@ -551,27 +821,35 @@ async function processPollinationsImage(imgElement, autoReplace = false, forceRe
         const base64Image = await generateImageWithST(parsed);
 
         if (base64Image) {
-            // Replace the image source in DOM
-            imgElement.src = `data:image/png;base64,${base64Image}`;
+            const messageId = getMessageIdFromImage(imgElement);
+            const previousImageUrl = imgElement.dataset.generatedImageUrl || imgElement.getAttribute('src') || originalSrc;
+            const savedImageUrl = await saveGeneratedImageFile(base64Image, messageId);
+
+            // Replace the image source in DOM. Prefer the saved URL so refreshes reuse the file.
+            imgElement.src = savedImageUrl || `data:image/png;base64,${base64Image}`;
             imgElement.style.opacity = '1';
             imgElement.style.filter = 'none';
-            imgElement.title = 'Generated by SillyTavern (click to regenerate)';
+            imgElement.title = savedImageUrl
+                ? 'Generated by SillyTavern and saved (click to regenerate)'
+                : 'Generated by SillyTavern for this session (click to regenerate)';
 
             // Store original URL as data attribute for reference
             imgElement.dataset.originalPollinationsUrl = originalSrc;
             imgElement.dataset.generatedPrompt = parsed.prompt;
+            if (savedImageUrl) {
+                imgElement.dataset.generatedImageUrl = savedImageUrl;
+            }
 
-            // Update the message content to persist the replacement
-            const messageId = getMessageIdFromImage(imgElement);
-            if (messageId !== null) {
-                const updated = updateMessageContent(messageId, originalSrc, base64Image);
+            // Update the message content to persist the saved image URL, never inline base64.
+            if (messageId !== null && savedImageUrl) {
+                const updated = updateMessageContent(messageId, [previousImageUrl, originalSrc], savedImageUrl);
                 if (updated) {
-                    // Mark as completed so we don't re-process on future events
-                    completedReplacements.set(originalSrc, true);
-                    console.log(`${LOG_PREFIX} Successfully replaced and persisted image`);
+                    console.log(`${LOG_PREFIX} Successfully replaced and persisted saved image URL`);
                 } else {
-                    console.log(`${LOG_PREFIX} Replaced image in DOM but could not persist to message`);
+                    console.log(`${LOG_PREFIX} Replaced image in DOM but could not persist saved URL to message`);
                 }
+            } else if (messageId !== null) {
+                console.log(`${LOG_PREFIX} Replaced image in DOM only; generated image file could not be saved`);
             } else {
                 console.warn(`${LOG_PREFIX} Could not find message ID for image`);
             }
@@ -600,15 +878,21 @@ async function processPollinationsImage(imgElement, autoReplace = false, forceRe
 /**
  * Scan a message element for Pollinations images, auto-queue them, and add click-to-regenerate
  * @param {HTMLElement} messageElement - The message element to scan
+ * @param {boolean} autoQueue - Whether to automatically queue found images for regeneration
  */
-export function scanMessageForPollinationsImages(messageElement) {
+export function scanMessageForPollinationsImages(messageElement, autoQueue = true) {
     if (!messageElement) return;
 
     const images = messageElement.querySelectorAll('img[src*="image.pollinations.ai"]');
 
     images.forEach(img => {
         // Skip if already set up
-        if (img.dataset.nemoIntercepted) return;
+        if (img.dataset.nemoIntercepted) {
+            if (autoQueue && !isImageQueuedOrProcessing(img)) {
+                queueImage(img);
+            }
+            return;
+        }
 
         // Generate unique ID for this image element
         img.dataset.nemoImageId = `nemo-img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -618,7 +902,9 @@ export function scanMessageForPollinationsImages(messageElement) {
         setupClickToRegenerate(img);
 
         // Auto-queue for processing
-        queueImage(img);
+        if (autoQueue) {
+            queueImage(img);
+        }
     });
 
     return images.length;
@@ -681,12 +967,6 @@ function setupClickToRegenerate(img) {
             return;
         }
 
-        // For click regeneration, we need to force it even if already processed
-        // Mark as needing regeneration by removing from completed set
-        if (img.dataset.originalPollinationsUrl) {
-            completedReplacements.delete(img.dataset.originalPollinationsUrl);
-        }
-
         // Queue for regeneration
         queueImage(img);
     });
@@ -697,7 +977,7 @@ function setupClickToRegenerate(img) {
  * @param {HTMLElement} messageElement - The message element
  * @param {boolean} parallel - Whether to process images in parallel
  */
-export async function interceptAllPollinationsImages(messageElement, parallel = false) {
+export async function interceptAllPollinationsImages(messageElement, parallel = true) {
     if (!messageElement) return;
 
     const images = Array.from(messageElement.querySelectorAll('img[src*="image.pollinations.ai"]'));
@@ -711,11 +991,11 @@ export async function interceptAllPollinationsImages(messageElement, parallel = 
 
     if (parallel) {
         // Process all at once
-        await Promise.all(images.map(img => processPollinationsImage(img, true)));
+        await Promise.all(images.map(img => processPollinationsImage(img)));
     } else {
         // Process sequentially
         for (const img of images) {
-            await processPollinationsImage(img, true);
+            await processPollinationsImage(img);
         }
     }
 }
@@ -819,17 +1099,111 @@ function startStreamingObserver() {
 }
 
 /**
- * Process a newly detected Pollinations image immediately
+ * Check whether the message stream has emitted content after an image.
+ * @param {HTMLImageElement} img - The image element
+ * @returns {boolean} True if there is later content in the same message
+ */
+function hasContentAfterImage(img) {
+    const messageElement = img.closest('.mes_text');
+    if (!messageElement || !document.contains(img) || !messageElement.lastChild) {
+        return false;
+    }
+
+    const range = document.createRange();
+    try {
+        range.setStartAfter(img);
+        range.setEndAfter(messageElement.lastChild);
+        const fragment = range.cloneContents();
+        return fragment.textContent.trim().length > 0 || fragment.querySelector('img, div, p, br, hr, table, ul, ol, pre, blockquote') !== null;
+    } catch (error) {
+        logger.warn(`${LOG_PREFIX} Could not inspect streamed content after image:`, error);
+        return false;
+    } finally {
+        if (typeof range.detach === 'function') {
+            range.detach();
+        }
+    }
+}
+
+/**
+ * Clear pending streaming processing for an image.
+ * @param {HTMLImageElement} img - The image element
+ */
+function clearPendingStreamingImage(img) {
+    const pendingTimer = pendingStreamingImageTimers.get(img);
+    if (pendingTimer) {
+        clearTimeout(pendingTimer);
+        pendingStreamingImageTimers.delete(img);
+    }
+    delete img.dataset.nemoStreamingDetectedAt;
+}
+
+/**
+ * Schedule a streamed image for processing once the stream advances past it.
+ * @param {HTMLImageElement} img - The image element
+ */
+function scheduleStreamingImageProcessing(img) {
+    if (!document.contains(img) || img.src.startsWith('data:')) {
+        clearPendingStreamingImage(img);
+        return;
+    }
+
+    if (!img.dataset.nemoStreamingDetectedAt) {
+        img.dataset.nemoStreamingDetectedAt = String(Date.now());
+    }
+
+    const existingTimer = pendingStreamingImageTimers.get(img);
+    if (existingTimer) {
+        clearTimeout(existingTimer);
+    }
+
+    const timer = setTimeout(() => {
+        pendingStreamingImageTimers.delete(img);
+        maybeQueueStreamingImage(img);
+    }, STREAMING_IMAGE_READY_CHECK_DELAY_MS);
+
+    pendingStreamingImageTimers.set(img, timer);
+}
+
+/**
+ * Queue a streamed image only after later content appears, or leave it for final render.
+ * @param {HTMLImageElement} img - The image element
+ */
+function maybeQueueStreamingImage(img) {
+    if (!document.contains(img) || img.src.startsWith('data:') || !img.src.includes('image.pollinations.ai')) {
+        clearPendingStreamingImage(img);
+        return;
+    }
+
+    if (isImageQueuedOrProcessing(img)) {
+        clearPendingStreamingImage(img);
+        return;
+    }
+
+    if (hasContentAfterImage(img)) {
+        console.log(`${LOG_PREFIX} [STREAMING] Stream advanced past Pollinations image; queueing regeneration`);
+        queueImage(img);
+        return;
+    }
+
+    const detectedAt = parseInt(img.dataset.nemoStreamingDetectedAt, 10) || Date.now();
+    if (Date.now() - detectedAt < STREAMING_IMAGE_MAX_WAIT_MS) {
+        scheduleStreamingImageProcessing(img);
+        return;
+    }
+
+    // The final CHARACTER_MESSAGE_RENDERED event will catch last-panel images.
+    console.log(`${LOG_PREFIX} [STREAMING] Waiting for final render before regenerating Pollinations image`);
+    clearPendingStreamingImage(img);
+}
+
+/**
+ * Process a newly detected Pollinations image after the stream advances
  * @param {HTMLImageElement} img - The image element
  */
 function processNewPollinationsImage(img) {
     // Skip if already a data URL
     if (img.src.startsWith('data:')) {
-        return;
-    }
-
-    // Skip if already completed
-    if (completedReplacements.has(img.src)) {
         return;
     }
 
@@ -840,8 +1214,8 @@ function processNewPollinationsImage(img) {
     // Set up click-to-regenerate
     setupClickToRegenerate(img);
 
-    // Queue immediately for processing
-    queueImage(img);
+    // Wait until the stream has emitted later content before processing.
+    scheduleStreamingImageProcessing(img);
 }
 
 /**
@@ -865,7 +1239,13 @@ function scanAllMessages() {
     if (chatContainer) {
         const messages = chatContainer.querySelectorAll('.mes_text');
         console.log(`${LOG_PREFIX} Scanning ${messages.length} existing messages`);
-        messages.forEach(scanMessageForPollinationsImages);
+        messages.forEach(messageElement => {
+            try {
+                scanMessageForPollinationsImages(messageElement, false);
+            } catch (error) {
+                logger.error(`${LOG_PREFIX} Error scanning existing message:`, error);
+            }
+        });
     }
 }
 
@@ -956,9 +1336,7 @@ export function initPollinationsInterceptor() {
     // Listen for chat loaded/changed (scan all existing messages)
     if (event_types.CHAT_CHANGED) {
         eventSource.on(event_types.CHAT_CHANGED, () => {
-            console.log(`${LOG_PREFIX} CHAT_CHANGED event - clearing tracking and scanning all messages`);
-            // Clear tracking for previous chat
-            completedReplacements.clear();
+            console.log(`${LOG_PREFIX} CHAT_CHANGED event - scanning all messages`);
             scanAllMessages();
         });
     }
@@ -982,5 +1360,5 @@ export default {
     extractPrompts: extractPollinationsPrompts,
     queueImage: queueImage,
     getQueueLength: () => imageQueue.length,
-    isProcessing: () => isProcessingQueue
+    isProcessing: () => activeQueueProcesses > 0 || imageQueue.length > 0
 };

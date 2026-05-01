@@ -16,6 +16,14 @@
         "tags": ["prompt-engineering", "modular", "vex"]
     },
     {
+        "name": "NemoLite",
+        "description": "Lightweight NemoEngine-style preset package for SillyTavern users who want a smaller, easier setup.",
+        "author": "forgloryandhonor-cpu",
+        "url": "https://github.com/forgloryandhonor-cpu/nemo-engine-lite",
+        "category": "presets",
+        "tags": ["lightweight", "nemo-engine", "preset"]
+    },
+    {
         "name": "TunnelVision",
         "description": "Activity feed and monitoring extension for SillyTavern — track what's happening in your chats in real time.",
         "author": "Coneja-Chibi",
