@@ -80,6 +80,29 @@ body.nemo-theme-win98 button {
     color: #000000 !important;
 }
 
+body.nemo-theme-win98 .mes_block :is(.mes_text, .mes_reasoning) .nemo-italic-dialogue {
+    color: var(--dialogue-color, var(--SmartThemeQuoteColor, #000080)) !important;
+    font-style: italic !important;
+}
+
+body.nemo-theme-win98 .mes_block :is(.mes_text, .mes_reasoning) .nemo-italic-dialogue :is(strong, b) {
+    color: inherit !important;
+    font-style: inherit !important;
+    font-weight: 700 !important;
+}
+
+/* Preserve explicit chat HTML colors inside markdown/dialogue wrappers. */
+body.nemo-theme-win98 .mes_block :is(.mes_text, .mes_reasoning) font[color] :is(p, div, span, q, em, i, strong, b),
+body.nemo-theme-win98 .mes_block :is(.mes_text, .mes_reasoning) font[color] q::before,
+body.nemo-theme-win98 .mes_block :is(.mes_text, .mes_reasoning) font[color] q::after {
+    color: inherit !important;
+}
+
+body.nemo-theme-win98 .mes_block :is(.mes_text, .mes_reasoning) font[color] .nemo-italic-dialogue,
+body.nemo-theme-win98 .mes_block :is(.mes_text, .mes_reasoning) font[color] .nemo-italic-dialogue :is(strong, b) {
+    color: inherit !important;
+}
+
 /* Title bars and headers should have white text */
 body.nemo-theme-win98 .inline-drawer-header,
 body.nemo-theme-win98 .inline-drawer-header *,

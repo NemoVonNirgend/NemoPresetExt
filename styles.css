@@ -9676,6 +9676,29 @@ body.theme-dyslexia-dark .mes_block .mes_text code {
     border: 1px solid #CCCCCC !important;
 }
 
+.mes_block :is(.mes_text, .mes_reasoning) .nemo-italic-dialogue {
+    color: var(--dialogue-color, var(--SmartThemeQuoteColor)) !important;
+    font-style: italic !important;
+}
+
+.mes_block :is(.mes_text, .mes_reasoning) .nemo-italic-dialogue :is(strong, b) {
+    color: inherit !important;
+    font-style: inherit !important;
+    font-weight: 700 !important;
+}
+
+/* Preserve explicit message colors around nested markdown/dialogue elements. */
+body[class*="theme-"] .mes_block :is(.mes_text, .mes_reasoning) font[color] :is(p, div, span, q, em, i, strong, b),
+body[class*="theme-"] .mes_block :is(.mes_text, .mes_reasoning) font[color] q::before,
+body[class*="theme-"] .mes_block :is(.mes_text, .mes_reasoning) font[color] q::after {
+    color: inherit !important;
+}
+
+.mes_block :is(.mes_text, .mes_reasoning) font[color] .nemo-italic-dialogue,
+.mes_block :is(.mes_text, .mes_reasoning) font[color] .nemo-italic-dialogue :is(strong, b) {
+    color: inherit !important;
+}
+
 /* === USER SETTINGS TABBED INTERFACE === */
 
 /* Tab navigation styles */

@@ -40,6 +40,7 @@ import { backgroundOrganizer } from './features/backgrounds/background-organizer
 // Feature modules - Reasoning
 import { applyNemoNetReasoning } from './reasoning/nemonet-reasoning-config.js';
 import { initializeHTMLTrimmer, setupAutoTrim } from './reasoning/html-trimmer.js';
+import { initItalicDialogueRenderer } from './features/formatting/italic-dialogue-renderer.js';
 
 // Feature modules - Onboarding/Tutorials
 import { tutorialManager } from './features/onboarding/tutorial-manager.js';
@@ -239,6 +240,7 @@ async function initializeExtension() {
 
         // Event listener management with cleanup
         const eventCleanupFunctions = [];
+        initItalicDialogueRenderer(eventCleanupFunctions);
 
         const isEnabled = extension_settings.NemoPresetExt?.nemoEnableExtensionsTabOverhaul !== false;
         logger.debug('Extensions Tab Overhaul setting check', { isEnabled, fullValue: extension_settings.NemoPresetExt?.nemoEnableExtensionsTabOverhaul });

@@ -128,6 +128,29 @@ body.nemo-theme-cyberpunk .text_pole {
     color: #e0e0e0 !important;
 }
 
+body.nemo-theme-cyberpunk .mes_block :is(.mes_text, .mes_reasoning) .nemo-italic-dialogue {
+    color: var(--dialogue-color, var(--SmartThemeQuoteColor, #00fff9)) !important;
+    font-style: italic !important;
+}
+
+body.nemo-theme-cyberpunk .mes_block :is(.mes_text, .mes_reasoning) .nemo-italic-dialogue :is(strong, b) {
+    color: inherit !important;
+    font-style: inherit !important;
+    font-weight: 700 !important;
+}
+
+/* Preserve explicit chat HTML colors inside markdown/dialogue wrappers. */
+body.nemo-theme-cyberpunk .mes_block :is(.mes_text, .mes_reasoning) font[color] :is(p, div, span, q, em, i, strong, b),
+body.nemo-theme-cyberpunk .mes_block :is(.mes_text, .mes_reasoning) font[color] q::before,
+body.nemo-theme-cyberpunk .mes_block :is(.mes_text, .mes_reasoning) font[color] q::after {
+    color: inherit !important;
+}
+
+body.nemo-theme-cyberpunk .mes_block :is(.mes_text, .mes_reasoning) font[color] .nemo-italic-dialogue,
+body.nemo-theme-cyberpunk .mes_block :is(.mes_text, .mes_reasoning) font[color] .nemo-italic-dialogue :is(strong, b) {
+    color: inherit !important;
+}
+
 /* Scanline overlay effect - z-index below modals but above content */
 body.nemo-theme-cyberpunk::before {
     content: '';
