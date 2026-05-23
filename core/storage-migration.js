@@ -11,6 +11,7 @@ import logger from './logger.js';
 // Old localStorage keys
 const OLD_KEYS = {
     SNAPSHOT: 'nemoPromptSnapshotData',
+    PROMPT_LIBRARY: 'nemo-prompt-library',
     METADATA: 'nemoNavigatorMetadata',
     SECTIONS_ENABLED: 'nemoSectionsEnabled',
     FAVORITE_PRESETS: 'nemo-favorite-presets',
@@ -18,18 +19,170 @@ const OLD_KEYS = {
     PROMPT_STATE: 'nemoPromptToggleState'
 };
 
-/**
- * Initialize extension_settings structure
- */
-export function initializeStorage() {
+function getSettingsNamespace() {
     if (!extension_settings[NEMO_EXTENSION_NAME]) {
         extension_settings[NEMO_EXTENSION_NAME] = {};
     }
 
-    const settings = extension_settings[NEMO_EXTENSION_NAME];
+    return extension_settings[NEMO_EXTENSION_NAME];
+}
+
+function makePromptLibraryId(prefix = 'archive') {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function normalizeDate(value, fallback) {
+    if (!value) {
+        return fallback;
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? fallback : parsed.toISOString();
+}
+
+function normalizeTags(tags) {
+    if (Array.isArray(tags)) {
+        return tags.map(tag => String(tag).trim()).filter(Boolean);
+    }
+
+    if (typeof tags === 'string') {
+        return tags.split(',').map(tag => tag.trim()).filter(Boolean);
+    }
+
+    return [];
+}
+
+function normalizePromptLibraryPrompt(prompt = {}, fallbackTitle = 'Untitled Prompt') {
+    const now = new Date().toISOString();
+    const title = String(prompt.title || prompt.name || fallbackTitle || 'Untitled Prompt').trim() || 'Untitled Prompt';
+    const dateCreated = normalizeDate(prompt.dateCreated || prompt.addedAt || prompt.createdAt, now);
+
+    return {
+        id: String(prompt.id || makePromptLibraryId()),
+        title,
+        content: typeof prompt.content === 'string' ? prompt.content : '',
+        role: typeof prompt.role === 'string' ? prompt.role : '',
+        identifier: typeof prompt.identifier === 'string' ? prompt.identifier : '',
+        dateCreated,
+        dateModified: normalizeDate(prompt.dateModified || prompt.lastModified, dateCreated),
+        tags: normalizeTags(prompt.tags),
+        folder: String(prompt.folder || 'Default').trim() || 'Default',
+        isFavorite: Boolean(prompt.isFavorite),
+    };
+}
+
+function isLegacyPromptArchiveData(data) {
+    return Boolean(
+        data &&
+        typeof data === 'object' &&
+        !Array.isArray(data) &&
+        data.prompts &&
+        typeof data.prompts === 'object' &&
+        !Array.isArray(data.prompts)
+    );
+}
+
+function normalizePromptLibrary(data) {
+    if (Array.isArray(data)) {
+        return data
+            .filter(prompt => prompt && typeof prompt === 'object')
+            .map((prompt, index) => normalizePromptLibraryPrompt(prompt, `Prompt ${index + 1}`));
+    }
+
+    if (isLegacyPromptArchiveData(data)) {
+        return Object.entries(data.prompts)
+            .filter(([, prompt]) => prompt && typeof prompt === 'object')
+            .map(([name, prompt]) => normalizePromptLibraryPrompt({
+                ...prompt,
+                title: prompt.title || prompt.name || name,
+            }, name));
+    }
+
+    return [];
+}
+
+function mergePromptLibraries(...libraries) {
+    const merged = [];
+    const seen = new Set();
+
+    libraries.flat().forEach(prompt => {
+        const normalized = normalizePromptLibraryPrompt(prompt);
+        const fingerprint = [
+            normalized.title,
+            normalized.content,
+            normalized.identifier,
+            normalized.folder,
+        ].join('\u0000');
+
+        if (!seen.has(fingerprint)) {
+            seen.add(fingerprint);
+            merged.push(normalized);
+        }
+    });
+
+    return merged;
+}
+
+function parseLocalStorageJson(key) {
+    try {
+        const stored = localStorage.getItem(key);
+        return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+        logger.error(`Failed to parse localStorage key "${key}"`, error);
+        return null;
+    }
+}
+
+function migratePromptLibraryFromLocalStorage() {
+    const settings = getSettingsNamespace();
+    let library = normalizePromptLibrary(settings.promptLibrary || []);
+    let changed = false;
+
+    const promptLibraryData = parseLocalStorageJson(OLD_KEYS.PROMPT_LIBRARY);
+    if (promptLibraryData) {
+        library = mergePromptLibraries(library, normalizePromptLibrary(promptLibraryData));
+        localStorage.removeItem(OLD_KEYS.PROMPT_LIBRARY);
+        changed = true;
+        logger.debug('Migrated prompt library');
+    }
+
+    const legacySnapshotData = parseLocalStorageJson(OLD_KEYS.SNAPSHOT);
+    if (isLegacyPromptArchiveData(legacySnapshotData)) {
+        library = mergePromptLibraries(library, normalizePromptLibrary(legacySnapshotData));
+        localStorage.removeItem(OLD_KEYS.SNAPSHOT);
+        changed = true;
+        logger.debug('Migrated legacy prompt archive data');
+    }
+
+    if (isLegacyPromptArchiveData(settings.promptSnapshots)) {
+        library = mergePromptLibraries(library, normalizePromptLibrary(settings.promptSnapshots));
+        const remainingSnapshots = { ...settings.promptSnapshots };
+        delete remainingSnapshots.prompts;
+        delete remainingSnapshots.lastModified;
+        settings.promptSnapshots = remainingSnapshots;
+        changed = true;
+        logger.debug('Recovered prompt archive data from migrated snapshot storage');
+    }
+
+    if (changed || settings.promptLibrary !== library) {
+        settings.promptLibrary = library;
+        if (changed) {
+            saveSettingsDebounced();
+        }
+    }
+
+    return settings.promptLibrary;
+}
+
+/**
+ * Initialize extension_settings structure
+ */
+export function initializeStorage() {
+    const settings = getSettingsNamespace();
 
     // Initialize sub-structures with defaults
     settings.promptSnapshots = settings.promptSnapshots || {};
+    settings.promptLibrary = normalizePromptLibrary(settings.promptLibrary || []);
     settings.navigatorMetadata = settings.navigatorMetadata || { folders: {}, presets: {} };
     settings.sectionsEnabled = settings.sectionsEnabled !== undefined ? settings.sectionsEnabled : true;
     settings.favoritePresets = settings.favoritePresets || [];
@@ -52,7 +205,11 @@ export function initializeStorage() {
  * Migrate data from localStorage to extension_settings (one-time migration)
  */
 export function migrateFromLocalStorage() {
-    const settings = extension_settings[NEMO_EXTENSION_NAME];
+    const settings = getSettingsNamespace();
+
+    // Prompt archive used a separate key and, briefly, the snapshot key. Migrate it
+    // even for users who already completed the older one-time migration.
+    migratePromptLibraryFromLocalStorage();
 
     // Skip if already migrated
     if (settings._migrated) {
@@ -68,10 +225,19 @@ export function migrateFromLocalStorage() {
         const snapshotData = localStorage.getItem(OLD_KEYS.SNAPSHOT);
         if (snapshotData) {
             try {
-                settings.promptSnapshots = JSON.parse(snapshotData);
+                const parsedSnapshotData = JSON.parse(snapshotData);
+                if (isLegacyPromptArchiveData(parsedSnapshotData)) {
+                    settings.promptLibrary = mergePromptLibraries(
+                        normalizePromptLibrary(settings.promptLibrary || []),
+                        normalizePromptLibrary(parsedSnapshotData)
+                    );
+                    logger.debug('Migrated legacy prompt archive data');
+                } else {
+                    settings.promptSnapshots = parsedSnapshotData;
+                    logger.debug('Migrated prompt snapshots');
+                }
                 localStorage.removeItem(OLD_KEYS.SNAPSHOT);
                 migratedCount++;
-                logger.debug('Migrated prompt snapshots');
             } catch (e) {
                 logger.error('Failed to migrate snapshot data', e);
             }
@@ -156,6 +322,24 @@ export function migrateFromLocalStorage() {
  * Storage accessor functions (replace LocalStorageAsync usage)
  */
 export const storage = {
+    // Prompt archive library
+    getPromptLibrary() {
+        return migratePromptLibraryFromLocalStorage();
+    },
+
+    savePromptLibrary(library) {
+        getSettingsNamespace().promptLibrary = normalizePromptLibrary(library);
+        saveSettingsDebounced();
+    },
+
+    addPromptToLibrary(promptData) {
+        const library = this.getPromptLibrary();
+        const prompt = normalizePromptLibraryPrompt(promptData);
+        library.push(prompt);
+        this.savePromptLibrary(library);
+        return prompt;
+    },
+
     // Snapshots
     getSnapshot(api = 'openai') {
         return extension_settings[NEMO_EXTENSION_NAME]?.promptSnapshots?.[api] || null;

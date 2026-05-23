@@ -1,11 +1,51 @@
 import { callGenericPopup, POPUP_TYPE } from '../../../../../popup.js';
 import { LOG_PREFIX, generateUUID, debounce, NEMO_FAVORITE_PRESETS_KEY, getExtensionPath } from '../../core/utils.js';
-import { eventSource, event_types } from '../../../../../../script.js';
+import { eventSource, event_types, saveSettingsDebounced } from '../../../../../../script.js';
 import { promptManager } from '../../../../../openai.js';
+import storage from '../../core/storage-migration.js';
 
 // New storage keys for prompt navigator
 const NEMO_PROMPT_METADATA_KEY = 'nemoPromptNavigatorMetadata';
 const NEMO_FAVORITE_PROMPTS_KEY = 'nemo-favorite-prompts';
+
+function escapeHtml(text) {
+    return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function makeArchivePromptId(prefix = 'navigator') {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function getUniqueArchiveTitle(library, title) {
+    const baseTitle = String(title || 'Untitled Prompt').trim() || 'Untitled Prompt';
+    let uniqueTitle = baseTitle;
+    let counter = 1;
+
+    while (library.some(prompt => prompt.title === uniqueTitle)) {
+        uniqueTitle = `${baseTitle} (${counter})`;
+        counter++;
+    }
+
+    return uniqueTitle;
+}
+
+function getUniquePromptIdentifier(prompts, baseIdentifier) {
+    const base = String(baseIdentifier || makeArchivePromptId('archived')).trim() || makeArchivePromptId('archived');
+    let identifier = base;
+    let counter = 1;
+
+    while (prompts.some(prompt => prompt.identifier === identifier)) {
+        identifier = `${base}-${counter}`;
+        counter++;
+    }
+
+    return identifier;
+}
 
 export class PromptNavigator {
     constructor() {
@@ -848,18 +888,20 @@ export class PromptNavigator {
             });
         });
 
-        const closeDialog = () => {
+        const closeDialog = ({ preserveSelection = false } = {}) => {
             const popup = dialogElement.closest('.popup_outer, dialog.popup');
             if (popup) {
                 const closeButton = popup.querySelector('.popup-button-close');
                 if (closeButton) closeButton.click();
             }
-            this.selectedPromptData = null; // Clean up
+            if (!preserveSelection) {
+                this.selectedPromptData = null;
+            }
         };
 
         confirmBtn.addEventListener('click', async () => {
             if (selectedIndex >= 0) {
-                closeDialog();
+                closeDialog({ preserveSelection: true });
                 await this.movePromptToSelectedHeader(headers[selectedIndex]);
             }
         });
@@ -887,15 +929,20 @@ export class PromptNavigator {
                 }
             }
 
-            // Use the prompt manager's move functionality if available
-            if (typeof window.NemoPresetManager !== 'undefined' && window.NemoPresetManager.movePromptToPosition) {
-                await window.NemoPresetManager.movePromptToPosition(data.identifier, selectedHeader.identifier);
+            const sourceElement = document.querySelector(`li[data-pm-identifier="${data.identifier}"]`);
+
+            // Use the preset manager's existing move-and-save path when available.
+            if (window.NemoPresetManager?.movePromptBelowHeader && sourceElement) {
+                window.NemoPresetManager.selectedPromptItem = sourceElement;
+                window.NemoPresetManager.movePromptBelowHeader(selectedHeader);
             } else {
                 // Fallback: try to manipulate the DOM directly
-                const sourceElement = document.querySelector(`li[data-pm-identifier="${data.identifier}"]`);
                 if (sourceElement && targetPosition) {
                     // Insert after the header
                     targetPosition.parentNode.insertBefore(sourceElement, targetPosition.nextSibling);
+                } else {
+                    callGenericPopup('Imported prompt was added, but could not be moved to the selected header.', 'warning');
+                    return;
                 }
             }
 
@@ -915,14 +962,12 @@ export class PromptNavigator {
 
     async addPromptToArchive(promptId) {
         try {
-            // Find the prompt data
             const prompt = this.allPrompts.find(p => p.identifier === promptId);
             if (!prompt) {
                 callGenericPopup('Prompt not found', 'error');
                 return;
             }
 
-            // Get the prompt content from SillyTavern's prompt manager
             if (typeof promptManager !== 'undefined' && promptManager.serviceSettings?.prompts) {
                 const promptData = promptManager.serviceSettings.prompts.find(p => p.identifier === promptId);
                 if (!promptData) {
@@ -930,40 +975,25 @@ export class PromptNavigator {
                     return;
                 }
 
-                // Get the existing prompt library or create a new one
-                const existingLibrary = JSON.parse(localStorage.getItem('nemoPromptSnapshotData') || '{}');
-                const library = existingLibrary.prompts || {};
-
-                // Create a unique key for the prompt (use name with timestamp if needed)
-                let promptKey = prompt.name;
-                let counter = 1;
-                while (library[promptKey]) {
-                    promptKey = `${prompt.name} (${counter})`;
-                    counter++;
-                }
-
-                // Add the prompt to the library
-                library[promptKey] = {
-                    name: prompt.name,
-                    role: prompt.role || 'user',
+                const library = storage.getPromptLibrary();
+                const title = getUniqueArchiveTitle(library, prompt.name);
+                const now = new Date().toISOString();
+                const archivedPrompt = storage.addPromptToLibrary({
+                    id: makeArchivePromptId(),
+                    title,
+                    role: promptData.role || prompt.role || 'user',
                     content: promptData.content || '',
                     identifier: prompt.identifier,
-                    addedAt: new Date().toISOString(),
-                    source: 'prompt-navigator'
-                };
+                    dateCreated: now,
+                    dateModified: now,
+                    tags: ['prompt-navigator'],
+                    folder: 'Default',
+                    isFavorite: false,
+                });
 
-                // Save back to localStorage
-                const updatedLibrary = {
-                    ...existingLibrary,
-                    prompts: library,
-                    lastModified: new Date().toISOString()
-                };
-
-                localStorage.setItem('nemoPromptSnapshotData', JSON.stringify(updatedLibrary));
-
-                callGenericPopup(`Prompt "${prompt.name}" added to archive successfully!`, 'success');
+                callGenericPopup(`Prompt "${title}" added to archive successfully!`, 'success');
                 
-                console.log(`${LOG_PREFIX} Added prompt to archive:`, promptKey);
+                console.log(`${LOG_PREFIX} Added prompt to archive:`, archivedPrompt.id);
             } else {
                 callGenericPopup('Prompt manager not available', 'error');
             }
@@ -975,24 +1005,19 @@ export class PromptNavigator {
 
     async showImportDialog() {
         try {
-            // Get the prompt library from localStorage
-            const libraryData = localStorage.getItem('nemoPromptSnapshotData');
-            if (!libraryData) {
+            const prompts = storage.getPromptLibrary();
+
+            if (prompts.length === 0) {
                 callGenericPopup('No archived prompts found to import', 'info');
                 return;
             }
 
-            const library = JSON.parse(libraryData);
-            const prompts = library.prompts || {};
-            const promptNames = Object.keys(prompts);
-
-            if (promptNames.length === 0) {
-                callGenericPopup('No archived prompts found to import', 'info');
-                return;
-            }
-
-            // Create a selection dialog
-            const options = promptNames.map(name => `<option value="${name}">${name}</option>`).join('');
+            const options = prompts.map(prompt => {
+                const label = prompt.folder && prompt.folder !== 'Default'
+                    ? `${prompt.title} (${prompt.folder})`
+                    : prompt.title;
+                return `<option value="${escapeHtml(prompt.id)}">${escapeHtml(label)}</option>`;
+            }).join('');
             const dialogHtml = `
                 <div class="nemo-import-dialog">
                     <h3>Import Archived Prompt</h3>
@@ -1032,18 +1057,18 @@ export class PromptNavigator {
             };
 
             importToCompletionBtn.addEventListener('click', async () => {
-                const selectedPrompt = selectEl.value;
+                const selectedPrompt = prompts.find(prompt => prompt.id === selectEl.value);
                 if (selectedPrompt) {
                     closeDialog();
-                    await this.importPromptToCompletion(selectedPrompt, prompts[selectedPrompt]);
+                    await this.importPromptToCompletion(selectedPrompt);
                 }
             });
 
             importToHeaderBtn.addEventListener('click', async () => {
-                const selectedPrompt = selectEl.value;
+                const selectedPrompt = prompts.find(prompt => prompt.id === selectEl.value);
                 if (selectedPrompt) {
                     closeDialog();
-                    await this.importPromptToHeader(selectedPrompt, prompts[selectedPrompt]);
+                    await this.importPromptToHeader(selectedPrompt);
                 }
             });
 
@@ -1055,25 +1080,94 @@ export class PromptNavigator {
         }
     }
 
-    async importPromptToCompletion(promptName, promptData) {
+    async importPromptToCompletion(archivedPrompt, { silent = false } = {}) {
         try {
-            // This would require interfacing with SillyTavern's prompt manager
-            // For now, show a message that this feature needs implementation
-            callGenericPopup(`Importing "${promptName}" to completion prompts is not yet implemented. This would require direct integration with SillyTavern's prompt manager.`, 'info');
+            if (!promptManager?.serviceSettings?.prompts) {
+                callGenericPopup('Prompt manager not available', 'error');
+                return null;
+            }
+
+            const identifier = getUniquePromptIdentifier(
+                promptManager.serviceSettings.prompts,
+                archivedPrompt.id || makeArchivePromptId('archived')
+            );
+            const newPrompt = {
+                identifier,
+                name: archivedPrompt.title || archivedPrompt.name || 'Imported Prompt',
+                system_prompt: false,
+                marker: false,
+                role: archivedPrompt.role || 'user',
+                content: archivedPrompt.content || '',
+                enabled: true,
+            };
+
+            promptManager.serviceSettings.prompts.unshift(newPrompt);
+
+            if (Array.isArray(promptManager.serviceSettings.prompt_order)) {
+                let promptOrderEntry = null;
+
+                if (promptManager.activeCharacter?.id) {
+                    promptOrderEntry = promptManager.serviceSettings.prompt_order.find(entry =>
+                        entry.character_id === promptManager.activeCharacter.id
+                    );
+                }
+
+                if (!promptOrderEntry) {
+                    promptOrderEntry = promptManager.serviceSettings.prompt_order.find(entry =>
+                        !entry.character_id || entry.character_id === 'default' || entry.character_id === null
+                    );
+                }
+
+                if (!promptOrderEntry) {
+                    promptOrderEntry = {
+                        character_id: null,
+                        order: [],
+                    };
+                    promptManager.serviceSettings.prompt_order.push(promptOrderEntry);
+                }
+
+                promptOrderEntry.order.unshift({
+                    identifier,
+                    enabled: true,
+                });
+            }
+
+            if (typeof promptManager.saveServiceSettings === 'function') {
+                promptManager.saveServiceSettings();
+            } else {
+                saveSettingsDebounced();
+            }
+
+            if (typeof promptManager.render === 'function') {
+                promptManager.render();
+            }
+
+            this.allPrompts = await this.fetchPromptList();
+            this.render();
+
+            if (!silent) {
+                callGenericPopup(`Imported "${newPrompt.name}" to completion prompts.`, 'success');
+            }
+
+            return newPrompt;
         } catch (error) {
             console.error(`${LOG_PREFIX} Error importing prompt to completion:`, error);
             callGenericPopup('Error importing prompt', 'error');
+            return null;
         }
     }
 
-    async importPromptToHeader(promptName, promptData) {
-        // Store the prompt data for the header selection dialog
+    async importPromptToHeader(archivedPrompt) {
+        const importedPrompt = await this.importPromptToCompletion(archivedPrompt, { silent: true });
+        if (!importedPrompt) {
+            return;
+        }
+
         this.selectedPromptData = {
-            prompt: { name: `Imported: ${promptName}` },
-            data: promptData
+            prompt: { name: importedPrompt.name },
+            data: importedPrompt,
         };
 
-        // Show the header selection dialog
         this.showHeaderSelectionDialog();
     }
 

@@ -2880,24 +2880,22 @@ export const NemoPresetManager = {
 
     // === PROMPT LIBRARY SYSTEM ===
 
-    getPromptLibraryKey: function() {
-        return 'nemo-prompt-library';
-    },
-
     getPromptLibrary: function() {
         try {
-            const stored = localStorage.getItem(this.getPromptLibraryKey());
-            return stored ? JSON.parse(stored) : [];
+            return storage.getPromptLibrary();
         } catch (error) {
             console.error(`${LOG_PREFIX} Error loading prompt library:`, error);
             return [];
         }
     },
 
+    savePromptLibrary: function(library) {
+        storage.savePromptLibrary(library);
+    },
+
     saveToPromptLibrary: function(promptData) {
         try {
-            const library = this.getPromptLibrary();
-            library.push({
+            storage.addPromptToLibrary({
                 id: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
                 title: promptData.title,
                 content: promptData.content,
@@ -2909,7 +2907,6 @@ export const NemoPresetManager = {
                 folder: promptData.folder || 'Default',
                 isFavorite: false
             });
-            localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(library));
             return true;
         } catch (error) {
             console.error(`${LOG_PREFIX} Error saving to prompt library:`, error);
@@ -2921,7 +2918,7 @@ export const NemoPresetManager = {
         try {
             const library = this.getPromptLibrary();
             const filtered = library.filter(p => p.id !== promptId);
-            localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(filtered));
+            this.savePromptLibrary(filtered);
             return true;
         } catch (error) {
             console.error(`${LOG_PREFIX} Error deleting from prompt library:`, error);
@@ -3372,7 +3369,7 @@ export const NemoPresetManager = {
             filteredPrompts = filteredPrompts.filter(p => 
                 p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (p.content && p.content.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                p.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+                (Array.isArray(p.tags) && p.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))
             );
         }
         
@@ -3614,7 +3611,7 @@ export const NemoPresetManager = {
             const prompt = library.find(p => p.id === promptId);
             if (prompt) {
                 prompt.isFavorite = !prompt.isFavorite;
-                localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(library));
+                this.savePromptLibrary(library);
             }
         } catch (error) {
             console.error(`${LOG_PREFIX} Error toggling favorite:`, error);
@@ -3899,7 +3896,7 @@ export const NemoPresetManager = {
                     promptToUpdate.folder = folder;
                     promptToUpdate.dateModified = new Date().toISOString();
                     
-                    localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(updatedLibrary));
+                    this.savePromptLibrary(updatedLibrary);
                     this.showStatusMessage('Prompt updated successfully!', 'success');
                     
                     dialog.remove();
@@ -3988,7 +3985,7 @@ export const NemoPresetManager = {
                     promptToMove.folder = targetFolder;
                     promptToMove.dateModified = new Date().toISOString();
                     
-                    localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(updatedLibrary));
+                    this.savePromptLibrary(updatedLibrary);
                     this.showStatusMessage(`Prompt moved to "${targetFolder}" folder!`, 'success');
                     
                     dialog.remove();
@@ -4076,7 +4073,7 @@ export const NemoPresetManager = {
 
             try {
                 library.push(placeholderPrompt);
-                localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(library));
+                this.savePromptLibrary(library);
                 this.showStatusMessage(`Folder "${folderName}" created successfully!`, 'success');
                 
                 dialog.remove();
@@ -4189,7 +4186,7 @@ export const NemoPresetManager = {
                         }
                     });
 
-                    localStorage.setItem(this.getPromptLibraryKey(), JSON.stringify(currentLibrary));
+                    this.savePromptLibrary(currentLibrary);
                     this.showStatusMessage(`Successfully imported ${importCount} prompts!`, 'success');
                     
                     dialog.remove();
