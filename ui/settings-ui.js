@@ -16,8 +16,8 @@ export const NemoSettingsUI = {
     initialize: async function() {
         logger.info('NemoSettingsUI: Starting initialization...');
         const pollForSettings = setInterval(async () => {
-            const container = document.getElementById('extensions_settings');
-            logger.debug('NemoSettingsUI: Polling for settings container...', { found: !!container });
+            const container = document.getElementById('extensions_settings2') || document.getElementById('extensions_settings');
+            logger.debug('NemoSettingsUI: Polling for settings container...', { found: !!container, id: container?.id });
             if (container && !document.querySelector('.nemo-preset-enhancer-settings')) {
                 clearInterval(pollForSettings);
                 logger.info('NemoSettingsUI: Container found, loading settings...');
