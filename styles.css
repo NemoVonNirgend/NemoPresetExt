@@ -3606,6 +3606,8 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 .nemo-tray-header-controls {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 8px;
 }
 
@@ -4079,18 +4081,24 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
     display: none;
 }
 
-.nemo-tray-compact-toggle {
+.nemo-tray-compact-toggle,
+.nemo-tray-compact-all {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 4px;
     color: var(--nemo-text-medium-contrast, #aaa);
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     font-size: 12px;
     padding: 4px 8px;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
-.nemo-tray-compact-toggle:hover {
+.nemo-tray-compact-toggle:hover,
+.nemo-tray-compact-all:hover {
     background: rgba(74, 158, 255, 0.2);
     border-color: rgba(74, 158, 255, 0.4);
     color: #fff;
@@ -4949,9 +4957,11 @@ body.nemo-dropdown-theme-st .nemo-tray-close:hover {
 
 body.nemo-dropdown-theme-nemo .nemo-tray-toggle-all,
 body.nemo-dropdown-theme-nemo .nemo-tray-compact-toggle,
+body.nemo-dropdown-theme-nemo .nemo-tray-compact-all,
 body.nemo-dropdown-theme-nemo .nemo-tray-presets-btn,
 body.nemo-dropdown-theme-st .nemo-tray-toggle-all,
 body.nemo-dropdown-theme-st .nemo-tray-compact-toggle,
+body.nemo-dropdown-theme-st .nemo-tray-compact-all,
 body.nemo-dropdown-theme-st .nemo-tray-presets-btn {
     background: var(--nemo-dropdown-control-bg);
     border-color: var(--nemo-dropdown-control-border);
@@ -4960,8 +4970,10 @@ body.nemo-dropdown-theme-st .nemo-tray-presets-btn {
 
 body.nemo-dropdown-theme-nemo .nemo-tray-toggle-all:hover,
 body.nemo-dropdown-theme-nemo .nemo-tray-compact-toggle:hover,
+body.nemo-dropdown-theme-nemo .nemo-tray-compact-all:hover,
 body.nemo-dropdown-theme-st .nemo-tray-toggle-all:hover,
-body.nemo-dropdown-theme-st .nemo-tray-compact-toggle:hover {
+body.nemo-dropdown-theme-st .nemo-tray-compact-toggle:hover,
+body.nemo-dropdown-theme-st .nemo-tray-compact-all:hover {
     background: var(--nemo-dropdown-control-bg-hover);
     border-color: var(--nemo-dropdown-control-border-hover);
     color: var(--nemo-dropdown-text);
@@ -5532,7 +5544,9 @@ body.nemo-dropdown-theme-st .nemo-engine-section li.completion_prompt_manager_pr
     }
 
     /* Larger toggle-all button */
-    .nemo-mobile-enhanced .nemo-tray-toggle-all {
+    .nemo-mobile-enhanced .nemo-tray-toggle-all,
+    .nemo-mobile-enhanced .nemo-tray-compact-toggle,
+    .nemo-mobile-enhanced .nemo-tray-compact-all {
         padding: 10px 14px;
         font-size: 15px;
     }
@@ -5858,7 +5872,9 @@ body.nemo-dropdown-theme-st .nemo-engine-section li.completion_prompt_manager_pr
         justify-content: center;
     }
 
-    .nemo-mobile-enhanced .nemo-tray-toggle-all {
+    .nemo-mobile-enhanced .nemo-tray-toggle-all,
+    .nemo-mobile-enhanced .nemo-tray-compact-toggle,
+    .nemo-mobile-enhanced .nemo-tray-compact-all {
         min-height: 44px;
         min-width: 70px;
     }
@@ -5887,6 +5903,8 @@ body.nemo-dropdown-theme-st .nemo-engine-section li.completion_prompt_manager_pr
     }
 
     .nemo-mobile-enhanced .nemo-tray-toggle-all:active,
+    .nemo-mobile-enhanced .nemo-tray-compact-toggle:active,
+    .nemo-mobile-enhanced .nemo-tray-compact-all:active,
     .nemo-mobile-enhanced .nemo-prompt-card-edit:active {
         opacity: 0.7;
     }

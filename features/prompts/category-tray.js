@@ -26,6 +26,7 @@ const sectionPromptIdsCache = new Map();
 
 // Track compact view state per section
 const compactViewState = new Map();
+const COMPACT_VIEW_SETTING_KEY = 'compactTraySections';
 
 // Track currently dragged prompt for cross-section drops
 let currentlyDraggedPrompt = null;
@@ -47,15 +48,130 @@ function getSavedPresets() {
 }
 
 /**
- * Ensure presets namespace exists
+ * Ensure extension settings namespace exists
+ * @returns {Object} Extension settings namespace
  */
-function ensurePresetsNamespace() {
+function ensureExtensionSettingsNamespace() {
     if (!extension_settings[NEMO_EXTENSION_NAME]) {
         extension_settings[NEMO_EXTENSION_NAME] = {};
     }
-    if (!extension_settings[NEMO_EXTENSION_NAME].promptPresets) {
-        extension_settings[NEMO_EXTENSION_NAME].promptPresets = {};
+    return extension_settings[NEMO_EXTENSION_NAME];
+}
+
+/**
+ * Ensure presets namespace exists
+ */
+function ensurePresetsNamespace() {
+    const settings = ensureExtensionSettingsNamespace();
+    if (!settings.promptPresets) {
+        settings.promptPresets = {};
     }
+}
+
+/**
+ * Get the saved compact view preferences map
+ * @returns {Object} Map of section IDs to compact state
+ */
+function getSavedCompactSections() {
+    const settings = ensureExtensionSettingsNamespace();
+    if (!settings[COMPACT_VIEW_SETTING_KEY] || typeof settings[COMPACT_VIEW_SETTING_KEY] !== 'object' || Array.isArray(settings[COMPACT_VIEW_SETTING_KEY])) {
+        settings[COMPACT_VIEW_SETTING_KEY] = {};
+    }
+    return settings[COMPACT_VIEW_SETTING_KEY];
+}
+
+/**
+ * Get compact view state for a section, favoring persisted settings.
+ * @param {string} sectionId - Section identifier
+ * @returns {boolean} Whether the section should use compact tray view
+ */
+function getCompactViewState(sectionId) {
+    const savedSections = getSavedCompactSections();
+    if (typeof savedSections[sectionId] === 'boolean') {
+        compactViewState.set(sectionId, savedSections[sectionId]);
+        return savedSections[sectionId];
+    }
+    return compactViewState.get(sectionId) || false;
+}
+
+/**
+ * Save compact view state for one section
+ * @param {string} sectionId - Section identifier
+ * @param {boolean} isCompact - Whether compact view is enabled
+ * @param {boolean} [persist=true] - Whether to flush settings immediately
+ */
+function setCompactViewState(sectionId, isCompact, persist = true) {
+    const savedSections = getSavedCompactSections();
+    compactViewState.set(sectionId, isCompact);
+
+    if (isCompact) {
+        savedSections[sectionId] = true;
+    } else {
+        delete savedSections[sectionId];
+    }
+
+    if (persist) {
+        saveSettingsDebounced();
+    }
+}
+
+/**
+ * Apply compact view classes and button state to an open tray.
+ * @param {HTMLElement} tray - Tray element
+ * @param {boolean} isCompact - Whether compact view is enabled
+ */
+function updateCompactTrayUi(tray, isCompact) {
+    tray.classList.toggle('nemo-tray-compact', isCompact);
+
+    const btn = tray.querySelector('.nemo-tray-compact-toggle');
+    if (btn) {
+        btn.classList.toggle('nemo-compact-active', isCompact);
+        btn.title = isCompact ? 'Card View' : 'Compact View';
+        btn.innerHTML = `<i class="fa-solid ${isCompact ? 'fa-th-large' : 'fa-list'}"></i>`;
+    }
+}
+
+/**
+ * Get every section ID currently known to the tray system.
+ * @param {string} [currentSectionId] - Section ID to include even before cache update
+ * @returns {string[]} Known section IDs
+ */
+function getKnownSectionIds(currentSectionId = null) {
+    const ids = new Set(sectionPromptIdsCache.keys());
+
+    if (currentSectionId) {
+        ids.add(currentSectionId);
+    }
+
+    document.querySelectorAll('details.nemo-engine-section').forEach(section => {
+        const sectionId = getSectionId(section);
+        if (sectionId && sectionId !== 'unknown') {
+            ids.add(sectionId);
+        }
+    });
+
+    return [...ids];
+}
+
+/**
+ * Permanently switch all known trays to compact view.
+ * @param {string} currentSectionId - Current tray section ID
+ */
+function setAllKnownSectionsCompact(currentSectionId) {
+    getKnownSectionIds(currentSectionId).forEach(sectionId => {
+        setCompactViewState(sectionId, true, false);
+    });
+    saveSettingsDebounced();
+
+    document.querySelectorAll('.nemo-category-tray').forEach(tray => {
+        const traySectionId = tray._nemoSectionId || currentSectionId;
+        if (traySectionId) {
+            compactViewState.set(traySectionId, true);
+        }
+        updateCompactTrayUi(tray, true);
+    });
+
+    logger.info('Set all known prompt trays to compact view');
 }
 
 /**
@@ -1154,12 +1270,14 @@ function openTray(section) {
     });
 
     // Get compact view state for this section
-    const isCompact = compactViewState.get(sectionId) || false;
+    const isCompact = getCompactViewState(sectionId);
 
     // Create tray HTML
     const tray = document.createElement('div');
     tray.className = `nemo-category-tray ${isCompact ? 'nemo-tray-compact' : ''}`;
     tray.setAttribute('tabindex', '0'); // Make tray focusable for keyboard nav
+    tray._nemoSectionId = sectionId;
+    tray._nemoSection = section;
 
     const enabledCount = prompts.filter(p => !p.isSubSectionHeader && p.isEnabled).length;
     const allEnabled = enabledCount === prompts.filter(p => !p.isSubSectionHeader).length;
@@ -1174,6 +1292,9 @@ function openTray(section) {
             <div class="nemo-tray-header-controls">
                 <button class="nemo-tray-compact-toggle ${isCompact ? 'nemo-compact-active' : ''}" title="${isCompact ? 'Card View' : 'Compact View'}">
                     <i class="fa-solid ${isCompact ? 'fa-th-large' : 'fa-list'}"></i>
+                </button>
+                <button class="nemo-tray-compact-all" title="Set all sections to Compact View">
+                    <i class="fa-solid fa-list"></i> All Compact
                 </button>
                 <div class="nemo-tray-presets-dropdown">
                     <button class="nemo-tray-presets-btn" title="Presets">
@@ -1568,13 +1689,13 @@ function openTray(section) {
     tray.querySelector('.nemo-tray-compact-toggle').addEventListener('click', (e) => {
         e.stopPropagation();
         const newCompact = !tray.classList.contains('nemo-tray-compact');
-        tray.classList.toggle('nemo-tray-compact', newCompact);
-        compactViewState.set(sectionId, newCompact);
+        setCompactViewState(sectionId, newCompact);
+        updateCompactTrayUi(tray, newCompact);
+    });
 
-        const btn = tray.querySelector('.nemo-tray-compact-toggle');
-        btn.classList.toggle('nemo-compact-active', newCompact);
-        btn.title = newCompact ? 'Card View' : 'Compact View';
-        btn.innerHTML = `<i class="fa-solid ${newCompact ? 'fa-th-large' : 'fa-list'}"></i>`;
+    tray.querySelector('.nemo-tray-compact-all').addEventListener('click', (e) => {
+        e.stopPropagation();
+        setAllKnownSectionsCompact(sectionId);
     });
 
     // Presets dropdown toggle

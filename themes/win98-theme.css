@@ -2025,7 +2025,8 @@ body.nemo-theme-win98 .nemo-tray-section.nemo-tray-open > summary {
 }
 
 /* Compact toggle button */
-body.nemo-theme-win98 .nemo-tray-compact-toggle {
+body.nemo-theme-win98 .nemo-tray-compact-toggle,
+body.nemo-theme-win98 .nemo-tray-compact-all {
     background: var(--win98-button-face) !important;
     border: 1px solid !important;
     border-color: var(--win98-border-light) var(--win98-border-darker) var(--win98-border-darker) var(--win98-border-light) !important;
