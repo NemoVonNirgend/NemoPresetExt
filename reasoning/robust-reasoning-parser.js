@@ -1226,15 +1226,11 @@ export function enhanceReasoningParsing() {
 }
 
 /**
- * Auto-initialization when loaded
+ * NOTE: The previous auto-init monkeypatched `window.SillyTavern.parseReasoningFromString`,
+ * but the core reasoning pipeline calls its own module-local `parseReasoningFromString`
+ * internally, so that patch never took effect (dead code). Reasoning capture is now wired
+ * in properly via `NemoNetReasoningParser.parse()`, which defers to the fork's native
+ * (already robust) `parseReasoningFromString` first and only falls back here for tagless
+ * formats. The `enhanceReasoningParsing` export is kept for backward compatibility but is
+ * no longer auto-run.
  */
-if (typeof window !== 'undefined') {
-    // Wait for SillyTavern to be ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(enhanceReasoningParsing, 1000);
-        });
-    } else {
-        setTimeout(enhanceReasoningParsing, 1000);
-    }
-}

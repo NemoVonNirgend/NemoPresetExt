@@ -7,7 +7,7 @@
 
 import { RobustReasoningParser } from './robust-reasoning-parser.js';
 import { getContext } from '../../../../extensions.js';
-import { updateReasoningUI } from '../../../../reasoning.js';
+import { updateReasoningUI, parseReasoningFromString } from '../../../../reasoning.js';
 import { saveChatDebounced } from '../../../../../script.js';
 
 // Debug flag - set to true for verbose logging during development
@@ -150,6 +150,35 @@ export const NemoNetReasoningConfig = {
 export class NemoNetReasoningParser extends RobustReasoningParser {
     constructor(config = {}) {
         super({ ...NemoNetReasoningConfig, ...config });
+    }
+
+    /**
+     * Prefer SillyTavern's native reasoning parser before our own.
+     *
+     * The fork's `parseReasoningFromString` is already robust — it tries the configured
+     * delimiter plus every common variant AND repairs unclosed tags — and it's the same
+     * function the rest of the app uses. Deferring to it means tag-based reasoning is
+     * captured correctly the first time and consistently with native rendering. We only
+     * fall back to the specialized parser for the tagless formats native can't see
+     * (e.g. a NemoNet Council block with no <think> tags).
+     */
+    parse(text) {
+        const input = String(text ?? '');
+        try {
+            if (typeof parseReasoningFromString === 'function') {
+                const native = parseReasoningFromString(input, { strict: false });
+                const reasoning = native?.reasoning?.trim() ?? '';
+                const content = native?.content?.trim() ?? '';
+                // Accept only a clean split: real reasoning AND a non-empty visible message.
+                if (reasoning.length > 20 && content.length >= 15) {
+                    return { reasoning: native.reasoning, content: native.content, strategy: 'native', confidence: 96 };
+                }
+            }
+        } catch (err) {
+            if (this.debug) console.warn('NemoNet: native parseReasoningFromString failed, using fallback', err);
+        }
+        // Native found nothing usable — use the multi-strategy / tagless fallback.
+        return super.parse(input);
     }
 
     /**
