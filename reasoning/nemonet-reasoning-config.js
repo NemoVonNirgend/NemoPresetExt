@@ -7,7 +7,7 @@
 
 import { RobustReasoningParser } from './robust-reasoning-parser.js';
 import { getContext } from '../../../../extensions.js';
-import { updateReasoningUI, parseReasoningFromString } from '../../../../reasoning.js';
+import { updateReasoningUI } from '../../../../reasoning.js';
 import { saveChatDebounced } from '../../../../../script.js';
 
 // Debug flag - set to true for verbose logging during development
@@ -165,8 +165,12 @@ export class NemoNetReasoningParser extends RobustReasoningParser {
     parse(text) {
         const input = String(text ?? '');
         try {
-            if (typeof parseReasoningFromString === 'function') {
-                const native = parseReasoningFromString(input, { strict: false });
+            // Resolved at runtime via getContext() (NOT a static import) so the extension still
+            // loads on base SillyTavern even if it doesn't expose this function — we just fall
+            // back to our own parser there.
+            const nativeParse = (typeof getContext === 'function' ? getContext() : null)?.parseReasoningFromString;
+            if (typeof nativeParse === 'function') {
+                const native = nativeParse(input, { strict: false });
                 const reasoning = native?.reasoning?.trim() ?? '';
                 const content = native?.content?.trim() ?? '';
                 // Accept only a clean split: real reasoning AND a non-empty visible message.
