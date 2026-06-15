@@ -15,11 +15,17 @@ import logger from '../core/logger.js';
 export const NemoSettingsUI = {
     initialize: async function() {
         logger.info('NemoSettingsUI: Starting initialization...');
+        // Self-healing mount. The panel is injected into ST's extensions settings container,
+        // but ST can rebuild that container while loading its own extension list, which wipes
+        // our panel out ("flickers in then disappears" for some users, depending on timing).
+        // So we DON'T stop polling after the first mount — the idempotent guard below re-injects
+        // the panel whenever it is missing. `mounting` prevents overlapping async re-mounts
+        // during the settings.html fetch.
+        let mounting = false;
         const pollForSettings = setInterval(async () => {
             const container = document.getElementById('extensions_settings2') || document.getElementById('extensions_settings');
-            logger.debug('NemoSettingsUI: Polling for settings container...', { found: !!container, id: container?.id });
-            if (container && !document.querySelector('.nemo-preset-enhancer-settings')) {
-                clearInterval(pollForSettings);
+            if (container && !mounting && !document.querySelector('.nemo-preset-enhancer-settings')) {
+                mounting = true;
                 logger.info('NemoSettingsUI: Container found, loading settings...');
                 ensureSettingsNamespace();
                 this.applyDropdownTheme(extension_settings[NEMO_EXTENSION_NAME]?.dropdownTheme || 'st');
@@ -473,6 +479,8 @@ export const NemoSettingsUI = {
                 logger.info('NemoSettingsUI: All event listeners attached successfully');
                 } catch (error) {
                     logger.error('NemoSettingsUI: Error during initialization', error);
+                } finally {
+                    mounting = false;
                 }
             }
         }, 500);
