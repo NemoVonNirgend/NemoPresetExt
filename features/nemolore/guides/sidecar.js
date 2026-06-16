@@ -130,8 +130,17 @@ export async function runSidecarGeneration({ prompt, profileId, toolName, toolPa
 
         // Prefer profile calls because they preserve preset and instruct settings.
         if (selectedProfileId) {
-            output = await runViaProfile(selectedProfileId, prompt, maxTokens);
-        } else {
+            try {
+                output = await runViaProfile(selectedProfileId, prompt, maxTokens);
+            } catch (err) {
+                // A selected profile that errors (bad connection, no credit, etc.) shouldn't kill
+                // the tool — degrade to a direct route instead of failing the whole generation.
+                console.warn(`${LOG_PREFIX} Profile '${selectedProfileId}' failed, falling back to a direct route:`, err?.message ?? err);
+            }
+        }
+
+        // No profile (or it failed/returned nothing): try the direct API route, then /gen.
+        if (!output || !output.trim()) {
             const connectionId = ensureConnection();
             if (connectionId) {
                 output = await runViaApiRouter(connectionId, prompt, maxTokens);
