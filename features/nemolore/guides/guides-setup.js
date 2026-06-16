@@ -14,7 +14,7 @@ import { getNemoLoreSettings } from '../settings.js';
 import { runProfilePrompt } from '../shared/model-service.js';
 import { DEFAULT_PROMPTS } from './prompts.js';
 import { updateTracker } from './lorebook-manager.js';
-import { getToolSettings } from './tool-registry.js';
+import { getGuidesSettings, getToolSettings } from './tool-registry.js';
 import { notifyToolStart, notifyToolComplete } from './activity-feed.js';
 import { parseSceneSections } from './scene-sections.js';
 
@@ -214,11 +214,28 @@ async function runSetupRequest({ profileId, connectionId, systemPrompt, userProm
 export async function runFreshChatSetup() {
     console.log(`${LOG_PREFIX} Starting parallel fresh-chat setup...`);
 
+    const guidesSettings = getGuidesSettings();
+    const ruleSettings = getToolSettings('NLG_rule_setup');
+    const sceneSettings = getToolSettings('NLG_scene_assessment');
+    const dmSettings = getToolSettings('NLG_dm_notes');
+    const taskEnabled = {
+        rules: ruleSettings.enabled && guidesSettings.autoGenerateRules !== false,
+        scene: sceneSettings.enabled,
+        dm: dmSettings.enabled,
+    };
+
+    if (!taskEnabled.rules && !taskEnabled.scene && !taskEnabled.dm) {
+        console.log(`${LOG_PREFIX} No fresh-chat setup tasks are enabled.`);
+        return true;
+    }
+
     const memoryProfileId = getMemoryProfileId();
-    const ruleProfileId = resolveToolProfileId('NLG_rule_setup', memoryProfileId);
-    const sceneProfileId = resolveToolProfileId('NLG_scene_assessment', memoryProfileId);
-    const dmProfileId = resolveToolProfileId('NLG_dm_notes', memoryProfileId);
-    const needsCurrentApi = !ruleProfileId || !sceneProfileId || !dmProfileId;
+    const ruleProfileId = taskEnabled.rules ? resolveToolProfileId('NLG_rule_setup', memoryProfileId) : '';
+    const sceneProfileId = taskEnabled.scene ? resolveToolProfileId('NLG_scene_assessment', memoryProfileId) : '';
+    const dmProfileId = taskEnabled.dm ? resolveToolProfileId('NLG_dm_notes', memoryProfileId) : '';
+    const needsCurrentApi = (taskEnabled.rules && !ruleProfileId)
+        || (taskEnabled.scene && !sceneProfileId)
+        || (taskEnabled.dm && !dmProfileId);
     const connectionId = needsCurrentApi ? getConnectionId('NLG_rule_setup') : null;
 
     if (needsCurrentApi && !connectionId) {
@@ -228,8 +245,7 @@ export async function runFreshChatSetup() {
 
     const { contextBlock, charName, userName } = buildContextBlock();
 
-    // Build prompts for all three tasks
-    const ruleSettings = getToolSettings('NLG_rule_setup');
+    // Build prompts for enabled tasks.
     const rulePrompt = (ruleSettings.prompt || DEFAULT_PROMPTS.rule_setup)
         .replace('{{CONTEXT}}', contextBlock)
         .replace('{{FOCUS}}', '')
@@ -241,38 +257,49 @@ export async function runFreshChatSetup() {
     const dmInitPrompt = `[OOC: Initialize a narrative scratchpad for this story. Based on the opening scene and character card, create initial entries for:\n\n♢ Plot Threads\nList 2-3 potential storylines suggested by the opening.\n\n♢ Off-Screen Events\nWhat might NPCs or the world be doing outside the current scene?\n\n♢ Character Arcs\nWhat development trajectories are suggested for the main characters?\n\n♢ Foreshadowing Seeds\nAny narrative seeds that could pay off later.\n\n♢ Session Notes\nKey initial facts established.\n\n♢ Narrative Direction\nWhere the story might naturally head from here.\n\nContext:\n${contextBlock}]`;
 
     // Notify activity feed
-    const ruleFeedId = notifyToolStart('NLG_rule_setup', { mode: 'parallel-setup' });
-    const sceneFeedId = notifyToolStart('NLG_scene_assessment', { aspects: ['all'], mode: 'parallel-setup' });
-    const dmFeedId = notifyToolStart('NLG_dm_notes', { action: 'init', mode: 'parallel-setup' });
+    const ruleFeedId = taskEnabled.rules ? notifyToolStart('NLG_rule_setup', { mode: 'parallel-setup' }) : null;
+    const sceneFeedId = taskEnabled.scene ? notifyToolStart('NLG_scene_assessment', { aspects: ['all'], mode: 'parallel-setup' }) : null;
+    const dmFeedId = taskEnabled.dm ? notifyToolStart('NLG_dm_notes', { action: 'init', mode: 'parallel-setup' }) : null;
 
     try {
-        // Fire all three in parallel
-        const [ruleResult, sceneResult, dmResult] = await Promise.allSettled([
-            runSetupRequest({
+        // Fire enabled setup tasks in parallel.
+        const setupTasks = [];
+        if (taskEnabled.rules) {
+            setupTasks.push(['rules', runSetupRequest({
                 profileId: ruleProfileId,
                 connectionId,
                 systemPrompt: 'You are a story architect. Analyze the source material and produce a system prompt governing this story.',
                 userPrompt: rulePrompt,
                 maxTokens: 2000,
-            }),
-            runSetupRequest({
+            })]);
+        }
+        if (taskEnabled.scene) {
+            setupTasks.push(['scene', runSetupRequest({
                 profileId: sceneProfileId,
                 connectionId,
                 systemPrompt: 'You are a scene analyst. Assess the current scene state accurately and concisely.',
                 userPrompt: scenePrompt,
                 maxTokens: 1000,
-            }),
-            runSetupRequest({
+            })]);
+        }
+        if (taskEnabled.dm) {
+            setupTasks.push(['dm', runSetupRequest({
                 profileId: dmProfileId,
                 connectionId,
                 systemPrompt: 'You are a narrative planner. Initialize story tracking notes based on the opening scene.',
                 userPrompt: dmInitPrompt,
                 maxTokens: 1000,
-            }),
-        ]);
+            })]);
+        }
+
+        const settledResults = await Promise.allSettled(setupTasks.map(([, promise]) => promise));
+        const results = Object.fromEntries(setupTasks.map(([name], index) => [name, settledResults[index]]));
+        const ruleResult = results.rules;
+        const sceneResult = results.scene;
+        const dmResult = results.dm;
 
         // Process Rule Setup result
-        if (ruleResult.status === 'fulfilled' && ruleResult.value.text) {
+        if (taskEnabled.rules && ruleResult.status === 'fulfilled' && ruleResult.value.text) {
             const ruleText = ruleResult.value.text;
             await updateTracker('rules', ruleText);
 
@@ -284,14 +311,14 @@ export async function runFreshChatSetup() {
 
             notifyToolComplete(ruleFeedId, true, `${ruleText.length} chars`, { fullResult: ruleText, storedIn: ['Lorebook: rules', 'Lorebook: narrator'] });
             console.log(`${LOG_PREFIX} Rule Setup complete (${ruleText.length} chars)`);
-        } else {
+        } else if (taskEnabled.rules) {
             const err = ruleResult.status === 'rejected' ? ruleResult.reason?.message : ruleResult.value?.error;
             notifyToolComplete(ruleFeedId, false, err || 'Failed');
             console.error(`${LOG_PREFIX} Rule Setup failed:`, err);
         }
 
         // Process Scene Assessment result
-        if (sceneResult.status === 'fulfilled' && sceneResult.value.text) {
+        if (taskEnabled.scene && sceneResult.status === 'fulfilled' && sceneResult.value.text) {
             const sceneText = sceneResult.value.text;
 
             // Parse sections and write to individual trackers
@@ -314,20 +341,20 @@ export async function runFreshChatSetup() {
                 storedIn: ['Lorebook: situation', 'Lorebook: clothing', 'Lorebook: positions', 'Lorebook: thinking'],
             });
             console.log(`${LOG_PREFIX} Scene Assessment complete (${sceneText.length} chars, ${writes.length} trackers)`);
-        } else {
+        } else if (taskEnabled.scene) {
             const err = sceneResult.status === 'rejected' ? sceneResult.reason?.message : sceneResult.value?.error;
             notifyToolComplete(sceneFeedId, false, err || 'Failed');
             console.error(`${LOG_PREFIX} Scene Assessment failed:`, err);
         }
 
         // Process DM Notes result
-        if (dmResult.status === 'fulfilled' && dmResult.value.text) {
+        if (taskEnabled.dm && dmResult.status === 'fulfilled' && dmResult.value.text) {
             const dmText = dmResult.value.text;
             await updateTracker('dm_notes', dmText);
 
             notifyToolComplete(dmFeedId, true, `${dmText.length} chars`, { fullResult: dmText, storedIn: ['Lorebook: dm_notes'] });
             console.log(`${LOG_PREFIX} DM Notes init complete (${dmText.length} chars)`);
-        } else {
+        } else if (taskEnabled.dm) {
             const err = dmResult.status === 'rejected' ? dmResult.reason?.message : dmResult.value?.error;
             notifyToolComplete(dmFeedId, false, err || 'Failed');
             console.error(`${LOG_PREFIX} DM Notes init failed:`, err);
@@ -337,9 +364,9 @@ export async function runFreshChatSetup() {
         return true;
     } catch (error) {
         console.error(`${LOG_PREFIX} Parallel setup failed:`, error);
-        notifyToolComplete(ruleFeedId, false, error.message);
-        notifyToolComplete(sceneFeedId, false, error.message);
-        notifyToolComplete(dmFeedId, false, error.message);
+        if (ruleFeedId !== null) notifyToolComplete(ruleFeedId, false, error.message);
+        if (sceneFeedId !== null) notifyToolComplete(sceneFeedId, false, error.message);
+        if (dmFeedId !== null) notifyToolComplete(dmFeedId, false, error.message);
         return false;
     }
 }

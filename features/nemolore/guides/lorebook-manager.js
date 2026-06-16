@@ -18,6 +18,11 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
+import {
+    createNewWorldInfo,
+    loadWorldInfo,
+    updateWorldInfoList,
+} from '../../../../../../world-info.js';
 import { getGuidesSettings } from './tool-registry.js';
 
 const LOG_PREFIX = '[NemoLore:Guides:Lorebook]';
@@ -89,8 +94,8 @@ export const TRACKERS = {
  */
 const uidCache = {};
 
-/** Whether the lorebook has been initialized this session. */
-let bookInitialized = false;
+/** Name of the lorebook verified during this session. */
+let initializedBookName = '';
 
 // ── Helpers ──
 
@@ -106,6 +111,12 @@ async function runScript(script) {
     } catch (error) {
         console.error(`${LOG_PREFIX} Script failed:`, error);
         return '';
+    }
+}
+
+function clearUidCache() {
+    for (const key of Object.keys(uidCache)) {
+        delete uidCache[key];
     }
 }
 
@@ -133,6 +144,49 @@ function stripMetadata(content) {
     return content.replace(METADATA_REGEX, '');
 }
 
+function getEntriesList(worldData) {
+    return Object.entries(worldData?.entries || {}).map(([key, entry]) => ({
+        key,
+        entry,
+    }));
+}
+
+function getEntryUid(entry, key) {
+    const uid = entry?.uid !== undefined ? entry.uid : key;
+    return uid !== undefined && uid !== null && uid !== '' ? String(uid) : null;
+}
+
+function isTrackerEntry(entry, tracker) {
+    if (!entry || !tracker) return false;
+
+    if (entry.comment === tracker.comment) {
+        return true;
+    }
+
+    if (Array.isArray(entry.key) && entry.key.some(k => String(k).includes(tracker.key))) {
+        return true;
+    }
+
+    return false;
+}
+
+function findTrackerUidInWorldData(worldData, trackerType) {
+    const tracker = TRACKERS[trackerType];
+    if (!tracker) return null;
+
+    for (const { key, entry } of getEntriesList(worldData)) {
+        if (!isTrackerEntry(entry, tracker)) continue;
+
+        const entryUid = getEntryUid(entry, key);
+        if (entryUid) {
+            uidCache[trackerType] = entryUid;
+            return entryUid;
+        }
+    }
+
+    return null;
+}
+
 // ── Public API ──
 
 function getConfiguredBookName() {
@@ -145,14 +199,12 @@ export function getBookName() {
 }
 
 async function verifyExistingBook(bookName) {
-    const testUid = await runScript(`/createentry file=${JSON.stringify(bookName)} key="${ENTRY_PREFIX} _init_test"`);
-    if (!testUid || testUid === '') {
+    const data = await loadWorldInfo(bookName);
+    if (!data || !('entries' in data)) {
         return false;
     }
 
-    await runScript(`/setentryfield file=${JSON.stringify(bookName)} uid=${testUid} field=disable true`);
-    await runScript(`/setentryfield file=${JSON.stringify(bookName)} uid=${testUid} field=content (NemoLore tracker initialization marker - can be deleted)`);
-    bookInitialized = true;
+    initializedBookName = bookName;
     console.log(`${LOG_PREFIX} Lorebook "${bookName}" verified and ready.`);
     await activateBookGlobally(bookName);
     return true;
@@ -164,26 +216,23 @@ async function verifyExistingBook(bookName) {
  * @returns {Promise<boolean>}
  */
 export async function ensureBookExists() {
-    if (bookInitialized) return true;
-
     const configuredBookName = getConfiguredBookName();
     const bookName = configuredBookName || DEFAULT_BOOK_NAME;
+
+    if (initializedBookName === bookName) return true;
+    clearUidCache();
 
     if (await verifyExistingBook(bookName)) {
         return true;
     }
 
-    // Try to create the book via API
+    // Try to create the book through SillyTavern's World Info helper so the
+    // client cache, dropdowns, and server state stay in sync.
     try {
         console.log(`${LOG_PREFIX} Lorebook "${bookName}" not found. Creating...`);
-        const response = await fetch('/api/worldinfo/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: bookName }),
-        });
 
-        if (response.ok) {
-            bookInitialized = true;
+        if (await createNewWorldInfo(bookName, { interactive: false })) {
+            initializedBookName = bookName;
             console.log(`${LOG_PREFIX} Created lorebook "${bookName}".`);
             await activateBookGlobally(bookName);
             return true;
@@ -215,8 +264,14 @@ async function activateBookGlobally(bookName) {
         }
 
         // Find the option and select it
-        const option = Array.from(worldInfoSelect.options)
+        let option = Array.from(worldInfoSelect.options)
             .find(opt => opt.text === bookName || opt.value === bookName);
+
+        if (!option) {
+            await updateWorldInfoList();
+            option = Array.from(worldInfoSelect.options)
+                .find(opt => opt.text === bookName || opt.value === bookName);
+        }
 
         if (option) {
             option.selected = true;
@@ -240,33 +295,38 @@ async function findTrackerEntry(trackerType) {
     const tracker = TRACKERS[trackerType];
     if (!tracker) return null;
 
-    // Always scan the in-memory world info data to find our entries.
-    // The UID cache from createentry may not match what getentryfield expects,
-    // so we rely on the worldInfo scan which uses the real entry.uid.
+    try {
+        const worldData = await loadWorldInfo(bookName);
+        const cachedUid = uidCache[trackerType];
+        if (cachedUid) {
+            const cachedEntry = getEntriesList(worldData)
+                .find(({ key, entry }) => getEntryUid(entry, key) === cachedUid);
+            if (cachedEntry && isTrackerEntry(cachedEntry.entry, tracker)) {
+                return cachedUid;
+            }
+            delete uidCache[trackerType];
+        }
+
+        const uid = findTrackerUidInWorldData(worldData, trackerType);
+        if (uid) {
+            console.log(`${LOG_PREFIX} Found existing tracker "${tracker.key}" (UID: ${uid})`);
+            return uid;
+        }
+    } catch (error) {
+        console.warn(`${LOG_PREFIX} Could not load lorebook "${bookName}" while finding tracker ${trackerType}:`, error);
+    }
+
+    // Fallback to SillyTavern's in-memory world info when the saved book is
+    // unavailable. This path should not be the primary reload lookup.
     try {
         const context = getContext();
         if (context?.worldInfo) {
             for (const [name, worldData] of Object.entries(context.worldInfo)) {
                 if (name !== bookName) continue;
-                if (!worldData?.entries) continue;
-
-                for (const entry of Object.values(worldData.entries)) {
-                    // The real UID is entry.uid, not the object key
-                    const entryUid = entry.uid !== undefined ? String(entry.uid) : null;
-                    if (!entryUid) continue;
-
-                    // Match by comment field which contains our prefix + tracker type
-                    if (entry.comment && entry.comment === tracker.comment) {
-                        uidCache[trackerType] = entryUid;
-                        console.log(`${LOG_PREFIX} Found existing tracker "${tracker.key}" (UID: ${entryUid})`);
-                        return entryUid;
-                    }
-                    // Fallback: match by key array
-                    if (entry.key && Array.isArray(entry.key) && entry.key.some(k => k.includes(tracker.key))) {
-                        uidCache[trackerType] = entryUid;
-                        console.log(`${LOG_PREFIX} Found existing tracker "${tracker.key}" by key (UID: ${entryUid})`);
-                        return entryUid;
-                    }
+                const uid = findTrackerUidInWorldData(worldData, trackerType);
+                if (uid) {
+                    console.log(`${LOG_PREFIX} Found existing tracker "${tracker.key}" from context (UID: ${uid})`);
+                    return uid;
                 }
             }
         }

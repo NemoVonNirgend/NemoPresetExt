@@ -1,7 +1,10 @@
 ﻿import {
+    chat,
     eventSource,
     event_types,
+    getCurrentChatId,
 } from '../../../../../../script.js';
+import { localforage } from '../../../../../../lib.js';
 import {
     DEFAULT_SETTINGS,
     FEATURE_PATH,
@@ -89,6 +92,9 @@ import { installNemoLoreDebug, uninstallNemoLoreDebug } from './debug.js';
 let initialized = false;
 const registeredEventHandlers = [];
 let lastPreferenceVariableName = null;
+let generatedAssistantRenderPending = false;
+let renderPendingClearTimer = null;
+let lastProcessedAssistantRenderKey = '';
 
 
 function registerEventHandler(eventName, handler) {
@@ -98,6 +104,58 @@ function registerEventHandler(eventName, handler) {
 
 function updateStatus() {
     updateNemoLoreStatus(getMemoryQueue(), isMemoryProcessing());
+}
+
+function markGenerationStarted(type, opts, dryRun) {
+    if (dryRun) {
+        return;
+    }
+
+    generatedAssistantRenderPending = true;
+    if (renderPendingClearTimer) {
+        clearTimeout(renderPendingClearTimer);
+        renderPendingClearTimer = null;
+    }
+}
+
+function markGenerationFinished() {
+    if (renderPendingClearTimer) {
+        clearTimeout(renderPendingClearTimer);
+    }
+
+    renderPendingClearTimer = setTimeout(() => {
+        generatedAssistantRenderPending = false;
+        renderPendingClearTimer = null;
+    }, 10000);
+}
+
+function shouldProcessAssistantRender(messageId) {
+    if (!generatedAssistantRenderPending) {
+        return false;
+    }
+
+    const id = Number(messageId);
+    if (!Number.isInteger(id) || id !== chat.length - 1) {
+        return false;
+    }
+
+    const message = chat[id];
+    if (!message || message.is_user || message.is_system) {
+        return false;
+    }
+
+    const renderKey = `${getCurrentChatId() || ''}:${id}:${message.mes || ''}`;
+    if (renderKey === lastProcessedAssistantRenderKey) {
+        return false;
+    }
+
+    lastProcessedAssistantRenderKey = renderKey;
+    generatedAssistantRenderPending = false;
+    if (renderPendingClearTimer) {
+        clearTimeout(renderPendingClearTimer);
+        renderPendingClearTimer = null;
+    }
+    return true;
 }
 
 async function updatePreferencesPrompt() {
@@ -265,10 +323,13 @@ async function proposeCandidateWorldInfoUpdate(id, uid) { return proposeNemoLore
 async function onAssistantRendered(messageId) {
     const cfg = settings();
     if (!cfg.enabled) return;
-    await enqueueCompletedTurns(updateStatus);
     await updateTimelinePrompt();
     await updateRetrievedArchivePrompt();
     await updatePreferencesPrompt();
+    if (!shouldProcessAssistantRender(messageId)) {
+        return;
+    }
+    await enqueueCompletedTurns(updateStatus);
     if (cfg.backgroundEnabled) {
         await processQueue({
             onStatusChange: updateStatus,
@@ -286,7 +347,7 @@ export async function initNemoLore() {
     initialized = true;
     try {
         settings();
-        setNemoLoreStorage(SillyTavern.libs.localforage.createInstance({ name: 'SillyTavern_NemoLore' }));
+        setNemoLoreStorage(localforage.createInstance({ name: 'SillyTavern_NemoLore' }));
         ensureFeatureStyles();
         if (!document.getElementById('nemo_lore_settings')) {
             const response = await fetch(`${FEATURE_PATH}/settings.html`, { cache: 'no-store' });
@@ -334,6 +395,15 @@ export async function initNemoLore() {
         await updatePreferencesPrompt();
         rememberVisibleAssistantState();
         initProblemLineSelectionMenu();
+        if (event_types.GENERATION_STARTED) {
+            registerEventHandler(event_types.GENERATION_STARTED, markGenerationStarted);
+        }
+        if (event_types.GENERATION_ENDED) {
+            registerEventHandler(event_types.GENERATION_ENDED, markGenerationFinished);
+        }
+        if (event_types.GENERATION_STOPPED) {
+            registerEventHandler(event_types.GENERATION_STOPPED, markGenerationFinished);
+        }
         registerEventHandler(event_types.CHARACTER_MESSAGE_RENDERED, onAssistantRendered);
         registerEventHandler(event_types.USER_MESSAGE_RENDERED, updateRetrievedArchivePrompt);
         registerEventHandler(event_types.USER_MESSAGE_RENDERED, observeContinuedSwipeChoice);
@@ -363,6 +433,12 @@ export function cleanupNemoLore() {
     }
     cleanupNemoLoreGuideTools();
     uninstallNemoLoreDebug();
+    if (renderPendingClearTimer) {
+        clearTimeout(renderPendingClearTimer);
+        renderPendingClearTimer = null;
+    }
+    generatedAssistantRenderPending = false;
+    lastProcessedAssistantRenderKey = '';
     if (window.NemoLorePreferenceBridge?.recordRewriteNote === recordRewriteNotePreference) {
         delete window.NemoLorePreferenceBridge;
     }

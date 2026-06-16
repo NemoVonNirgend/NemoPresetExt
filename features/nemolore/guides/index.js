@@ -42,6 +42,7 @@ import { initDMNotes } from './tools/dm-notes.js';
 import { buildWritingWarnings } from './writing-analyzer.js';
 import { runPromptAdvisor, applyAllRecommendations, resetAdvisorState } from './prompt-advisor.js';
 import { runFreshChatSetup } from './guides-setup.js';
+import { getChatVar, setChatVar } from './sidecar.js';
 import { applyPromptBlock, clearPromptBlock, mapPromptPosition, mapPromptRole } from '../shared/prompt-service.js';
 import {
     ACTIVE_NEMOSTACK_PRESET,
@@ -57,6 +58,7 @@ import {
 
 const LOG_PREFIX = '[NemoLore:Guides]';
 const PROMPT_KEY = 'nlg_system_instruction';
+const FRESH_SETUP_MARKER_VAR = 'nlg_fresh_setup_chat_id';
 const HIDDEN_REASONING_BLOCK_PATTERN = /<(think|cot)\b[^>]*>[\s\S]*?<\/\1>/gi;
 
 /** Track the last chat ID to detect new chats. */
@@ -66,6 +68,37 @@ const registeredEventHandlers = [];
 function registerGuidesEventHandler(eventName, handler) {
     eventSource.on(eventName, handler);
     registeredEventHandlers.push([eventName, handler]);
+}
+
+function normalizeChatVarString(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+
+    try {
+        const parsed = JSON.parse(text);
+        return typeof parsed === 'string' ? parsed.trim() : text;
+    } catch {
+        return text;
+    }
+}
+
+async function hasFreshSetupRunForChat(chatId) {
+    if (!chatId) return false;
+    try {
+        return normalizeChatVarString(await getChatVar(FRESH_SETUP_MARKER_VAR)) === String(chatId);
+    } catch (error) {
+        console.warn(`${LOG_PREFIX} Could not read fresh-chat setup marker:`, error);
+        return false;
+    }
+}
+
+async function markFreshSetupRunForChat(chatId) {
+    if (!chatId) return;
+    try {
+        await setChatVar(FRESH_SETUP_MARKER_VAR, String(chatId));
+    } catch (error) {
+        console.warn(`${LOG_PREFIX} Could not save fresh-chat setup marker:`, error);
+    }
 }
 
 function getProfileOptions() {
@@ -810,9 +843,15 @@ async function onChatChanged() {
 
     if (!currentChatId) return;
 
-    // Detect new chat: chat ID changed AND chat has 0-1 messages (just greeting or empty)
+    // The first CHAT_CHANGED after extension init can be a reload sync event.
+    // It must not clear or regenerate tracker entries for the current chat.
+    const isInitialChatEvent = lastChatId === null;
     const isNewChat = currentChatId !== lastChatId;
     lastChatId = currentChatId;
+
+    if (isInitialChatEvent) {
+        return;
+    }
 
     if (isNewChat) {
         // Reset advisor state so stale recommendations don't carry over
@@ -820,6 +859,11 @@ async function onChatChanged() {
 
         const chatLength = context.chat?.filter(m => !m.is_system)?.length || 0;
         if (chatLength <= 1) {
+            if (await hasFreshSetupRunForChat(currentChatId)) {
+                console.log(`${LOG_PREFIX} Fresh-chat setup already recorded for this chat; keeping tracker entries.`);
+                return;
+            }
+
             console.log(`${LOG_PREFIX} New chat detected — wiping tracker entries.`);
             await clearAllTrackers();
 
@@ -845,11 +889,17 @@ async function onFirstMessage() {
     if (!settings?.enabled) return;
 
     const context = getContext();
+    const currentChatId = context?.chatId || null;
 
     // Count non-system messages. If this is the first user message (greeting + 1 user msg = 2 total),
     // run parallel setup for a fresh start.
     const userMessages = context.chat?.filter(m => m.is_user && !m.is_system)?.length || 0;
     if (userMessages === 1) {
+        if (await hasFreshSetupRunForChat(currentChatId)) {
+            console.log(`${LOG_PREFIX} Fresh-chat setup already ran for this chat; skipping.`);
+            return;
+        }
+
         console.log(`${LOG_PREFIX} First message in chat — running parallel fresh-chat setup.`);
         await clearAllTrackers();
 
@@ -869,6 +919,8 @@ async function onFirstMessage() {
             }
         } catch (error) {
             console.error(`${LOG_PREFIX} Fresh-chat setup failed:`, error);
+        } finally {
+            await markFreshSetupRunForChat(currentChatId);
         }
     }
 }
