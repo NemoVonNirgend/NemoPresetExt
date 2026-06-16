@@ -366,31 +366,44 @@ export async function queryArchiveVectors(queryText, topK = settings().retrieval
         return [];
     }
 
-    await vectorizeArchiveItems(chatId);
+    // Retrieval runs during prompt assembly, so it must NEVER throw — if embeddings are down
+    // or unconfigured we just inject no archived memories this turn instead of breaking the turn.
+    try {
+        // A failed embed of new items shouldn't stop us querying what's already vectorized.
+        try {
+            await vectorizeArchiveItems(chatId);
+        } catch (err) {
+            console.warn('NemoLore: archive vectorization failed; querying existing vectors only:', err?.message ?? err);
+        }
 
-    const response = await fetch('/api/vector/query', {
-        method: 'POST',
-        headers: getRequestHeaders(),
-        body: JSON.stringify({
-            ...getVectorsRequestBody(),
-            collectionId: getArchiveCollectionId(chatId),
-            searchText: queryText,
-            topK,
-            source,
-            threshold: cfg.vectorThreshold,
-        }),
-    });
+        const response = await fetch('/api/vector/query', {
+            method: 'POST',
+            headers: getRequestHeaders(),
+            body: JSON.stringify({
+                ...getVectorsRequestBody(),
+                collectionId: getArchiveCollectionId(chatId),
+                searchText: queryText,
+                topK,
+                source,
+                threshold: cfg.vectorThreshold,
+            }),
+        });
 
-    if (!response.ok) {
-        throw new Error('Archive vector query failed');
+        if (!response.ok) {
+            console.warn(`NemoLore: archive vector query failed (HTTP ${response.status}); no memories retrieved this turn.`);
+            return [];
+        }
+
+        const result = await response.json();
+        const hashes = (result.metadata || []).map(item => Number(item.hash));
+        const archive = await getArchive(chatId);
+        const byHash = new Map(archive.map(item => [Number(item.vectorHash), item]));
+
+        return hashes.map(hash => byHash.get(hash)).filter(Boolean);
+    } catch (err) {
+        console.warn('NemoLore: archive retrieval failed; no memories retrieved this turn:', err?.message ?? err);
+        return [];
     }
-
-    const result = await response.json();
-    const hashes = (result.metadata || []).map(item => Number(item.hash));
-    const archive = await getArchive(chatId);
-    const byHash = new Map(archive.map(item => [Number(item.vectorHash), item]));
-
-    return hashes.map(hash => byHash.get(hash)).filter(Boolean);
 }
 
 export async function processQueue(hooks) {
