@@ -181,8 +181,22 @@ export class NemoNetReasoningParser extends RobustReasoningParser {
         } catch (err) {
             if (this.debug) console.warn('NemoNet: native parseReasoningFromString failed, using fallback', err);
         }
-        // Native found nothing usable — use the multi-strategy / tagless fallback.
-        return super.parse(input);
+        // Native found nothing usable — use the multi-strategy / tagless fallback, but apply a
+        // precision guard. The loose content-marker / heuristic strategies can mistake ordinary
+        // prose or dialogue for reasoning (markers like "Wait,", "Hmm,", "if ", "return " collide
+        // with RP text). Only accept a tagless guess from a structured/high-trust strategy or
+        // when its confidence is clearly high; otherwise treat the message as ordinary content.
+        const fallback = super.parse(input);
+        const TRUSTED_STRATEGIES = new Set([
+            'varied-closing-tags', 'deepseek-r1', 'deepseek-r1-partial',
+            'gemini-thoughts', 'gemini-thinking', 'period-quirk', 'partialSuffix', 'nemonet-council',
+        ]);
+        if (fallback?.reasoning
+            && !TRUSTED_STRATEGIES.has(fallback.strategy)
+            && (fallback.confidence ?? 0) < 75) {
+            return { reasoning: '', content: input, strategy: 'rejected-low-confidence', confidence: 0 };
+        }
+        return fallback;
     }
 
     /**
