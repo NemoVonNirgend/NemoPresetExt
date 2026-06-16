@@ -197,17 +197,23 @@ export const ExtensionsTabOverhaul = {
     },
 
     hideDuplicateSettings: function() {
+        const isIncorporated = (el) =>
+            el.closest('.nemo-extension-card') ||
+            el.closest('#nemo-extension-view-content') ||
+            el.closest('#nemo-tab-extension-overlay');
+
         const hideAttempt = () => {
             const allSettings = document.querySelectorAll('.nemo-preset-enhancer-settings');
 
-            allSettings.forEach((el) => {
-                const isInCard = el.closest('.nemo-extension-card');
-                const isInOverlay = el.closest('#nemo-extension-view-content');
-                const isInTabOverlay = el.closest('#nemo-tab-extension-overlay');
+            // Only treat an out-of-card panel as a hideable DUPLICATE when another copy is
+            // actually incorporated into the overhaul. Otherwise the panel mounted late (after
+            // the layout was built) and this is the ONLY copy — hiding it makes the settings
+            // "flicker in then disappear". In that case, leave it visible so it stays reachable.
+            const hasIncorporated = [...allSettings].some(isIncorporated);
 
-                // Only hide if it's NOT inside a card or any overlay
-                if (!isInCard && !isInOverlay && !isInTabOverlay) {
-                    el.style.display = 'none';
+            allSettings.forEach((el) => {
+                if (!isIncorporated(el)) {
+                    el.style.display = hasIncorporated ? 'none' : '';
                 }
             });
         };
