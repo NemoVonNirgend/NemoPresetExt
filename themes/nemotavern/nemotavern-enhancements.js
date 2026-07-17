@@ -1029,55 +1029,6 @@ export function toggleSettings() {
     window.dispatchEvent(new CustomEvent('nemo:toggle-settings'));
 }
 
-// ===== Auto-initialization =====
-
-function autoInit() {
-    const themeStylesheet = document.getElementById('nemo-theme-stylesheet');
-    const isNemoStylesheet = themeStylesheet && themeStylesheet.href && themeStylesheet.href.includes('nemotavern');
-
-    if (isNemoStylesheet && !initialized) {
-        console.log('[NemoTavern Theme] Auto-init triggered');
-        initNemoTavernEnhancements();
-    }
-}
-
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', autoInit);
-} else {
-    autoInit();
-}
-
-// Try auto-init at multiple time points
-setTimeout(autoInit, 500);
-setTimeout(autoInit, 1000);
-setTimeout(autoInit, 2000);
-setTimeout(autoInit, 5000);
-
-// Watch for theme stylesheet load
-const themeObserver = new MutationObserver((mutations) => {
-    mutations.forEach(mutation => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-            if (isNemoTavernThemeActive() && !initialized) {
-                console.log('[NemoTavern Theme] Theme class change detected, initializing...');
-                initNemoTavernEnhancements();
-            }
-        }
-        if (mutation.type === 'childList' && mutation.target === document.head) {
-            mutation.addedNodes.forEach(node => {
-                if (node.id === 'nemo-theme-stylesheet' && node.href && node.href.includes('nemotavern')) {
-                    console.log('[NemoTavern Theme] Stylesheet loaded, ensuring body class...');
-                    ensureBodyClass();
-                    setTimeout(initNemoTavernEnhancements, 500);
-                }
-            });
-        }
-    });
-});
-
-themeObserver.observe(document.body, { attributes: true });
-themeObserver.observe(document.head, { childList: true });
-
 export default {
     initNemoTavernEnhancements,
     cleanupNemoTavernEnhancements,

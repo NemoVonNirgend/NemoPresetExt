@@ -39,13 +39,67 @@ const GENERATION_RETRY_DELAY_MS = 1500;
 const SAVED_IMAGE_SUBFOLDER_FALLBACK = 'NemoPresetExt';
 const STREAMING_IMAGE_READY_CHECK_DELAY_MS = 350;
 const STREAMING_IMAGE_MAX_WAIT_MS = 12000;
-let activeQueueProcesses = 0;
+const activeQueueProcesses = new Map();
 
 // Timers for images detected while a message is still streaming.
-const pendingStreamingImageTimers = new WeakMap();
+const pendingStreamingImageTimers = new Map();
 
-// MutationObserver for real-time streaming detection
+// Owned lifecycle state for event listeners and DOM handlers.
 let streamingObserver = null;
+let pollinationsInitialized = false;
+let pollinationsLifecycleEpoch = 0;
+let pollinationsListenerAbortController = null;
+const pollinationsEventHandlers = [];
+const interceptedImageSnapshots = new Map();
+const activeImagePresentations = new Map();
+
+function isCurrentPollinationsLifecycle(epoch) {
+    return pollinationsInitialized && epoch === pollinationsLifecycleEpoch;
+}
+
+function getActiveQueueProcessCount(epoch = pollinationsLifecycleEpoch) {
+    let count = 0;
+    for (const activeEpoch of activeQueueProcesses.values()) {
+        if (activeEpoch === epoch) count++;
+    }
+    return count;
+}
+
+function rememberInterceptedImage(img, wrapper = img.parentElement) {
+    if (interceptedImageSnapshots.has(img)) return;
+    interceptedImageSnapshots.set(img, {
+        cursor: img.style.cursor,
+        opacity: img.style.opacity,
+        filter: img.style.filter,
+        title: img.getAttribute('title'),
+        wrapper,
+        wrapperPosition: wrapper?.style.position ?? '',
+    });
+}
+
+function restoreInterceptedImage(img, snapshot) {
+    img.style.cursor = snapshot.cursor;
+    img.style.opacity = snapshot.opacity;
+    img.style.filter = snapshot.filter;
+    if (snapshot.title === null) img.removeAttribute('title');
+    else img.setAttribute('title', snapshot.title);
+    if (snapshot.wrapper) snapshot.wrapper.style.position = snapshot.wrapperPosition;
+}
+
+function restoreImagePresentation(presentation) {
+    const { img, opacity, filter, title, loadingOverlay } = presentation;
+    loadingOverlay?.remove();
+    img.style.opacity = opacity;
+    img.style.filter = filter;
+    if (title === null) img.removeAttribute('title');
+    else img.setAttribute('title', title);
+}
+
+function pollinationsListenerOptions() {
+    return pollinationsListenerAbortController
+        ? { signal: pollinationsListenerAbortController.signal }
+        : undefined;
+}
 
 // Common boilerplate terms to strip from Pollinations prompts
 // These are quality/style tags that are model-specific and should be replaced with user's own settings
@@ -118,10 +172,21 @@ function joinPromptParts(...parts) {
 /**
  * Wait for a duration.
  * @param {number} ms - Delay in milliseconds
- * @returns {Promise<void>}
+ * @param {AbortSignal} [signal] - Optional lifecycle cancellation signal
+ * @returns {Promise<boolean>} Whether the wait completed
  */
-function wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+function wait(ms, signal) {
+    if (signal?.aborted) return Promise.resolve(false);
+    return new Promise(resolve => {
+        const finish = (completed) => {
+            clearTimeout(timer);
+            signal?.removeEventListener('abort', abort);
+            resolve(completed);
+        };
+        const abort = () => finish(false);
+        const timer = setTimeout(() => finish(true), ms);
+        signal?.addEventListener('abort', abort, { once: true });
+    });
 }
 
 /**
@@ -279,7 +344,7 @@ export function parsePollinationsUrl(url) {
  * @param {number} params.seed - Seed for reproducibility (-1 for random)
  * @returns {Promise<string|null>} Base64 image data or null on failure
  */
-async function generateImageWithST(params) {
+async function generateImageWithST(params, signal) {
     const { prompt: rawPrompt, negative_prompt: rawNegative, width, height, seed } = params;
 
     // Get the current SD source from extension settings
@@ -463,14 +528,16 @@ async function generateImageWithST(params) {
     let lastError = null;
     const maxAttempts = getMaxGenerationAttempts();
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (signal?.aborted) return null;
         try {
-            return await requestGeneratedImage(endpoint, body);
+            return await requestGeneratedImage(endpoint, body, signal);
         } catch (error) {
+            if (signal?.aborted || error?.name === 'AbortError') return null;
             lastError = error;
 
             if (attempt < maxAttempts && isRetryableGenerationError(error)) {
                 logger.warn(`${LOG_PREFIX} Image generation failed; retrying (${attempt}/${maxAttempts})`, error);
-                await wait(GENERATION_RETRY_DELAY_MS * attempt);
+                if (!await wait(GENERATION_RETRY_DELAY_MS * attempt, signal)) return null;
                 continue;
             }
 
@@ -488,11 +555,12 @@ async function generateImageWithST(params) {
  * @param {Object} body - Request body
  * @returns {Promise<string|null>} Base64 image data
  */
-async function requestGeneratedImage(endpoint, body) {
+async function requestGeneratedImage(endpoint, body, signal) {
     const response = await fetch(endpoint, {
         method: 'POST',
         headers: getRequestHeaders(),
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal,
     });
 
     if (!response.ok) {
@@ -692,6 +760,8 @@ async function saveGeneratedImageFile(base64Image, messageId) {
  * @param {HTMLImageElement} imgElement - The image element to queue
  */
 function queueImage(imgElement) {
+    if (!pollinationsInitialized) return;
+
     // Check if already in queue
     if (imageQueue.some(item => item.element === imgElement)) {
         return;
@@ -718,8 +788,9 @@ function isImageQueuedOrProcessing(imgElement) {
  * Manga panel responses commonly include 4 images, so allow those to launch together.
  */
 function processQueue() {
+    const epoch = pollinationsLifecycleEpoch;
     const maxParallelGenerations = getMaxParallelGenerations();
-    while (activeQueueProcesses < maxParallelGenerations && imageQueue.length > 0) {
+    while (isCurrentPollinationsLifecycle(epoch) && getActiveQueueProcessCount(epoch) < maxParallelGenerations && imageQueue.length > 0) {
         const { element } = imageQueue.shift();
 
         // Skip if element was removed from DOM
@@ -727,14 +798,17 @@ function processQueue() {
             continue;
         }
 
-        activeQueueProcesses++;
-        processPollinationsImage(element)
+        const processToken = Symbol('pollinations-generation');
+        activeQueueProcesses.set(processToken, epoch);
+        processPollinationsImage(element, epoch)
             .catch(error => {
-                logger.error(`${LOG_PREFIX} Queued image processing failed:`, error);
+                if (isCurrentPollinationsLifecycle(epoch)) {
+                    logger.error(`${LOG_PREFIX} Queued image processing failed:`, error);
+                }
             })
             .finally(() => {
-                activeQueueProcesses--;
-                processQueue();
+                activeQueueProcesses.delete(processToken);
+                if (isCurrentPollinationsLifecycle(epoch)) processQueue();
             });
     }
 }
@@ -742,8 +816,11 @@ function processQueue() {
 /**
  * Process a single image element with a Pollinations URL
  * @param {HTMLImageElement} imgElement - The image element to process
+ * @param {number} epoch - Lifecycle generation that owns this work
  */
-async function processPollinationsImage(imgElement) {
+async function processPollinationsImage(imgElement, epoch = pollinationsLifecycleEpoch) {
+    if (!isCurrentPollinationsLifecycle(epoch)) return;
+
     // Get the original URL - either from data attribute (for regeneration) or current src
     const originalSrc = imgElement.dataset.originalPollinationsUrl || imgElement.src;
 
@@ -782,6 +859,14 @@ async function processPollinationsImage(imgElement) {
     processingImages.add(processingKey);
 
     // Add visual indicator
+    const presentation = {
+        img: imgElement,
+        opacity: imgElement.style.opacity,
+        filter: imgElement.style.filter,
+        title: imgElement.getAttribute('title'),
+        loadingOverlay: null,
+    };
+    activeImagePresentations.set(imgElement, presentation);
     imgElement.style.opacity = '0.5';
     imgElement.style.filter = 'blur(2px)';
     imgElement.title = 'Regenerating with SillyTavern...';
@@ -814,16 +899,19 @@ async function processPollinationsImage(imgElement) {
         `;
         wrapper.style.position = 'relative';
         wrapper.appendChild(loadingOverlay);
+        presentation.loadingOverlay = loadingOverlay;
     }
 
     try {
         // Generate the image
-        const base64Image = await generateImageWithST(parsed);
+        const base64Image = await generateImageWithST(parsed, pollinationsListenerAbortController?.signal);
+        if (!isCurrentPollinationsLifecycle(epoch)) return;
 
         if (base64Image) {
             const messageId = getMessageIdFromImage(imgElement);
             const previousImageUrl = imgElement.dataset.generatedImageUrl || imgElement.getAttribute('src') || originalSrc;
             const savedImageUrl = await saveGeneratedImageFile(base64Image, messageId);
+            if (!isCurrentPollinationsLifecycle(epoch)) return;
 
             // Replace the image source in DOM. Prefer the saved URL so refreshes reuse the file.
             imgElement.src = savedImageUrl || `data:image/png;base64,${base64Image}`;
@@ -861,16 +949,18 @@ async function processPollinationsImage(imgElement) {
             console.warn(`${LOG_PREFIX} Failed to generate image, keeping original`);
         }
     } catch (error) {
-        logger.error(`${LOG_PREFIX} Error processing image:`, error);
-        imgElement.style.opacity = '1';
-        imgElement.style.filter = 'none';
-        imgElement.title = 'Error - using Pollinations';
-    } finally {
-        // Remove loading overlay
-        if (loadingOverlay) {
-            loadingOverlay.remove();
+        if (isCurrentPollinationsLifecycle(epoch)) {
+            logger.error(`${LOG_PREFIX} Error processing image:`, error);
+            imgElement.style.opacity = '1';
+            imgElement.style.filter = 'none';
+            imgElement.title = 'Error - using Pollinations';
         }
-        // Remove from processing set
+    } finally {
+        if (activeImagePresentations.get(imgElement) === presentation) {
+            activeImagePresentations.delete(imgElement);
+            if (!isCurrentPollinationsLifecycle(epoch)) restoreImagePresentation(presentation);
+            else loadingOverlay?.remove();
+        }
         processingImages.delete(processingKey);
     }
 }
@@ -916,6 +1006,8 @@ export function scanMessageForPollinationsImages(messageElement, autoQueue = tru
  * @param {HTMLImageElement} img - The image element
  */
 function setupClickToRegenerate(img) {
+    rememberInterceptedImage(img);
+
     // Add cursor style to indicate clickable
     img.style.cursor = 'pointer';
 
@@ -950,10 +1042,10 @@ function setupClickToRegenerate(img) {
             if (!processingImages.has(img.dataset.nemoImageId)) {
                 overlay.style.opacity = '1';
             }
-        });
+        }, pollinationsListenerOptions());
         wrapper.addEventListener('mouseleave', () => {
             overlay.style.opacity = '0';
-        });
+        }, pollinationsListenerOptions());
     }
 
     // Click handler for regeneration
@@ -969,7 +1061,7 @@ function setupClickToRegenerate(img) {
 
         // Queue for regeneration
         queueImage(img);
-    });
+    }, pollinationsListenerOptions());
 }
 
 /**
@@ -1254,6 +1346,10 @@ function scanAllMessages() {
  * Uses SillyTavern's event system to detect new messages
  */
 export function initPollinationsInterceptor() {
+    if (pollinationsInitialized) return;
+    pollinationsLifecycleEpoch++;
+    pollinationsInitialized = true;
+    pollinationsListenerAbortController = new AbortController();
     console.log(`${LOG_PREFIX} Initializing Pollinations Interceptor`);
 
     // Add CSS for the interceptor UI
@@ -1293,52 +1389,51 @@ export function initPollinationsInterceptor() {
         document.head.appendChild(style);
     }
 
-    // Listen for character (AI) messages being rendered - process immediately
+    // Track named SillyTavern handlers so teardown can remove them.
     if (event_types.CHARACTER_MESSAGE_RENDERED) {
-        eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (messageId) => {
+        const handler = (messageId) => {
             console.log(`${LOG_PREFIX} CHARACTER_MESSAGE_RENDERED event for message ${messageId}`);
             const messageElement = getMessageElement(messageId);
-            if (messageElement) {
-                scanMessageForPollinationsImages(messageElement);
-            }
-        });
+            if (messageElement) scanMessageForPollinationsImages(messageElement);
+        };
+        eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, handler);
+        pollinationsEventHandlers.push([event_types.CHARACTER_MESSAGE_RENDERED, handler]);
     }
 
-    // Listen for message swipes (switching between alternate versions)
     if (event_types.MESSAGE_SWIPED) {
-        eventSource.on(event_types.MESSAGE_SWIPED, (data) => {
+        const handler = (data) => {
             const messageId = typeof data === 'object' ? data.id : data;
             console.log(`${LOG_PREFIX} MESSAGE_SWIPED event for message ${messageId}`);
             const messageElement = getMessageElement(messageId);
-            if (messageElement) {
-                // Reset interception flags for swiped message (new content)
-                messageElement.querySelectorAll('img[data-nemo-intercepted]').forEach(img => {
-                    delete img.dataset.nemoIntercepted;
-                    delete img.dataset.pollinationsData;
-                    delete img.dataset.originalPollinationsUrl;
-                });
-                scanMessageForPollinationsImages(messageElement);
-            }
-        });
+            if (!messageElement) return;
+            messageElement.querySelectorAll('img[data-nemo-intercepted]').forEach(img => {
+                delete img.dataset.nemoIntercepted;
+                delete img.dataset.pollinationsData;
+                delete img.dataset.originalPollinationsUrl;
+            });
+            scanMessageForPollinationsImages(messageElement);
+        };
+        eventSource.on(event_types.MESSAGE_SWIPED, handler);
+        pollinationsEventHandlers.push([event_types.MESSAGE_SWIPED, handler]);
     }
 
-    // Listen for message edits
     if (event_types.MESSAGE_EDITED) {
-        eventSource.on(event_types.MESSAGE_EDITED, (messageId) => {
+        const handler = (messageId) => {
             console.log(`${LOG_PREFIX} MESSAGE_EDITED event for message ${messageId}`);
             const messageElement = getMessageElement(messageId);
-            if (messageElement) {
-                scanMessageForPollinationsImages(messageElement);
-            }
-        });
+            if (messageElement) scanMessageForPollinationsImages(messageElement);
+        };
+        eventSource.on(event_types.MESSAGE_EDITED, handler);
+        pollinationsEventHandlers.push([event_types.MESSAGE_EDITED, handler]);
     }
 
-    // Listen for chat loaded/changed (scan all existing messages)
     if (event_types.CHAT_CHANGED) {
-        eventSource.on(event_types.CHAT_CHANGED, () => {
+        const handler = () => {
             console.log(`${LOG_PREFIX} CHAT_CHANGED event - scanning all messages`);
             scanAllMessages();
-        });
+        };
+        eventSource.on(event_types.CHAT_CHANGED, handler);
+        pollinationsEventHandlers.push([event_types.CHAT_CHANGED, handler]);
     }
 
     // Start the streaming observer for real-time detection during message generation
@@ -1351,14 +1446,50 @@ export function initPollinationsInterceptor() {
     logger.info('Pollinations Interceptor initialized');
 }
 
+/** Remove all observers, timers, handlers, and owned presentation state. */
+export function destroyPollinationsInterceptor() {
+    pollinationsInitialized = false;
+    pollinationsLifecycleEpoch++;
+    for (const [eventType, handler] of pollinationsEventHandlers.splice(0)) {
+        eventSource.removeListener(eventType, handler);
+    }
+    if (streamingObserver) streamingObserver.disconnect();
+    streamingObserver = null;
+    for (const timer of pendingStreamingImageTimers.values()) clearTimeout(timer);
+    pendingStreamingImageTimers.clear();
+    if (pollinationsListenerAbortController) pollinationsListenerAbortController.abort();
+    pollinationsListenerAbortController = null;
+
+    imageQueue.length = 0;
+    activeQueueProcesses.clear();
+    processingImages.clear();
+    for (const presentation of activeImagePresentations.values()) restoreImagePresentation(presentation);
+    activeImagePresentations.clear();
+    document.getElementById('nemo-pollinations-interceptor-styles')?.remove();
+    document.querySelectorAll('.nemo-pollinations-loading').forEach(element => element.remove());
+    document.querySelectorAll('.nemo-regen-overlay').forEach(element => element.remove());
+    for (const [img, snapshot] of interceptedImageSnapshots) restoreInterceptedImage(img, snapshot);
+    interceptedImageSnapshots.clear();
+    document.querySelectorAll('img[data-nemo-intercepted]').forEach(img => {
+        delete img.dataset.nemoIntercepted;
+        delete img.dataset.nemoImageId;
+        delete img.dataset.nemoStreamingDetectedAt;
+        delete img.dataset.pollinationsData;
+        delete img.dataset.originalPollinationsUrl;
+        delete img.dataset.generatedPrompt;
+        delete img.dataset.generatedImageUrl;
+    });
+}
+
 // Export for manual use
 export default {
     init: initPollinationsInterceptor,
+    destroy: destroyPollinationsInterceptor,
     parseUrl: parsePollinationsUrl,
     scan: scanMessageForPollinationsImages,
     interceptAll: interceptAllPollinationsImages,
     extractPrompts: extractPollinationsPrompts,
     queueImage: queueImage,
     getQueueLength: () => imageQueue.length,
-    isProcessing: () => activeQueueProcesses > 0 || imageQueue.length > 0
+    isProcessing: () => getActiveQueueProcessCount() > 0 || imageQueue.length > 0
 };

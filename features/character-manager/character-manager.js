@@ -78,15 +78,21 @@ export const NemoCharacterManager = {
 
         const parentBlock = document.getElementById(SELECTORS.parentBlock.substring(1));
         if (!parentBlock) {
-            new MutationObserver((_, obs) => {
-                if (document.getElementById(SELECTORS.parentBlock.substring(1))) {
-                    obs.disconnect();
-                    this.initialize();
-                }
-            }).observe(document.body, { childList: true, subtree: true });
+            if (!this.observer) {
+                this.observer = new MutationObserver(() => {
+                    if (document.getElementById(SELECTORS.parentBlock.substring(1))) {
+                        this.observer?.disconnect();
+                        this.observer = null;
+                        void this.initialize();
+                    }
+                });
+                this.observer.observe(document.body, { childList: true, subtree: true });
+            }
             return;
         }
 
+        this.observer?.disconnect();
+        this.observer = null;
         logger.info('Initializing Character Manager (Navigator Only)');
 
         injectHeaderUI();
@@ -95,5 +101,15 @@ export const NemoCharacterManager = {
         this.isInitialized = true;
 
         logger.info('Character Manager initialized successfully');
+    },
+    destroy() {
+        this.observer?.disconnect();
+        this.observer = null;
+        document.getElementById('nemo-char-browse-btn')?.remove();
+
+        const popup = characterManagerUIInstance?.element?.closest('.popup_outer, dialog.popup');
+        popup?.querySelector('.popup-button-close')?.click();
+        characterManagerUIInstance = null;
+        this.isInitialized = false;
     },
 };

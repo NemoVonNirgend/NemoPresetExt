@@ -1,4 +1,4 @@
-﻿import { chat, getCurrentChatId } from '../../../../../../script.js';
+import { chat, getCurrentChatId } from '../../../../../../script.js';
 import { Popup } from '../../../../../popup.js';
 import { getStringHash } from '../../../../../utils.js';
 import {
@@ -491,7 +491,7 @@ function stripPreferenceSignalText(text) {
     return stripReasoningBlocks(text)
         .replace(/```[\s\S]*?```/g, ' ')
         .replace(/<[^>]*>/g, ' ')
-        .replace(/[*_~`"Ã¢â‚¬Å“Ã¢â‚¬ÂÃ¢â‚¬ËœÃ¢â‚¬â„¢()[\]{}]/g, ' ')
+        .replace(/[*_~`"\u201c\u201d\u2018\u2019()[\]{}]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 }
@@ -1238,4 +1238,3 @@ export function removeProblemLineMenuCore() {
         problemLineMenu = null;
     }
 }
-

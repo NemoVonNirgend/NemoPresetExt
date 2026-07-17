@@ -3,10 +3,9 @@ import { useNemoStore, type DockZone as DockZoneType } from '../../store';
 
 interface DockZoneProps {
     zone: DockZoneType;
-    panels: string[];
 }
 
-const DockZone: React.FC<DockZoneProps> = ({ zone, panels }) => {
+const DockZone: React.FC<DockZoneProps> = ({ zone }) => {
     const { isDragging, activeDockZone } = useNemoStore();
 
     const isActive = isDragging && activeDockZone === zone;

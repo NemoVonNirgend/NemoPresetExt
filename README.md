@@ -1,557 +1,411 @@
-# NemoPresetExt - Core Features
+# NemoPresetExt
 
-A powerful SillyTavern extension focused on enhancing your prompt management, UI organization, and workflow. This is the core features version that provides essential tools for power users without the experimental features.
+NemoPresetExt is a modular workflow and interface extension for SillyTavern. It adds focused prompt, preset, character, reasoning, lorebook, writing, model, media, and onboarding tools while keeping the new-user experience intentionally small.
 
-**Version:** 4.6.3-mid-patch
+**Version:** 4.7.0
+
 **Author:** @NemoVonNirgend
+
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
-## Table of Contents
+## What starts enabled
 
-- [Features Overview](#features-overview)
-- [Core Preset Management](#core-preset-management)
-- [Preset Navigator](#preset-navigator)
-- [Directives Engine](#directives-engine)
-- [Animated Backgrounds](#animated-backgrounds)
-- [UI Overhauls](#ui-overhauls)
-- [NemoNet Reasoning](#nemonet-reasoning)
-- [HTML Trimmer](#html-trimmer)
-- [Tutorial System](#tutorial-system)
-- [Installation](#installation)
+A new installation enables only six feature groups:
 
----
+| Feature | Default | Where to use it |
+| --- | --- | --- |
+| Prompt Dropdowns & Tools | **On** | Advanced Formatting > Prompt Manager |
+| Preset Navigator | **On** | **Browse...** beside a supported preset selector |
+| Character Card Navigator | **On** | **Browse** in the character drawer |
+| Improved Reasoning Capture | **On** | Runs automatically on generated reasoning blocks |
+| Prompt Directives | **On** | Add `{{// @directive value }}` comments to prompts |
+| Directive Autocomplete | **On** | Type `{{// @` in the prompt editor |
 
-## Features Overview
+Everything else—including every broad UI overhaul—is off for new users. This keeps SillyTavern's native layout intact until a user deliberately opts in.
 
-This extension bundle includes the following production-ready features:
+Existing installations keep explicit choices and the historical behavior inferred from their pre-schema settings. The migration does not overwrite a setting the user already chose.
 
-- **[Core Preset Management](#core-preset-management):** Organize prompts with collapsible sections, search, and drag-and-drop
-- **[Preset Navigator](#preset-navigator):** Browse and manage API presets with an enhanced interface
-- **[Directives Engine](#directives-engine):** Add powerful metadata, dependencies, and rules to prompts
-- **[Animated Backgrounds](#animated-backgrounds):** Support for video backgrounds (WebM, MP4) and YouTube URLs
-- **[UI Overhauls](#ui-overhauls):** Enhanced tabs, panels, and settings organization
-- **[NemoNet Reasoning](#nemonet-reasoning):** Robust Chain of Thought (CoT) reasoning parser
-- **[HTML Trimmer](#html-trimmer):** Automatically reduce context usage by trimming old HTML messages
-- **[Tutorial System](#tutorial-system):** Interactive tutorials with Vex, your guide to all features
+## Quick start
 
-**Note:** This version does NOT include NemoLore, ProsePolisher, Ember, Card Emporium, MoodMusic, or NEMO-VRM. These features may be available in other versions or as separate extensions
+1. Install the extension from its GitHub URL with SillyTavern's extension installer, or place this folder at `public/scripts/extensions/third-party/NemoPresetExt`.
+2. Refresh SillyTavern.
+3. Open **Extensions > NemoPreset UI Extensions** to review feature toggles.
+4. Enable only the optional tools you want, then refresh when the setting says **Requires refresh**.
 
----
+The settings card always mounts in SillyTavern's native Extensions settings area. The optional **Extensions Tab Overhaul** only changes how extensions are browsed; it is not required to configure NemoPresetExt.
 
-## Core Preset Management
+## Feature guide
 
-The foundational feature that started it all - powerful tools for organizing and managing your prompts.
+### Prompt Dropdowns & Tools
 
-### Collapsible Sections
+Default: **On** (`enablePromptManager`)
 
-Organize long lists of prompts by grouping them into collapsible sections:
+This is the core prompt-management bundle. It adds:
 
-1. **Create a Divider:** Name a prompt starting with equals signs (`=`). Example: `=== My Story Ideas ===`
-2. **Grouping:** All regular prompts after this divider (and before the next one) will be grouped under it
-3. **Expand/Collapse:** Click the header to show/hide prompts. The extension remembers your preferences
-4. **Enabled Count:** Section headers display how many prompts are currently enabled (e.g., "5/12 enabled")
+- prompt name/content search, filtering, and tooltips;
+- collapsible sections with enabled/total counts and per-section enable-all;
+- tray-overlay and inline-accordion section views;
+- drag-and-drop prompt and section ordering;
+- prompt folders, cross-section moves, and a category tray;
+- prompt archive browsing and restoration;
+- snapshots for saving and reapplying prompt enabled states;
+- quick controls for expanding sections and changing views.
 
-### Search & Filter
+To create a section, name a prompt like `=== Character Rules ===`. A name such as `< Dialogue >` becomes a sub-header. Built-in divider styles include equals-sign and line-style headings; additional comma-separated regular-expression patterns can be saved under **Customization Options > Custom Divider Patterns**.
 
-A powerful search bar above your prompt list:
-- Instantly filter prompts and section headers by name
-- Case-insensitive searching
-- Highlights matching text
-- Works across all sections
+Choose **Tray Overlay** to open a floating section panel or **Accordion List** to expand prompts in place. The default palette follows SillyTavern theme variables; **Nemo Blue** is available as an alternative. Search and the other prompt tools remain part of this always-on bundle regardless of dropdown style.
 
-### Drag-and-Drop Reordering
+### Preset Navigator
 
-Reorganize your prompts with intuitive drag-and-drop:
-- Click and drag any prompt to a new position
-- Reorder sections by dragging dividers
-- Visual feedback while dragging
-- Changes save automatically
+Default: **On** (`enablePresetNavigator`)
 
-### Prompt Archive
+The navigator adds **Browse...** beside supported API preset selectors. Its browser provides search, quick-look, import, grid/list views, sorting, filters, favorites, nested/color folders, custom images, drag-and-drop organization, and bulk metadata actions. Selecting a preset still goes through SillyTavern's preset control; NemoPresetExt stores only its organization metadata separately.
 
-Access archived or disabled prompts:
-- View all archived prompts in one place
-- Restore archived prompts when needed
-- Keep your active prompt list clean
+Use it by opening the connection/API settings, clicking **Browse...**, then single-clicking to select or double-clicking to apply a preset. Supported selector families include Chat Completion, NovelAI, Kobold, Text Completion, Anthropic/Claude, Google, Scale, Cohere, Mistral, AIX, and OpenRouter where those controls exist in the installed SillyTavern build.
 
-### Custom Dividers
+### Character Card Navigator
 
-Customize the divider pattern in extension settings:
-1. Go to **SillyTavern Settings** > **Extensions** > **NemoPreset UI**
-2. Change the **Divider Regex Pattern**
-3. Examples: `---+` for hyphens, `\*\*\*+` for asterisks
-4. Click **Save** to apply changes
+Default: **On** (`enableCharacterNavigator`)
 
----
+The character drawer gains a **Browse** button. The browser supports name/tag search, grid/list views, sorting, favorites, nested folders, uncategorized filtering, drag-and-drop and bulk organization, and opening an installed character or group.
 
-## Preset Navigator
+Folders and favorites organize the locally installed character list; they do not move or rewrite the underlying character-card files. Character navigation metadata is stored locally in the browser.
 
-An enhanced interface for browsing and managing API presets across all supported providers.
+### Prompt Directives
 
-### Features
+Default: **On** (`enableDirectives`)
 
-- **Browse Button:** Adds a "Browse..." button next to preset dropdowns
-- **Visual Preset Browser:** See all your presets at a glance with a modern UI
-- **Quick Search:** Filter presets by name instantly
-- **Preview:** View preset details before switching
-- **Multi-API Support:** Works with OpenAI, Anthropic, Google, Mistral, OpenRouter, and more
+Directives are comments embedded in prompt text. They can describe a prompt, validate relationships between prompts, or change prompt state at configured message counts. Directive comments are metadata and are not intended to be sent as prompt content.
 
-### Supported APIs
+```text
+{{// @tooltip Controls the character's personality }}
 
-The Preset Navigator enhances the following API providers:
-- OpenAI
-- Anthropic (Claude)
-- Google (Gemini)
-- Novel AI
-- Kobold
-- Text Generation WebUI
-- Scale
-- Cohere
-- Mistral
-- AIX
-- OpenRouter
-
-### Usage
-
-1. Navigate to your API settings
-2. Look for the preset dropdown
-3. Click the **"Browse..."** button next to it
-4. Browse, search, and select presets visually
-
----
-
-## Animated Backgrounds
-
-Enhance your chat experience with dynamic video backgrounds and YouTube integration.
-
-### Supported Formats
-
-- **Video Files:** `.webm`, `.mp4` (high performance, recommended)
-- **GIF Files:** `.gif` (also supported)
-- **YouTube URLs:** Direct YouTube video links with embedded player
-
-### Features
-
-- **Seamless Playback:** Smooth looping without interruption
-- **Autoplay Control:** Enable/disable automatic playback
-- **Volume Control:** Adjust background video audio levels
-- **Performance Optimized:** Efficient rendering without impacting chat performance
-- **Background UI Enhancements:** Enhanced controls in the background settings panel
-
-### Usage
-
-1. Enable **Animated Backgrounds** in extension settings (requires refresh)
-2. Go to SillyTavern's background settings
-3. Select or upload a video file, or paste a YouTube URL
-4. Customize playback settings (loop, autoplay, volume)
-5. Enjoy your dynamic background!
-
-### Pro Tips
-
-- Use `.webm` format for best performance and file size
-- Keep videos under 1080p for optimal performance
-- Lower volume or mute if you prefer silent backgrounds
-- YouTube videos require an internet connection
-
----
-
-## Directives Engine
-
-A powerful metadata and rules system embedded directly in your prompts using special comment syntax. Think of it as logic and automation for your prompt system.
-
-### Syntax
-
-Directives use the comment syntax: `{{// @directive arguments }}`
-
-Example: `{{// @tooltip This prompt handles character emotions }}`
-
-### Available Directives
-
-#### Display & Documentation
-- **`@tooltip <text>`** - Adds hover tooltip to explain what the prompt does
-- **`@category <name>`** - Organize prompts into logical categories
-- **`@description <text>`** - Longer description for prompt documentation
-
-#### Dependencies & Conflicts
-- **`@requires <prompt_name>`** - Auto-enable required prompts when this one is enabled
-- **`@conflicts-with <prompt_name>`** - Auto-disable conflicting prompts
-- **`@exclusive-with <prompt_name>`** - Only one prompt in the group can be active
-
-#### Conditional Logic
-- **`@enabled-if <condition>`** - Only enable prompt if condition is met
-- **`@disabled-if <condition>`** - Disable prompt if condition is met
-- **`@api <api_name>`** - Only show prompt for specific API providers (e.g., `@api anthropic`)
-
-#### Automation & Triggers
-- **`@trigger <event>`** - Automatically enable/disable based on events
-- **`@priority <number>`** - Control prompt ordering/priority
-- **`@scope <scope_name>`** - Limit prompt to specific contexts (e.g., character, global)
-
-### Autocomplete Support
-
-The extension includes intelligent autocomplete:
-- Type `{{//` in a prompt to trigger directive suggestions
-- Tab-complete directive names
-- See inline examples and syntax hints
-- Alias support for common directive patterns
-
-### Example Usage
-
-```
-{{// @tooltip Handles the character's personality traits }}
-{{// @requires CharacterDefinition }}
-{{// @conflicts-with AlternativePersonality }}
-{{// @category Character }}
-{{// @api anthropic }}
-
-Your prompt content goes here...
+{{//
+@requires CharacterDefinition
+@conflicts-with AlternatePersonality
+@category Character
+@badge CORE
+}}
 ```
 
-### Use Cases
+The supported runtime includes:
 
-- **Preset Packages:** Bundle related prompts with automatic dependency management
-- **API-Specific Prompts:** Show different prompts for Claude vs GPT
-- **Smart Presets:** Create presets that adapt based on context
-- **Documentation:** Self-documenting prompts for sharing with others
+- display metadata such as `@tooltip`, `@badge`, `@color`, and `@highlight`;
+- validation such as `@requires`, `@exclusive-with`, `@conflicts-with`, category limits, mutual-exclusion groups, warnings, and deprecation notices;
+- explicit resolution with `@auto-enable-dependencies` and `@auto-disable`;
+- message triggers such as `@enable-at-message`, `@disable-at-message`, `@message-range`, `@enable-after-message`, and `@disable-after-message`.
 
----
+When a hard relationship is violated, NemoPresetExt offers the applicable action and saves changes through SillyTavern's current PromptManager API. SillyTavern remains the source of truth for whether a prompt is enabled.
 
-## UI Overhauls
+Some compatibility fields are parsed as metadata but do not mutate state in the supported runtime. In particular, `@default-enabled`, conditional-visibility fields, and load-order hints should not be treated as automation. See [FEATURES.md](FEATURES.md#5-directive-system) for the parsed directive reference.
 
-Comprehensive visual and organizational improvements to the SillyTavern interface.
+### Directive Autocomplete
 
-### Extensions Tab Overhaul
+Default: **On** (`enableDirectiveAutocomplete`)
 
-A completely redesigned extensions panel with better organization:
+Autocomplete is intentionally limited to directive comments so it does not replace SillyTavern's normal macro suggestions. Type `{{// @` in a prompt editor; use the arrow keys to navigate, Enter or Tab to insert, and Escape to close. Multiline directive comments can suggest directive names, prompt identifiers, and known values on each directive line.
 
-- **Category Grouping:** Extensions organized into logical categories
-- **Search Functionality:** Quickly find any extension by name
-- **Visual Hierarchy:** Clean, modern layout with better spacing
-- **Collapsible Sections:** Expand/collapse categories to reduce clutter
-- **Enable/Disable:** Toggle on/off in extension settings (requires refresh)
+This setting depends on **Prompt Directives**. Turning off the master directive setting also prevents directive autocomplete from starting.
 
-### User Settings Tabs
+### Improved Reasoning Capture
 
-Transform the User Settings panel into a tabbed interface:
+Default: **On** (`enableReasoningCapture`)
 
-- **Organized Tabs:** Settings grouped into logical categories
-- **Easier Navigation:** Jump directly to the section you need
-- **Less Scrolling:** Tabbed layout reduces page length
-- **Visual Consistency:** Matches SillyTavern's design language
-- **Toggle:** Enable/disable in extension settings (requires refresh)
+Reasoning capture first defers to SillyTavern's strict native parser, then applies conservative fallbacks when native parsing cannot recognize the output. It handles reasoning blocks that begin the message, common tag variants, DeepSeek-style answer separation, explicit unclosed-block boundaries, and structured NemoNet/Council output.
 
-### Advanced Formatting Tabs
+Captured reasoning is stored in the message's native reasoning metadata, synchronized into the active swipe, and rendered through SillyTavern's own UI. Existing provider reasoning is never overwritten. Tags embedded in normal prose or code examples stay visible, and an ambiguous or empty split leaves the message untouched.
 
-Enhanced Advanced Formatting panel with tab organization:
-
-- **Prompt Categories:** Prompts organized into tabs
-- **Context Template Tabs:** Easier access to template settings
-- **Improved Workflow:** Less scrolling, faster access
-- **Clean Interface:** Professional, organized appearance
-- **Toggle:** Enable/disable in extension settings (requires refresh)
-
-### Lorebook UI Overhaul
-
-Enhanced World Info/Lorebook interface:
-
-- **Better Organization:** Improved layout for managing entries
-- **Visual Improvements:** Cleaner, more intuitive design
-- **Enhanced Controls:** Better entry management tools
-- **Quick Access:** Streamlined workflow for lorebook editing
-- **Toggle:** Enable/disable in extension settings (requires refresh)
-
-### Wide Navigation Panels
-
-Expand side panels to 50% viewport width:
-
-- **More Space:** Side panels take up 50% of screen width instead of default
-- **Better Readability:** More room for content and settings
-- **Less Scrolling:** See more at once
-- **Toggle:** Enable/disable anytime (instant effect)
-- **Default:** Enabled by default, can be turned off in settings
-
-### Quick Lorebook Access
-
-Manage active lorebooks directly from the prompt manager:
-
-- **Inline Controls:** Toggle lorebooks without leaving the prompt manager
-- **Visual Indicators:** See which lorebooks are active at a glance
-- **Quick Toggle:** One-click enable/disable for lorebooks
-- **Context Aware:** Shows relevant lorebooks for current character
+Detailed parser setup and format examples are in [reasoning/README.md](reasoning/README.md) and [reasoning/docs/REASONING_SETUP.md](reasoning/docs/REASONING_SETUP.md).
 
 ### Unified Reasoning Section
 
-Consolidate reasoning controls in the prompt manager:
+Default: Off (`enableReasoningSection`)
 
-- **One Place:** All reasoning-related prompts in a dedicated section
-- **Better Organization:** Chain of Thought (CoT) prompts grouped together
-- **Easy Access:** Find and manage reasoning prompts quickly
-- **Toggle:** Enable/disable in extension settings
+This adds a consolidated reasoning drawer beside the prompt manager. It mirrors SillyTavern's reasoning controls—auto-parse, visibility, adding prior reasoning to prompts, maximum additions, request-model-reasoning, effort, template, prefix, suffix, and separator—so they can be managed in one place. It reorganizes existing controls; it is separate from the default-on reasoning parser.
 
----
+Enable it, then use the **Reasoning** drawer under Advanced Formatting. It updates without requiring a separate reasoning backend.
 
-## NemoNet Reasoning
+### Quick Lorebook Access
 
-A robust Chain of Thought (CoT) reasoning parser designed to handle complex, nested thinking patterns in AI responses.
+Default: Off (`enableLorebookManagement`)
 
-### What It Does
+This adds a **Lorebook Management** drawer near the prompt manager. It mirrors SillyTavern's global World Info selector so active lorebooks can be added or removed without leaving Advanced Formatting. Changes stay synchronized with the native selector.
 
-NemoNet Reasoning parses and formats AI-generated reasoning steps, making the AI's thought process:
-- **Visible:** See how the AI arrives at conclusions
-- **Structured:** Organized into clear, readable sections
-- **Collapsible:** Hide/show reasoning to reduce clutter
-- **Preserved:** Reasoning is maintained but can be hidden from context window
+This is a compact access panel, not the full lorebook editor and not the same feature as the Lorebook UI Overhaul.
 
-### Features
+### Lorebook UI Overhaul
 
-- **Robust Parsing:** Handles complex, nested reasoning structures
-- **Multiple Format Support:** Works with various CoT prompt styles
-- **Automatic Detection:** Recognizes reasoning blocks automatically
-- **Visual Formatting:** Clean, organized display of thought processes
-- **Context Optimization:** Option to exclude reasoning from AI context
-- **Debugging Tools:** Built-in testing and validation tools
+Default: Off (`enableLorebookOverhaul`)
 
-### Compatible Reasoning Formats
+The overhaul replaces the visible World Info workspace with a responsive, searchable two-column layout while continuing to use SillyTavern's current World Info APIs. It provides:
 
-The parser handles various CoT structures:
-- Standard thinking tags (`<think>`, `<reasoning>`)
-- Nested reasoning levels
-- Council/committee reasoning (multi-perspective)
-- Step-by-step problem solving
-- Custom reasoning formats
+- a searchable lorebook sidebar and explicit loading, empty, ready, and error states;
+- native entry editing plus multi-selection and bulk actions;
+- entry presets, folders, and drag-and-drop organization;
+- active-entry inspection and a multi-book order helper;
+- a clearly scoped primary-keyword preview;
+- keyboard navigation, focus-visible controls, dialog semantics, and a mobile sidebar.
 
-### Configuration
+The keyword preview is an inspection aid, not a complete reimplementation of SillyTavern's activation engine; constant entries, secondary/selective keys, probability, groups, recursion, and vectors remain outside that preview. Disabling or unloading the extension restores the native World Info panel and its listeners.
 
-The reasoning system is configurable via `nemonet-reasoning-config.js`:
-- Adjust parsing rules
-- Customize display format
-- Enable/disable features
-- Fine-tune detection patterns
+### HTML Trimmer
 
-### Use Cases
+Default: Off (`enableHTMLTrimming`)
 
-- **Problem Solving:** See how AI breaks down complex problems
-- **Decision Making:** Understand AI's reasoning for choices
-- **Learning:** Study how AI approaches different tasks
-- **Debugging:** Identify errors in AI reasoning
-- **Transparency:** Make AI behavior more interpretable
+HTML Trimmer reduces old-message context size by replacing substantial HTML/CSS payloads with compact readable content. Before changing a message, it stores the original in extension-owned chat metadata so **Restore Trimmed** can put it back.
 
-### Example
+Enable **Auto-Trim Old HTML**, choose how many recent messages to keep untouched (2–20; an unset value behaves as 4), and use **Trim Now** or **Restore Trimmed** for manual control. Trimming runs after chat updates and skips recent or insignificant markup.
 
-```
-User: Solve this math problem...
+Because this changes stored chat message text, keep backups for important chats even though the extension maintains its own restoration metadata.
 
-AI: <think>
-Let me break this down step by step:
-1. First, identify the variables...
-2. Then, apply the formula...
-3. Finally, calculate the result...
-</think>
+### NemoLore
 
-Based on my reasoning, the answer is...
-```
+Default: Off (`enableNemoLore`)
 
-The reasoning parser will format the thinking section beautifully and allow you to collapse it.
+NemoLore combines long-horizon memory, archive retrieval, preference learning, and optional model tools. Turning on the root feature only loads its runtime and settings panel; the internal **NemoLore memory** and **NemoLore Guides** masters both remain off until separately enabled. Its settings include:
 
----
+- timeline compression and a configurable live-message window;
+- a raw archive plus optional SillyTavern vector-storage retrieval;
+- background memory jobs and selectable connection profiles;
+- cross-chat preference evidence, review, acceptance, rejection, and a core-pack global variable;
+- lorebook proposals and promotion workflows;
+- optional NemoLore Guides tools for rules, scene assessment, planning, prose checks, DM notes, prompt advice, and custom tools;
+- native tool-call, stealth-tool, or silent preflight workflows for compatible models.
 
-## HTML Trimmer
+After enabling and refreshing, configure the **NemoLore** settings card before relying on it. Vector retrieval needs SillyTavern's vector-storage support. Guide tool calls need a tool-capable model/backend; silent preflight can instead use a configured model profile. NemoLore data is not deleted when its master feature is disabled.
 
-Automatically reduce context usage by converting complex HTML/CSS in old messages to simple text dropdowns.
+### Nemo Rewrite
 
-### The Problem
+Default: Off (`enableRewrite`)
 
-Interactive HTML content (like formatted tables, styled text, or embedded components) can consume significant context space. As conversations grow longer, this can:
-- Reduce available tokens for the AI
-- Slow down response times
-- Increase API costs
-- Cause context overflow
+Selecting text in a rendered chat message opens a floating menu with **Rewrite**, **Shorten**, **Expand**, **Custom**, and **Delete** actions. AI-assisted actions use the active SillyTavern backend, can stream into the selected span, can apply SillyTavern AI-output regex scripts, and support fixed or selection-aware token budgets. Recent rewrites have an undo path.
 
-### The Solution
+Optional edit notes can be kept locally and, when NemoLore is loaded, offered as preference evidence. The runtime can pause itself if the separate standalone rewrite extension is detected, avoiding two selection menus.
 
-HTML Trimmer automatically processes old messages and converts verbose HTML/CSS into compact, collapsible text summaries:
-- **Selective Trimming:** Only affects old messages, keeps recent ones intact
-- **Readable Output:** Maintains content in a simple dropdown format
-- **Context Savings:** Can reduce message size by 70-90%
-- **Non-Destructive:** Original content preserved in collapsed state
+AI rewrite actions send the selected text and configured rewrite prompt to the active model and may incur normal provider usage costs.
 
-### Features
+### Italic Dialogue Rendering
 
-- **Auto-Trim:** Automatically trim old HTML when enabled
-- **Configurable Threshold:** Set how many recent messages to keep untouched (default: 4)
-- **Manual Trim:** Trigger trimming on-demand with "Trim Now" button
-- **Smart Detection:** Only processes messages with significant HTML/CSS
-- **Status Feedback:** See how many messages were trimmed and tokens saved
+Default: Off (`enableItalicDialogueRenderer`)
 
-### Configuration
+This formatter turns italic quoted dialogue such as `*"Hello there"*` into a dedicated styled dialogue span while preserving nested bold text. It updates rendered messages after chat events, deliberately skips fenced and inline code, and leaves the underlying message source intact.
 
-1. Go to **Extensions** > **NemoPreset UI** > **Feature Toggles**
-2. Enable **Auto-Trim Old HTML**
-3. Set **Keep last N messages untouched** (default: 4)
-4. Use **Trim Now** button for manual trimming
+Enable it and refresh; existing visible messages are re-rendered from their stored message text.
 
-### Usage Tips
+### Animated Backgrounds
 
-- Keep threshold at 4-6 for best balance of context and usability
-- Run manual trim before important conversations
-- Great for long roleplays with lots of formatted content
-- Compatible with all HTML-generating extensions
+Default: Off (`enableAnimatedBackgrounds`)
 
----
+This adds video/YouTube background conveniences without taking ownership of SillyTavern's normal image-background library.
 
-## Tutorial System
+- GIF, WebP, APNG, and ordinary images continue through the native background workflow.
+- YouTube links use a privacy-enhanced embed with mute, loop, autoplay, and fitting controls.
+- Source video uploads require the separate **Video Background Loader** add-on. That add-on supplies SillyTavern's conversion hook, and the selected video is saved as animated WebP rather than as its original container.
+- Saved YouTube shortcuts belong to NemoPresetExt; native background folders and sorting remain owned by SillyTavern.
 
-An interactive tutorial system featuring Vex, your friendly guide to all extension features.
+Enable the feature and refresh, then open the background panel. Paste a YouTube URL into the added URL control, or use SillyTavern's native upload control after installing Video Background Loader.
 
-### Meet Vex
+### Pollinations Image Interceptor
 
-Vex is your personal assistant for learning NemoPresetExt:
-- **Friendly Guide:** Casual, helpful personality
-- **Visual Novel Style:** Engaging dialogue-based tutorials
-- **Step-by-Step:** Clear instructions with highlighted elements
-- **Always Available:** Restart tutorials anytime
+Default: Off (`nemoEnablePollinationsInterceptor`)
 
-### Available Tutorials
+The interceptor detects `image.pollinations.ai/prompt/...` URLs in messages, extracts the encoded scene prompt, and regenerates the image with the image-generation backend already configured in SillyTavern. It queues work, retries transient failures, supports click-to-regenerate, saves the generated file, and updates the displayed message image.
 
-The tutorial system includes comprehensive guides for all features:
+Choose an optional style preset and keep SillyTavern's own image prompt prefix/suffix. This feature uses the configured SD, DALL-E, Horde, NovelAI, or other supported image backend rather than treating the Pollinations URL as the final asset; normal backend costs and content policies apply.
 
-1. **Welcome Tutorial** - Introduction to the extension suite
-2. **Preset Management** - Learn collapsible sections and organization
-3. **Preset Navigator** - Browse and manage API presets visually
-4. **Animated Backgrounds** - Set up video and YouTube backgrounds
-5. **Directives Engine** - Master prompt metadata and rules
-6. **UI Overhauls** - Navigate the enhanced interface
-7. **NemoNet Reasoning** - Understand Chain of Thought parsing
-8. **HTML Trimmer** - Optimize context usage automatically
-9. **NemoEngine 7.6 Setup Guide** - Complete step-by-step configuration walkthrough (25 detailed steps)
-10. **Quick Tips** - Keyboard shortcuts and hidden features
+#### Image Prompt Consistency Boost
 
-### Features
+Default: Off (`nemoPollinationsPromptBestPractices`)
 
-- **Interactive Highlights:** UI elements highlighted during tutorials
-- **Progress Tracking:** Resume where you left off
-- **Skip Anytime:** Skip tutorials you don't need
-- **Restart Capability:** Replay any tutorial
-- **First-Time Auto-Start:** Welcome tutorial on first use
+When the interceptor is enabled, this option inserts editable positive guidance for composition, anatomy, character consistency, lighting, and finish before the cleaned scene prompt. It also appends editable negative artifact guidance after SillyTavern's negative prompt. **Reset Image Guidance** restores the bundled phrases.
 
-### Accessing Tutorials
+This setting has no independent effect while the Pollinations interceptor is off.
 
-1. **First Time:** Welcome tutorial auto-starts on installation
-2. **Tutorial Menu:** Access from extension settings
-3. **Restart:** Click "Restart Tutorials" in settings
-4. **Skip:** Click "Skip" during any tutorial
+### Connection Panel Organization
 
-### Tutorial Launcher
+Default: Off (`enableConnectionPanelOverhaul`)
 
-The tutorial launcher provides:
-- **Tutorial Browser:** See all available tutorials
-- **Category Filter:** Browse by topic (Getting Started, Core, UI, etc.)
-- **Progress Indicators:** See which tutorials you've completed
-- **Quick Launch:** Start any tutorial with one click
+This experimental layout groups context, instruct, response, model, API, sampling, and prompt controls into clearer drawers, groups Nemo-suite extensions, and animates the Stop control while generation is active. It only reorganizes the existing connection panel and leaves SillyTavern's native layout untouched when disabled. Enable it and refresh.
 
----
+### Enhanced Model Selector
 
-## Installation
+Default: Off (`enableModelSelector`)
 
-### Requirements
+This replaces supported provider/model selects with provider tabs and searchable model cards. It adds cross-provider search, favorites, recent/quick-switch chips, a matching Text Completion selector, a Nemo Stack pipeline panel, and a way to revert to the native selectors. The original SillyTavern selects are hidden rather than deleted and are restored when the feature is torn down.
 
-- **SillyTavern:** Version 1.11.0 or higher recommended
-- **Browser:** Modern browser with JavaScript enabled
-- **Storage:** Minimal disk space required
+Enable it and refresh after your provider lists and credentials are configured in SillyTavern.
 
-### Installation Steps
+### API Router and Model Pipeline
 
-1. **Download the Extension**
-   - Clone or download this repository
-   - Or use SillyTavern's built-in extension installer
+Default: Off (`enableApiRouter`)
 
-2. **Install to SillyTavern**
-   ```
-   SillyTavern/
-   └── public/
-       └── scripts/
-           └── extensions/
-               └── third-party/
-                   └── NemoPresetExt/  ← Place files here
-   ```
+This is an advanced integration foundation. It loads a persistent connection pool, a request router, pipeline presets, and the multi-stage model pipeline used by Nemo Stack tooling. A pipeline can assign different provider/model connections to recall, analysis, parallel drafting, and consolidation stages without mutating the globally selected model for each routed request.
 
-3. **Enable the Extension**
-   - Open SillyTavern
-   - Go to **Extensions** tab
-   - Find **NemoPresetExt** in the list
-   - Toggle it **ON**
+Enabling the flag exposes `NemoConnectionPool`, `NemoApiRouter`, `NemoModelPipeline`, and `NemoPipelinePresets` for compatible UI and integrations. It does **not** silently route ordinary SillyTavern generations or make every provider interchangeable. Configure and test saved connections before using a pipeline; each stage can make a billable model request.
 
-4. **Refresh the Page**
-   - Refresh SillyTavern (F5 or Ctrl+R)
-   - The extension will initialize automatically
+### NemoEngine Installer
 
-5. **Configure Settings**
-   - Go to **Extensions** > **NemoPreset UI**
-   - Enable/disable features as desired
-   - Customize divider patterns, themes, etc.
+Default: Off (`enableNemoEngineInstaller`)
 
-### First-Time Setup
+The settings panel gains an installer for the bundled **Nemo Engine 9.3.1** Chat Completion preset. **Install / Update** validates the bundled JSON, saves or updates the preset through SillyTavern, and can select it. **Run Setup Wizard** checks the installed preset, active selection, and NemoLore/NemoGuides core-pack variable slots. The guide button opens the bundled setup walkthrough.
 
-On first use:
-1. Vex's welcome tutorial will auto-start
-2. Follow the tutorial or skip if you prefer
-3. Configure your preferred features in settings
-4. Create your first dividers in the prompt manager
+The installer never runs merely because its feature flag is on; the user must click an install or setup action. Updating an identically named preset intentionally changes that preset, so export a copy first if you customized it.
 
-### Updating
+### Nemo Marketplace
 
-To update the extension:
-1. Backup your settings (optional but recommended)
-2. Download the latest version
-3. Replace old files with new ones
-4. Refresh SillyTavern
-5. Settings will be preserved automatically
+Default: Off (`enableMarketplace`)
 
-### Troubleshooting
+A store button opens a searchable, category-filtered catalog of curated extensions, presets, lorebooks, characters, tools, themes, guides, and community links. Its Prompt Library view can fetch version-pinned Nemo Engine, NemoNet, and Atelier prompt files from GitHub and import normalized prompts into SillyTavern's PromptManager. An imported prompt with an existing identifier is updated rather than duplicated.
 
-**Extension not loading?**
-- Check browser console for errors (F12)
-- Ensure files are in correct directory
-- Verify extension is enabled in Extensions tab
-- Try refreshing the page
+Opening external recommendations or loading the Prompt Library requires internet access. Review third-party projects and imported prompt text before using them.
 
-**Features not working?**
-- Some features require a page refresh to enable
-- Check extension settings for toggles
-- Ensure your SillyTavern version is up to date
+### Persona UI Enhancements
 
-**Need help?**
-- Check the GitHub repository for issues
-- Visit the SillyTavern Discord
-- Review tutorial system for feature guidance
+Default: Off (`enablePersonaEnhancements`)
 
----
+This keeps SillyTavern's existing Persona Management drawer but reorganizes its action buttons into edit, management, and destructive groups. It also improves connection buttons and the temporary-persona banner, adds a persona count, and makes global persona settings collapsible. The original element order is restored on teardown.
 
-## Credits
+### Emoji Picker
 
-**Author:** @NemoVonNirgend
-**Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
-**Version:** 4.6.3-mid-patch
+Default: Off (`enableEmojiPicker`)
 
-### Acknowledgments
+An emoji button appears beside the message composer. The picker supports search, categories, favorites, recent emoji, skin-tone selection, keyboard focus, and lazy rendering for the large emoji list. Clicking an emoji inserts it into the current message draft. Favorites, recents, and picker preferences are saved in extension settings.
 
-Thanks to:
-- SillyTavern community for feedback and testing
-- Contributors who helped improve the extension
-- Users who create and share amazing presets
+### Settings Tab Overhauls
 
----
+Default: Off (`enableTabOverhauls`)
 
-## License
+This reorganizes **User Settings** and **Advanced Formatting** into tabs to reduce scrolling. It moves native settings controls into grouped views rather than cloning their behavior, and restores the original layout during teardown. Enable it and refresh.
 
-This extension is provided as-is for use with SillyTavern. See the repository for license details.
+### Extensions Tab Overhaul
 
----
+Default: Off (`nemoEnableExtensionsTabOverhaul`)
+
+This adds search, a two-column categorized browser, collapsible groups, custom folders with right-click moves, and specialized layouts for Image Generation, Quick Replies, Regex, TTS, Vectors, and Summary. It does not control where NemoPresetExt's own settings are mounted. Enable it and refresh; leaving it off preserves SillyTavern's native Extensions UI.
+
+### Wide Navigation Panels
+
+Default: Off (`nemoEnableWidePanels`)
+
+Left and right navigation panels expand to approximately half of the viewport for large-screen workflows. The extension automatically avoids the wide layout on small/mobile viewports. This setting can update live.
+
+### Mobile UI Enhancements
+
+Default: Off (`enableMobileEnhancements`)
+
+On coarse-pointer/touch devices, this applies larger touch targets, more readable spacing, and mobile-specific layout adjustments. Pointer capability is monitored so the class can be removed when the device no longer matches. Enable it and refresh.
+
+### Tutorials and Welcome Guide
+
+Default: Off (`enableTutorials`)
+
+The optional visual-novel-style tutorial system uses Vex to present guided walkthroughs, highlighted controls, progress tracking, replay, and skip controls. When—and only when—the tutorial feature is enabled, the launcher may offer the first-run welcome guide and the tutorial browser.
+
+The welcome guide does not auto-start on a default new installation because the entire tutorial runtime is opt-in.
+
+## Appearance and behavior options
+
+These are settings rather than independent feature flags:
+
+- **Section Dropdown Style:** **Tray Overlay** (default) or **Accordion List**; updates live.
+- **Section Dropdown Theme:** **SillyTavern Theme** (default) or **Nemo Blue**; updates live and exposes `--nemo-dropdown-*` CSS variables.
+- **UI Theme Overhaul:** **None** (default), Windows 98, Discord, Cyberpunk, or NemoTavern. These are cosmetic whole-interface themes, are suppressed on mobile-width displays, and require a refresh. NemoTavern also provides its glass layout, floating panels, unified settings surface, and `Ctrl/Cmd+K` command palette.
+- **Message Theme:** Default plus Cheerful, Divine, Fantasy, Royal, Steampunk, Solarpunk, Goth, Pastel, Passionate, Horror, Melancholy, Romance, Cyberpunk, and two dyslexia-friendly variants.
+- **Custom Divider Patterns:** adds comma-separated regular-expression patterns to the prompt section detector.
+- **Pollinations Style and Guidance:** chooses an image style layer and editable positive/negative prompt guidance for intercepted images.
+
+A small compatibility adjustment is always active for custom OpenAI-compatible endpoints: NemoPresetExt makes SillyTavern's Top K control available for that source and omits zero-valued penalty fields that some endpoints reject. It does not alter non-custom Chat Completion requests.
+
+## Complete settings reference
+
+The table below is the canonical new-install state. Most feature toggles should be followed by a page refresh; live controls are called out in the feature guide.
+
+| Setting key | New install | Feature |
+| --- | --- | --- |
+| `enablePromptManager` | **On** | Prompt Dropdowns & Tools |
+| `enablePresetNavigator` | **On** | Preset Navigator |
+| `enableCharacterNavigator` | **On** | Character Card Navigator |
+| `enableReasoningCapture` | **On** | Improved Reasoning Capture |
+| `enableDirectives` | **On** | Prompt Directives |
+| `enableDirectiveAutocomplete` | **On** | Directive Autocomplete |
+| `enableAnimatedBackgrounds` | Off | Animated Backgrounds |
+| `enableTabOverhauls` | Off | Settings Tab Overhauls |
+| `enableConnectionPanelOverhaul` | Off | Connection Panel Organization |
+| `nemoEnableExtensionsTabOverhaul` | Off | Extensions Tab Overhaul |
+| `enableLorebookOverhaul` | Off | Lorebook UI Overhaul |
+| `enableReasoningSection` | Off | Unified Reasoning Section |
+| `enableLorebookManagement` | Off | Quick Lorebook Access |
+| `enableHTMLTrimming` | Off | HTML Trimmer |
+| `nemoEnableWidePanels` | Off | Wide Navigation Panels |
+| `enableMobileEnhancements` | Off | Mobile UI Enhancements |
+| `enableModelSelector` | Off | Enhanced Model Selector |
+| `nemoEnablePollinationsInterceptor` | Off | Pollinations Image Interceptor |
+| `nemoPollinationsPromptBestPractices` | Off | Image Prompt Consistency Boost |
+| `enableEmojiPicker` | Off | Emoji Picker |
+| `enableMarketplace` | Off | Nemo Marketplace |
+| `enablePersonaEnhancements` | Off | Persona UI Enhancements |
+| `enableNemoLore` | Off | NemoLore |
+| `enableRewrite` | Off | Nemo Rewrite |
+| `enableTutorials` | Off | Tutorials and Welcome Guide |
+| `enableNemoEngineInstaller` | Off | NemoEngine Installer |
+| `enableItalicDialogueRenderer` | Off | Italic Dialogue Rendering |
+| `enableApiRouter` | Off | API Router and Model Pipeline |
+
+The source of truth for these values is [`core/feature-settings.js`](core/feature-settings.js). Boolean gates require the literal value `true`; truthy strings or numbers do not activate a feature.
+
+## Storage, network, and model effects
+
+- Preset and character folders/favorites are extension organization metadata; they do not move the underlying files.
+- Prompt snapshots, emoji preferences, connection pools, and most UI choices are saved with extension settings or local browser storage.
+- HTML Trimmer writes restorable backups into chat metadata before trimming.
+- NemoLore uses local feature storage and can write to SillyTavern vector storage and configured core-pack variables when those options are enabled.
+- Marketplace prompt loading contacts GitHub; YouTube backgrounds contact YouTube; external recommendation links open their respective sites.
+- Rewrite, NemoLore model work, API pipelines, and intercepted image generation call the backends configured in SillyTavern and may incur provider costs.
+
+## Updating
+
+When installed through SillyTavern's extension manager, use its update action and refresh the page. For a manual install, replace the extension files with the new release while preserving the folder name, then refresh. Extension settings are schema-migrated without overwriting explicit choices.
+
+Do not copy a new release over a partially modified working tree unless you have backed up those changes.
+
+## Troubleshooting
+
+### A toggle appears to do nothing
+
+Refresh the page after changing it. Many modules attach to SillyTavern controls only during startup. Also confirm the master dependency is enabled—for example, directive autocomplete needs Prompt Directives, and image prompt guidance needs the Pollinations interceptor.
+
+### The settings card is missing or malformed
+
+Look under SillyTavern's native Extensions settings area; the Extensions Tab Overhaul is not required. Confirm the extension is enabled, the folder is named `NemoPresetExt`, and `manifest.json`, `content.js`, `settings.html`, and `styles.css` are at the folder root. Then check the browser console for the first NemoPresetExt error.
+
+### Browse buttons are missing
+
+Open the relevant native panel at least once and wait for its controls to render. The preset navigator only attaches to supported preset selectors; the character navigator attaches to the installed-character drawer. Refresh after changing either feature flag.
+
+### Reasoning is not separated
+
+Enable SillyTavern's reasoning auto-parse controls, verify the configured prefix/suffix, and keep narrative outside `<think>...</think>`. See the reasoning setup guide linked above for model-specific examples.
+
+### A video background will not upload
+
+Install and enable Video Background Loader. NemoPresetExt supplies YouTube playback, but source-video conversion is deliberately delegated to that add-on and SillyTavern's native upload flow.
+
+### NemoLore tools or retrieval do not run
+
+Configure a usable memory/preflight connection profile. Vector retrieval also needs vector-storage support, while native Guides tool calls need a tool-capable backend. Use NemoLore's status, queue, inspector, and setup checks before enabling automatic workflows.
+
+## More documentation
+
+- [FEATURES.md](FEATURES.md) — implementation-oriented feature and settings reference
+- [NEMO_ENGINE_SETUP.md](NEMO_ENGINE_SETUP.md) — bundled Nemo Engine setup guide
+- [reasoning/README.md](reasoning/README.md) — reasoning parser overview
+- [reasoning/docs/REASONING_SETUP.md](reasoning/docs/REASONING_SETUP.md) — reasoning configuration and examples
+- [features/nemolore/docs/ARCHITECTURE.md](features/nemolore/docs/ARCHITECTURE.md) — NemoLore architecture
 
 ## Support
 
-For issues, feature requests, or contributions:
-- **GitHub:** https://github.com/NemoVonNirgend/NemoPresetExt
-- **Discord:** SillyTavern community server
+Use the [GitHub repository](https://github.com/NemoVonNirgend/NemoPresetExt) for issues, feature requests, and contributions. When reporting a problem, include the NemoPresetExt version, SillyTavern branch/version, enabled feature flags, the first relevant browser-console error, and reproduction steps.
 
-Enjoy your enhanced SillyTavern experience! 🎉
+## License
+
+This extension is provided as-is for use with SillyTavern. See the repository for the current license information.

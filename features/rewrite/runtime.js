@@ -638,7 +638,10 @@ async function handleTextBasedRewrite(selectionInfo, actionKey, customInstructio
         } else if (main_api === 'koboldhorde') {
             response = await generateHorde(prompt, generateData, abortController.signal, true);
         } else {
-            const text = await generateRaw(prompt, null, false, false, null, generateData.max_length);
+            const text = await generateRaw({
+                prompt,
+                responseLength: generateData.max_length,
+            });
             response = { text };
         }
     } catch (error) {

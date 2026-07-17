@@ -10,26 +10,57 @@ import { promptManager } from '../../../../../openai.js';
 import { getContext } from '../../../../../extensions.js';
 
 // Directive parsing cache for performance optimization
-// Uses a Map with content hash as key to avoid re-parsing identical content
+// Uses exact prompt content as the key so distinct prompts cannot collide.
 const directiveCache = new Map();
 const CACHE_MAX_SIZE = 2000; // Increased from 500 to cover large presets
-const CACHE_TTL = 60000; // Cache TTL in ms (1 minute)
 
 /**
- * Simple hash function for cache keys
- * @param {string} str - String to hash
- * @returns {string} Hash string
+ * Accept only values the browser recognizes as a single CSS color token.
+ * @param {unknown} color
+ * @returns {boolean}
  */
-function hashContent(str) {
-    let hash = 0;
-    if (str.length === 0) return String(hash);
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-    }
-    return String(hash);
+function isValidCssColor(color) {
+    const value = String(color ?? '').trim();
+    if (!value || value.length > 64 || /[;{}]/.test(value)) return false;
+    if (globalThis.CSS?.supports) return globalThis.CSS.supports('color', value);
+    return /^(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\([\d\s.,%+-]+\)|[a-z]+|var\(--[\w-]+\))$/i.test(value);
 }
+
+
+const DIRECTIVE_LIST_KEYS = [
+    'exclusiveWith',
+    'requires',
+    'conflictsWith',
+    'categories',
+    'autoDisable',
+    'incompatibleApis',
+    'recommendedWith',
+    'tags',
+    'ifEnabled',
+    'ifDisabled',
+    'ifApi',
+    'profiles',
+    'testedWith',
+    'modelOptimized',
+    'modelIncompatible',
+    'recommendedApi',
+    'autoEnableWith',
+    'suggestEnableWith',
+];
+
+function parseDirectiveInteger(value, minimum = 0, maximum = Number.MAX_SAFE_INTEGER) {
+    if (!/^\d+$/.test(value)) return null;
+    const parsed = Number(value);
+    return Number.isSafeInteger(parsed) && parsed >= minimum && parsed <= maximum ? parsed : null;
+}
+
+function normalizeDirectiveLists(directives) {
+    for (const key of DIRECTIVE_LIST_KEYS) {
+        directives[key] = [...new Set(directives[key].filter(Boolean))];
+    }
+}
+
+const CACHE_TTL = 60000; // Cache TTL in ms (1 minute)
 
 /**
  * Clear the directive cache (call when prompts are modified)
@@ -48,9 +79,7 @@ export function parsePromptDirectives(content) {
     if (!content) return getEmptyDirectives();
 
     // Check cache first
-    const cacheKey = hashContent(content);
-    const cached = directiveCache.get(cacheKey);
-
+    const cached = directiveCache.get(content);
     if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
         return cached.directives;
     }
@@ -59,13 +88,18 @@ export function parsePromptDirectives(content) {
     const directives = getEmptyDirectives();
 
     // Extract all {{// ... }} blocks
-    const commentRegex = /\{\{\/\/(.*?)\}\}/g;
+    const commentRegex = /\{\{\/\/([\s\S]*?)\}\}/g;
     let match;
 
     while ((match = commentRegex.exec(content)) !== null) {
-        const comment = match[1].trim();
-        parseDirectiveLine(comment, directives);
+        const directiveLines = match[1]
+            .split(/\r?\n/)
+            .map(line => line.trim())
+            .filter(Boolean);
+        directiveLines.forEach(line => parseDirectiveLine(line, directives));
     }
+
+    normalizeDirectiveLists(directives);
 
     // Store in cache
     if (directiveCache.size >= CACHE_MAX_SIZE) {
@@ -74,7 +108,7 @@ export function parsePromptDirectives(content) {
         keys.forEach(k => directiveCache.delete(k));
     }
 
-    directiveCache.set(cacheKey, {
+    directiveCache.set(content, {
         directives: directives,
         timestamp: Date.now()
     });
@@ -276,7 +310,7 @@ function parseDirectiveLine(line, directives) {
         directives.mutualExclusiveGroup = line.substring(25).trim();
     }
     else if (line.startsWith('@priority ')) {
-        directives.priority = parseInt(line.substring(10).trim());
+        directives.priority = parseDirectiveInteger(line.substring(10).trim(), 1, 100);
     }
 
     // Visibility & Conditionals
@@ -292,27 +326,27 @@ function parseDirectiveLine(line, directives) {
         const apis = line.substring(8).split(',').map(api => api.trim().toLowerCase());
         directives.ifApi.push(...apis);
     }
-    else if (line.startsWith('@hidden')) {
+    else if (line === '@hidden') {
         directives.hidden = true;
     }
 
     // Setup & Defaults
-    else if (line.startsWith('@default-enabled')) {
+    else if (line === '@default-enabled') {
         directives.defaultEnabled = true;
     }
-    else if (line.startsWith('@recommended-for-beginners')) {
+    else if (line === '@recommended-for-beginners') {
         directives.recommendedForBeginners = true;
     }
-    else if (line.startsWith('@advanced')) {
+    else if (line === '@advanced') {
         directives.advanced = true;
     }
 
     // Performance & Resources
     else if (line.startsWith('@token-cost ')) {
-        directives.tokenCost = parseInt(line.substring(12).trim());
+        directives.tokenCost = parseDirectiveInteger(line.substring(12).trim());
     }
     else if (line.startsWith('@token-cost-warn ')) {
-        directives.tokenCostWarn = parseInt(line.substring(17).trim());
+        directives.tokenCostWarn = parseDirectiveInteger(line.substring(17).trim());
     }
     else if (line.startsWith('@performance-impact ')) {
         directives.performanceImpact = line.substring(20).trim().toLowerCase();
@@ -337,12 +371,13 @@ function parseDirectiveLine(line, directives) {
         directives.icon = line.substring(6).trim();
     }
     else if (line.startsWith('@color ')) {
-        directives.color = line.substring(7).trim();
+        const color = line.substring(7).trim();
+        directives.color = isValidCssColor(color) ? color : null;
     }
     else if (line.startsWith('@badge ')) {
         directives.badge = line.substring(7).trim();
     }
-    else if (line.startsWith('@highlight')) {
+    else if (line === '@highlight') {
         directives.highlight = true;
     }
 
@@ -397,15 +432,15 @@ function parseDirectiveLine(line, directives) {
         directives.suggestEnableWith.push(...ids);
     }
     else if (line.startsWith('@load-order ')) {
-        directives.loadOrder = parseInt(line.substring(12).trim());
+        directives.loadOrder = parseDirectiveInteger(line.substring(12).trim());
     }
 
     // Message-Based Triggers (NEW)
     else if (line.startsWith('@enable-at-message ')) {
-        directives.enableAtMessage = parseInt(line.substring(19).trim());
+        directives.enableAtMessage = parseDirectiveInteger(line.substring(19).trim());
     }
     else if (line.startsWith('@disable-at-message ')) {
-        directives.disableAtMessage = parseInt(line.substring(20).trim());
+        directives.disableAtMessage = parseDirectiveInteger(line.substring(20).trim());
     }
     else if (line.startsWith('@message-range ')) {
         const rangeStr = line.substring(15).trim();
@@ -418,10 +453,10 @@ function parseDirectiveLine(line, directives) {
         }
     }
     else if (line.startsWith('@enable-after-message ')) {
-        directives.enableAfterMessage = parseInt(line.substring(22).trim());
+        directives.enableAfterMessage = parseDirectiveInteger(line.substring(22).trim());
     }
     else if (line.startsWith('@disable-after-message ')) {
-        directives.disableAfterMessage = parseInt(line.substring(23).trim());
+        directives.disableAfterMessage = parseDirectiveInteger(line.substring(23).trim());
     }
 }
 
@@ -584,7 +619,19 @@ export function validatePromptActivation(promptId, allPrompts) {
         }
     }
 
-    // Check for deprecated
+    // Check general warnings and deprecation.
+
+    if (directives.warning) {
+        issues.push({
+            type: 'general-warning',
+            severity: 'warning',
+            message: directives.warning,
+            currentPrompt: prompt,
+            directive: 'warning',
+        });
+    }
+
+
     if (directives.deprecated) {
         issues.push({
             type: 'deprecated',
@@ -1014,6 +1061,22 @@ export function evaluateMessageTriggers(messageCount, allPrompts) {
             }
         }
     }
+
+    const finalActions = new Map();
+    for (const identifier of result.toEnable) finalActions.set(identifier, 'enable');
+    for (const identifier of result.toDisable) finalActions.set(identifier, 'disable');
+
+    result.toEnable = [...finalActions.entries()]
+        .filter(([, action]) => action === 'enable').map(([identifier]) => identifier);
+    result.toDisable = [...finalActions.entries()]
+        .filter(([, action]) => action === 'disable').map(([identifier]) => identifier);
+
+    const seenTriggers = new Set();
+    result.triggered = result.triggered.filter(trigger => {
+        if (finalActions.get(trigger.id) !== trigger.action || seenTriggers.has(trigger.id)) return false;
+        seenTriggers.add(trigger.id);
+        return true;
+    });
 
     return result;
 }

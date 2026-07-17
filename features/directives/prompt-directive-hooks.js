@@ -13,7 +13,23 @@ import { eventSource, event_types } from '../../../../../../script.js';
 
 // Track which prompts are currently being validated (prevents double popups)
 const validatingPrompts = new Set();
+const validationTimeouts = new Set();
+const messageTriggerTimeouts = new Set();
 let hooksInitialized = false;
+
+function scheduleTrackedTimeout(callback, delay, registry) {
+    const timeout = setTimeout(() => {
+        registry.delete(timeout);
+        callback();
+    }, delay);
+    registry.add(timeout);
+    return timeout;
+}
+
+function clearTrackedTimeouts(registry) {
+    registry.forEach(timeout => clearTimeout(timeout));
+    registry.clear();
+}
 
 /**
  * Initialize directive validation hooks
@@ -21,7 +37,7 @@ let hooksInitialized = false;
 export function initPromptDirectiveHooks() {
     if (hooksInitialized) {
         logger.warn('Directive hooks already initialized, skipping');
-        return;
+        return cleanupPromptDirectiveHooks;
     }
 
     logger.info('Initializing prompt directive hooks');
@@ -31,6 +47,14 @@ export function initPromptDirectiveHooks() {
 
     hooksInitialized = true;
     logger.info('Prompt directive hooks initialized');
+    return cleanupPromptDirectiveHooks;
+}
+
+export function cleanupPromptDirectiveHooks() {
+    document.removeEventListener('click', handlePromptToggleClick, true);
+    clearTrackedTimeouts(validationTimeouts);
+    validatingPrompts.clear();
+    hooksInitialized = false;
 }
 
 /**
@@ -92,13 +116,13 @@ function handlePromptToggleClick(event) {
     validatingPrompts.add(identifier);
 
     // Validate the activation and toggle if allowed
-    validateAndToggle(identifier, promptElement);
+    validateAndToggle(identifier);
 }
 
 /**
  * Validate prompt activation and show conflict UI if needed
  */
-function validateAndToggle(promptId, toggleElement) {
+function validateAndToggle(promptId) {
     try {
         const allPrompts = getAllPromptsWithState();
         const issues = validatePromptActivation(promptId, allPrompts);
@@ -107,9 +131,9 @@ function validateAndToggle(promptId, toggleElement) {
             // No issues, proceed with toggle
             performToggle(promptId, true);
             // Remove from validating set after a short delay
-            setTimeout(() => {
+            scheduleTrackedTimeout(() => {
                 validatingPrompts.delete(promptId);
-            }, 300);
+            }, 300, validationTimeouts);
             return;
         }
 
@@ -136,9 +160,9 @@ function validateAndToggle(promptId, toggleElement) {
             performAutoResolution(issues, allPrompts, promptId);
             performToggle(promptId, true);
             // Remove from validating set
-            setTimeout(() => {
+            scheduleTrackedTimeout(() => {
                 validatingPrompts.delete(promptId);
-            }, 300);
+            }, 300, validationTimeouts);
         } else {
             // Show conflict toast for manual resolution
             showConflictToast(issues, promptId, (proceed) => {
@@ -283,32 +307,30 @@ function performToggle(identifier, enable) {
     }
 }
 
-/**
- * Update the toggle UI element
- */
-function updateToggleUI(identifier, enabled) {
-    const toggleElement = document.querySelector(`[data-pm-identifier="${identifier}"]`);
-    if (!toggleElement) return;
-
-    // Find checkbox or toggle button
-    const checkbox = toggleElement.querySelector('.prompt_manager_prompt_checkbox');
-    if (checkbox) {
-        checkbox.checked = enabled;
-    }
-
-    // Update visual state
-    if (enabled) {
-        toggleElement.classList.add('prompt-enabled');
-        toggleElement.classList.remove('prompt-disabled');
-    } else {
-        toggleElement.classList.add('prompt-disabled');
-        toggleElement.classList.remove('prompt-enabled');
-    }
-}
-
 // Track last processed message count to avoid repeated triggers
 let lastProcessedMessageCount = -1;
 let messageTriggerHooksInitialized = false;
+
+function scheduleMessageTriggerCheck(delay) {
+    scheduleTrackedTimeout(checkMessageTriggers, delay, messageTriggerTimeouts);
+}
+
+function handleMessageSent() {
+    scheduleMessageTriggerCheck(100);
+}
+
+function handleMessageReceived() {
+    scheduleMessageTriggerCheck(100);
+}
+
+function handleChatChanged() {
+    lastProcessedMessageCount = -1;
+    scheduleMessageTriggerCheck(200);
+}
+
+function handleGenerationStarted() {
+    checkMessageTriggers();
+}
 
 /**
  * Initialize message-based trigger hooks
@@ -317,33 +339,35 @@ let messageTriggerHooksInitialized = false;
 export function initMessageTriggerHooks() {
     if (messageTriggerHooksInitialized) {
         logger.warn('Message trigger hooks already initialized');
-        return;
+        return cleanupMessageTriggerHooks;
     }
 
     logger.info('Initializing message trigger hooks');
 
     // Listen for messages being sent/received
-    eventSource.on(event_types.MESSAGE_SENT, () => {
-        setTimeout(checkMessageTriggers, 100); // Small delay to ensure chat is updated
-    });
+    eventSource.on(event_types.MESSAGE_SENT, handleMessageSent);
 
-    eventSource.on(event_types.MESSAGE_RECEIVED, () => {
-        setTimeout(checkMessageTriggers, 100);
-    });
+    eventSource.on(event_types.MESSAGE_RECEIVED, handleMessageReceived);
 
     // Also check on chat changed (new chat loaded)
-    eventSource.on(event_types.CHAT_CHANGED, () => {
-        lastProcessedMessageCount = -1; // Reset when chat changes
-        setTimeout(checkMessageTriggers, 200);
-    });
+    eventSource.on(event_types.CHAT_CHANGED, handleChatChanged);
 
     // Check on generation started (for pre-generation triggers)
-    eventSource.on(event_types.GENERATION_STARTED, () => {
-        checkMessageTriggers();
-    });
+    eventSource.on(event_types.GENERATION_STARTED, handleGenerationStarted);
 
     messageTriggerHooksInitialized = true;
     logger.info('Message trigger hooks initialized');
+    return cleanupMessageTriggerHooks;
+}
+
+export function cleanupMessageTriggerHooks() {
+    eventSource.removeListener(event_types.MESSAGE_SENT, handleMessageSent);
+    eventSource.removeListener(event_types.MESSAGE_RECEIVED, handleMessageReceived);
+    eventSource.removeListener(event_types.CHAT_CHANGED, handleChatChanged);
+    eventSource.removeListener(event_types.GENERATION_STARTED, handleGenerationStarted);
+    clearTrackedTimeouts(messageTriggerTimeouts);
+    lastProcessedMessageCount = -1;
+    messageTriggerHooksInitialized = false;
 }
 
 /**

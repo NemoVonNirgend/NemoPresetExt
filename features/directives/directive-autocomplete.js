@@ -5,11 +5,7 @@
  * @module directive-autocomplete
  */
 
-import logger from '../../core/logger.js';
 import { getAllPromptsWithState } from './prompt-directives.js';
-import { SILLYTAVERN_MACROS } from './sillytavern-macros.js';
-import { chat_metadata } from '../../../../../../script.js';
-import { extension_settings } from '../../../../../extensions.js';
 
 /**
  * Directive definitions with autocomplete metadata
@@ -106,7 +102,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@auto-disable',
         syntax: '@auto-disable <prompt-id>, <prompt-id>, ...',
-        description: 'Auto-disable these prompts when enabled',
+        description: 'Allow matching conflicts to be disabled during resolution',
         example: '@auto-disable old-system-prompt',
         requiresValue: true,
         valueType: 'prompt-list'
@@ -145,7 +141,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@recommended-with',
         syntax: '@recommended-with <prompt-id>, <prompt-id>, ...',
-        description: 'Prompts that work well together',
+        description: 'Metadata: prompts that work well together',
         example: '@recommended-with visual-descriptions, detailed-environment',
         requiresValue: true,
         valueType: 'prompt-list'
@@ -157,7 +153,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@tags',
         syntax: '@tags <tag1>, <tag2>, ...',
-        description: 'Searchable tags for filtering prompts',
+        description: 'Metadata: searchable prompt tags',
         example: '@tags combat, realism, violence, nsfw',
         requiresValue: true,
         valueType: 'text-list'
@@ -165,7 +161,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@group',
         syntax: '@group <group name>',
-        description: 'Group prompts into collapsible sections',
+        description: 'Metadata: prompt group name',
         example: '@group Vex Personalities',
         requiresValue: true,
         valueType: 'text'
@@ -173,7 +169,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@group-description',
         syntax: '@group-description <description>',
-        description: 'Description text for the group',
+        description: 'Metadata: prompt group description',
         example: '@group-description Choose ONE personality variant',
         requiresValue: true,
         valueType: 'text'
@@ -181,7 +177,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@mutual-exclusive-group',
         syntax: '@mutual-exclusive-group <group name>',
-        description: 'Auto-disable others in group when enabled',
+        description: 'Allow only one active prompt in this group',
         example: '@mutual-exclusive-group response-length',
         requiresValue: true,
         valueType: 'text'
@@ -189,7 +185,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@priority',
         syntax: '@priority <1-100>',
-        description: 'Control load order (higher = first)',
+        description: 'Metadata: priority from 1 to 100',
         example: '@priority 90',
         requiresValue: true,
         valueType: 'number'
@@ -199,7 +195,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@if-enabled',
         syntax: '@if-enabled <prompt-id>, <prompt-id>, ...',
-        description: 'Show only if these prompts are enabled',
+        description: 'Metadata: enabled-prompt condition',
         example: '@if-enabled nsfw-mode, advanced-features',
         requiresValue: true,
         valueType: 'prompt-list'
@@ -207,7 +203,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@if-disabled',
         syntax: '@if-disabled <prompt-id>, <prompt-id>, ...',
-        description: 'Show only if these prompts are disabled',
+        description: 'Metadata: disabled-prompt condition',
         example: '@if-disabled safe-mode',
         requiresValue: true,
         valueType: 'prompt-list'
@@ -215,7 +211,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@if-api',
         syntax: '@if-api <api>, <api>, ...',
-        description: 'Show only for specific APIs',
+        description: 'Metadata: API condition',
         example: '@if-api openai, claude',
         requiresValue: true,
         valueType: 'text-list'
@@ -223,7 +219,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@hidden',
         syntax: '@hidden',
-        description: 'Hide from UI entirely (still functions)',
+        description: 'Metadata: hidden visibility flag',
         example: '@hidden',
         requiresValue: false
     },
@@ -232,21 +228,21 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@default-enabled',
         syntax: '@default-enabled',
-        description: 'Auto-enable on first use',
+        description: 'Metadata: requested default state (not applied)',
         example: '@default-enabled',
         requiresValue: false
     },
     {
         directive: '@recommended-for-beginners',
         syntax: '@recommended-for-beginners',
-        description: 'Highlight for new users',
+        description: 'Metadata: recommended for beginners',
         example: '@recommended-for-beginners',
         requiresValue: false
     },
     {
         directive: '@advanced',
         syntax: '@advanced',
-        description: 'Mark as expert-only',
+        description: 'Metadata: advanced-user marker',
         example: '@advanced',
         requiresValue: false
     },
@@ -255,7 +251,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@token-cost',
         syntax: '@token-cost <number>',
-        description: 'Estimated token usage',
+        description: 'Metadata: estimated token usage',
         example: '@token-cost 500',
         requiresValue: true,
         valueType: 'number'
@@ -263,7 +259,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@token-cost-warn',
         syntax: '@token-cost-warn <number>',
-        description: 'Warning threshold for total tokens',
+        description: 'Metadata: token warning threshold',
         example: '@token-cost-warn 8000',
         requiresValue: true,
         valueType: 'number'
@@ -271,7 +267,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@performance-impact',
         syntax: '@performance-impact <low|medium|high>',
-        description: 'Performance impact indicator',
+        description: 'Metadata: performance impact',
         example: '@performance-impact medium',
         requiresValue: true,
         valueType: 'text'
@@ -281,7 +277,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@help',
         syntax: '@help <help text>',
-        description: 'Inline help text (rich format)',
+        description: 'Metadata: inline help text',
         example: '@help This prompt enables X, Y, Z. Works best with A and B.',
         requiresValue: true,
         valueType: 'text'
@@ -289,7 +285,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@documentation-url',
         syntax: '@documentation-url <url>',
-        description: 'External documentation link',
+        description: 'Metadata: external documentation link',
         example: '@documentation-url https://docs.example.com/guide',
         requiresValue: true,
         valueType: 'text'
@@ -297,7 +293,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@example',
         syntax: '@example <usage example>',
-        description: 'Usage example code or text',
+        description: 'Metadata: usage example',
         example: '@example Use with @profile nsfw for best results',
         requiresValue: true,
         valueType: 'text'
@@ -348,7 +344,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@profile',
         syntax: '@profile <name>, <name>, ...',
-        description: 'Belongs to named profile(s)',
+        description: 'Metadata: named profiles',
         example: '@profile sfw, beginner, recommended',
         requiresValue: true,
         valueType: 'text-list'
@@ -356,7 +352,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@preset-name',
         syntax: '@preset-name <name>',
-        description: 'Full preset identifier',
+        description: 'Metadata: preset identifier',
         example: '@preset-name Nemo Preset v3',
         requiresValue: true,
         valueType: 'text'
@@ -364,7 +360,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@preset-version',
         syntax: '@preset-version <version>',
-        description: 'Preset version number',
+        description: 'Metadata: preset version',
         example: '@preset-version 3.2.1',
         requiresValue: true,
         valueType: 'text'
@@ -372,7 +368,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@requires-preset-version',
         syntax: '@requires-preset-version <version constraint>',
-        description: 'Version compatibility check',
+        description: 'Metadata: preset version requirement',
         example: '@requires-preset-version >=3.0.0',
         requiresValue: true,
         valueType: 'text'
@@ -382,7 +378,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@unstable',
         syntax: '@unstable <warning message>',
-        description: 'Experimental/unstable warning',
+        description: 'Metadata: unstable status',
         example: '@unstable This feature is experimental and may change',
         requiresValue: true,
         valueType: 'text'
@@ -390,7 +386,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@experimental',
         syntax: '@experimental <beta message>',
-        description: 'Beta feature warning',
+        description: 'Metadata: experimental status',
         example: '@experimental Beta feature - please report issues',
         requiresValue: true,
         valueType: 'text'
@@ -398,7 +394,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@tested-with',
         syntax: '@tested-with <model>, <model>, ...',
-        description: 'Known working combinations',
+        description: 'Metadata: tested model combinations',
         example: '@tested-with gpt-4, claude-3, llama-70b',
         requiresValue: true,
         valueType: 'text-list'
@@ -408,7 +404,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@model-optimized',
         syntax: '@model-optimized <model>, <model>, ...',
-        description: 'Best for specific models',
+        description: 'Metadata: optimized models',
         example: '@model-optimized gpt-4, claude-3-opus',
         requiresValue: true,
         valueType: 'text-list'
@@ -424,7 +420,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@recommended-api',
         syntax: '@recommended-api <api>, <api>, ...',
-        description: 'Best API for this prompt',
+        description: 'Metadata: recommended APIs',
         example: '@recommended-api openai, anthropic',
         requiresValue: true,
         valueType: 'text-list'
@@ -434,7 +430,7 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@auto-enable-with',
         syntax: '@auto-enable-with <prompt-id>, <prompt-id>, ...',
-        description: 'Auto-enable these when this is enabled',
+        description: 'Metadata: requested automatic companions (not applied)',
         example: '@auto-enable-with base-system, core-rules',
         requiresValue: true,
         valueType: 'prompt-list'
@@ -450,8 +446,48 @@ const DIRECTIVE_DEFINITIONS = [
     {
         directive: '@load-order',
         syntax: '@load-order <number>',
-        description: 'Execution order hint',
+        description: 'Metadata: execution-order hint',
         example: '@load-order 100',
+        requiresValue: true,
+        valueType: 'number'
+    },
+    {
+        directive: '@enable-at-message',
+        syntax: '@enable-at-message <message number>',
+        description: 'Enable this prompt when the chat reaches a message threshold',
+        example: '@enable-at-message 10',
+        requiresValue: true,
+        valueType: 'number'
+    },
+    {
+        directive: '@disable-at-message',
+        syntax: '@disable-at-message <message number>',
+        description: 'Disable this prompt when the chat reaches a message threshold',
+        example: '@disable-at-message 20',
+        requiresValue: true,
+        valueType: 'number'
+    },
+    {
+        directive: '@message-range',
+        syntax: '@message-range <start>-<end>',
+        description: 'Keep this prompt enabled only within a message range',
+        example: '@message-range 5-15',
+        requiresValue: true,
+        valueType: 'text'
+    },
+    {
+        directive: '@enable-after-message',
+        syntax: '@enable-after-message <message number>',
+        description: 'Enable this prompt after a message count',
+        example: '@enable-after-message 5',
+        requiresValue: true,
+        valueType: 'number'
+    },
+    {
+        directive: '@disable-after-message',
+        syntax: '@disable-after-message <message number>',
+        description: 'Disable this prompt after a message count',
+        example: '@disable-after-message 30',
         requiresValue: true,
         valueType: 'number'
     }
@@ -471,8 +507,8 @@ export function getAutocompleteSuggestions(text, cursorPos) {
         return getDirectiveAutocompleteSuggestions(text, cursorPos, commentContext);
     }
 
-    // Not in a comment - check for general prompt name search
-    return getPromptNameSearchSuggestions(text, cursorPos);
+    // SillyTavern owns ordinary macro autocomplete and prompt prose.
+    return { suggestions: [], context: null };
 }
 
 /**
@@ -501,16 +537,22 @@ function getDirectiveAutocompleteSuggestions(text, cursorPos, commentContext) {
     }
 
     // Case 3: After directive name, suggest values (CHECK THIS FIRST!)
-    const directiveMatch = trimmedLine.match(/^\{\{\/\/\s*(@[\w-]+)\s+(.*)$/);
+    const directiveMatch = trimmedLine.match(/^(?:\{\{\/\/\s*)?(@[\w-]+)\s+(.*)$/);
     if (directiveMatch) {
         const directiveName = directiveMatch[1];
         const valueText = directiveMatch[2];
+        const leadingWhitespaceLength = lineText.length - lineText.trimStart().length;
+        const valueStart = lineStart + leadingWhitespaceLength + trimmedLine.length - valueText.length;
 
         const definition = DIRECTIVE_DEFINITIONS.find(d => d.directive === directiveName);
 
-        if (definition && definition.valueType === 'prompt-list') {
-            // Suggest prompt identifiers
-            return getPromptSuggestions(valueText, lineStart, cursorPos, definition);
+        if (definition) {
+            if (definition.valueType === 'prompt-list') {
+                return getPromptSuggestions(valueText, valueStart, cursorPos, definition);
+            }
+            if (VALUE_SUGGESTIONS[definition.directive]) {
+                return getValueSuggestions(valueText, valueStart, cursorPos, definition);
+            }
         }
     }
 
@@ -545,233 +587,30 @@ function getDirectiveAutocompleteSuggestions(text, cursorPos, commentContext) {
 
     return { suggestions: [], context: null };
 }
-
-/**
- * Get prompt name search suggestions (outside directive blocks)
- * Shows SillyTavern macros when typing {{ or prompts for other searches
- */
-function getPromptNameSearchSuggestions(text, cursorPos) {
-    // Find the current word being typed
-    const beforeCursor = text.substring(0, cursorPos);
-    const afterCursor = text.substring(cursorPos);
-
-    // Find word boundaries (spaces, newlines, or start/end of text)
-    const wordStart = Math.max(
-        beforeCursor.lastIndexOf(' ') + 1,
-        beforeCursor.lastIndexOf('\n') + 1,
-        0
-    );
-
-    const wordEndInAfter = afterCursor.search(/[\s\n]/);
-    const wordEnd = wordEndInAfter === -1 ? text.length : cursorPos + wordEndInAfter;
-
-    const currentWord = text.substring(wordStart, wordEnd).trim();
-
-    // Check if typing a macro (starts with {{)
-    if (currentWord.startsWith('{{')) {
-        return getMacroSuggestions(currentWord, wordStart, wordEnd);
-    }
-
-    // Only show prompt suggestions if typing at least 2 characters
-    if (currentWord.length < 2) {
-        return { suggestions: [], context: null };
-    }
-
-    // Don't show if we're typing a directive
-    if (currentWord.startsWith('@')) {
-        return { suggestions: [], context: null };
-    }
-
-    // Search for prompts
-    const allPrompts = getAllPromptsWithState();
-    const searchTerm = currentWord.toLowerCase();
-
-    const matchingPrompts = allPrompts
-        .filter(p => {
-            const name = p.name.toLowerCase();
-            const identifier = p.identifier.toLowerCase();
-
-            // Remove emojis from name for matching
-            const nameNoEmoji = name.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
-
-            return name.includes(searchTerm) ||
-                   identifier.includes(searchTerm) ||
-                   nameNoEmoji.includes(searchTerm);
-        })
-        .slice(0, 15); // Limit to 15 suggestions
-
-    if (matchingPrompts.length === 0) {
-        return { suggestions: [], context: null };
-    }
-
-    return {
-        suggestions: matchingPrompts.map(p => ({
-            type: 'prompt-name',
-            text: p.name,
-            display: p.name,
-            description: `ID: ${p.identifier} ${p.enabled ? '✓ Enabled' : ''}`,
-            insertText: p.name,
-            promptData: p
-        })),
-        context: 'prompt-name-search',
-        replaceStart: wordStart,
-        replaceEnd: wordEnd,
-        searchTerm: currentWord
-    };
-}
-
-/**
- * Get SillyTavern macro suggestions
- */
-function getMacroSuggestions(currentWord, wordStart, wordEnd) {
-    // Check if this is a variable macro with :: syntax
-    // Examples: {{getvar::, {{setvar::, {{getglobalvar::
-    const variableMacroMatch = currentWord.match(/^\{\{(getvar|setvar|addvar|incvar|decvar|getglobalvar|setglobalvar|addglobalvar|incglobalvar|decglobalvar)::(.*)/);
-
-    if (variableMacroMatch) {
-        const macroName = variableMacroMatch[1];
-        const partialVarName = variableMacroMatch[2].toLowerCase();
-        return getVariableSuggestions(macroName, partialVarName, wordStart, wordEnd);
-    }
-
-    // Regular macro search
-    const searchTerm = currentWord.substring(2).toLowerCase(); // Remove {{ prefix
-
-    // Filter macros that match
-    const matchingMacros = SILLYTAVERN_MACROS.filter(m => {
-        const macroText = m.macro.toLowerCase();
-        return macroText.includes('{{' + searchTerm);
-    }).slice(0, 20); // Limit to 20 suggestions
-
-    if (matchingMacros.length === 0) {
-        return { suggestions: [], context: null };
-    }
-
-    return {
-        suggestions: matchingMacros.map(m => ({
-            type: 'macro',
-            text: m.macro,
-            display: m.macro,
-            description: `${m.category}: ${m.description}`,
-            insertText: m.macro,
-            macroData: m
-        })),
-        context: 'macro-search',
-        replaceStart: wordStart,
-        replaceEnd: wordEnd,
-        searchTerm: currentWord
-    };
-}
-
-/**
- * Get variable name suggestions for variable macros
- */
-function getVariableSuggestions(macroName, partialVarName, wordStart, wordEnd) {
-    const isLocal = macroName.startsWith('get') || macroName.startsWith('set') || macroName.startsWith('add') || macroName.startsWith('inc') || macroName.startsWith('dec');
-    const isGlobal = macroName.includes('global');
-
-    const variables = [];
-
-    // Get local variables
-    if (isLocal && !isGlobal) {
-        try {
-            if (chat_metadata?.variables) {
-                const localVars = Object.keys(chat_metadata.variables);
-                localVars.forEach(varName => {
-                    variables.push({
-                        name: varName,
-                        type: 'local',
-                        value: chat_metadata.variables[varName]
-                    });
-                });
-            }
-        } catch (error) {
-            // Silently handle error
-        }
-    }
-
-    // Get global variables
-    if (isGlobal) {
-        try {
-            if (extension_settings?.variables?.global) {
-                const globalVars = Object.keys(extension_settings.variables.global);
-                globalVars.forEach(varName => {
-                    variables.push({
-                        name: varName,
-                        type: 'global',
-                        value: extension_settings.variables.global[varName]
-                    });
-                });
-            }
-        } catch (error) {
-            // Silently handle error
-        }
-    }
-
-    // Filter by partial name
-    const matchingVars = variables.filter(v =>
-        v.name.toLowerCase().includes(partialVarName)
-    ).slice(0, 20);
-
-    if (matchingVars.length === 0) {
-        return { suggestions: [], context: null };
-    }
-
-    return {
-        suggestions: matchingVars.map(v => {
-            const valuePreview = String(v.value).length > 30
-                ? String(v.value).substring(0, 30) + '...'
-                : String(v.value);
-
-            return {
-                type: 'variable',
-                text: v.name,
-                display: v.name,
-                description: `${v.type} variable: ${valuePreview}`,
-                insertText: `{{${macroName}::${v.name}}}`,
-                variableData: v
-            };
-        }),
-        context: 'variable-search',
-        replaceStart: wordStart,
-        replaceEnd: wordEnd,
-        searchTerm: partialVarName
-    };
-}
-
 /**
  * Get context about whether cursor is in a comment block
  */
 function getCommentContext(text, cursorPos) {
-    // Find the line containing the cursor
-    let lineStart = text.lastIndexOf('\n', cursorPos - 1) + 1;
+    const beforeCursor = text.substring(0, cursorPos);
+    const commentStart = beforeCursor.lastIndexOf('{{//');
+    const lastClosedComment = beforeCursor.lastIndexOf('}}');
+
+    if (commentStart <= lastClosedComment) {
+        return { inComment: false };
+    }
+
+    const commentEnd = text.indexOf('}}', cursorPos);
+    const lineStart = text.lastIndexOf('\n', cursorPos - 1) + 1;
     let lineEnd = text.indexOf('\n', cursorPos);
     if (lineEnd === -1) lineEnd = text.length;
 
-    const lineText = text.substring(lineStart, lineEnd);
-
-    // Check if line contains {{//
-    const commentStart = lineText.indexOf('{{//');
-    const commentEnd = lineText.indexOf('}}');
-
-    if (commentStart !== -1) {
-        const cursorInLine = cursorPos - lineStart;
-
-        // Check if cursor is between {{// and }} (or end of line if no }})
-        if (cursorInLine >= commentStart) {
-            if (commentEnd === -1 || cursorInLine <= commentEnd) {
-                return {
-                    inComment: true,
-                    lineStart: lineStart + commentStart,
-                    lineEnd: commentEnd === -1 ? lineEnd : lineStart + commentEnd,
-                    commentStart: lineStart + commentStart,
-                    commentEnd: commentEnd === -1 ? null : lineStart + commentEnd
-                };
-            }
-        }
-    }
-
-    return { inComment: false };
+    return {
+        inComment: true,
+        lineStart,
+        lineEnd,
+        commentStart,
+        commentEnd: commentEnd === -1 ? null : commentEnd,
+    };
 }
 
 /**
@@ -901,7 +740,7 @@ const VALUE_SUGGESTIONS = {
 /**
  * Get predefined value suggestions for directives
  */
-function getValueSuggestions(valueText, lineStart, cursorPos, definition) {
+function getValueSuggestions(valueText, valueStart, cursorPos, definition) {
     const suggestions = VALUE_SUGGESTIONS[definition.directive];
     if (!suggestions || suggestions.length === 0) {
         return { suggestions: [], context: null };
@@ -970,12 +809,10 @@ function getValueSuggestions(valueText, lineStart, cursorPos, definition) {
     }
 
     // Calculate replace range
-    const directiveLength = definition.directive.length;
-    const valueStartOffset = 5 + directiveLength + 1; // "{{// " + directive + " "
     const wordOffsetInValue = lastComma === -1 ? 0 : lastComma + 1;
     const whitespaceMatch = currentWord.match(/^\s*/);
     const whitespaceLength = whitespaceMatch ? whitespaceMatch[0].length : 0;
-    const wordStartInLine = lineStart + valueStartOffset + wordOffsetInValue + whitespaceLength;
+    const wordStartInLine = valueStart + wordOffsetInValue + whitespaceLength;
 
     return {
         suggestions: scoredSuggestions.map(s => ({
@@ -996,10 +833,10 @@ function getValueSuggestions(valueText, lineStart, cursorPos, definition) {
 /**
  * Get prompt identifier suggestions
  */
-function getPromptSuggestions(valueText, lineStart, cursorPos, definition) {
+function getPromptSuggestions(valueText, valueStart, cursorPos, definition) {
     // Check if this directive has predefined value suggestions
     if (definition && VALUE_SUGGESTIONS[definition.directive]) {
-        return getValueSuggestions(valueText, lineStart, cursorPos, definition);
+        return getValueSuggestions(valueText, valueStart, cursorPos, definition);
     }
 
     const allPrompts = getAllPromptsWithState();
@@ -1035,27 +872,14 @@ function getPromptSuggestions(valueText, lineStart, cursorPos, definition) {
         return { suggestions: [], context: null };
     }
 
-    // Calculate replace range
-    // We need to find where the current word starts in the full text
-    // lineStart is the position of {{//, valueText is everything after the directive name
-    // We need to find the offset of the directive name first
-
-    // Example: "{{// @conflicts-with NSFW"
-    // lineStart = position of {{//
-    // We need to find where "NSFW" starts from lineStart
-
-    // Find the length of "{{// @conflicts-with " to get the start of valueText
-    const directiveLength = definition ? definition.directive.length : 0;
-    const valueStartOffset = 5 + directiveLength + 1; // "{{// " + directive + " "
-
-    // Now find where the current word starts within valueText
+    // Find the active comma-separated value within the full textarea content.
     const wordOffsetInValue = lastComma === -1 ? 0 : lastComma + 1;
 
     // Skip any whitespace at the start of currentWord
     const whitespaceMatch = currentWord.match(/^\s*/);
     const whitespaceLength = whitespaceMatch ? whitespaceMatch[0].length : 0;
 
-    const wordStartInLine = lineStart + valueStartOffset + wordOffsetInValue + whitespaceLength;
+    const wordStartInLine = valueStart + wordOffsetInValue + whitespaceLength;
 
     return {
         suggestions: matchingPrompts.map(p => {

@@ -629,7 +629,7 @@ export const NemoPresetManager = {
             const snapshotArray = Array.from(activeIdentifiers);
             console.log(`${LOG_PREFIX} Snapshot contains ${snapshotArray.length} prompts:`, snapshotArray);
 
-            const currentApi = getContext().openai_api || 'openai';
+            const currentApi = getContext().mainApi || 'openai';
             storage.saveSnapshot(currentApi, snapshotArray);
             
             const applySnapshotBtn = document.getElementById('nemoApplySnapshotBtn');
@@ -649,7 +649,7 @@ export const NemoPresetManager = {
         try {
             console.log(`${LOG_PREFIX} Starting snapshot application...`);
 
-            const currentApi = getContext().openai_api || 'openai';
+            const currentApi = getContext().mainApi || 'openai';
             const snapshotData = storage.getSnapshot(currentApi);
             if (!snapshotData || !Array.isArray(snapshotData)) {
                 console.log(`${LOG_PREFIX} No snapshot found for ${currentApi}`);
@@ -1012,7 +1012,7 @@ export const NemoPresetManager = {
 
     saveFavorites: function(favorites) {
         storage.saveFavoritePresets(favorites);
-        eventSource.emit(event_types.NEMO_FAVORITES_UPDATED);
+        eventSource.emit('nemo_favorites_updated');
     },
 
     isFavorite: function(presetId) {
@@ -2045,7 +2045,7 @@ export const NemoPresetManager = {
 
     checkExistingSnapshot: function() {
         try {
-            const currentApi = getContext().openai_api || 'openai';
+            const currentApi = getContext().mainApi || 'openai';
             const snapshotData = storage.getSnapshot(currentApi);
             const applySnapshotBtn = document.getElementById('nemoApplySnapshotBtn');
             if (applySnapshotBtn) {
@@ -2505,10 +2505,6 @@ export const NemoPresetManager = {
                 <i class="fa-solid fa-floppy-disk"></i>
                 Save Prompt
             </div>
-            <div class="nemo-context-menu-item" data-action="load-prompt">
-                <i class="fa-solid fa-folder-open"></i>
-                Load Prompt...
-            </div>
             <div class="nemo-context-menu-separator"></div>
             <div class="nemo-context-menu-item" data-action="cancel">
                 <i class="fa-solid fa-xmark"></i>
@@ -2530,9 +2526,6 @@ export const NemoPresetManager = {
             } else if (action === 'save-prompt') {
                 console.log(`${LOG_PREFIX} Save prompt action triggered`);
                 this.showSavePromptDialog();
-            } else if (action === 'load-prompt') {
-                console.log(`${LOG_PREFIX} Load prompt action triggered`);
-                this.showLoadPromptDialog();
             }
             this.hideContextMenu();
         });
@@ -3089,110 +3082,6 @@ export const NemoPresetManager = {
         });
 
         document.getElementById('nemo-save-prompt-title').focus();
-    },
-
-    showLoadPromptDialog: function() {
-        const library = this.getPromptLibrary();
-        
-        if (library.length === 0) {
-            this.showStatusMessage('No saved prompts found. Right-click on a prompt and select "Save Prompt" to build your library.', 'info', 4000);
-            return;
-        }
-
-        const dialog = document.createElement('div');
-        dialog.id = 'nemo-load-prompt-dialog';
-        dialog.className = 'nemo-dialog-overlay';
-        
-        const promptsList = library.map(prompt => {
-            const dateCreated = new Date(prompt.dateCreated).toLocaleDateString();
-            const tagsHtml = prompt.tags.length > 0 ? 
-                `<div class="nemo-prompt-tags">${prompt.tags.map(tag => `<span class="nemo-tag">${tag}</span>`).join('')}</div>` : '';
-            
-            return `
-                <div class="nemo-saved-prompt-item" data-prompt-id="${prompt.id}">
-                    <div class="nemo-saved-prompt-header">
-                        <div class="nemo-saved-prompt-title">${prompt.title}</div>
-                        <div class="nemo-saved-prompt-date">${dateCreated}</div>
-                    </div>
-                    ${tagsHtml}
-                    <div class="nemo-saved-prompt-preview">
-                        <small>ID: ${prompt.identifier || 'N/A'}</small>
-                    </div>
-                    <div class="nemo-saved-prompt-actions">
-                        <button class="nemo-btn-small nemo-btn-primary" data-action="insert" data-prompt-id="${prompt.id}">
-                            Insert Below Current
-                        </button>
-                        <button class="nemo-btn-small nemo-btn-danger" data-action="delete" data-prompt-id="${prompt.id}">
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        dialog.innerHTML = `
-            <div class="nemo-dialog nemo-dialog-large">
-                <div class="nemo-dialog-header">
-                    <h3>Load Prompt from Library (${library.length} saved)</h3>
-                    <button class="nemo-dialog-close" aria-label="Close">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-                <div class="nemo-dialog-content">
-                    <div class="nemo-saved-prompts-list">
-                        ${promptsList}
-                    </div>
-                </div>
-                <div class="nemo-dialog-actions">
-                    <button class="nemo-btn-secondary" data-action="cancel">Cancel</button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(dialog);
-
-        dialog.addEventListener('click', (e) => {
-            const action = e.target.closest('[data-action]')?.dataset.action;
-            const promptId = e.target.closest('[data-prompt-id]')?.dataset.promptId;
-            const closeBtn = e.target.closest('.nemo-dialog-close');
-
-            if (action === 'insert' && promptId) {
-                const prompt = library.find(p => p.id === promptId);
-                if (prompt) {
-                    this.insertPromptBelow(prompt);
-                    this.showStatusMessage(`Inserted prompt "${prompt.title}"`, 'success', 3000);
-                }
-                dialog.remove();
-            } else if (action === 'delete' && promptId) {
-                if (confirm('Are you sure you want to delete this saved prompt?')) {
-                    const prompt = library.find(p => p.id === promptId);
-                    if (this.deleteFromPromptLibrary(promptId)) {
-                        this.showStatusMessage(`Deleted prompt "${prompt?.title || 'Unknown'}"`, 'success', 3000);
-                        // Refresh the dialog
-                        dialog.remove();
-                        this.showLoadPromptDialog();
-                    }
-                }
-            } else if (action === 'cancel' || closeBtn || e.target === dialog) {
-                dialog.remove();
-            }
-        });
-
-        dialog.querySelector('.nemo-dialog-close').focus();
-    },
-
-    insertPromptBelow: function(promptData) {
-        // This is a placeholder for the actual insertion logic
-        // In the real implementation, we'd need to:
-        // 1. Create a new prompt element with the saved data
-        // 2. Insert it after the selected prompt
-        // 3. Update the prompt manager's internal state
-        
-        console.log(`${LOG_PREFIX} Inserting prompt:`, promptData);
-        this.showStatusMessage('Prompt insertion feature coming soon - this is a placeholder', 'info', 3000);
-        
-        // TODO: Implement actual prompt insertion
-        // This would require interfacing with SillyTavern's prompt manager system
     },
 
     // === PROMPT NAVIGATOR ===
@@ -3922,10 +3811,6 @@ export const NemoPresetManager = {
         dialog.id = 'nemo-move-prompt-dialog';
         dialog.className = 'nemo-dialog-overlay';
         
-        const folderOptions = folders.map(folder => 
-            `<option value="${folder}" ${folder === currentFolder ? 'selected' : ''}>${folder}</option>`
-        ).join('');
-
         dialog.innerHTML = `
             <div class="nemo-dialog">
                 <div class="nemo-dialog-header">
@@ -3935,12 +3820,10 @@ export const NemoPresetManager = {
                     </button>
                 </div>
                 <div class="nemo-dialog-body">
-                    <p>Move "<strong>${prompt.title}</strong>" to folder:</p>
+                    <p>Move "<strong id="nemo-move-prompt-title"></strong>" to folder:</p>
                     <div class="nemo-form-group">
                         <label for="nemo-move-folder-select">Select existing folder:</label>
-                        <select id="nemo-move-folder-select" class="text_pole">
-                            ${folderOptions}
-                        </select>
+                        <select id="nemo-move-folder-select" class="text_pole"></select>
                     </div>
                     <div class="nemo-form-group">
                         <label for="nemo-move-new-folder">Or create new folder:</label>
@@ -3953,6 +3836,16 @@ export const NemoPresetManager = {
                 </div>
             </div>
         `;
+
+        dialog.querySelector('#nemo-move-prompt-title').textContent = prompt.title;
+        const folderSelect = dialog.querySelector('#nemo-move-folder-select');
+        folders.forEach(folder => {
+            const option = document.createElement('option');
+            option.value = folder;
+            option.textContent = folder;
+            option.selected = folder === currentFolder;
+            folderSelect.appendChild(option);
+        });
 
         document.body.appendChild(dialog);
 

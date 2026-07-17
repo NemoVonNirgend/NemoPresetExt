@@ -65,6 +65,16 @@ export class PromptNavigator {
         this.currentSort = 'name-asc';
         this.currentFilter = 'all';
         this.debouncedRender = debounce(() => this.render(), 250);
+        this.handleDocumentClick = (event) => {
+            if (!event.target.closest('.nemo-context-menu')) {
+                this.hideContextMenu();
+            }
+        };
+        this.handleDocumentContextMenu = (event) => {
+            if (!event.target.closest('.nemo-prompt-navigator-content-wrapper')) {
+                this.hideContextMenu();
+            }
+        };
     }
 
     async init() {
@@ -101,17 +111,8 @@ export class PromptNavigator {
         this.navigatorElement.addEventListener('contextmenu', (e) => this.handleGridContextMenu(e));
 
         // Setup event listeners for hiding the context menu
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.nemo-context-menu')) {
-                this.hideContextMenu();
-            }
-        });
-        
-        document.addEventListener('contextmenu', (e) => {
-            if (!e.target.closest('.nemo-prompt-navigator-content-wrapper')) {
-                this.hideContextMenu();
-            }
-        });
+        document.addEventListener('click', this.handleDocumentClick);
+        document.addEventListener('contextmenu', this.handleDocumentContextMenu);
     }
 
     async open() {
@@ -122,15 +123,16 @@ export class PromptNavigator {
         this.bulkSelection.clear();
         this.render();
         
-        callGenericPopup(this.navigatorElement, POPUP_TYPE.DISPLAY, 'Prompt Navigator', {
+        callGenericPopup(this.navigatorElement, POPUP_TYPE.DISPLAY, '', {
             wide: true,
             large: true,
-            addCloseButton: true,
-            onclose: () => this.cleanup()
+            onClose: () => this.cleanup(),
         });
     }
 
     cleanup() {
+        document.removeEventListener('click', this.handleDocumentClick);
+        document.removeEventListener('contextmenu', this.handleDocumentContextMenu);
         this.selectedPrompt = { identifier: null, name: null };
         this.mainView.innerHTML = '';
         this.currentPath = [{ id: 'root', name: 'Home' }];
@@ -291,7 +293,9 @@ export class PromptNavigator {
         if (items.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.className = 'prompt-navigator-empty-state';
-            emptyEl.innerHTML = searchTerm ? `<h3>No results for "${searchTerm}"</h3>` : `<h3>This folder is empty.</h3>`;
+            const heading = document.createElement('h3');
+            heading.textContent = searchTerm ? `No results for "${searchTerm}"` : 'This folder is empty.';
+            emptyEl.appendChild(heading);
             fragment.appendChild(emptyEl);
         } else {
             items.forEach(item => {
@@ -377,7 +381,8 @@ export class PromptNavigator {
         if (!this.selectedPrompt.identifier) return;
         
         // Find the prompt element and trigger its inspection
-        const promptEl = document.querySelector(`li[data-pm-identifier="${this.selectedPrompt.identifier}"]`);
+        const promptIdentifier = CSS.escape(this.selectedPrompt.identifier);
+        const promptEl = document.querySelector(`li[data-pm-identifier="${promptIdentifier}"]`);
         if (promptEl) {
             const inspectLink = promptEl.querySelector('a.prompt-manager-inspect-action');
             if (inspectLink) {
@@ -443,15 +448,22 @@ export class PromptNavigator {
             if (prompt) {
                 const favoriteItem = document.createElement('div');
                 favoriteItem.className = 'navigator-favorite-item';
-                favoriteItem.innerHTML = `
-                    <div class="favorite-item-icon">
-                        <i class="fa-solid fa-file-text"></i>
-                    </div>
-                    <div class="favorite-item-name" title="${prompt.name}">${prompt.name}</div>
-                    <button class="favorite-remove-btn" title="Remove from favorites">
-                        <i class="fa-solid fa-times"></i>
-                    </button>
-                `;
+
+                const icon = document.createElement('div');
+                icon.className = 'favorite-item-icon';
+                icon.innerHTML = '<i class="fa-solid fa-file-text"></i>';
+
+                const name = document.createElement('div');
+                name.className = 'favorite-item-name';
+                name.title = prompt.name;
+                name.textContent = prompt.name;
+
+                const removeButton = document.createElement('button');
+                removeButton.className = 'favorite-remove-btn';
+                removeButton.title = 'Remove from favorites';
+                removeButton.innerHTML = '<i class="fa-solid fa-times"></i>';
+
+                favoriteItem.append(icon, name, removeButton);
                 
                 favoriteItem.addEventListener('click', () => {
                     // Select this prompt
@@ -467,8 +479,7 @@ export class PromptNavigator {
                 });
                 
                 // Add remove button event listener
-                const removeBtn = favoriteItem.querySelector('.favorite-remove-btn');
-                removeBtn.addEventListener('click', (e) => {
+                removeButton.addEventListener('click', (e) => {
                     e.stopPropagation(); // Prevent triggering the item click
                     this.togglePromptFavorite(identifier);
                 });
@@ -664,7 +675,7 @@ export class PromptNavigator {
     async moveItemToFolderDialog(itemIds) {
         const folderNames = Object.values(this.metadata.folders).map(f => f.name).join(', ');
         if (!folderNames) {
-            callGenericPopup("No folders created yet. Create a folder first.", 'info');
+            toastr.info("No folders created yet. Create a folder first.");
             return;
         }
         
@@ -689,7 +700,7 @@ export class PromptNavigator {
             this.updateBulkSelectionVisuals();
             this.render();
         } else if (targetName) {
-            callGenericPopup(`Folder "${targetName}" not found.`, 'error');
+            toastr.error(`Folder "${targetName}" not found.`);
         }
     }
 
@@ -756,7 +767,8 @@ export class PromptNavigator {
 
     // Selection Methods
     toggleBulkSelection(id) {
-        const itemEl = this.mainView.querySelector(`.grid-item[data-id="${id}"]`);
+        const itemEl = Array.from(this.mainView.querySelectorAll('.grid-item'))
+            .find(element => element.dataset.id === id);
         if (this.bulkSelection.has(id)) {
             this.bulkSelection.delete(id);
             itemEl?.classList.remove('bulk-selected');
@@ -791,7 +803,7 @@ export class PromptNavigator {
         // Get all headers/sections from the completion prompt manager
         const container = document.querySelector('#completion_prompt_manager_list');
         if (!container) {
-            callGenericPopup('Completion prompt manager not found', 'error');
+            toastr.error('Completion prompt manager not found');
             return;
         }
 
@@ -836,7 +848,7 @@ export class PromptNavigator {
         });
 
         if (headers.length === 0) {
-            callGenericPopup('No headers found in the prompt manager. Headers are prompts that start with divider patterns like ===, ⭐─, or ━━.', 'info');
+            toastr.info('No headers found in the prompt manager. Headers are prompts that start with divider patterns like ===, ⭐─, or ━━.');
             return;
         }
 
@@ -844,12 +856,12 @@ export class PromptNavigator {
         const dialogHtml = `
             <div class="nemo-header-selection-dialog">
                 <h3>Select Header Position</h3>
-                <p>Choose where to move "${this.selectedPromptData.prompt.name}":</p>
+                <p>Choose where to move "${escapeHtml(this.selectedPromptData.prompt.name)}":</p>
                 <div class="nemo-header-list" style="max-height: 300px; overflow-y: auto; margin: 15px 0;">
                     ${headers.map((header, index) => `
                         <div class="nemo-header-option" data-index="${index}" style="padding: 8px 12px; border: 1px solid var(--SmartThemeBorderColor); margin: 4px 0; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                             <i class="fa-solid ${header.isInSection ? 'fa-folder' : 'fa-file-lines'}"></i>
-                            <span>${header.name}</span>
+                            <span>${escapeHtml(header.name)}</span>
                             ${header.isInSection ? '<small style="opacity: 0.7;"> (in section)</small>' : ''}
                         </div>
                     `).join('')}
@@ -864,10 +876,9 @@ export class PromptNavigator {
         const dialogElement = document.createElement('div');
         dialogElement.innerHTML = dialogHtml;
 
-        callGenericPopup(dialogElement, POPUP_TYPE.DISPLAY, 'Move to Header', {
+        callGenericPopup(dialogElement, POPUP_TYPE.DISPLAY, '', {
             wide: false,
             large: false,
-            addCloseButton: false
         });
 
         let selectedIndex = -1;
@@ -929,7 +940,8 @@ export class PromptNavigator {
                 }
             }
 
-            const sourceElement = document.querySelector(`li[data-pm-identifier="${data.identifier}"]`);
+            const promptIdentifier = CSS.escape(data.identifier);
+            const sourceElement = document.querySelector(`li[data-pm-identifier="${promptIdentifier}"]`);
 
             // Use the preset manager's existing move-and-save path when available.
             if (window.NemoPresetManager?.movePromptBelowHeader && sourceElement) {
@@ -941,12 +953,12 @@ export class PromptNavigator {
                     // Insert after the header
                     targetPosition.parentNode.insertBefore(sourceElement, targetPosition.nextSibling);
                 } else {
-                    callGenericPopup('Imported prompt was added, but could not be moved to the selected header.', 'warning');
+                    toastr.warning('Imported prompt was added, but could not be moved to the selected header.');
                     return;
                 }
             }
 
-            callGenericPopup(`"${prompt.name}" moved to header "${selectedHeader.name}" successfully!`, 'success');
+            toastr.success(`"${prompt.name}" moved to header "${selectedHeader.name}" successfully!`);
             
             // Refresh the prompt list in the navigator
             this.allPrompts = await this.fetchPromptList();
@@ -954,7 +966,7 @@ export class PromptNavigator {
             
         } catch (error) {
             console.error(`${LOG_PREFIX} Error moving prompt to selected header:`, error);
-            callGenericPopup('Error moving prompt to header', 'error');
+            toastr.error('Error moving prompt to header');
         } finally {
             this.selectedPromptData = null; // Clean up
         }
@@ -964,14 +976,14 @@ export class PromptNavigator {
         try {
             const prompt = this.allPrompts.find(p => p.identifier === promptId);
             if (!prompt) {
-                callGenericPopup('Prompt not found', 'error');
+                toastr.error('Prompt not found');
                 return;
             }
 
             if (typeof promptManager !== 'undefined' && promptManager.serviceSettings?.prompts) {
                 const promptData = promptManager.serviceSettings.prompts.find(p => p.identifier === promptId);
                 if (!promptData) {
-                    callGenericPopup('Prompt data not found', 'error');
+                    toastr.error('Prompt data not found');
                     return;
                 }
 
@@ -991,15 +1003,15 @@ export class PromptNavigator {
                     isFavorite: false,
                 });
 
-                callGenericPopup(`Prompt "${title}" added to archive successfully!`, 'success');
+                toastr.success(`Prompt "${title}" added to archive successfully!`);
                 
                 console.log(`${LOG_PREFIX} Added prompt to archive:`, archivedPrompt.id);
             } else {
-                callGenericPopup('Prompt manager not available', 'error');
+                toastr.error('Prompt manager not available');
             }
         } catch (error) {
             console.error(`${LOG_PREFIX} Error adding prompt to archive:`, error);
-            callGenericPopup('Error adding prompt to archive', 'error');
+            toastr.error('Error adding prompt to archive');
         }
     }
 
@@ -1008,7 +1020,7 @@ export class PromptNavigator {
             const prompts = storage.getPromptLibrary();
 
             if (prompts.length === 0) {
-                callGenericPopup('No archived prompts found to import', 'info');
+                toastr.info('No archived prompts found to import');
                 return;
             }
 
@@ -1036,10 +1048,9 @@ export class PromptNavigator {
             const dialogElement = document.createElement('div');
             dialogElement.innerHTML = dialogHtml;
 
-            callGenericPopup(dialogElement, POPUP_TYPE.DISPLAY, 'Import Prompt', {
+            callGenericPopup(dialogElement, POPUP_TYPE.DISPLAY, '', {
                 wide: false,
                 large: false,
-                addCloseButton: false
             });
 
             // Add event listeners to the buttons
@@ -1076,14 +1087,14 @@ export class PromptNavigator {
 
         } catch (error) {
             console.error(`${LOG_PREFIX} Error showing import dialog:`, error);
-            callGenericPopup('Error loading archived prompts', 'error');
+            toastr.error('Error loading archived prompts');
         }
     }
 
     async importPromptToCompletion(archivedPrompt, { silent = false } = {}) {
         try {
             if (!promptManager?.serviceSettings?.prompts) {
-                callGenericPopup('Prompt manager not available', 'error');
+                toastr.error('Prompt manager not available');
                 return null;
             }
 
@@ -1146,13 +1157,13 @@ export class PromptNavigator {
             this.render();
 
             if (!silent) {
-                callGenericPopup(`Imported "${newPrompt.name}" to completion prompts.`, 'success');
+                toastr.success(`Imported "${newPrompt.name}" to completion prompts.`);
             }
 
             return newPrompt;
         } catch (error) {
             console.error(`${LOG_PREFIX} Error importing prompt to completion:`, error);
-            callGenericPopup('Error importing prompt', 'error');
+            toastr.error('Error importing prompt');
             return null;
         }
     }
@@ -1176,7 +1187,7 @@ export class PromptNavigator {
             // Find the prompt data
             const prompt = this.allPrompts.find(p => p.identifier === promptId);
             if (!prompt) {
-                callGenericPopup('Prompt not found', 'error');
+                toastr.error('Prompt not found');
                 return;
             }
 
@@ -1184,7 +1195,7 @@ export class PromptNavigator {
             if (typeof promptManager !== 'undefined' && promptManager.serviceSettings?.prompts) {
                 const promptData = promptManager.serviceSettings.prompts.find(p => p.identifier === promptId);
                 if (!promptData) {
-                    callGenericPopup('Prompt data not found', 'error');
+                    toastr.error('Prompt data not found');
                     return;
                 }
 
@@ -1197,11 +1208,11 @@ export class PromptNavigator {
                 // Show the header selection dialog
                 this.showHeaderSelectionDialog();
             } else {
-                callGenericPopup('Prompt manager not available', 'error');
+                toastr.error('Prompt manager not available');
             }
         } catch (error) {
             console.error(`${LOG_PREFIX} Error moving prompt to header:`, error);
-            callGenericPopup('Error moving prompt to header', 'error');
+            toastr.error('Error moving prompt to header');
         }
     }
 
@@ -1211,7 +1222,7 @@ export class PromptNavigator {
             if (typeof window.NemoPresetManager !== 'undefined' && window.NemoPresetManager.moveToHeader) {
                 // Use the existing moveToHeader function from the prompt manager
                 await window.NemoPresetManager.moveToHeader(promptData.content || '', promptName);
-                callGenericPopup(`"${promptName}" moved to header successfully!`, 'success');
+                toastr.success(`"${promptName}" moved to header successfully!`);
             } else {
                 // Fallback: try to find and populate header fields directly
                 const headerTextarea = document.querySelector('#rm_api_url, #api_url_text, textarea[placeholder*="header"], textarea[name*="header"], #CustomPromptHeader, textarea#main_prompt');
@@ -1225,14 +1236,14 @@ export class PromptNavigator {
                     headerTextarea.value = newContent;
                     headerTextarea.dispatchEvent(new Event('input', { bubbles: true }));
                     
-                    callGenericPopup(`"${promptName}" added to header successfully!`, 'success');
+                    toastr.success(`"${promptName}" added to header successfully!`);
                 } else {
-                    callGenericPopup('Could not find header field to populate. Make sure you are in the correct API settings.', 'warning');
+                    toastr.warning('Could not find header field to populate. Make sure you are in the correct API settings.');
                 }
             }
         } catch (error) {
             console.error(`${LOG_PREFIX} Error in moveToHeaderCommon:`, error);
-            callGenericPopup('Error moving content to header', 'error');
+            toastr.error('Error moving content to header');
         }
     }
 }

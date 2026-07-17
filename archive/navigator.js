@@ -156,11 +156,10 @@ export class PresetNavigator {
 
         // **FIX:** Pass the content element to the popup function.
         // It will now use the default ST modal frame.
-        callGenericPopup(this.navigatorElement, POPUP_TYPE.DISPLAY, 'Preset Navigator', {
+        callGenericPopup(this.navigatorElement, POPUP_TYPE.DISPLAY, '', {
             wide: true,
             large: true,
-            addCloseButton: true,
-            onclose: () => this.cleanup()
+            onClose: () => this.cleanup(),
         });
 
         try {
@@ -403,7 +402,7 @@ export class PresetNavigator {
         const icon = document.createElement('div');
         icon.className = 'item-icon';
         if (data.imageUrl) {
-            icon.style.backgroundImage = `url('${data.imageUrl}')`;
+            icon.style.backgroundImage = `url(${JSON.stringify(data.imageUrl)})`;
         } else {
             icon.innerHTML = `<i class="fa-solid ${type === 'folder' ? 'fa-folder' : 'fa-file-lines'}"></i>`;
         }
@@ -534,7 +533,8 @@ export class PresetNavigator {
             }
         }
         const draggedId = e.dataTransfer.getData('text/plain');
-        const originalItem = this.mainView.querySelector(`.grid-item.dragging-source[data-id="${draggedId}"]`);
+        const originalItem = Array.from(this.mainView.querySelectorAll('.grid-item.dragging-source'))
+            .find(element => element.dataset.id === draggedId);
         if(originalItem) originalItem.classList.remove('dragging-source');
 
         this.isDragging = false;
@@ -609,7 +609,7 @@ export class PresetNavigator {
         if (isBulk) {
             itemsHTML = `<li data-action="bulk_move"><i class="fa-solid fa-folder-plus"></i><span>Move ${this.bulkSelection.size} items...</span></li><li data-action="bulk_delete"><i class="fa-solid fa-trash-can"></i><span>Delete ${this.bulkSelection.size} items</span></li>`;
         } else if (type === 'folder') {
-            itemsHTML = `<li data-action="rename_folder" data-id="${id}"><i class="fa-solid fa-i-cursor"></i><span>Rename</span></li><li data-action="set_folder_color" data-id="${id}"><i class="fa-solid fa-palette"></i><span>Set Color</span></li><li data-action="delete_folder" data-id="${id}"><i class="fa-solid fa-trash-can"></i><span>Delete</span></li>`;
+            itemsHTML = '<li data-action="rename_folder"><i class="fa-solid fa-i-cursor"></i><span>Rename</span></li><li data-action="set_folder_color"><i class="fa-solid fa-palette"></i><span>Set Color</span></li><li data-action="delete_folder"><i class="fa-solid fa-trash-can"></i><span>Delete</span></li>';
         } else if (type === 'preset') {
             // Check if preset is favorited
             const favorites = storage.getFavoritePresets();
@@ -618,9 +618,14 @@ export class PresetNavigator {
             const favoriteText = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
             const favoriteIcon = isFavorite ? 'fa-star-half-stroke' : 'fa-star';
             
-            itemsHTML = `<li data-action="${favoriteAction}" data-id="${id}"><i class="fa-solid ${favoriteIcon}"></i><span>${favoriteText}</span></li><li data-action="set_image" data-id="${id}"><i class="fa-solid fa-image"></i><span>Set Image</span></li><li data-action="add_to_folder" data-id="${id}"><i class="fa-solid fa-folder-plus"></i><span>Move to Folder...</span></li><li data-action="remove_from_folder" data-id="${id}"><i class="fa-solid fa-folder-minus"></i><span>Remove from Folder</span></li>`;
+            itemsHTML = `<li data-action="${favoriteAction}"><i class="fa-solid ${favoriteIcon}"></i><span>${favoriteText}</span></li><li data-action="set_image"><i class="fa-solid fa-image"></i><span>Set Image</span></li><li data-action="add_to_folder"><i class="fa-solid fa-folder-plus"></i><span>Move to Folder...</span></li><li data-action="remove_from_folder"><i class="fa-solid fa-folder-minus"></i><span>Remove from Folder</span></li>`;
         }
         menu.innerHTML = itemsHTML;
+        if (!isBulk) {
+            menu.querySelectorAll('li[data-action]').forEach(menuItem => {
+                menuItem.dataset.id = id;
+            });
+        }
 
         // Find the popup container - ST uses .popup_outer or dialog.popup
         const popupContainer = item.closest('.popup_outer, dialog.popup, .popup');
@@ -791,12 +796,12 @@ export class PresetNavigator {
 
             select.value = this.selectedPreset.value;
             select.dispatchEvent(new Event('change', { bubbles: true }));
-            // The popup will be closed by the onclose handler we set up.
+            // The popup will be closed by the native display popup handler.
             // Find the close button of the generic popup and click it.
             const popupCloseButton = this.navigatorElement.closest('.popup_outer, dialog.popup')?.querySelector('.popup-button-close');
             if(popupCloseButton) popupCloseButton.click();
         } else {
-            callGenericPopup(`Could not find the preset dropdown for "${this.apiType}".`, 'error');
+            showToast(`Could not find the preset dropdown for "${this.apiType}".`, 'error');
         }
     }
     loadMetadata() {
@@ -824,7 +829,7 @@ export class PresetNavigator {
     }
     async moveItemToFolderDialog(itemIds) {
         const folderNames = Object.values(this.metadata.folders).map(f => f.name).join(', ');
-        if (!folderNames) { callGenericPopup("No folders created yet. Create a folder first.", 'info'); return; }
+        if (!folderNames) { showToast('No folders created yet. Create a folder first.', 'info'); return; }
         const targetName = await callGenericPopup(`Enter folder name to move to:\n(${folderNames})`, POPUP_TYPE.INPUT);
         const targetFolder = Object.values(this.metadata.folders).find(f => f.name.toLowerCase() === targetName?.toLowerCase());
         if (targetFolder) {
@@ -835,7 +840,7 @@ export class PresetNavigator {
             });
             this.saveMetadata(); this.render();
         } else if (targetName) {
-            callGenericPopup(`Folder "${targetName}" not found.`, 'error');
+            showToast(`Folder "${targetName}" not found.`, 'error');
         }
     }
     toggleBulkSelection(id) { if (this.bulkSelection.has(id)) { this.bulkSelection.delete(id); } else { this.bulkSelection.add(id); } this.updateBulkSelectionVisuals(); }
@@ -866,7 +871,16 @@ export class PresetNavigator {
             if (presetData) {
                 const presetContent = oai_settings[presetData.value];
                 const content = presetContent ? JSON.stringify(presetContent, null, 2) : 'Could not load preset content.';
-                callGenericPopup(`<pre>${content.replace(/</g, "<")}</pre>`, POPUP_TYPE.DISPLAY, `Quick Look: ${presetData.name}`, { wide: true });
+                const quickLook = document.createElement('div');
+                const quickLookHeading = document.createElement('h3');
+                const quickLookPre = document.createElement('pre');
+                quickLookHeading.textContent = `Quick Look: ${presetData.name}`;
+                quickLookPre.textContent = content;
+                quickLook.append(quickLookHeading, quickLookPre);
+                callGenericPopup(quickLook, POPUP_TYPE.DISPLAY, '', {
+                    wide: true,
+                    leftAlign: true,
+                });
             }
         }
     }
@@ -1004,7 +1018,7 @@ export class PresetNavigator {
                 oai_settings[newKey] = presetBody;
 
                 const select = document.querySelector(`select[data-preset-manager-for="${this.apiType}"]`);
-                if (select && !select.querySelector(`option[value="${newKey}"]`)) {
+                if (select && !Array.from(select.options).some(option => option.value === newKey)) {
                     select.appendChild(new Option(newName, newKey));
                 }
 
@@ -1074,7 +1088,7 @@ export class PresetNavigator {
         const wasAdded = storage.toggleFavoritePreset(presetName);
         
         // Trigger favorites update event
-        eventSource.emit(event_types.NEMO_FAVORITES_UPDATED);
+        eventSource.emit('nemo_favorites_updated');
         
         // Re-render to update the star icons and favorites sidebar
         this.render();
@@ -1102,11 +1116,14 @@ export class PresetNavigator {
                     <div class="favorite-item-icon">
                         <i class="fa-solid fa-file-lines"></i>
                     </div>
-                    <div class="favorite-item-name" title="${preset.name}">${preset.name}</div>
+                    <div class="favorite-item-name"></div>
                     <button class="favorite-remove-btn" title="Remove from favorites">
                         <i class="fa-solid fa-times"></i>
                     </button>
                 `;
+                const favoriteName = favoriteItem.querySelector('.favorite-item-name');
+                favoriteName.textContent = preset.name;
+                favoriteName.title = preset.name;
                 favoriteItem.addEventListener('click', () => {
                     // Select this preset
                     this.selectedPreset = { value: preset.value, name: preset.name };
@@ -1190,5 +1207,5 @@ export function initPresetNavigatorForApi(apiType) {
     wrapper.parentElement.insertBefore(favoritesContainer, wrapper.nextSibling);
 
     renderFavorites(apiType);
-    eventSource.on(event_types.NEMO_FAVORITES_UPDATED, () => renderFavorites(apiType));
+    eventSource.on('nemo_favorites_updated', () => renderFavorites(apiType));
 }

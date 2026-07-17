@@ -16,6 +16,8 @@ const CC_USEFUL_CHECKBOX_IDS = [
 export const UserSettingsTabs = {
     initialized: false,
     activeTab: 'ui-theme',
+    _pollForContentInterval: null,
+    _initializeTimeout: null,
 
     // Tracks whether we're in CC mode
     _isCCMode: false,
@@ -24,13 +26,13 @@ export const UserSettingsTabs = {
     _ccCheckboxStash: null,
 
     initialize: function() {
-        if (this.initialized) return;
+        if (this.initialized || this._pollForContentInterval || this._initializeTimeout) return;
 
         // Cleanup any existing tab interface first
         this.cleanup();
 
         // Wait for both the user settings block AND the Advanced Formatting drawer to be available
-        const pollForContent = setInterval(() => {
+        this._pollForContentInterval = setInterval(() => {
             const userSettingsBlock = document.getElementById('user-settings-block');
             const userSettingsContent = document.getElementById('user-settings-block-content');
             const advancedFormattingDrawer = document.getElementById('AdvancedFormatting');
@@ -40,10 +42,12 @@ export const UserSettingsTabs = {
                 userSettingsContent.children.length > 0 &&
                 advancedFormattingDrawer &&
                 advancedFormattingDrawer.querySelector('.flex-container.spaceEvenly')) {
-                clearInterval(pollForContent);
+                clearInterval(this._pollForContentInterval);
+                this._pollForContentInterval = null;
 
                 // Small delay to ensure all content is loaded
-                setTimeout(() => {
+                this._initializeTimeout = setTimeout(() => {
+                    this._initializeTimeout = null;
                     this.createTabbedInterface();
                     this.initialized = true;
                     logger.info('User Settings Tabs (combined) initialized');
@@ -826,6 +830,12 @@ export const UserSettingsTabs = {
     },
 
     cleanup: function() {
+        clearInterval(this._pollForContentInterval);
+        clearTimeout(this._initializeTimeout);
+        this._pollForContentInterval = null;
+        this._initializeTimeout = null;
+        this.initialized = false;
+
         const existingTabs = document.querySelector('.nemo-user-settings-tabs');
         const existingSearch = document.querySelector('.nemo-user-settings-search');
         const existingSearchResults = document.getElementById('nemo-search-results');

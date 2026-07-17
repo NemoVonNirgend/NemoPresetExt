@@ -1,101 +1,60 @@
-# Universal Reasoning Parser
+# Improved Reasoning Capture
 
-**Version 2.0** - Now supports ALL major AI models!
+Improved Reasoning Capture is NemoPresetExt's optional reasoning post-processor for SillyTavern. For uncaptured assistant messages, it reads SillyTavern's current delimiter candidates, delegates structurally closed blocks to the native parser, and supplies conservative fallbacks for alternate tags and structured NemoNet/Council output.
 
-Robust reasoning extraction system for SillyTavern that works independently of prefix/suffix settings and supports:
-- 🤖 **Claude** (Extended Thinking)
-- 🧠 **DeepSeek R1** (`<think>/<answer>`)
-- 🔮 **OpenAI o1/o3** (Reasoning tokens)
-- 💎 **Gemini 2.0+** (Thoughts format)
-- 🌟 **NemoNet** (Council of Vex)
-- 🌐 **Generic CoT** formats
+The feature is enabled by default through `enableReasoningCapture`. It can be turned off in NemoPresetExt settings without changing SillyTavern's native reasoning controls.
 
-## Files
+## Supported input
 
-### Core Files
-- **`nemonet-reasoning-config.js`** - Main reasoning parser with NemoNet-specific configuration and SillyTavern integration
-- **`robust-reasoning-parser.js`** - Base parser engine with multi-strategy reasoning extraction
+- SillyTavern's configured reasoning prefix and suffix.
+- Common blocks that begin the message: `<think>`, `<thinking>`, `<thought>`, `<thoughts>`, `<reason>`, `<reasoning>`, `<reflection>`, `<analysis>`, `<cot>`, `<|begin_of_thought|>`, `◁think▷`, and `[THINK]`.
+- DeepSeek-style `<think>...</think><answer>...</answer>` output.
+- `Thoughts:` or `Thinking:` sections followed by an explicit `Response:`, `Answer:`, `Output:`, or `Result:` section.
+- NemoNet/Council section blocks with enough known structure to identify them and a clear narrative boundary.
+- An incomplete `</think>` suffix, when enough of that exact delimiter remains to distinguish it from ordinary HTML.
+- An unclosed opening tag only when the output contains a known explicit transition such as `NARRATION FOLLOWS`, `{{newline}}`, `Narration:`, or a NemoNet closing marker.
 
-### Test Files
-- **`test-reasoning-parser.js`** - Comprehensive test suite for the parser
-- **`debug-parse-test.js`** - Quick debug test for development
+Provider-native reasoning already stored in `message.extra.reasoning` is authoritative and is never replaced.
 
-### Documentation
-- **`UNIVERSAL_REASONING_SUPPORT.md`** - Complete guide to all supported AI models (NEW!)
-- **`docs/REASONING_INDEPENDENCE.md`** - How the independence mode works
-- **`docs/REASONING_PARSER.md`** - Technical documentation
-- **`docs/REASONING_SETUP.md`** - Setup guide
+## Safety rules
 
-## How It Works
+Capture intentionally fails closed:
 
-The reasoning parser uses a multi-layered approach:
+- Tag-based reasoning must start the message, apart from leading whitespace. Tags shown later in prose or fenced examples remain visible.
+- User messages, system messages, placeholders, and messages with existing reasoning are skipped.
+- Both reasoning and visible content must be non-empty before a message can change. Short answers such as `Yes.` are valid.
+- Native parsing is used only when the matching closing delimiter exists. Ordinary sentences and blank paragraphs are never treated as proof that an unclosed block ended.
+- Rendered HTML is never used as message source data, and HTML inside a correctly delimited reasoning block is preserved.
+- Parsing errors or low-confidence tagless guesses leave the original message byte-for-byte unchanged.
+- Tagless Council output requires a Final Check plus a strong narrative start; markdown planning bullets remain private.
+- Pristine one-message greetings are skipped because SillyTavern intentionally keeps their swipe text unresolved for macro replay.
 
-1. **Pre-render Processing** - Catches messages as they're added to DOM
-2. **Event Hooks** - Listens to `character_message_rendered` and `GENERATION_ENDED`
-3. **Force Processing** - Checks displayed content and fixes any leaked reasoning
+These constraints favor preserving visible text over guessing. If a model omits both its closing delimiter and a structural narration marker, configure the model/preset to emit a proper suffix instead of relying on prose detection.
 
-### Multi-Strategy Parser
+## Message lifecycle
 
-The parser uses **7 cascading strategies** to support all AI models:
+The runtime listens only to SillyTavern's `MESSAGE_RECEIVED`, `MESSAGE_UPDATED`, `MESSAGE_SWIPED`, and `CHAT_CHANGED` events. A successful capture:
 
-0. **Gemini Thoughts** (95%) - Detects `Thoughts:` section format
-1. **DeepSeek R1** (90-98%) - Detects `<think>/<answer>` tag pairs
-2. **Perfect Match** (100%) - Both opening and closing tags present
-3. **Partial Suffix** (80-90%) - Detects incomplete closing tags like `</thin`
-4. **Missing Suffix** (70-85%) - Only opening tag, finds reasoning end via markers
-5. **Content Markers** (60-75%) - Uses AI-specific structure markers
-6. **Heuristic** (50-60%) - Structure-based detection when tags are completely missing
+1. applies SillyTavern reasoning-placement regex rules and updates the canonical assistant message;
+2. synchronizes the active swipe with `syncMesToSwipe(messageId)`;
+3. schedules the normal chat save; and
+4. asks SillyTavern to re-render the message if it is already on screen.
 
-### Supported Reasoning Markers
+There is no chat-wide DOM observer, rendered-HTML parsing, polling, retry timer, or custom reasoning markup. Disabling the feature removes all four listeners synchronously.
 
-The parser recognizes **60+ reasoning markers** from all major AI models:
+## Code map
 
-**NemoNet:**
-- `STORY SECTION 1-7:`, `NEMONET WORLD EXPLORATION`, `Council of Vex`, `NemoAdmin-107`
+- `reasoning-capture-core.js` — pure candidate gating, validation, parsing policy, and atomic message mutation.
+- `nemonet-reasoning-config.js` — thin SillyTavern event, swipe, save, and render adapter.
+- `robust-reasoning-parser.js` — reusable delimiter and structured-format strategies.
+- `tests/reasoning-capture.test.js` — executable regression coverage for accepted formats, false positives, metadata safety, and runtime constraints.
 
-**Claude:**
-- `Let me think through this`, `My thinking process:`, `Breaking this down:`
+## Verification
 
-**DeepSeek R1:**
-- `Let's approach this step by step`, `First, I need to`, `To solve this, I should`
+From the extension directory:
 
-**OpenAI o1/o3:**
-- `Reasoning through this`, `Chain of thought:`, `Step 1:`, `Let's think step by step`
-
-**Gemini:**
-- `Identify the question's scope`, `Brainstorm key concepts`, `Structure the answer`
-
-**Generic:**
-- `Analysis:`, `Reasoning:`, `Reflection:`, `Consider:`, `Therefore,`
-
-[See UNIVERSAL_REASONING_SUPPORT.md for complete list]
-
-## Integration
-
-Called from `content.js`:
-```javascript
-import { applyNemoNetReasoning } from './reasoning/nemonet-reasoning-config.js';
-
-// Initialize reasoning parser
-applyNemoNetReasoning();
+```powershell
+node --test tests\reasoning-capture.test.js
 ```
 
-## Key Features
-
-✅ **Universal AI Model Support** - Claude, DeepSeek R1, OpenAI o1/o3, Gemini, NemoNet, and more
-✅ **Works without configuration** - No prefix/suffix setup required
-✅ **Handles incomplete tags** - Partial, missing, or malformed tags
-✅ **Multiple format detection** - Simultaneously supports all tag formats
-✅ **Smart end detection** - 20+ narration markers across all models
-✅ **Content-aware parsing** - 60+ reasoning markers for tagless detection
-✅ **Catches leaks** - Post-render verification and fixing
-✅ **95%+ capture rate** across all AI models
-✅ **Automatic confidence scoring** - Know how reliable each detection is
-✅ **Debug mode** - Detailed logging for troubleshooting
-
-## Quick Start
-
-**For detailed information about all supported AI models, see:**
-📖 **[UNIVERSAL_REASONING_SUPPORT.md](./UNIVERSAL_REASONING_SUPPORT.md)**
-
-The parser automatically works with all AI models - no configuration needed!
+For best results, keep SillyTavern's reasoning settings aligned with the model's documented delimiter format. NemoPresetExt supplements those settings; it does not replace native streaming or provider-supplied reasoning support. If SillyTavern has already populated `message.extra.reasoning` before the extension event runs, that native result remains authoritative.

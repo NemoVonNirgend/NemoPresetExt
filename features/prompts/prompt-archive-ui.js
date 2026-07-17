@@ -376,8 +376,8 @@ export const NemoPromptArchiveUI = {
             this.showNotification('Restoring archive...', 'info');
             
             // Add a slight delay to show loading notification
-            setTimeout(() => {
-                const success = NemoPromptArchive.restoreArchive(archiveId, {
+            setTimeout(async () => {
+                const success = await NemoPromptArchive.restoreArchive(archiveId, {
                     restorePrompts: true,
                     restoreSystemPrompts: true,
                     mergeMode: mergeMode
@@ -522,7 +522,7 @@ export const NemoPromptArchiveUI = {
         }
     },
 
-    addSinglePromptToPreset: function(archiveId, promptIdentifier, type) {
+    addSinglePromptToPreset: async function(archiveId, promptIdentifier, type) {
         let success = false;
         let promptName = promptIdentifier;
         
@@ -537,7 +537,7 @@ export const NemoPromptArchiveUI = {
                 }
             }
         } else if (type === 'system') {
-            success = NemoPromptArchive.addSystemPromptToCurrentPreset(archiveId, promptIdentifier);
+            success = await NemoPromptArchive.addSystemPromptToCurrentPreset(archiveId, promptIdentifier);
             promptName = promptIdentifier; // For system prompts, identifier is the name
         }
         

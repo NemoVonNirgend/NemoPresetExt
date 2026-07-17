@@ -28,7 +28,13 @@ let activeCategory = 'smileys';
 let renderedCount = 0;
 let currentEmojis = [];
 let searchTimeout = null;
+let focusTimeout = null;
 let observer = null; // IntersectionObserver for lazy loading
+let eventAbortController = null;
+
+function eventListenerOptions() {
+    return eventAbortController ? { signal: eventAbortController.signal } : undefined;
+}
 
 // ── DOM builders ───────────────────────────────────────
 function buildPicker() {
@@ -251,8 +257,9 @@ function openPicker() {
     renderCategory(settings.lastCategory || 'smileys');
 
     // Focus search
-    setTimeout(() => {
-        const search = pickerEl.querySelector('.nemo-ep-search');
+    clearTimeout(focusTimeout);
+    focusTimeout = setTimeout(() => {
+        const search = pickerEl?.querySelector('.nemo-ep-search');
         if (search) search.focus();
     }, 50);
 }
@@ -311,7 +318,7 @@ function setupEvents() {
         if (isOpen && !pickerEl.contains(e.target) && e.target !== trigger) {
             closePicker();
         }
-    });
+    }, eventListenerOptions());
 
     // Stop picker clicks from propagating
     pickerEl.addEventListener('click', (e) => e.stopPropagation());
@@ -388,7 +395,7 @@ function setupEvents() {
         if (e.key === 'Escape' && isOpen) {
             closePicker();
         }
-    });
+    }, eventListenerOptions());
 
     // IntersectionObserver for lazy loading
     const sentinel = pickerEl.querySelector('.nemo-ep-sentinel');
@@ -407,7 +414,7 @@ function setupEvents() {
     // Window resize - reposition
     window.addEventListener('resize', () => {
         if (isOpen) positionPicker();
-    });
+    }, eventListenerOptions());
 }
 
 // ── Initialize ─────────────────────────────────────────
@@ -416,6 +423,7 @@ export const EmojiPicker = {
 
     initialize() {
         if (this.isInitialized) return;
+        eventAbortController = new AbortController();
 
         // Ensure settings exist
         getSettings();
@@ -445,5 +453,24 @@ export const EmojiPicker = {
         const btn = buildTriggerButton();
         // Prepend so it appears first (leftmost) in the right-side controls
         rightForm.prepend(btn);
+    },
+
+    destroy() {
+        eventAbortController?.abort();
+        eventAbortController = null;
+        observer?.disconnect();
+        observer = null;
+        clearTimeout(searchTimeout);
+        clearTimeout(focusTimeout);
+        searchTimeout = null;
+        focusTimeout = null;
+        pickerEl?.remove();
+        document.getElementById('nemo-emoji-trigger')?.remove();
+        pickerEl = null;
+        isOpen = false;
+        activeCategory = 'smileys';
+        renderedCount = 0;
+        currentEmojis = [];
+        this.isInitialized = false;
     },
 };

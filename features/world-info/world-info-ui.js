@@ -1,10 +1,34 @@
 import { LOG_PREFIX, getExtensionPath } from '../../core/utils.js';
 import logger from '../../core/logger.js';
-import { debounce, navigation_option } from '../../../../../../scripts/utils.js';
+import { isSafePresetName, normalizePresetMap } from './preset-validation.js';
+import { debounce } from '../../../../../../scripts/utils.js';
 import { Popup } from '../../../../../../scripts/popup.js';
-import { getFreeWorldName, createNewWorldInfo, loadWorldInfo, world_names, saveWorldInfo, createWorldInfoEntry, deleteWorldInfoEntry, deleteWIOriginalDataValue } from '../../../../../../scripts/world-info.js';
+import {
+    createNewWorldInfo,
+    getFreeWorldName,
+    loadWorldInfo,
+    openWorldInfoEditor,
+    saveWorldInfo,
+    updateWorldInfoList,
+    world_info_case_sensitive,
+    world_info_match_whole_words,
+    world_names,
+} from '../../../../../../scripts/world-info.js';
 import { eventSource, event_types } from '../../../../../../script.js';
-import { accountStorage } from '../../../../../../scripts/util/AccountStorage.js';
+
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function createLiteralKeywordExpression(keyword, entry) {
+    const escaped = escapeRegExp(keyword);
+    const wholeWords = entry.matchWholeWords ?? world_info_match_whole_words;
+    const startBoundary = wholeWords && /^\w/.test(keyword) ? String.raw`\b` : '';
+    const endBoundary = wholeWords && /\w$/.test(keyword) ? String.raw`\b` : '';
+    const caseSensitive = entry.caseSensitive ?? world_info_case_sensitive;
+    const flags = caseSensitive ? '' : 'i';
+    return new RegExp(`${startBoundary}${escaped}${endBoundary}`, flags);
+}
 
 /**
  * @typedef {object} WorldInfoEntry
@@ -46,123 +70,198 @@ import { accountStorage } from '../../../../../../scripts/util/AccountStorage.js
  * @property {Object.<string, WorldInfoEntry>} entries
  */
 
-/**
- * @global
- * @property {function(string, WorldInfoData, WorldInfoEntry): Promise<JQuery<HTMLElement>>} getWorldEntry
- * @property {function(string, WorldInfoData, ...any): Promise<void>} displayWorldEntries
- */
-
 export const NemoWorldInfoUI = {
     _currentWorld: { name: null, data: null },
     _selectedItems: new Set(),
     _selectedEntries: new Set(),
     _selectionBook: null,
     _lastSelectedEntry: null,
-    _clipboard: { items: new Set(), cut: false },
     _uiInjected: false,
     _isRefreshingUI: false,
     folderState: {},
     storageKey: 'nemo-wi-folder-state',
-    _presets: {},
+    _presets: Object.create(null),
     _currentPreset: '',
     presetStorageKey: 'nemo-wi-presets',
     _activeEntries: [],
     _selectedLorebookName: null,
+    _abortController: null,
+    _panelObserver: null,
+    _worldSelectObserver: null,
+    _entriesObserver: null,
+    _preservedPanel: null,
+    _settingsPlaceholder: null,
+    _settingsDisplay: null,
+    _activeEntriesHandler: null,
+    _generationStartedHandler: null,
+    _chatChangedHandler: null,
+    _worldInfoUpdatedHandler: null,
+    _stylesheetOwned: false,
+    _loadSequence: 0,
+    _searchSequence: 0,
+    _previewSequence: 0,
+    _previewTimer: null,
 
     injectUI: async function() {
         try {
-            const response = await fetch(getExtensionPath('features/world-info/world-info-ui.html'));
+            const response = await fetch(getExtensionPath('features/world-info/world-info-ui.html'), { signal: this._abortController?.signal });
             if (!response.ok) {
                 throw new Error(`Failed to fetch UI template: ${response.statusText}`);
             }
             const html = await response.text();
             
             const originalPanel = document.getElementById('WorldInfo');
-            if (originalPanel) {
-                // Create a hidden container for preserved elements FIRST
-                const elementsContainer = document.createElement('div');
-                elementsContainer.id = 'nemo-world-info-hidden-elements';
-                elementsContainer.style.display = 'none';
-                document.body.appendChild(elementsContainer);
+            if (!originalPanel || originalPanel.querySelector('#nemo-world-info-redesign')) return;
 
-                // Preserve the elements the original script needs
-                const settingsPanel = document.getElementById('wiActivationSettings');
-                const editorSelect = document.getElementById('world_editor_select');
-                const createButton = document.getElementById('world_create_button');
-                const importButton = document.getElementById('world_import_button');
-                const importFileInput = document.getElementById('world_import_file');
-                const worldInfoSelect = document.getElementById('world_info');
+            const preserved = document.createElement('div');
+            preserved.id = 'nemo-native-world-info-preserved';
+            preserved.hidden = true;
+            preserved.inert = true;
+            preserved.setAttribute('aria-hidden', 'true');
 
-                // Move elements directly to the hidden container (not to document.body)
-                if (worldInfoSelect) {
-                    elementsContainer.appendChild(worldInfoSelect);
-                    worldInfoSelect.style.display = 'none';
-                }
-                if (settingsPanel) {
-                    elementsContainer.appendChild(settingsPanel);
-                    settingsPanel.style.display = 'none';
-                }
-                if (editorSelect) {
-                    elementsContainer.appendChild(editorSelect);
-                    editorSelect.style.display = 'none';
-                }
-                if (createButton) {
-                    elementsContainer.appendChild(createButton);
-                    createButton.style.display = 'none';
-                }
-                if (importButton) {
-                    elementsContainer.appendChild(importButton);
-                    importButton.style.display = 'none';
-                }
-                if (importFileInput) {
-                    elementsContainer.appendChild(importFileInput);
-                    importFileInput.style.display = 'none';
-                }
+            // Park the complete native tree to retain SillyTavern's event handlers.
+            // Only the two render targets are replaced by the redesigned workspace.
+            const nativeEntries = originalPanel.querySelector('#world_popup_entries_list');
+            const nativePagination = originalPanel.querySelector('#world_info_pagination');
+            if (nativeEntries) nativeEntries.id = 'nemo-native-world-popup-entries-list';
+            if (nativePagination) nativePagination.id = 'nemo-native-world-info-pagination';
 
-                // Preserve all controls needed by the original script
-                const idsToPreserve = [
-                    'world_popup_name_button', 'OpenAllWIEntries', 'CloseAllWIEntries', 'world_popup_new',
-                    'world_backfill_memos', 'world_apply_current_sorting', 'world_popup_export',
-                    'world_duplicate', 'world_popup_delete', 'world_info_search', 'world_info_sort_order',
-                    'world_refresh'
-                ];
+            while (originalPanel.firstChild) preserved.appendChild(originalPanel.firstChild);
+            document.body.appendChild(preserved);
+            this._preservedPanel = preserved;
 
-                idsToPreserve.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        elementsContainer.appendChild(el);
-                        el.style.display = 'none';
-                    }
-                });
-
-                originalPanel.innerHTML = html;
-            }
+            const template = document.createElement('template');
+            template.innerHTML = html.trim();
+            originalPanel.replaceChildren(template.content.cloneNode(true));
+            this.enhanceAccessibility();
+            this.setWorkspaceState('idle', 'Select a lorebook to view and edit its entries.');
         } catch (error) {
             logger.error('Error injecting UI', error);
+            this.restoreNativePanel();
+            throw error;
         }
     },
 
     displayLorebookEntries: async function(lorebookName) {
-        const worldEditorSelect = /** @type {HTMLSelectElement} */ (document.getElementById('world_editor_select'));
-        if (worldEditorSelect) {
-            const option = Array.from(worldEditorSelect.options).find(opt => opt.text === lorebookName);
-            if (option) {
-                worldEditorSelect.value = option.value;
-                worldEditorSelect.dispatchEvent(new Event('change'));
-            }
-        }
-
-        // Track selected lorebook and update visual indicator
+        const loadSequence = ++this._loadSequence;
         this._selectedLorebookName = lorebookName;
         document.querySelectorAll('.nemo-lorebook-item').forEach(item => {
             item.classList.toggle('nemo-lorebook-selected', /** @type {HTMLElement} */ (item).dataset.name === lorebookName);
         });
+        this.setWorkspaceState('loading', `Loading ${lorebookName}...`);
 
-        // Hide empty state when a lorebook is selected
+        try {
+            const data = await loadWorldInfo(lorebookName);
+            if (loadSequence !== this._loadSequence) return;
+            if (!data?.entries) throw new Error(`Could not load lorebook "${lorebookName}".`);
+
+            this._currentWorld = { name: lorebookName, data };
+            openWorldInfoEditor(lorebookName);
+            this.setWorkspaceState('ready');
+            queueMicrotask(() => this.enhanceRenderedEntries());
+        } catch (error) {
+            if (loadSequence !== this._loadSequence) return;
+            logger.error(`Could not open lorebook "${lorebookName}"`, error);
+            this.setWorkspaceState('error', `Could not load ${lorebookName}. Try refreshing the lorebook list.`);
+        }
+    },
+
+    setWorkspaceState: function(state, message = '') {
+        const panel = document.getElementById('nemo-world-info-entries-panel');
         const emptyState = document.getElementById('nemo-wi-empty-state');
-        if (emptyState) emptyState.style.display = 'none';
         const entriesContent = document.getElementById('nemo-wi-entries-content');
-        if (entriesContent) entriesContent.style.display = '';
+        if (!panel || !emptyState || !entriesContent) return;
+
+        let status = document.getElementById('nemo-wi-workspace-status');
+        if (!status) {
+            status = document.createElement('p');
+            status.id = 'nemo-wi-workspace-status';
+            status.className = 'nemo-wi-workspace-status';
+            status.setAttribute('role', 'status');
+            status.setAttribute('aria-live', 'polite');
+            emptyState.appendChild(status);
+        }
+
+        panel.dataset.state = state;
+        panel.setAttribute('aria-busy', String(state === 'loading'));
+        status.textContent = message;
+        emptyState.hidden = state === 'ready';
+        entriesContent.hidden = state !== 'ready';
+        entriesContent.style.display = state === 'ready' ? '' : 'none';
+    },
+
+    enhanceAccessibility: function() {
+        const root = document.getElementById('nemo-world-info-redesign');
+        if (!root) return;
+        const signal = this._abortController?.signal;
+        const listenerOptions = signal ? { signal } : undefined;
+
+        root.setAttribute('role', 'region');
+        root.setAttribute('aria-label', 'Lorebook workspace');
+
+        const tabList = root.querySelector('.nemo-world-info-tabs');
+        const tabs = Array.from(root.querySelectorAll('.nemo-world-info-tab'));
+        tabList?.setAttribute('role', 'tablist');
+        tabs.forEach(tab => {
+            const panelId = tab.id.replace(/-tab$/, '-panel');
+            const panel = document.getElementById(panelId);
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-controls', panelId);
+            tab.setAttribute('aria-selected', String(tab.classList.contains('active')));
+            tab.tabIndex = tab.classList.contains('active') ? 0 : -1;
+            if (panel) {
+                panel.setAttribute('role', 'tabpanel');
+                panel.setAttribute('aria-labelledby', tab.id);
+            }
+        });
+
+        tabList?.addEventListener('keydown', event => {
+            if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                event.preventDefault();
+                const currentIndex = Math.max(0, tabs.indexOf(document.activeElement));
+                const direction = event.key === 'ArrowRight' ? 1 : -1;
+                const nextTab = tabs[(currentIndex + direction + tabs.length) % tabs.length];
+                nextTab?.focus();
+                nextTab?.click();
+            }
+        }, listenerOptions);
+
+        const activateControlOnKeyboard = event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                event.currentTarget.click();
+            }
+        };
+
+        root.querySelectorAll('.menu_button[title], .nemo-world-info-tab').forEach(control => {
+            if (control instanceof HTMLButtonElement) {
+                control.type = 'button';
+            } else {
+                control.setAttribute('role', control.classList.contains('nemo-world-info-tab') ? 'tab' : 'button');
+                if (!control.classList.contains('nemo-world-info-tab')) control.tabIndex = 0;
+                control.addEventListener('keydown', activateControlOnKeyboard, listenerOptions);
+            }
+            const label = control.getAttribute('title') || control.textContent?.trim();
+            if (label && !control.hasAttribute('aria-label')) control.setAttribute('aria-label', label);
+        });
+
+        const labels = {
+            'nemo-world-info-search': 'Search lorebooks',
+            'nemo-world-info-preset-select': 'Lorebook preset',
+            'nemo-world-info-entry-search': 'Search entries',
+            'nemo-world-info-entry-sort': 'Sort entries',
+            'nemo-primary-keyword-preview-input': 'Text to preview against primary keywords',
+            'nemo-primary-keyword-preview-results': 'Primary keyword preview results',
+        };
+        for (const [id, label] of Object.entries(labels)) {
+            document.getElementById(id)?.setAttribute('aria-label', label);
+        }
+
+        document.getElementById('nemo-world-info-list')?.setAttribute('role', 'listbox');
+        document.getElementById('nemo-world-info-active-list')?.setAttribute('aria-live', 'polite');
+        document.getElementById('nemo-world-info-active-entries-list')?.setAttribute('aria-live', 'polite');
+        document.getElementById('nemo-primary-keyword-preview-results')?.setAttribute('aria-live', 'polite');
+
     },
 
     updateActiveLorebooksList: function() {
@@ -171,17 +270,26 @@ export const NemoWorldInfoUI = {
         const worldInfoSelect = /** @type {HTMLSelectElement} */ (document.getElementById('world_info'));
         if (!activeList || !worldInfoSelect) return;
 
-        activeList.innerHTML = '';
+        activeList.replaceChildren();
         const selectedOptions = Array.from(worldInfoSelect.selectedOptions);
+        if (selectedOptions.length === 0) {
+            const empty = document.createElement('span');
+            empty.className = 'nemo-wi-active-empty';
+            empty.textContent = 'None active globally';
+            activeList.appendChild(empty);
+            return;
+        }
 
         for (const option of selectedOptions) {
             const activeItem = document.createElement('div');
             activeItem.className = 'nemo-active-lorebook-item';
             activeItem.textContent = option.text;
             
-            const removeButton = document.createElement('div');
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
             removeButton.className = 'nemo-remove-lorebook-button';
-            removeButton.textContent = '✖';
+            removeButton.textContent = '\u00d7';
+            removeButton.setAttribute('aria-label', `Deactivate ${option.text}`);
             removeButton.addEventListener('click', () => {
                 option.selected = false;
                 const worldInfoSelect = /** @type {HTMLSelectElement} */ (document.getElementById('world_info'));
@@ -194,10 +302,42 @@ export const NemoWorldInfoUI = {
         }
     },
 
+    syncLorebookSelectionUI: function() {
+        const lorebookItems = Array.from(document.querySelectorAll('#nemo-world-info-list .nemo-lorebook-item'));
+        const availableNames = new Set(lorebookItems.map(item => /** @type {HTMLElement} */ (item).dataset.name).filter(Boolean));
+        for (const selectedName of this._selectedItems) {
+            if (!availableNames.has(selectedName)) this._selectedItems.delete(selectedName);
+        }
+
+        lorebookItems.forEach(item => {
+            const name = /** @type {HTMLElement} */ (item).dataset.name;
+            const selected = Boolean(name && this._selectedItems.has(name));
+            item.classList.toggle('selected', selected);
+            item.setAttribute('aria-selected', String(selected));
+        });
+    },
+
+    toggleLorebookSelection: function(lorebookName) {
+        if (this._selectedItems.has(lorebookName)) {
+            this._selectedItems.delete(lorebookName);
+        } else {
+            this._selectedItems.add(lorebookName);
+        }
+        this.syncLorebookSelectionUI();
+    },
+
+    openLorebook: function(lorebookName) {
+        this._selectedItems.clear();
+        this._selectedItems.add(lorebookName);
+        this.syncLorebookSelectionUI();
+        void this.displayLorebookEntries(lorebookName);
+    },
+
     populateLorebooksFromSelect: function(selectElement) {
         const lorebookList = document.getElementById('nemo-world-info-list');
         if (!lorebookList) return;
 
+        this.destroySortable();
         lorebookList.innerHTML = '';
         
         // Create folders
@@ -217,7 +357,8 @@ export const NemoWorldInfoUI = {
                 const lorebookItem = this.createLorebookElement(option);
                 const folderName = this.findFolderForLorebook(option.text);
                 if (folderName) {
-                    const folderContent = lorebookList.querySelector(`.nemo-folder[data-folder-name="${folderName}"] .nemo-folder-content`);
+                    const folder = Array.from(lorebookList.querySelectorAll('.nemo-folder')).find(item => item.dataset.folderName === folderName);
+                    const folderContent = folder?.querySelector('.nemo-folder-content');
                     if (folderContent) {
                         folderContent.appendChild(lorebookItem);
                     }
@@ -228,7 +369,15 @@ export const NemoWorldInfoUI = {
         }
         unassignedContainer.appendChild(unassignedLorebooksFragment);
         lorebookList.appendChild(unassignedContainer);
+        if (!lorebookList.querySelector('.nemo-lorebook-item')) {
+            const empty = document.createElement('p');
+            empty.className = 'nemo-wi-helper-empty';
+            empty.setAttribute('role', 'status');
+            empty.textContent = 'No lorebooks yet. Create one or import an existing lorebook.';
+            lorebookList.appendChild(empty);
+        }
 
+        this.syncLorebookSelectionUI();
         this.updateActiveLorebooksList();
     },
 
@@ -236,10 +385,14 @@ export const NemoWorldInfoUI = {
         const lorebookItem = document.createElement('div');
         lorebookItem.className = 'nemo-lorebook-item';
         lorebookItem.dataset.name = option.text;
+        lorebookItem.tabIndex = 0;
+        lorebookItem.setAttribute('role', 'option');
+        lorebookItem.setAttribute('aria-selected', 'false');
         lorebookItem.title = option.text; // Full name on hover
 
         const dragHandle = document.createElement('div');
         dragHandle.className = 'nemo-drag-handle';
+        dragHandle.setAttribute('aria-hidden', 'true');
         dragHandle.innerHTML = '&#9776;'; // Unicode for "hamburger" icon
         lorebookItem.appendChild(dragHandle);
 
@@ -248,42 +401,47 @@ export const NemoWorldInfoUI = {
         textSpan.textContent = option.text;
         lorebookItem.appendChild(textSpan);
 
-        lorebookItem.addEventListener('click', (e) => {
+        lorebookItem.addEventListener('click', (event) => {
             const moveToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemo-world-info-move-toggle'));
-            if (moveToggle.checked) return;
+            if (moveToggle?.checked) return;
 
-            if (e.ctrlKey) {
-                e.preventDefault();
-                lorebookItem.classList.toggle('selected');
-                if (lorebookItem.classList.contains('selected')) {
-                    this._selectedItems.add(option.text);
-                } else {
-                    this._selectedItems.delete(option.text);
-                }
-            } else {
-                // Clear selection if not holding ctrl
-                if (!e.ctrlKey) {
-                    document.querySelectorAll('.nemo-lorebook-item.selected').forEach(item => item.classList.remove('selected'));
-                    this._selectedItems.clear();
-                }
-                this.displayLorebookEntries(option.text);
+            if (event.ctrlKey || event.metaKey) {
+                event.preventDefault();
+                this.toggleLorebookSelection(option.text);
+                return;
+            }
+
+            this.openLorebook(option.text);
+        });
+
+        lorebookItem.addEventListener('keydown', (event) => {
+            if (event.target !== lorebookItem) return;
+            if (event.key === ' ') {
+                event.preventDefault();
+                this.toggleLorebookSelection(option.text);
+                return;
+            }
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                this.openLorebook(option.text);
             }
         });
 
         lorebookItem.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             if (!this._selectedItems.has(option.text)) {
-                document.querySelectorAll('.nemo-lorebook-item.selected').forEach(item => item.classList.remove('selected'));
                 this._selectedItems.clear();
-                lorebookItem.classList.add('selected');
                 this._selectedItems.add(option.text);
+                this.syncLorebookSelectionUI();
             }
             this.showContextMenu(e.clientX, e.clientY);
         });
 
-        const addButton = document.createElement('div');
+        const addButton = document.createElement('button');
+        addButton.type = 'button';
         addButton.className = 'nemo-add-lorebook-button';
-        addButton.textContent = '✚';
+        addButton.textContent = '+';
+        addButton.setAttribute('aria-label', `Activate ${option.text}`);
         addButton.addEventListener('click', (e) => {
             e.stopPropagation();
             const worldInfoSelect = /** @type {HTMLSelectElement} */ (document.getElementById('world_info'));
@@ -312,9 +470,16 @@ export const NemoWorldInfoUI = {
 
         const header = document.createElement('div');
         header.className = 'nemo-folder-header';
-        header.innerHTML = `<span class="nemo-folder-toggle">▶</span> ${folderName}`;
+        header.tabIndex = 0;
+        header.setAttribute('role', 'button');
+        header.setAttribute('aria-expanded', 'false');
+        const folderToggle = document.createElement('span');
+        folderToggle.className = 'nemo-folder-toggle';
+        folderToggle.textContent = '\u25b6';
+        header.append(folderToggle, document.createTextNode(` ${folderName}`));
         header.addEventListener('click', () => {
             folderElement.classList.toggle('open');
+            header.setAttribute('aria-expanded', String(folderElement.classList.contains('open')));
             logger.debug('Folder toggle clicked', {
                 folderName: folderName,
                 isOpen: folderElement.classList.contains('open'),
@@ -322,9 +487,18 @@ export const NemoWorldInfoUI = {
             });
         });
 
-        const deleteButton = document.createElement('div');
+        header.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                header.click();
+            }
+        });
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
         deleteButton.className = 'nemo-delete-folder-button';
-        deleteButton.innerHTML = '&#10006;'; // Cross icon
+        deleteButton.textContent = '\u00d7';
+        deleteButton.setAttribute('aria-label', `Delete folder ${folderName}`);
         deleteButton.addEventListener('click', (e) => {
             e.stopPropagation();
             this.deleteFolder(folderName);
@@ -344,8 +518,12 @@ export const NemoWorldInfoUI = {
         folderElement.addEventListener('drop', (e) => {
             e.preventDefault();
             folderElement.classList.remove('nemo-drag-over');
-            const lorebookNames = JSON.parse(e.dataTransfer.getData('text/plain'));
-            lorebookNames.forEach(name => this.moveSelectedToFolder(folderName, name));
+            try {
+                const lorebookNames = JSON.parse(e.dataTransfer?.getData('text/plain') || '[]');
+                if (Array.isArray(lorebookNames)) lorebookNames.forEach(name => this.moveSelectedToFolder(folderName, name));
+            } catch (error) {
+                logger.warn('Ignored invalid lorebook drag data', error);
+            }
         });
 
         folderElement.appendChild(header);
@@ -381,7 +559,7 @@ export const NemoWorldInfoUI = {
             if (/** @type {any} */ (el)._sortable) {
                 /** @type {any} */ (el)._sortable.destroy();
             }
-            new Sortable(/** @type {HTMLElement} */ (el), {
+            /** @type {any} */ (el)._sortable = new Sortable(/** @type {HTMLElement} */ (el), {
                 group: 'lorebooks',
                 animation: 150,
                 handle: '.nemo-drag-handle',
@@ -422,8 +600,10 @@ export const NemoWorldInfoUI = {
         const allLists = [unassignedContainer, ...Array.from(folderContents)].filter(Boolean);
 
         allLists.forEach(el => {
-            if (/** @type {any} */ (el)._sortable) {
-                /** @type {any} */ (el)._sortable.destroy();
+            const sortableElement = /** @type {any} */ (el);
+            if (sortableElement._sortable) {
+                sortableElement._sortable.destroy();
+                delete sortableElement._sortable;
             }
         });
     },
@@ -434,34 +614,36 @@ export const NemoWorldInfoUI = {
 
         if (searchInput && lorebookList) {
             (/** @type {HTMLInputElement} */ (searchInput)).addEventListener('input', /** @type {any} */ (debounce(async (event) => {
+                const sequence = ++this._searchSequence;
                 const searchTerm = (/** @type {HTMLInputElement} */ (event.target)).value.toLowerCase();
-                const matchedBooks = await this.performSearch(searchTerm);
+                lorebookList.setAttribute('aria-busy', 'true');
+                try {
+                    const matchedBooks = await this.performSearch(searchTerm);
+                    if (sequence !== this._searchSequence || this._abortController?.signal.aborted) return;
 
-                // Hide all books and folders initially
-                const allBooks = lorebookList.querySelectorAll('.nemo-lorebook-item');
-                allBooks.forEach(book => (/** @type {HTMLElement} */ (book)).style.display = 'none');
-                const allFolders = lorebookList.querySelectorAll('.nemo-folder');
-                allFolders.forEach(folder => (/** @type {HTMLElement} */ (folder)).style.display = 'none');
+                    const allBooks = lorebookList.querySelectorAll('.nemo-lorebook-item');
+                    allBooks.forEach(book => (/** @type {HTMLElement} */ (book)).style.display = 'none');
+                    const allFolders = lorebookList.querySelectorAll('.nemo-folder');
+                    allFolders.forEach(folder => (/** @type {HTMLElement} */ (folder)).style.display = 'none');
 
-                // Show only matched books and their parent folders
-                matchedBooks.forEach(bookName => {
-                    const bookElement = lorebookList.querySelector(`.nemo-lorebook-item[data-name="${bookName}"]`);
-                    if (bookElement) {
-                        (/** @type {HTMLElement} */ (bookElement)).style.display = '';
-                        const parentFolder = bookElement.closest('.nemo-folder');
-                        if (parentFolder) {
-                            (/** @type {HTMLElement} */ (parentFolder)).style.display = '';
-                            if (!parentFolder.classList.contains('open')) {
+                    matchedBooks.forEach(bookName => {
+                        const bookElement = Array.from(allBooks).find(book => book.dataset.name === bookName);
+                        if (bookElement) {
+                            (/** @type {HTMLElement} */ (bookElement)).style.display = '';
+                            const parentFolder = bookElement.closest('.nemo-folder');
+                            if (parentFolder) {
+                                (/** @type {HTMLElement} */ (parentFolder)).style.display = '';
                                 parentFolder.classList.add('open');
                             }
                         }
-                    }
-                });
+                    });
 
-                // If search is empty, show everything
-                if (!searchTerm) {
-                    allBooks.forEach(book => (/** @type {HTMLElement} */ (book)).style.display = '');
-                    allFolders.forEach(folder => (/** @type {HTMLElement} */ (folder)).style.display = '');
+                    if (!searchTerm) {
+                        allBooks.forEach(book => (/** @type {HTMLElement} */ (book)).style.display = '');
+                        allFolders.forEach(folder => (/** @type {HTMLElement} */ (folder)).style.display = '');
+                    }
+                } finally {
+                    if (sequence === this._searchSequence) lorebookList.setAttribute('aria-busy', 'false');
                 }
             }, 300)));
         }
@@ -469,6 +651,7 @@ export const NemoWorldInfoUI = {
 
     performSearch: async function(searchTerm) {
         const lowerCaseSearchTerm = searchTerm.toLowerCase();
+        if (!lowerCaseSearchTerm) return new Set(world_names);
         const matchedBooks = new Set();
     
         for (const name of world_names) {
@@ -477,11 +660,17 @@ export const NemoWorldInfoUI = {
                 continue;
             }
     
-            const world = await loadWorldInfo(name);
-            for (const entry of Object.values(world.entries)) {
+            let world;
+            try {
+                world = await loadWorldInfo(name);
+            } catch (error) {
+                logger.warn(`Could not search lorebook "${name}"`, error);
+                continue;
+            }
+            for (const entry of Object.values(world?.entries ?? {})) {
                 const content = entry.content?.toLowerCase() || '';
                 const comment = entry.comment?.toLowerCase() || '';
-                const keys = entry.key.join(',').toLowerCase();
+                const keys = (entry.key ?? []).join(',').toLowerCase();
     
                 if (content.includes(lowerCaseSearchTerm) || comment.includes(lowerCaseSearchTerm) || keys.includes(lowerCaseSearchTerm)) {
                     matchedBooks.add(name);
@@ -498,8 +687,11 @@ export const NemoWorldInfoUI = {
         const newSettingsContainer = document.querySelector('#nemo-world-info-settings-panel .nemo-panel-content-wrapper');
 
         if (settingsPanel && newSettingsContainer) {
+            this._settingsPlaceholder = document.createComment('nemo-world-info-settings-home');
+            this._settingsDisplay = settingsPanel.style.display;
+            settingsPanel.parentNode?.insertBefore(this._settingsPlaceholder, settingsPanel);
             newSettingsContainer.appendChild(settingsPanel);
-            settingsPanel.style.display = ''; // Make it visible again
+            settingsPanel.style.display = '';
         }
     },
 
@@ -508,139 +700,99 @@ export const NemoWorldInfoUI = {
             entries: document.getElementById('nemo-world-info-entries-tab'),
             activeEntries: document.getElementById('nemo-world-info-active-entries-tab'),
             orderHelper: document.getElementById('nemo-world-info-order-helper-tab'),
-            loreSimulator: document.getElementById('nemo-world-info-lore-simulator-tab'),
+            primaryKeywordPreview: document.getElementById('nemo-world-info-primary-keyword-preview-tab'),
             settings: document.getElementById('nemo-world-info-settings-tab'),
         };
         const panels = {
             entries: document.getElementById('nemo-world-info-entries-panel'),
             activeEntries: document.getElementById('nemo-world-info-active-entries-panel'),
             orderHelper: document.getElementById('nemo-world-info-order-helper-panel'),
-            loreSimulator: document.getElementById('nemo-world-info-lore-simulator-panel'),
+            primaryKeywordPreview: document.getElementById('nemo-world-info-primary-keyword-preview-panel'),
             settings: document.getElementById('nemo-world-info-settings-panel'),
         };
-
-        const setActiveTab = (tabName) => {
-            for (const name in tabs) {
-                tabs[name].classList.toggle('active', name === tabName);
-                panels[name].classList.toggle('active', name === tabName);
+        const signal = this._abortController?.signal;
+        const listenerOptions = signal ? { signal } : undefined;
+        const setActiveTab = tabName => {
+            for (const name of Object.keys(tabs)) {
+                const active = name === tabName;
+                tabs[name]?.classList.toggle('active', active);
+                tabs[name]?.setAttribute('aria-selected', String(active));
+                if (tabs[name]) tabs[name].tabIndex = active ? 0 : -1;
+                panels[name]?.classList.toggle('active', active);
+                if (panels[name]) {
+                    panels[name].hidden = !active;
+                    panels[name].setAttribute('aria-hidden', String(!active));
+                }
             }
         };
-
-        tabs.entries.addEventListener('click', () => setActiveTab('entries'));
-        tabs.activeEntries.addEventListener('click', () => {
+        tabs.entries?.addEventListener('click', () => setActiveTab('entries'), listenerOptions);
+        tabs.activeEntries?.addEventListener('click', () => {
             setActiveTab('activeEntries');
             this.updateActiveEntriesPanel();
-        });
-        tabs.orderHelper.addEventListener('click', () => {
+        }, listenerOptions);
+        tabs.orderHelper?.addEventListener('click', () => {
             setActiveTab('orderHelper');
             this.populateOrderHelper();
-        });
-        tabs.loreSimulator.addEventListener('click', () => setActiveTab('loreSimulator'));
-        tabs.settings.addEventListener('click', () => setActiveTab('settings'));
+        }, listenerOptions);
+        tabs.primaryKeywordPreview?.addEventListener('click', () => setActiveTab('primaryKeywordPreview'), listenerOptions);
+        tabs.settings?.addEventListener('click', () => setActiveTab('settings'), listenerOptions);
+        setActiveTab('entries');
     },
 
     initLeftPanelToggle: function() {
         const toggleButton = document.getElementById('nemo-world-info-toggle-left-panel');
         const closeButton = document.getElementById('nemo-world-info-close-left-panel');
         const container = document.querySelector('.nemo-world-info-container');
-        
         if (!toggleButton || !container) return;
 
-        // Check if we're on mobile
-        const isMobile = () => window.innerWidth <= 768;
-        
-        // Load saved state from localStorage
+        const signal = this._abortController?.signal;
+        const listenerOptions = signal ? { signal } : undefined;
+        const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
         const storageKey = 'nemo-wi-left-panel-state';
         const savedState = localStorage.getItem(storageKey);
-        
-        let isHidden = false;
-        if (savedState !== null) {
-            isHidden = savedState === 'true';
-        } else if (isMobile()) {
-            // On mobile, hide by default
-            isHidden = true;
-        }
+        let isHidden = savedState === null ? isMobile() : savedState === 'true';
 
-        // Apply initial state
-        this.updateLeftPanelState(container, isHidden, isMobile());
-        
+        const applyState = () => this.updateLeftPanelState(container, isHidden, isMobile());
+        const persistState = () => localStorage.setItem(storageKey, String(isHidden));
         const togglePanel = () => {
             isHidden = !isHidden;
-            this.updateLeftPanelState(container, isHidden, isMobile());
-            
-            // Save state to localStorage
-            localStorage.setItem(storageKey, isHidden.toString());
-            
-            logger.info(`Left panel toggled: ${isHidden ? 'hidden' : 'visible'}`);
+            applyState();
+            persistState();
+            if (!isHidden && isMobile()) document.getElementById('nemo-world-info-search')?.focus();
         };
-
         const hidePanel = () => {
-            if (!isHidden) {
-                isHidden = true;
-                this.updateLeftPanelState(container, isHidden, isMobile());
-                
-                // Save state to localStorage
-                localStorage.setItem(storageKey, isHidden.toString());
-                
-                logger.debug('Left panel hidden');
-            }
+            if (isHidden) return;
+            isHidden = true;
+            applyState();
+            persistState();
+            toggleButton.focus();
         };
-        
-        toggleButton.addEventListener('click', togglePanel);
-        if (closeButton) {
-            closeButton.addEventListener('click', hidePanel);
-        }
 
-        // Handle window resize
-        window.addEventListener('resize', debounce(() => {
-            this.updateLeftPanelState(container, isHidden, isMobile());
-        }, 250));
+        applyState();
+        toggleButton.addEventListener('click', togglePanel, listenerOptions);
+        closeButton?.addEventListener('click', hidePanel, listenerOptions);
+        window.addEventListener('resize', debounce(applyState, 200), listenerOptions);
     },
 
     updateLeftPanelState: function(container, isHidden, mobile) {
         const toggleButton = document.getElementById('nemo-world-info-toggle-left-panel');
-        
+        const leftPanel = container.querySelector('.nemo-world-info-left-column');
         if (mobile) {
-            // On mobile, use mobile-specific classes
             container.classList.toggle('mobile-left-panel-visible', !isHidden);
             container.classList.remove('left-panel-hidden');
         } else {
-            // On desktop, use desktop-specific classes
             container.classList.toggle('left-panel-hidden', isHidden);
             container.classList.remove('mobile-left-panel-visible');
         }
-        
-        // Update button icon and tooltip based on state
+
+        leftPanel?.setAttribute('aria-hidden', String(isHidden));
+        if (leftPanel && !leftPanel.id) leftPanel.id = 'nemo-world-info-sidebar';
         if (toggleButton) {
-            if (isHidden) {
-                toggleButton.className = 'menu_button menu_button_icon fa-solid fa-bars';
-                toggleButton.innerHTML = ''; 
-                toggleButton.title = 'Show Left Panel';
-                // Force visibility for debugging
-                toggleButton.style.cssText = `
-                    background: rgba(0, 0, 0, 0.5) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-                    color: white !important;
-                    position: fixed !important;
-                    top: 60px !important;
-                    left: 10px !important;
-                    z-index: 1001 !important;
-                    opacity: 0.9 !important;
-                    display: block !important;
-                    visibility: visible !important;
-                    min-width: 40px !important;
-                    min-height: 32px !important;
-                    border-radius: 4px !important;
-                    transition: all 0.2s ease !important;
-                    font-size: 16px !important;
-                `;
-            } else {
-                toggleButton.className = 'menu_button menu_button_icon fa-solid fa-times';
-                toggleButton.innerHTML = '';
-                toggleButton.title = 'Hide Left Panel';
-                // Reset to CSS-controlled styling when visible
-                toggleButton.style.cssText = '';
-            }
+            toggleButton.className = 'menu_button menu_button_icon fa-solid ' + (isHidden ? 'fa-bars' : 'fa-times');
+            toggleButton.title = isHidden ? 'Show lorebook sidebar' : 'Hide lorebook sidebar';
+            toggleButton.setAttribute('aria-label', toggleButton.title);
+            toggleButton.setAttribute('aria-expanded', String(!isHidden));
+            toggleButton.setAttribute('aria-controls', leftPanel?.id || 'nemo-world-info-sidebar');
         }
     },
 
@@ -663,20 +815,17 @@ export const NemoWorldInfoUI = {
     },
 
     initManagementButtons: function() {
-        $(document).on('click', '#nemo-world-info-new-button', async () => {
+        const signal = this._abortController?.signal;
+        const listenerOptions = signal ? { signal } : undefined;
+        document.getElementById('nemo-world-info-new-button')?.addEventListener('click', async () => {
             const tempName = getFreeWorldName();
             const finalName = await Popup.show.input('Create a new World Info', 'Enter a name for the new file:', tempName);
-
-            if (finalName) {
-                await createNewWorldInfo(finalName, { interactive: true });
-            }
-        });
-
-        $(document).on('click', '#nemo-world-info-import-button', () => {
-            $('#world_import_file').trigger('click');
-        });
-
-        $(document).on('click', '#nemo-world-info-new-folder-button', () => this.createNewFolder());
+            if (finalName) await createNewWorldInfo(finalName, { interactive: true });
+        }, listenerOptions);
+        document.getElementById('nemo-world-info-import-button')?.addEventListener('click', () => {
+            document.getElementById('world_import_file')?.click();
+        }, listenerOptions);
+        document.getElementById('nemo-world-info-new-folder-button')?.addEventListener('click', () => this.createNewFolder(), listenerOptions);
     },
 
     createNewFolder: async function() {
@@ -692,7 +841,7 @@ export const NemoWorldInfoUI = {
                 moveToggle.dispatchEvent(new Event('change'));
             }
         } else if (folderName) {
-            Popup.show.alert("A folder with that name already exists.");
+            Popup.show.text("A folder with that name already exists.");
         }
     },
 
@@ -706,6 +855,10 @@ export const NemoWorldInfoUI = {
     },
 
     initUI: function(worldInfoSelect) {
+        if (!(worldInfoSelect instanceof HTMLSelectElement)) {
+            throw new Error('SillyTavern world_info selector was not available.');
+        }
+
         this.populateLorebooksFromSelect(worldInfoSelect);
         this.initSearch();
         this.initTabs();
@@ -713,229 +866,237 @@ export const NemoWorldInfoUI = {
         this.moveSettingsPanel();
         this.initManagementButtons();
         this.initPresetManagement();
-        this.initMacroPicker();
         this.initOrderHelper();
-        this.initLoreSimulator();
-
-        const moveToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemo-world-info-move-toggle'));
-        const lorebookList = document.getElementById('nemo-world-info-list');
-
-        moveToggle.addEventListener('change', () => {
-            if (moveToggle.checked) {
-                lorebookList.classList.add('nemo-move-mode');
-                this.initSortable();
-            } else {
-                lorebookList.classList.remove('nemo-move-mode');
-                this.destroySortable();
-            }
-        });
-
+        this.initPrimaryKeywordPreview();
         this.initEntryManagement();
 
-        const worldInfoSelectObserver = new MutationObserver(() => {
+        const signal = this._abortController?.signal;
+        const listenerOptions = signal ? { signal } : undefined;
+        const moveToggle = document.getElementById('nemo-world-info-move-toggle');
+        const lorebookList = document.getElementById('nemo-world-info-list');
+        moveToggle?.addEventListener('change', () => {
+            const moving = Boolean(moveToggle.checked);
+            lorebookList?.classList.toggle('nemo-move-mode', moving);
+            moving ? this.initSortable() : this.destroySortable();
+        }, listenerOptions);
+
+        const refreshLorebookList = () => {
             this.populateLorebooksFromSelect(worldInfoSelect);
             this.updateActiveLorebooksList();
-        });
-        worldInfoSelectObserver.observe(worldInfoSelect, { attributes: true, childList: true, subtree: true });
+        };
+        worldInfoSelect.addEventListener('change', refreshLorebookList, listenerOptions);
+        this._worldSelectObserver = new MutationObserver(refreshLorebookList);
+        this._worldSelectObserver.observe(worldInfoSelect, { childList: true, subtree: true });
 
-        // The new UI has its own drawers, so these are handled locally.
-        // The original buttons are preserved and hidden, and the new UI buttons trigger clicks on them.
-        // These handlers are for the original (now hidden) buttons.
-        const openAll = document.getElementById('OpenAllWIEntries');
-        if (openAll) {
-            openAll.addEventListener('click', () => {
-                document.querySelectorAll('.inline-drawer-toggle:not(.open)').forEach(el => (/** @type {HTMLElement} */ (el)).click());
-            });
-        }
-
-        const closeAll = document.getElementById('CloseAllWIEntries');
-        if (closeAll) {
-            closeAll.addEventListener('click', () => {
-                document.querySelectorAll('.inline-drawer-toggle.open').forEach(el => (/** @type {HTMLElement} */ (el)).click());
-            });
+        const entriesList = document.getElementById('world_popup_entries_list');
+        if (entriesList) {
+            this._entriesObserver = new MutationObserver(() => this.enhanceRenderedEntries());
+            this._entriesObserver.observe(entriesList, { childList: true, subtree: true });
+            this.enhanceRenderedEntries();
         }
     },
 
     /**
-     * Load World Info UI CSS dynamically
+     * Load the extension-owned World Info stylesheet.
      */
     loadCSS: function() {
         const cssPath = getExtensionPath('features/world-info/world-info-ui.css');
-
-        // Check if CSS is already loaded
-        if (document.querySelector(`link[href="${cssPath}"]`)) {
-            console.log('[NemoWorldInfoUI] CSS already loaded');
+        if (document.getElementById('nemo-world-info-styles')) return;
+        const existing = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).find(link => link.href === new URL(cssPath, document.baseURI).href);
+        if (existing) {
+            existing.id = 'nemo-world-info-styles';
             return;
         }
 
         const link = document.createElement('link');
+        link.id = 'nemo-world-info-styles';
         link.rel = 'stylesheet';
-        link.type = 'text/css';
         link.href = cssPath;
+        link.dataset.nemoOwned = 'true';
         document.head.appendChild(link);
-        console.log('[NemoWorldInfoUI] CSS loaded successfully');
+        this._stylesheetOwned = true;
+    },
+
+    enhanceRenderedEntries: function() {
+        const entriesList = document.getElementById('world_popup_entries_list');
+        const bookName = this._currentWorld?.name ?? this._selectedLorebookName;
+        if (!entriesList || !bookName) return;
+        const signal = this._abortController?.signal;
+        const listenerOptions = signal ? { signal } : undefined;
+
+        entriesList.querySelectorAll('.world_entry').forEach(entryEl => {
+            if (entryEl.dataset.nemoListenersAdded === 'true') return;
+            entryEl.dataset.nemoListenersAdded = 'true';
+            entryEl.draggable = true;
+            entryEl.setAttribute('aria-selected', 'false');
+
+            entryEl.addEventListener('dragstart', event => {
+                const uid = entryEl.getAttribute('uid');
+                if (uid && this._selectedEntries.size === 0) this._selectedEntries.add(uid);
+                event.dataTransfer?.setData('text/plain', JSON.stringify([...this._selectedEntries]));
+            }, listenerOptions);
+
+            entryEl.addEventListener('click', event => {
+                const uid = entryEl.getAttribute('uid');
+                if (!uid) return;
+                if (this._selectionBook && this._selectionBook !== bookName) this._selectedEntries.clear();
+                this._selectionBook = bookName;
+
+                const allEntries = Array.from(entriesList.querySelectorAll('.world_entry'));
+                if (event.shiftKey && this._lastSelectedEntry) {
+                    const start = allEntries.findIndex(element => element.getAttribute('uid') === this._lastSelectedEntry);
+                    const end = allEntries.indexOf(entryEl);
+                    if (start >= 0 && end >= 0) {
+                        allEntries.slice(Math.min(start, end), Math.max(start, end) + 1).forEach(element => {
+                            const entryUid = element.getAttribute('uid');
+                            if (entryUid) this._selectedEntries.add(entryUid);
+                        });
+                    }
+                } else if (event.ctrlKey || event.metaKey) {
+                    this._selectedEntries.has(uid) ? this._selectedEntries.delete(uid) : this._selectedEntries.add(uid);
+                } else {
+                    this._selectedEntries.clear();
+                    this._selectedEntries.add(uid);
+                }
+
+                allEntries.forEach(element => {
+                    const selected = this._selectedEntries.has(element.getAttribute('uid'));
+                    element.classList.toggle('nemo-entry-selected', selected);
+                    element.setAttribute('aria-selected', String(selected));
+                });
+                this._lastSelectedEntry = uid;
+            }, listenerOptions);
+        });
     },
 
     initialize: function() {
+        if (this._abortController) return;
         logger.info('Initializing World Info UI Redesign...');
-
-        // Load CSS first
+        this._abortController = new AbortController();
         this.loadCSS();
-
         this.loadFolderState();
         this.loadPresets();
-        const self = this;
 
-        if (window.getWorldEntry && window.displayWorldEntries && $.fn.pagination) {
-            const originalGetWorldEntry = window.getWorldEntry;
-            window.getWorldEntry = async function(...args) {
-                const entryEl = await originalGetWorldEntry.apply(this, args);
-                return entryEl;
-            };
-
-            const originalDisplay = window.displayWorldEntries;
-            window.displayWorldEntries = async function(name, data, ...args) {
-                self._currentWorld.name = name;
-                self._currentWorld.data = data;
-
-                // Show entries content, hide empty state
-                const emptyState = document.getElementById('nemo-wi-empty-state');
-                const entriesContent = document.getElementById('nemo-wi-entries-content');
-                if (emptyState) emptyState.style.display = 'none';
-                if (entriesContent) entriesContent.style.display = '';
-
-                // Call the original display function and let it handle the rendering
-                const result = await originalDisplay.apply(this, [name, data, ...args]);
-
-                // The original function now handles populating the list,
-                // so we just need to add our custom event listeners to the entries.
-                const entriesList = document.getElementById('world_popup_entries_list');
-                entriesList.querySelectorAll('.world_entry').forEach(entryEl => {
-                    // Prevent re-adding listeners if they already exist
-                    if (entryEl.dataset.nemoListenersAdded) return;
-                    entryEl.dataset.nemoListenersAdded = 'true';
-
-                    entryEl.setAttribute('draggable', 'true');
-                    entryEl.addEventListener('dragstart', /** @param {DragEvent} event */(event) => {
-                        if (self._selectedEntries.size > 0) {
-                            event.dataTransfer.setData('text/plain', JSON.stringify([...self._selectedEntries]));
-                        }
-                    });
-                    entryEl.addEventListener('click', /** @param {MouseEvent} event */(event) => {
-                        const uid = entryEl.getAttribute('uid');
-                        if (!uid) return;
-
-                        if (self._selectionBook && self._selectionBook !== name) {
-                            self._selectedEntries.clear();
-                            document.querySelectorAll('.world_entry.nemo-entry-selected').forEach(el => el.classList.remove('nemo-entry-selected'));
-                        }
-                        self._selectionBook = name;
-
-                        if (event.shiftKey && self._lastSelectedEntry) {
-                            const allEntries = Array.from(entriesList.querySelectorAll('.world_entry'));
-                            const start = allEntries.findIndex(el => el.getAttribute('uid') === self._lastSelectedEntry);
-                            const end = allEntries.findIndex(el => el.getAttribute('uid') === uid);
-                            const range = allEntries.slice(Math.min(start, end), Math.max(start, end) + 1);
-                            range.forEach(el => {
-                                self._selectedEntries.add(el.getAttribute('uid'));
-                                el.classList.add('nemo-entry-selected');
-                            });
-                        } else if (event.ctrlKey) {
-                            if (self._selectedEntries.has(uid)) {
-                                self._selectedEntries.delete(uid);
-                                entryEl.classList.remove('nemo-entry-selected');
-                            } else {
-                                self._selectedEntries.add(uid);
-                                entryEl.classList.add('nemo-entry-selected');
-                            }
-                        } else {
-                            document.querySelectorAll('.world_entry.nemo-entry-selected').forEach(el => el.classList.remove('nemo-entry-selected'));
-                            self._selectedEntries.clear();
-                            self._selectedEntries.add(uid);
-                            entryEl.classList.add('nemo-entry-selected');
-                        }
-                        self._lastSelectedEntry = uid;
-                    });
-                });
-
-                return result;
-            };
-        }
-
-        eventSource.on(event_types.WORLD_INFO_ACTIVATED, (entryList) => {
-            self._activeEntries = entryList;
-            const panel = document.getElementById('nemo-world-info-active-entries-panel');
-            if (panel && panel.classList.contains('active')) {
-                self.updateActiveEntriesPanel();
+        const clearActiveEntries = () => {
+            this._activeEntries = [];
+            if (document.getElementById('nemo-world-info-active-entries-panel')?.classList.contains('active')) {
+                this.updateActiveEntriesPanel();
             }
-        });
+        };
+        this._activeEntriesHandler = entryList => {
+            this._activeEntries = Array.isArray(entryList) ? entryList : [];
+            if (document.getElementById('nemo-world-info-active-entries-panel')?.classList.contains('active')) {
+                this.updateActiveEntriesPanel();
+            }
+        };
+        this._generationStartedHandler = clearActiveEntries;
+        this._chatChangedHandler = clearActiveEntries;
+        this._worldInfoUpdatedHandler = (name, data) => {
+            if (name === this._currentWorld?.name && data?.entries) this._currentWorld.data = data;
+            this.refreshLorebookUI();
+            this.enhanceRenderedEntries();
+        };
+        eventSource.on(event_types.WORLD_INFO_ACTIVATED, this._activeEntriesHandler);
+        eventSource.on(event_types.GENERATION_STARTED, this._generationStartedHandler);
+        eventSource.on(event_types.CHAT_CHANGED, this._chatChangedHandler);
+        eventSource.on(event_types.WORLDINFO_UPDATED, this._worldInfoUpdatedHandler);
 
-        // Inject UI immediately when WorldInfo panel becomes visible
         const checkAndInject = async () => {
             if (this._uiInjected) return;
-
-            const worldInfoPanel = document.getElementById('WorldInfo');
-            if (!worldInfoPanel) return;
-
-            // Check if panel is visible (display: block or flex)
-            const computedStyle = window.getComputedStyle(worldInfoPanel);
-            if (computedStyle.display === 'none') return;
-
-            // Panel is visible, inject our UI immediately
+            const panel = document.getElementById('WorldInfo');
+            if (!panel || window.getComputedStyle(panel).display === 'none') return;
             this._uiInjected = true;
-            logger.info('WorldInfo panel is visible, injecting Nemo UI...');
-
             try {
                 await this.injectUI();
-
-                // Wait for world_info select to be created by SillyTavern
-                const waitForSelect = () => {
-                    return new Promise((resolve) => {
-                        const checkSelect = () => {
-                            const worldInfoSelect = document.getElementById('world_info');
-                            if (worldInfoSelect) {
-                                resolve(worldInfoSelect);
-                            } else {
-                                setTimeout(checkSelect, 100);
-                            }
-                        };
-                        checkSelect();
-                    });
-                };
-
-                const worldInfoSelect = await waitForSelect();
-                this.initUI(worldInfoSelect);
+                this.initUI(document.getElementById('world_info'));
                 logger.info('Nemo World Info UI initialized successfully');
             } catch (error) {
-                logger.error('Error during UI injection:', error);
-                this._uiInjected = false; // Reset flag on error
+                logger.error('Error during World Info UI injection', error);
+                this._uiInjected = false;
             }
         };
 
-        // Watch for the WorldInfo panel to appear and become visible
-        const observer = new MutationObserver(() => {
+        this._panelObserver = new MutationObserver(() => {
+            const panel = document.getElementById('WorldInfo');
+            if (panel && this._panelObserver) {
+                this._panelObserver.disconnect();
+                this._panelObserver.observe(panel, { attributes: true, attributeFilter: ['style', 'class'] });
+            }
             checkAndInject();
         });
 
-        const worldInfoPanel = document.getElementById('WorldInfo');
-        if (worldInfoPanel) {
-            // Panel already exists, check if it's visible
+        const panel = document.getElementById('WorldInfo');
+        if (panel) {
+            this._panelObserver.observe(panel, { attributes: true, attributeFilter: ['style', 'class'] });
             checkAndInject();
-
-            // Also watch for visibility changes
-            observer.observe(worldInfoPanel, {
-                attributes: true,
-                attributeFilter: ['style', 'class'],
-                childList: true,
-                subtree: true
-            });
         } else {
-            // Watch for the panel to be added to the DOM
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
+            this._panelObserver.observe(document.body, { childList: true, subtree: true });
         }
+    },
+
+    restoreNativePanel: function() {
+        const originalPanel = document.getElementById('WorldInfo');
+        const preserved = this._preservedPanel;
+        if (!originalPanel || !preserved) return;
+
+        const settingsPanel = document.getElementById('wiActivationSettings');
+        if (settingsPanel && this._settingsPlaceholder?.parentNode) {
+            settingsPanel.style.display = this._settingsDisplay ?? '';
+            this._settingsPlaceholder.replaceWith(settingsPanel);
+        }
+        this._settingsPlaceholder = null;
+        this._settingsDisplay = null;
+
+        const nativeEntries = preserved.querySelector('#nemo-native-world-popup-entries-list');
+        const nativePagination = preserved.querySelector('#nemo-native-world-info-pagination');
+        if (nativeEntries) nativeEntries.id = 'world_popup_entries_list';
+        if (nativePagination) nativePagination.id = 'world_info_pagination';
+        originalPanel.replaceChildren(...preserved.childNodes);
+        preserved.remove();
+        this._preservedPanel = null;
+
+        const editorSelect = document.getElementById('world_editor_select');
+        if (editorSelect?.value) queueMicrotask(() => editorSelect.dispatchEvent(new Event('change')));
+    },
+
+    destroy: function() {
+        this._loadSequence++;
+        this._searchSequence++;
+        this._previewSequence++;
+        clearTimeout(this._previewTimer);
+        this._previewTimer = null;
+        this._abortController?.abort();
+        this._abortController = null;
+        this._panelObserver?.disconnect();
+        this._worldSelectObserver?.disconnect();
+        this._entriesObserver?.disconnect();
+        this._panelObserver = null;
+        this._worldSelectObserver = null;
+        this._entriesObserver = null;
+        if (this._activeEntriesHandler) eventSource.removeListener(event_types.WORLD_INFO_ACTIVATED, this._activeEntriesHandler);
+        if (this._generationStartedHandler) eventSource.removeListener(event_types.GENERATION_STARTED, this._generationStartedHandler);
+        if (this._chatChangedHandler) eventSource.removeListener(event_types.CHAT_CHANGED, this._chatChangedHandler);
+        if (this._worldInfoUpdatedHandler) eventSource.removeListener(event_types.WORLDINFO_UPDATED, this._worldInfoUpdatedHandler);
+        this._activeEntriesHandler = null;
+        this._generationStartedHandler = null;
+        this._chatChangedHandler = null;
+        this._worldInfoUpdatedHandler = null;
+        this._activeEntries = [];
+        this.destroySortable();
+        const orderHelper = /** @type {any} */ (document.getElementById('nemo-world-info-order-helper-list'));
+        orderHelper?.sortable?.destroy();
+        if (orderHelper) delete orderHelper.sortable;
+        document.getElementById('nemo-wi-context-menu')?.remove();
+        if (this._stylesheetOwned) document.getElementById('nemo-world-info-styles')?.remove();
+        this._stylesheetOwned = false;
+        this.restoreNativePanel();
+        this._uiInjected = false;
+        this._selectedItems.clear();
+        this._selectedEntries.clear();
+        this._selectionBook = null;
+        this._lastSelectedEntry = null;
+        this._selectedLorebookName = null;
+        this._currentWorld = { name: null, data: null };
     },
 
     moveSelectedToFolder: function(targetFolderName, lorebookName) {
@@ -956,105 +1117,94 @@ export const NemoWorldInfoUI = {
             }
         });
 
+        this._selectedItems.clear();
         this.saveFolderState();
         this.refreshLorebookUI();
-        this._selectedItems.clear(); // Deselect after move
     },
 
     showContextMenu: function(x, y) {
-        // Remove existing context menu
-        const existingMenu = document.getElementById('nemo-wi-context-menu');
-        if (existingMenu) existingMenu.remove();
-
+        document.getElementById('nemo-wi-context-menu')?.remove();
         if (this._selectedItems.size === 0) return;
 
         const menu = document.createElement('div');
         menu.id = 'nemo-wi-context-menu';
-        menu.style.top = `${y}px`;
-        menu.style.left = `${x}px`;
+        menu.setAttribute('role', 'menu');
+        menu.setAttribute('aria-label', 'Lorebook actions');
 
-        const copyItem = document.createElement('div');
-        copyItem.className = 'nemo-context-menu-item';
-        copyItem.textContent = 'Copy';
-        copyItem.addEventListener('click', () => {
-            this._clipboard.items = new Set(this._selectedItems);
-            this._clipboard.cut = false;
-            menu.remove();
-        });
-        menu.appendChild(copyItem);
-
-        const cutItem = document.createElement('div');
-        cutItem.className = 'nemo-context-menu-item';
-        cutItem.textContent = 'Cut';
-        cutItem.addEventListener('click', () => {
-            this._clipboard.items = new Set(this._selectedItems);
-            this._clipboard.cut = true;
-            menu.remove();
-        });
-        menu.appendChild(cutItem);
-
-        const duplicateItem = document.createElement('div');
-        duplicateItem.className = 'nemo-context-menu-item';
-        duplicateItem.textContent = 'Duplicate';
-        duplicateItem.addEventListener('click', async () => {
-            for (const itemName of this._selectedItems) {
-                const fromBook = await loadWorldInfo(itemName);
-                if (!fromBook) continue;
-
-                let i = 1;
-                let newName = `Copy of ${itemName}`;
-                if (world_names.includes(newName)) {
-                    newName = `${newName} (${i})`;
-                    while (world_names.includes(newName)) {
-                        i++;
-                        newName = `${newName} (${i})`;
+        const duplicateButton = document.createElement('button');
+        duplicateButton.type = 'button';
+        duplicateButton.className = 'nemo-context-menu-item';
+        duplicateButton.setAttribute('role', 'menuitem');
+        duplicateButton.textContent = this._selectedItems.size > 1 ? 'Duplicate selected lorebooks' : 'Duplicate lorebook';
+        duplicateButton.addEventListener('click', async () => {
+            duplicateButton.disabled = true;
+            duplicateButton.textContent = 'Duplicating...';
+            try {
+                const reservedNames = new Set(world_names);
+                for (const itemName of this._selectedItems) {
+                    const fromBook = await loadWorldInfo(itemName);
+                    if (!fromBook) continue;
+                    let copyNumber = 1;
+                    let newName = 'Copy of ' + itemName;
+                    while (reservedNames.has(newName)) {
+                        newName = 'Copy of ' + itemName + ' (' + copyNumber + ')';
+                        copyNumber++;
                     }
+                    reservedNames.add(newName);
+                    await saveWorldInfo(newName, structuredClone(fromBook), true);
                 }
-
-                await saveWorldInfo(newName, fromBook, true);
+                await updateWorldInfoList();
+                this.refreshLorebookUI();
+            } catch (error) {
+                logger.error('Could not duplicate selected lorebooks', error);
+                Popup.show.text('Could not duplicate the selected lorebook(s).');
+            } finally {
+                menu.remove();
             }
-            this.refreshLorebookUI();
-            menu.remove();
         });
-        menu.appendChild(duplicateItem);
-
-        const moveToFolderItem = document.createElement('div');
-        moveToFolderItem.className = 'nemo-context-menu-item';
-        moveToFolderItem.textContent = 'Move to folder';
-
-        const subMenu = document.createElement('div');
-        subMenu.className = 'nemo-context-submenu';
+        menu.appendChild(duplicateButton);
 
         const folderNames = Object.keys(this.folderState);
         if (folderNames.length > 0) {
-            folderNames.forEach(folderName => {
-                const folderItem = document.createElement('div');
-                folderItem.className = 'nemo-context-submenu-item';
-                folderItem.textContent = folderName;
-                folderItem.addEventListener('click', () => {
+            const label = document.createElement('div');
+            label.className = 'nemo-context-menu-label';
+            label.textContent = 'Move to folder';
+            menu.appendChild(label);
+            for (const folderName of folderNames) {
+                const folderButton = document.createElement('button');
+                folderButton.type = 'button';
+                folderButton.className = 'nemo-context-menu-item';
+                folderButton.setAttribute('role', 'menuitem');
+                folderButton.textContent = folderName;
+                folderButton.addEventListener('click', () => {
                     this.moveSelectedToFolder(folderName);
                     menu.remove();
                 });
-                subMenu.appendChild(folderItem);
-            });
-        } else {
-            const noFoldersItem = document.createElement('div');
-            noFoldersItem.className = 'nemo-context-submenu-item disabled';
-            noFoldersItem.textContent = 'No folders available';
-            subMenu.appendChild(noFoldersItem);
+                menu.appendChild(folderButton);
+            }
         }
 
-        moveToFolderItem.appendChild(subMenu);
-        menu.appendChild(moveToFolderItem);
         document.body.appendChild(menu);
+        const menuBounds = menu.getBoundingClientRect();
+        const gutter = 8;
+        menu.style.left = Math.max(gutter, Math.min(x, window.innerWidth - menuBounds.width - gutter)) + 'px';
+        menu.style.top = Math.max(gutter, Math.min(y, window.innerHeight - menuBounds.height - gutter)) + 'px';
+        duplicateButton.focus();
 
-        const clickOutsideHandler = (event) => {
-            if (!menu.contains(event.target)) {
-                menu.remove();
-                document.removeEventListener('click', clickOutsideHandler);
-            }
+        const signal = this._abortController?.signal;
+        const closeMenu = event => {
+            if (event.type === 'keydown' && event.key !== 'Escape') return;
+            if (event.type === 'click' && menu.contains(event.target)) return;
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+            document.removeEventListener('keydown', closeMenu);
         };
-        setTimeout(() => document.addEventListener('click', clickOutsideHandler), 0);
+        queueMicrotask(() => {
+            if (signal?.aborted) return;
+            const options = signal ? { signal } : undefined;
+            document.addEventListener('click', closeMenu, options);
+            document.addEventListener('keydown', closeMenu, options);
+        });
     },
 
     initPresetManagement: function() {
@@ -1072,9 +1222,14 @@ export const NemoWorldInfoUI = {
     },
 
     populatePresetSelect: function() {
-        const presetSelect = /** @type {HTMLSelectElement} */(document.getElementById('nemo-world-info-preset-select'));
-        presetSelect.innerHTML = '<option value="">-- Select Preset --</option>';
-        for (const presetName in this._presets) {
+        const presetSelect = document.getElementById('nemo-world-info-preset-select');
+        if (!(presetSelect instanceof HTMLSelectElement)) return;
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '-- Select Preset --';
+        presetSelect.replaceChildren(placeholder);
+        for (const presetName of Object.keys(this._presets)) {
             const option = document.createElement('option');
             option.value = presetName;
             option.textContent = presetName;
@@ -1084,120 +1239,154 @@ export const NemoWorldInfoUI = {
     },
 
     activatePreset: function() {
-        const presetSelect = /** @type {HTMLSelectElement} */(document.getElementById('nemo-world-info-preset-select'));
+        const presetSelect = document.getElementById('nemo-world-info-preset-select');
+        const worldInfoSelect = document.getElementById('world_info');
+        if (!(presetSelect instanceof HTMLSelectElement) || !(worldInfoSelect instanceof HTMLSelectElement)) return;
+
         const presetName = presetSelect.value;
         this._currentPreset = presetName;
+        if (!presetName || !Object.hasOwn(this._presets, presetName)) return;
 
-        if (presetName && this._presets[presetName]) {
-            const worldInfoSelect = /** @type {HTMLSelectElement} */(document.getElementById('world_info'));
-            Array.from(worldInfoSelect.options).forEach(opt => {
-                opt.selected = this._presets[presetName].includes(opt.text);
-            });
-            $(worldInfoSelect).trigger('change');
-            this.refreshLorebookUI();
+        const lorebookNames = this._presets[presetName];
+        for (const option of worldInfoSelect.options) {
+            option.selected = lorebookNames.includes(option.text);
         }
+        $(worldInfoSelect).trigger('change');
+        this.refreshLorebookUI();
     },
 
     createNewPreset: async function() {
-        const presetName = await Popup.show.input('Create New Preset', 'Enter a name for the new preset:');
-        if (presetName && !this._presets[presetName]) {
-            const worldInfoSelect = /** @type {HTMLSelectElement} */(document.getElementById('world_info'));
-            const activeLorebooks = Array.from(worldInfoSelect.selectedOptions).map(opt => opt.text);
-            this._presets[presetName] = activeLorebooks;
-            this._currentPreset = presetName;
-            this.savePresets();
-            this.populatePresetSelect();
-        } else if (presetName) {
-            Popup.show.alert('A preset with that name already exists.');
+        const requestedName = await Popup.show.input('Create New Preset', 'Enter a name for the new preset:');
+        if (typeof requestedName !== 'string') return;
+        const presetName = requestedName.trim();
+        if (!isSafePresetName(presetName)) {
+            Popup.show.text('Enter a non-empty preset name that is not reserved.');
+            return;
         }
+        if (Object.hasOwn(this._presets, presetName)) {
+            Popup.show.text('A preset with that name already exists.');
+            return;
+        }
+
+        const worldInfoSelect = document.getElementById('world_info');
+        if (!(worldInfoSelect instanceof HTMLSelectElement)) return;
+        this._presets[presetName] = Array.from(worldInfoSelect.selectedOptions, option => option.text);
+        this._currentPreset = presetName;
+        this.savePresets();
+        this.populatePresetSelect();
     },
 
     updatePreset: async function() {
-        if (this._currentPreset && this._presets[this._currentPreset]) {
-            const worldInfoSelect = /** @type {HTMLSelectElement} */(document.getElementById('world_info'));
-            this._presets[this._currentPreset] = Array.from(worldInfoSelect.selectedOptions).map(opt => opt.text);
-            this.savePresets();
-            Popup.show.alert(`Preset "${this._currentPreset}" updated.`);
-        } else {
-            Popup.show.alert('No preset selected to update.');
+        if (!this._currentPreset || !Object.hasOwn(this._presets, this._currentPreset)) {
+            Popup.show.text('No preset selected to update.');
+            return;
         }
+
+        const worldInfoSelect = document.getElementById('world_info');
+        if (!(worldInfoSelect instanceof HTMLSelectElement)) return;
+        this._presets[this._currentPreset] = Array.from(worldInfoSelect.selectedOptions, option => option.text);
+        this.savePresets();
+        Popup.show.text(`Preset "${this._currentPreset}" updated.`);
     },
 
     renamePreset: async function() {
-        if (this._currentPreset) {
-            const newName = await Popup.show.input('Rename Preset', 'Enter the new name for the preset:', this._currentPreset);
-            if (newName && newName !== this._currentPreset && !this._presets[newName]) {
-                this._presets[newName] = this._presets[this._currentPreset];
-                delete this._presets[this._currentPreset];
-                this._currentPreset = newName;
-                this.savePresets();
-                this.populatePresetSelect();
-            } else if (newName) {
-                Popup.show.alert('A preset with that name already exists.');
-            }
-        } else {
-            Popup.show.alert('No preset selected to rename.');
+        if (!this._currentPreset || !Object.hasOwn(this._presets, this._currentPreset)) {
+            Popup.show.text('No preset selected to rename.');
+            return;
         }
+
+        const requestedName = await Popup.show.input('Rename Preset', 'Enter the new name for the preset:', this._currentPreset);
+        if (typeof requestedName !== 'string') return;
+        const newName = requestedName.trim();
+        if (newName === this._currentPreset) return;
+        if (!isSafePresetName(newName)) {
+            Popup.show.text('Enter a non-empty preset name that is not reserved.');
+            return;
+        }
+        if (Object.hasOwn(this._presets, newName)) {
+            Popup.show.text('A preset with that name already exists.');
+            return;
+        }
+
+        this._presets[newName] = this._presets[this._currentPreset];
+        delete this._presets[this._currentPreset];
+        this._currentPreset = newName;
+        this.savePresets();
+        this.populatePresetSelect();
     },
 
     deletePreset: async function() {
-        if (this._currentPreset) {
-            const confirmation = await Popup.show.confirm('Delete Preset', `Are you sure you want to delete the preset "${this._currentPreset}"?`);
-            if (confirmation) {
-                delete this._presets[this._currentPreset];
-                this._currentPreset = '';
-                this.savePresets();
-                this.populatePresetSelect();
-            }
-        } else {
-            Popup.show.alert('No preset selected to delete.');
+        if (!this._currentPreset || !Object.hasOwn(this._presets, this._currentPreset)) {
+            Popup.show.text('No preset selected to delete.');
+            return;
         }
+
+        const confirmation = await Popup.show.confirm('Delete Preset', `Are you sure you want to delete the preset "${this._currentPreset}"?`);
+        if (!confirmation) return;
+        delete this._presets[this._currentPreset];
+        this._currentPreset = '';
+        this.savePresets();
+        this.populatePresetSelect();
     },
 
     importPreset: function() {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.json';
-        input.addEventListener('change', async (event) => {
-            const file = /** @type {HTMLInputElement} */(event.target).files[0];
-            if (file) {
-                try {
-                    const text = await file.text();
-                    const importedPresets = JSON.parse(text);
-                    for (const presetName in importedPresets) {
-                        if (this._presets[presetName]) {
-                            const overwrite = await Popup.show.confirm('Preset Exists', `A preset named "${presetName}" already exists. Overwrite it?`);
-                            if (!overwrite) continue;
-                        }
-                        this._presets[presetName] = importedPresets[presetName];
-                    }
-                    this.savePresets();
-                    this.populatePresetSelect();
-                    Popup.show.alert('Presets imported successfully.');
-                } catch (e) {
-                    logger.error('Error importing presets', e);
-                    Popup.show.alert('Failed to import presets. Check the file format and console for errors.');
+        input.addEventListener('change', async event => {
+            const file = /** @type {HTMLInputElement} */(event.target).files?.[0];
+            if (!file) return;
+
+            try {
+                const importedPresets = normalizePresetMap(JSON.parse(await file.text()));
+                if (!importedPresets) {
+                    Popup.show.text('Invalid preset file. Every preset must have a safe name and a list of lorebook names.');
+                    return;
                 }
+                const importedEntries = Object.entries(importedPresets);
+                if (importedEntries.length === 0) {
+                    Popup.show.text('No presets were found in that file.');
+                    return;
+                }
+
+                const nextPresets = normalizePresetMap(this._presets);
+                if (!nextPresets) throw new Error('Existing preset state is invalid.');
+                for (const [presetName, lorebookNames] of importedEntries) {
+                    if (Object.hasOwn(nextPresets, presetName)) {
+                        const overwrite = await Popup.show.confirm('Preset Exists', `A preset named "${presetName}" already exists. Overwrite it?`);
+                        if (!overwrite) continue;
+                    }
+                    nextPresets[presetName] = [...lorebookNames];
+                }
+
+                this._presets = nextPresets;
+                this.savePresets();
+                this.populatePresetSelect();
+                Popup.show.text('Presets imported successfully.');
+            } catch (error) {
+                logger.error('Error importing presets', error);
+                Popup.show.text('Failed to import presets. Check that the file contains a valid preset map.');
             }
-        });
+        }, { once: true });
         input.click();
     },
 
     exportPreset: function() {
-        if (!this._currentPreset) {
-            Popup.show.alert('No preset selected to export.');
+        if (!this._currentPreset || !Object.hasOwn(this._presets, this._currentPreset)) {
+            Popup.show.text('No preset selected to export.');
             return;
         }
 
-        const presetData = { [this._currentPreset]: this._presets[this._currentPreset] };
+        const presetData = Object.create(null);
+        presetData[this._currentPreset] = [...this._presets[this._currentPreset]];
         const blob = new Blob([JSON.stringify(presetData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${this._currentPreset}.preset.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${this._currentPreset}.preset.json`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
         URL.revokeObjectURL(url);
     },
 
@@ -1226,141 +1415,104 @@ export const NemoWorldInfoUI = {
     loadPresets: function() {
         try {
             const state = localStorage.getItem(this.presetStorageKey);
-            this._presets = state ? JSON.parse(state) : {};
-        } catch (e) {
-            console.error(`${LOG_PREFIX} Error loading presets:`, e);
-            this._presets = {};
+            if (!state) {
+                this._presets = Object.create(null);
+                return;
+            }
+
+            const presets = normalizePresetMap(JSON.parse(state));
+            if (!presets) throw new Error('Stored preset data failed validation.');
+            this._presets = presets;
+        } catch (error) {
+            logger.error(`${LOG_PREFIX} Error loading presets:`, error);
+            this._presets = Object.create(null);
+            this._currentPreset = '';
+            Popup.show.text('Saved lorebook presets were invalid and could not be loaded.');
         }
     },
 
     savePresets: function() {
         try {
-            localStorage.setItem(this.presetStorageKey, JSON.stringify(this._presets));
-        } catch (e) {
-            console.error(`${LOG_PREFIX} Error saving presets:`, e);
+            const presets = normalizePresetMap(this._presets);
+            if (!presets) throw new Error('Preset data failed validation.');
+            this._presets = presets;
+            localStorage.setItem(this.presetStorageKey, JSON.stringify(presets));
+        } catch (error) {
+            logger.error(`${LOG_PREFIX} Error saving presets:`, error);
+            Popup.show.text('Lorebook presets could not be saved because their data was invalid.');
         }
     },
 
-    updateActiveEntriesPanel: async function() {
+    updateActiveEntriesPanel: function() {
         const listElement = document.getElementById('nemo-world-info-active-entries-list');
-        const groupByBook = /** @type {HTMLInputElement} */(document.getElementById('nemo-active-entries-group-by-book')).checked;
-        const showInOrder = /** @type {HTMLInputElement} */(document.getElementById('nemo-active-entries-show-in-order')).checked;
+        const groupByBook = document.getElementById('nemo-active-entries-group-by-book');
+        const showInOrder = document.getElementById('nemo-active-entries-show-in-order');
+        if (!listElement || !groupByBook || !showInOrder) return;
+        listElement.replaceChildren();
 
-        listElement.innerHTML = '';
+        const entryLabel = entry => entry.comment?.trim() || (entry.key ?? []).join(', ') || 'Untitled entry';
+        const activeEntries = [...this._activeEntries];
+        activeEntries.sort((a, b) => {
+            if (showInOrder.checked) {
+                const depthDifference = (b.depth ?? Number.MAX_SAFE_INTEGER) - (a.depth ?? Number.MAX_SAFE_INTEGER);
+                if (depthDifference) return depthDifference;
+                const orderDifference = (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER);
+                if (orderDifference) return orderDifference;
+            }
+            return entryLabel(a).localeCompare(entryLabel(b));
+        });
 
-        let activeEntries = [...this._activeEntries];
-
-        if (showInOrder) {
-            activeEntries.sort((a, b) => {
-                if ((a.depth ?? Number.MAX_SAFE_INTEGER) < (b.depth ?? Number.MAX_SAFE_INTEGER)) return 1;
-                if ((a.depth ?? Number.MAX_SAFE_INTEGER) > (b.depth ?? Number.MAX_SAFE_INTEGER)) return -1;
-                if ((a.order ?? Number.MAX_SAFE_INTEGER) > (b.order ?? Number.MAX_SAFE_INTEGER)) return 1;
-                if ((a.order ?? Number.MAX_SAFE_INTEGER) < (b.order ?? Number.MAX_SAFE_INTEGER)) return -1;
-                return (a.comment ?? a.key.join(', ')).toLowerCase().localeCompare((b.comment ?? b.key.join(', ')).toLowerCase());
-            });
-        } else {
-            activeEntries.sort((a, b) => (a.comment ?? a.key.join(', ')).localeCompare(b.comment ?? b.key.join(', ')));
+        if (activeEntries.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'nemo-wi-helper-empty';
+            empty.textContent = 'No lorebook entries have activated in this chat yet.';
+            listElement.appendChild(empty);
+            return;
         }
 
-        if (groupByBook) {
-            const grouped = activeEntries.reduce((acc, entry) => {
-                const bookName = entry.world;
-                if (!acc[bookName]) {
-                    acc[bookName] = [];
-                }
-                acc[bookName].push(entry);
-                return acc;
-            }, {});
-
-            for (const bookName in grouped) {
-                const group = document.createElement('div');
+        if (groupByBook.checked) {
+            const grouped = new Map();
+            for (const entry of activeEntries) {
+                const bookName = entry.world || 'Unknown lorebook';
+                if (!grouped.has(bookName)) grouped.set(bookName, []);
+                grouped.get(bookName).push(entry);
+            }
+            for (const [bookName, entries] of grouped) {
+                const group = document.createElement('section');
                 group.className = 'nemo-active-entry-group';
-                group.innerHTML = `<div class="nemo-active-entry-group-header">${bookName}</div>`;
-                grouped[bookName].forEach(entry => {
+                const groupHeader = document.createElement('h3');
+                groupHeader.className = 'nemo-active-entry-group-header';
+                groupHeader.textContent = bookName;
+                group.appendChild(groupHeader);
+                for (const entry of entries) {
                     const item = document.createElement('div');
                     item.className = 'nemo-active-entry-item';
-                    item.textContent = entry.comment ?? entry.key.join(', ');
+                    item.textContent = entryLabel(entry);
                     group.appendChild(item);
-                });
+                }
                 listElement.appendChild(group);
             }
-        } else {
-            activeEntries.forEach(entry => {
-                const item = document.createElement('div');
-                item.className = 'nemo-active-entry-item';
-                item.textContent = `${entry.world}: ${entry.comment ?? entry.key.join(', ')}`;
-                listElement.appendChild(item);
-            });
-        }
-    },
-
-    initMacroPicker: function() {
-        const btn = document.getElementById('nemo-world-info-entry-macro-picker');
-        const modal = document.getElementById('nemo-macro-picker-modal');
-        const closeBtn = modal.querySelector('.nemo-modal-close');
-
-        btn.addEventListener('click', async () => {
-            await this.populateMacroPicker();
-            modal.style.display = 'block';
-        });
-
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-
-        // Close when clicking outside the modal content
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-    },
-
-    populateMacroPicker: async function() {
-        const listElement = document.getElementById('nemo-macro-picker-list');
-        listElement.innerHTML = 'Loading...';
-
-        const allBooks = {};
-        for (const name of world_names) {
-            const world = await loadWorldInfo(name);
-            allBooks[name] = Object.values(world.entries);
+            return;
         }
 
-        listElement.innerHTML = '';
-        for (const bookName in allBooks) {
-            const group = document.createElement('div');
-            group.className = 'nemo-macro-picker-group';
-            group.innerHTML = `<div class="nemo-macro-picker-group-header">${bookName}</div>`;
-            allBooks[bookName].forEach(entry => {
-                const item = document.createElement('div');
-                item.className = 'nemo-macro-picker-item';
-                item.textContent = entry.comment ?? entry.key.join(', ');
-                item.addEventListener('click', () => {
-                    const macro = `{{wi::${bookName}::${entry.comment ?? entry.key.join(', ')}}}`;
-                    const editor = /** @type {HTMLTextAreaElement} */(document.querySelector('#nemo-world-info-entries-panel .inline-drawer-content.open textarea[name="content"]'));
-                    if (editor) {
-                        const start = editor.selectionStart;
-                        const end = editor.selectionEnd;
-                        editor.value = editor.value.substring(0, start) + macro + editor.value.substring(end);
-                        editor.selectionStart = editor.selectionEnd = start + macro.length;
-                        editor.focus();
-                    }
-                    document.getElementById('nemo-macro-picker-modal').style.display = 'none';
-                });
-                group.appendChild(item);
-            });
-            listElement.appendChild(group);
+        for (const entry of activeEntries) {
+            const item = document.createElement('div');
+            item.className = 'nemo-active-entry-item';
+            item.textContent = (entry.world || 'Unknown lorebook') + ': ' + entryLabel(entry);
+            listElement.appendChild(item);
         }
     },
 
     initOrderHelper: function() {
-        document.getElementById('nemo-order-helper-apply').addEventListener('click', () => this.applyOrderHelper());
+        document.getElementById('nemo-order-helper-apply')?.addEventListener('click', () => this.applyOrderHelper());
         
     },
 
     populateOrderHelper: async function() {
         const listElement = document.getElementById('nemo-world-info-order-helper-list');
-        listElement.innerHTML = 'Loading...';
+        if (!listElement) return;
+        listElement.setAttribute('aria-busy', 'true');
+        listElement.textContent = 'Loading entries...';
 
         let entries = [...this._activeEntries];
 
@@ -1368,7 +1520,7 @@ export const NemoWorldInfoUI = {
         if (entries.length === 0 && this._currentWorld?.name) {
             try {
                 const world = await loadWorldInfo(this._currentWorld.name);
-                entries = Object.entries(world.entries).map(([uid, entry]) => ({
+                entries = Object.entries(world?.entries ?? {}).map(([uid, entry]) => ({
                     ...entry, uid, world: this._currentWorld.name,
                 })).filter(e => !e.disable);
                 entries.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -1377,10 +1529,14 @@ export const NemoWorldInfoUI = {
             }
         }
 
-        listElement.innerHTML = '';
+        listElement.replaceChildren();
+        listElement.setAttribute('aria-busy', 'false');
 
         if (entries.length === 0) {
-            listElement.innerHTML = '<div class="nemo-wi-helper-empty">No entries available. Select a lorebook from the left panel, or generate a message to populate active entries.</div>';
+            const empty = document.createElement('p');
+            empty.className = 'nemo-wi-helper-empty';
+            empty.textContent = 'No entries available. Select a lorebook, or generate a message to populate active entries.';
+            listElement.appendChild(empty);
             return;
         }
 
@@ -1388,7 +1544,16 @@ export const NemoWorldInfoUI = {
             const item = document.createElement('div');
             item.className = 'nemo-order-helper-item';
             const label = entry.comment ?? (entry.key ? entry.key.join(', ') : 'Untitled');
-            item.innerHTML = `<span class="nemo-order-helper-handle">&#9776;</span> <span class="nemo-order-helper-label">${entry.world}: ${label}</span> <span class="nemo-order-helper-order">#${entry.order ?? '—'}</span>`;
+            const handle = document.createElement('span');
+            handle.className = 'nemo-order-helper-handle';
+            handle.textContent = '\u2630';
+            const labelElement = document.createElement('span');
+            labelElement.className = 'nemo-order-helper-label';
+            labelElement.textContent = `${entry.world}: ${label}`;
+            const orderElement = document.createElement('span');
+            orderElement.className = 'nemo-order-helper-order';
+            orderElement.textContent = `#${entry.order ?? '\u2014'}`;
+            item.append(handle, document.createTextNode(' '), labelElement, document.createTextNode(' '), orderElement);
             item.dataset.book = entry.world;
             item.dataset.uid = entry.uid;
             listElement.appendChild(item);
@@ -1401,174 +1566,218 @@ export const NemoWorldInfoUI = {
     },
 
     applyOrderHelper: async function() {
-        const start = parseInt(/** @type {HTMLInputElement} */(document.getElementById('nemo-order-helper-start')).value);
-        const step = parseInt(/** @type {HTMLInputElement} */(document.getElementById('nemo-order-helper-step')).value);
-        const descending = /** @type {HTMLInputElement} */(document.getElementById('nemo-order-helper-descending')).checked;
+        const startInput = document.getElementById('nemo-order-helper-start');
+        const stepInput = document.getElementById('nemo-order-helper-step');
+        const descendingInput = document.getElementById('nemo-order-helper-descending');
         const listElement = document.getElementById('nemo-world-info-order-helper-list');
-        const items = Array.from(listElement.children);
+        if (!(startInput instanceof HTMLInputElement)
+            || !(stepInput instanceof HTMLInputElement)
+            || !(descendingInput instanceof HTMLInputElement)
+            || !listElement) {
+            return;
+        }
 
+        const start = Number.parseInt(startInput.value, 10);
+        const step = Number.parseInt(stepInput.value, 10);
+        if (!Number.isFinite(start) || !Number.isFinite(step)) {
+            Popup.show.text('Enter valid start and step values.');
+            return;
+        }
+
+        const descending = descendingInput.checked;
+        const items = Array.from(listElement.children);
         let currentOrder = start;
         if (descending) {
             items.reverse();
         }
 
-        const booksToSave = {};
-
+        const booksToSave = new Map();
         for (const item of items) {
             const bookName = /** @type {HTMLElement} */(item).dataset.book;
             const uid = /** @type {HTMLElement} */(item).dataset.uid;
+            if (!bookName || uid === undefined) continue;
 
-            if (!booksToSave[bookName]) {
-                booksToSave[bookName] = await loadWorldInfo(bookName);
+            if (!booksToSave.has(bookName)) {
+                const book = await loadWorldInfo(bookName);
+                if (book) booksToSave.set(bookName, book);
             }
 
-            if (booksToSave[bookName].entries[uid]) {
-                booksToSave[bookName].entries[uid].order = currentOrder;
+            const book = booksToSave.get(bookName);
+            if (book?.entries?.[uid]) {
+                book.entries[uid].order = currentOrder;
                 currentOrder += step;
             }
         }
 
-        for (const bookName in booksToSave) {
-            await saveWorldInfo(bookName, booksToSave[bookName]);
+        for (const [bookName, book] of booksToSave) {
+            await saveWorldInfo(bookName, book, true);
         }
 
-        Popup.show.alert('Order updated successfully.');
+        Popup.show.text('Order updated successfully.');
     },
-initLoreSimulator: function() {
-    const input = document.getElementById('nemo-lore-simulator-input');
-    (/** @type {HTMLTextAreaElement} */ (input)).addEventListener('input', /** @type {any} */ (debounce(() => this.runLoreSimulator(), 300)));
-},
+    initPrimaryKeywordPreview: function() {
+        const input = document.getElementById('nemo-primary-keyword-preview-input');
+        const scope = document.getElementById('nemo-primary-keyword-preview-scope');
+        if (!(input instanceof HTMLTextAreaElement)) return;
+        const signal = this._abortController?.signal;
+        const schedule = () => {
+            clearTimeout(this._previewTimer);
+            this._previewTimer = setTimeout(() => {
+                this._previewTimer = null;
+                if (!signal?.aborted) this.runPrimaryKeywordPreview();
+            }, 300);
+        };
+        input.addEventListener('input', schedule, signal ? { signal } : undefined);
+        scope?.addEventListener('change', schedule, signal ? { signal } : undefined);
+        signal?.addEventListener('abort', () => {
+            clearTimeout(this._previewTimer);
+            this._previewTimer = null;
+        }, { once: true });
+    },
 
-runLoreSimulator: async function() {
-    const inputElement = /** @type {HTMLTextAreaElement} */ (document.getElementById('nemo-lore-simulator-input'));
-    const resultsElement = document.getElementById('nemo-lore-simulator-results');
-    const scopeSelect = /** @type {HTMLSelectElement} */ (document.getElementById('nemo-lore-simulator-scope'));
-    const text = inputElement.value;
+    runPrimaryKeywordPreview: async function() {
+        const sequence = ++this._previewSequence;
+        const input = document.getElementById('nemo-primary-keyword-preview-input');
+        const results = document.getElementById('nemo-primary-keyword-preview-results');
+        const scopeSelect = document.getElementById('nemo-primary-keyword-preview-scope');
+        if (!(input instanceof HTMLTextAreaElement) || !results) return;
+        const text = input.value.trim();
+        results.replaceChildren();
+        if (!text) {
+            results.removeAttribute('aria-busy');
+            return;
+        }
 
-    resultsElement.innerHTML = '';
-    if (!text.trim()) {
-        return;
-    }
+        const scope = scopeSelect?.value ?? 'current';
+        let lorebooksToScan = [];
+        let emptyScopeMessage = '';
+        if (scope === 'current') {
+            if (this._currentWorld?.name) {
+                lorebooksToScan = [this._currentWorld.name];
+            } else {
+                emptyScopeMessage = 'Select a lorebook to preview primary keywords.';
+            }
+        } else if (scope === 'active') {
+            const worldInfoSelect = document.getElementById('world_info');
+            lorebooksToScan = worldInfoSelect instanceof HTMLSelectElement
+                ? Array.from(worldInfoSelect.selectedOptions, option => option.text)
+                : [];
+            if (lorebooksToScan.length === 0) emptyScopeMessage = 'No active lorebooks to preview.';
+        } else if (scope === 'all') {
+            lorebooksToScan = [...world_names];
+            if (lorebooksToScan.length === 0) emptyScopeMessage = 'No lorebooks are available to preview.';
+        }
 
-    // Determine which lorebooks to scan based on scope
-    const scope = scopeSelect ? scopeSelect.value : 'current';
-    let lorebooksToScan = [];
+        if (emptyScopeMessage) {
+            const empty = document.createElement('div');
+            empty.className = 'list-group-item';
+            empty.textContent = emptyScopeMessage;
+            results.appendChild(empty);
+            results.removeAttribute('aria-busy');
+            return;
+        }
 
-    if (scope === 'current' && this._currentWorld?.name) {
-        lorebooksToScan = [this._currentWorld.name];
-    } else if (scope === 'active') {
-        const worldInfoSelect = /** @type {HTMLSelectElement} */ (document.getElementById('world_info'));
-        lorebooksToScan = Array.from(worldInfoSelect.selectedOptions).map(opt => opt.text);
-    } else {
-        // 'all' scope, or fallback if no current/active
-        lorebooksToScan = [...world_names];
-    }
+        results.setAttribute('aria-busy', 'true');
+        results.textContent = 'Checking primary keywords...';
+        const triggeredEntries = new Set();
+        let failedBooks = 0;
 
-    if (lorebooksToScan.length === 0) {
-        // Fallback: if nothing selected at all, scan all
-        lorebooksToScan = [...world_names];
-    }
-
-    const triggeredEntries = new Set();
-
-    for (const bookName of lorebooksToScan) {
-        const world = await loadWorldInfo(bookName);
-        for (const entry of Object.values(world.entries)) {
-            if (entry.disable) continue;
-
-            const keywords = entry.key;
-            for (const keyword of keywords) {
-                if (!keyword) continue;
-
-                let regex;
-                try {
-                    // Check if the keyword is a regex literal (e.g., /pattern/i)
-                    if (keyword.startsWith('/') && keyword.lastIndexOf('/') > 0) {
-                        const lastSlash = keyword.lastIndexOf('/');
-                        const pattern = keyword.substring(1, lastSlash);
-                        const flags = keyword.substring(lastSlash + 1);
-                        regex = new RegExp(pattern, flags);
-                    } else {
-                        // It's a plain keyword, escape it and match whole word
-                        const escapedKeyword = keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-                        regex = new RegExp(`\\b${escapedKeyword}\\b`, 'i');
+        for (const bookName of lorebooksToScan) {
+            try {
+                const world = await loadWorldInfo(bookName);
+                if (sequence !== this._previewSequence) return;
+                for (const entry of Object.values(world?.entries ?? {})) {
+                    if (entry.disable) continue;
+                    const label = entry.comment?.trim() || (entry.key ?? []).join(', ') || 'Untitled entry';
+                    for (const keyword of entry.key ?? []) {
+                        if (!keyword || keyword.length > 500) continue;
+                        try {
+                            let expression;
+                            if (keyword.startsWith('/') && keyword.lastIndexOf('/') > 0) {
+                                const lastSlash = keyword.lastIndexOf('/');
+                                expression = new RegExp(keyword.slice(1, lastSlash), keyword.slice(lastSlash + 1));
+                            } else {
+                                expression = createLiteralKeywordExpression(keyword, entry);
+                            }
+                            if (expression.test(text)) {
+                                triggeredEntries.add(bookName + ': ' + label);
+                                break;
+                            }
+                        } catch (error) {
+                            logger.warn('Skipped an invalid lorebook keyword expression', { bookName, keyword, error });
+                        }
                     }
-
-                    if (regex.test(text)) {
-                        triggeredEntries.add(`${bookName}: ${entry.comment ?? entry.key.join(', ')}`);
-                        break;
-                    }
-                } catch (e) {
-                    console.warn(`${LOG_PREFIX} Invalid regex in keyword, skipping: "${keyword}" in book "${bookName}"`, e);
                 }
+            } catch (error) {
+                failedBooks++;
+                logger.warn('Could not scan lorebook', { bookName, error });
             }
         }
-    }
 
-    if (triggeredEntries.size > 0) {
-        const sortedEntries = Array.from(triggeredEntries).sort();
-        for (const entryText of sortedEntries) {
+        if (sequence !== this._previewSequence) return;
+        results.replaceChildren();
+        results.setAttribute('aria-busy', 'false');
+        if (triggeredEntries.size === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'list-group-item';
+            empty.textContent = failedBooks > 0
+                ? 'No primary keyword matches. ' + failedBooks + ' lorebook(s) could not be read.'
+                : 'No primary keyword matches.';
+            results.appendChild(empty);
+            return;
+        }
+
+        for (const entryText of [...triggeredEntries].sort()) {
             const item = document.createElement('div');
             item.className = 'list-group-item';
             item.textContent = entryText;
-            resultsElement.appendChild(item);
+            results.appendChild(item);
         }
-    } else {
-        resultsElement.innerHTML = '<div class="list-group-item">No entries activated.</div>';
-    }
-},
-
-
+        if (failedBooks > 0) {
+            const warning = document.createElement('p');
+            warning.className = 'nemo-wi-preview-warning';
+            warning.textContent = failedBooks + ' lorebook(s) could not be read.';
+            results.appendChild(warning);
+        }
+    },
 
     initEntryManagement: function() {
-        // Re-route clicks to original hidden buttons
-        document.getElementById('nemo-world-info-entry-new').addEventListener('click', () => document.getElementById('world_popup_new').click());
-        document.getElementById('nemo-world-info-entry-rename').addEventListener('click', () => document.getElementById('world_popup_name_button').click());
-        document.getElementById('nemo-world-info-entry-duplicate').addEventListener('click', () => document.getElementById('world_duplicate').click());
-        document.getElementById('nemo-world-info-entry-export').addEventListener('click', () => document.getElementById('world_popup_export').click());
-        document.getElementById('nemo-world-info-entry-delete').addEventListener('click', () => document.getElementById('world_popup_delete').click());
-        document.getElementById('nemo-world-info-entry-open-all').addEventListener('click', () => document.getElementById('OpenAllWIEntries').click());
-        document.getElementById('nemo-world-info-entry-close-all').addEventListener('click', () => document.getElementById('CloseAllWIEntries').click());
-        document.getElementById('nemo-world-info-entry-fill-memos').addEventListener('click', () => document.getElementById('world_backfill_memos').click());
-        document.getElementById('nemo-world-info-entry-apply-sort').addEventListener('click', () => document.getElementById('world_apply_current_sorting').click());
-        document.getElementById('nemo-world-info-entry-refresh').addEventListener('click', () => document.getElementById('world_refresh').click());
+        const signal = this._abortController?.signal;
+        const listenerOptions = signal ? { signal } : undefined;
+        const proxies = {
+            'nemo-world-info-entry-new': 'world_popup_new',
+            'nemo-world-info-entry-rename': 'world_popup_name_button',
+            'nemo-world-info-entry-duplicate': 'world_duplicate',
+            'nemo-world-info-entry-export': 'world_popup_export',
+            'nemo-world-info-entry-delete': 'world_popup_delete',
+            'nemo-world-info-entry-open-all': 'OpenAllWIEntries',
+            'nemo-world-info-entry-close-all': 'CloseAllWIEntries',
+            'nemo-world-info-entry-fill-memos': 'world_backfill_memos',
+            'nemo-world-info-entry-apply-sort': 'world_apply_current_sorting',
+            'nemo-world-info-entry-refresh': 'world_refresh',
+        };
+        for (const [proxyId, nativeId] of Object.entries(proxies)) {
+            document.getElementById(proxyId)?.addEventListener('click', () => document.getElementById(nativeId)?.click(), listenerOptions);
+        }
 
-        // Sync search and sort
-        const nemoSearch = /** @type {HTMLInputElement} */ (document.getElementById('nemo-world-info-entry-search'));
-        const originalSearch = /** @type {HTMLInputElement} */ (document.getElementById('world_info_search'));
-        const lorebookSearch = /** @type {HTMLInputElement} */ (document.getElementById('nemo-world-info-search'));
-
-        nemoSearch.addEventListener('input', () => {
-            originalSearch.value = nemoSearch.value;
-            originalSearch.dispatchEvent(new Event('input'));
-            lorebookSearch.value = nemoSearch.value;
-            lorebookSearch.dispatchEvent(new Event('input'));
-        });
-
-        lorebookSearch.addEventListener('input', () => {
-            nemoSearch.value = lorebookSearch.value;
-            originalSearch.value = lorebookSearch.value;
-            originalSearch.dispatchEvent(new Event('input'));
-        });
-
-        const nemoSort = /** @type {HTMLSelectElement} */ (document.getElementById('nemo-world-info-entry-sort'));
-        const originalSort = /** @type {HTMLSelectElement} */ (document.getElementById('world_info_sort_order'));
-        
-        // Clone sort options
-        Array.from(originalSort.options).forEach(opt => nemoSort.add(/** @type {HTMLOptionElement} */ (opt.cloneNode(true))));
-        nemoSort.value = originalSort.value;
-
-        nemoSort.addEventListener('change', () => {
-            originalSort.value = nemoSort.value;
-            originalSort.dispatchEvent(new Event('change'));
-
-            if (nemoSort.options[nemoSort.selectedIndex].text === 'Custom') {
-                this.initEntriesSortable();
-            } else {
-                if (this.virtualScroller.itemsContainer && /** @type {any} */(this.virtualScroller.itemsContainer)._sortable) {
-                    /** @type {any} */(this.virtualScroller.itemsContainer)._sortable.destroy();
-                }
+        const nemoSearch = document.getElementById('nemo-world-info-entry-search');
+        const originalSearch = document.getElementById('world_info_search');
+        nemoSearch?.addEventListener('input', () => {
+            if (originalSearch) {
+                originalSearch.value = nemoSearch.value;
+                originalSearch.dispatchEvent(new Event('input', { bubbles: true }));
             }
-        });
+        }, listenerOptions);
+
+        const nemoSort = document.getElementById('nemo-world-info-entry-sort');
+        const originalSort = document.getElementById('world_info_sort_order');
+        if (nemoSort && originalSort) {
+            nemoSort.replaceChildren(...Array.from(originalSort.options, option => option.cloneNode(true)));
+            nemoSort.value = originalSort.value;
+            nemoSort.addEventListener('change', () => {
+                originalSort.value = nemoSort.value;
+                originalSort.dispatchEvent(new Event('change', { bubbles: true }));
+            }, listenerOptions);
+        }
     }
 };

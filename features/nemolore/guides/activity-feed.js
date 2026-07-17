@@ -178,13 +178,13 @@ function renderItem(item) {
         </div>
         <div class="nlg-feed-item-content">
             <div class="nlg-feed-item-header">
-                <span class="nlg-feed-item-verb" style="color: ${item.color}">${item.verb}</span>
-                <span class="nlg-feed-item-name">${item.displayName}</span>
+                <span class="nlg-feed-item-verb" style="color: ${item.color}">${escapeHtml(item.verb)}</span>
+                <span class="nlg-feed-item-name">${escapeHtml(item.displayName)}</span>
                 <span class="nlg-feed-item-status nlg-status-${item.status}">
                     ${item.status === 'done' ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}
                 </span>
             </div>
-            <div class="nlg-feed-item-summary">${item.summary || ''}</div>
+            <div class="nlg-feed-item-summary">${escapeHtml(item.summary || '')}</div>
             <div class="nlg-feed-item-time">${formatTime(item.timestamp)}</div>
         </div>
     `;
@@ -418,11 +418,11 @@ function showDetails(item) {
 
     detailsEl.innerHTML = `
         <div class="nlg-feed-details-header">
-            <span style="color: ${item.color}"><i class="fa-solid ${item.icon}"></i> ${item.displayName}</span>
+            <span style="color: ${item.color}"><i class="fa-solid ${item.icon}"></i> ${escapeHtml(item.displayName)}</span>
             <span class="nlg-feed-details-close" title="Close"><i class="fa-solid fa-xmark"></i></span>
         </div>
         <div class="nlg-feed-details-meta">
-            <span>${item.verb} at ${formatTime(item.timestamp)}</span>
+            <span>${escapeHtml(item.verb)} at ${formatTime(item.timestamp)}</span>
             <span class="nlg-status-${item.status}">${item.status === 'done' ? 'Completed' : 'Error'}</span>
         </div>
         ${storedInHtml}
@@ -474,13 +474,13 @@ function renderRunningItem(item) {
         </div>
         <div class="nlg-feed-item-content">
             <div class="nlg-feed-item-header">
-                <span class="nlg-feed-item-verb" style="color: ${item.color}">${item.verb}</span>
-                <span class="nlg-feed-item-name">${item.displayName}</span>
+                <span class="nlg-feed-item-verb" style="color: ${item.color}">${escapeHtml(item.verb)}</span>
+                <span class="nlg-feed-item-name">${escapeHtml(item.displayName)}</span>
                 <span class="nlg-feed-item-status nlg-status-running">
                     <i class="fa-solid fa-spinner fa-spin"></i>
                 </span>
             </div>
-            <div class="nlg-feed-item-summary">${item.summary || 'Working...'}</div>
+            <div class="nlg-feed-item-summary">${escapeHtml(item.summary || 'Working...')}</div>
             <div class="nlg-feed-item-time">${formatTime(item.timestamp)}</div>
         </div>
     `;

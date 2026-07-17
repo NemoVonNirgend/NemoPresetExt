@@ -307,6 +307,12 @@ export class TutorialManager {
         extension_settings.NemoPresetExt.tutorials.showOnStartup = false;
         saveSettingsDebounced();
     }
+
+    destroy() {
+        this.currentTutorial = null;
+        this.tutorialRegistry.clear();
+        this.initialized = false;
+    }
 }
 
 // Export singleton instance

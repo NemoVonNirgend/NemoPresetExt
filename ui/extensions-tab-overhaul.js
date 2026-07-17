@@ -15,6 +15,20 @@ export const ExtensionsTabOverhaul = {
     customFolders: {},
     extensionTags: {},
     originalExtensions: [], // Store original extension elements
+    _pollTimer: null,
+    _initTimer: null,
+    _scheduledTimers: new Set(),
+    _lifecycleGeneration: 0,
+    _settings2Display: null,
+    _suiteDrawerDisplay: null,
+    _observedDrawerContents: new Set(),
+    _hiddenDuplicateDisplays: new Map(),
+    _movedElements: [],
+    _movedElementSet: new WeakSet(),
+    _removedElements: [],
+    _removedElementSet: new WeakSet(),
+    _presentationMutations: [],
+    _presentationMutationSet: new WeakSet(),
     imagePromptTemplates: [
         {
             id: 'anime_scene',
@@ -140,16 +154,23 @@ export const ExtensionsTabOverhaul = {
     },
 
     initialize: function() {
-        if (this.initialized) {
+        if (this.initialized || this._pollTimer || this._initTimer) {
             logger.debug('Extensions Tab Overhaul already initialized - skipping');
             return;
         }
+
+        const generation = ++this._lifecycleGeneration;
 
         // Load saved settings
         this.loadSettings();
 
         let pollCount = 0;
         const pollForExtensions = setInterval(() => {
+            if (generation !== this._lifecycleGeneration) {
+                this.cancelPendingInitialization();
+                return;
+            }
+
             const extensionsContainer1 = document.getElementById('extensions_settings');
             const extensionsContainer2 = document.getElementById('extensions_settings2');
 
@@ -163,13 +184,25 @@ export const ExtensionsTabOverhaul = {
             // Wait for at least 5 seconds (5 polls) AND have extensions, OR timeout at 20 seconds
             if ((extensionsContainer1 && totalExtensions > 0 && pollCount >= 5) || pollCount >= 20) {
                 clearInterval(pollForExtensions);
+                this._pollTimer = null;
 
                 // Set initialized FIRST to prevent double initialization
                 this.initialized = true;
 
-                setTimeout(() => {
+                this._initTimer = setTimeout(() => {
+                    this._initTimer = null;
+                    if (generation !== this._lifecycleGeneration || !this.initialized) {
+                        return;
+                    }
+
+                    const currentContainer = document.getElementById('extensions_settings');
+                    if (!currentContainer) {
+                        this.initialized = false;
+                        return;
+                    }
+
                     this.setupTabExtensionView();
-                    this.createEnhancedInterface(extensionsContainer1);
+                    this.createEnhancedInterface(currentContainer);
                     this.setupEventListeners();
                     this.hideDuplicateSettings();
 
@@ -177,6 +210,33 @@ export const ExtensionsTabOverhaul = {
                 }, 2000); // Wait 2 full seconds after deciding to initialize
             }
         }, 1000);
+        this._pollTimer = pollForExtensions;
+    },
+
+    cancelPendingInitialization: function() {
+        if (this._pollTimer) {
+            clearInterval(this._pollTimer);
+            this._pollTimer = null;
+        }
+
+        if (this._initTimer) {
+            clearTimeout(this._initTimer);
+            this._initTimer = null;
+        }
+    },
+
+    schedule: function(callback, delay) {
+        const timer = setTimeout(() => {
+            this._scheduledTimers.delete(timer);
+            callback();
+        }, delay);
+        this._scheduledTimers.add(timer);
+        return timer;
+    },
+
+    clearScheduledTimers: function() {
+        this._scheduledTimers.forEach(timer => clearTimeout(timer));
+        this._scheduledTimers.clear();
     },
 
     loadSettings: function() {
@@ -212,16 +272,26 @@ export const ExtensionsTabOverhaul = {
             const hasIncorporated = [...allSettings].some(isIncorporated);
 
             allSettings.forEach((el) => {
-                if (!isIncorporated(el)) {
-                    el.style.display = hasIncorporated ? 'none' : '';
+                if (isIncorporated(el)) {
+                    return;
+                }
+
+                if (hasIncorporated) {
+                    if (!this._hiddenDuplicateDisplays.has(el)) {
+                        this._hiddenDuplicateDisplays.set(el, el.style.display);
+                    }
+                    el.style.display = 'none';
+                } else if (this._hiddenDuplicateDisplays.has(el)) {
+                    el.style.display = this._hiddenDuplicateDisplays.get(el);
+                    this._hiddenDuplicateDisplays.delete(el);
                 }
             });
         };
 
         // Try multiple times with increasing delays to catch all duplicates
-        setTimeout(hideAttempt, 500);
-        setTimeout(hideAttempt, 1000);
-        setTimeout(hideAttempt, 2000);
+        this.schedule(hideAttempt, 500);
+        this.schedule(hideAttempt, 1000);
+        this.schedule(hideAttempt, 2000);
 
         // Disconnect any prior observer so we don't stack them on re-init
         if (this._dupObserver) {
@@ -246,8 +316,16 @@ export const ExtensionsTabOverhaul = {
     },
 
     setupTabExtensionView: function() {
+        if (document.getElementById('nemo-tab-extension-overlay')) {
+            return;
+        }
+
         // Create tab-contained extension view
         const extensionsContainer = document.getElementById('extensions_settings');
+        if (!extensionsContainer) {
+            return;
+        }
+
         const overlay = document.createElement('div');
         overlay.id = 'nemo-tab-extension-overlay';
         overlay.className = 'nemo-tab-extension-view';
@@ -270,9 +348,18 @@ export const ExtensionsTabOverhaul = {
     discoverExtensions: function() {
         const extensions = [];
         this.hiddenCompanionExtensions = [];
-        const containers = document.querySelectorAll('#extensions_settings > *, #extensions_settings2 > *');
+        const containers = document.querySelectorAll(
+            '#extensions_settings > *, #extensions_settings2 > *, #nemo-suite-drawer > .inline-drawer-content > *'
+        );
 
         containers.forEach(container => {
+            const originalState = {
+                originalParent: container.parentNode,
+                originalNextSibling: container.nextSibling,
+                originalDisplay: container.style.display,
+                originalId: container.id,
+            };
+
             // Skip non-element nodes and non-DIV elements (e.g. stray <style> tags)
             if (container.nodeType !== Node.ELEMENT_NODE || container.tagName === 'STYLE' || container.tagName === 'SCRIPT') {
                 return;
@@ -287,7 +374,7 @@ export const ExtensionsTabOverhaul = {
                 return;
             }
 
-            let id = container.id;
+            let id = container.dataset.nemoExtensionId || container.id;
 
             // Skip explicitly blacklisted IDs
             if (id && this.skipIds.includes(id)) {
@@ -317,20 +404,23 @@ export const ExtensionsTabOverhaul = {
             }
 
             // Special handling for NemoPresetExt settings
-            if (container.classList.contains('nemo-preset-enhancer-settings')) {
+            const isNemoPresetSettings =
+                container.dataset.nemoExtensionId === 'nemo-preset-ext-settings' ||
+                container.classList.contains('nemo-preset-enhancer-settings') ||
+                container.querySelector(':scope > .nemo-preset-enhancer-settings');
+            if (isNemoPresetSettings) {
                 id = 'nemo-preset-ext-settings';
                 title = 'NemoPreset UI Extensions';
-                container.id = id;
             } else if (!id) {
                 id = `nemo-ext-${title.replace(/\s+/g, '-').toLowerCase()}`;
                 container.id = id;
             }
 
             extensions.push({
-                id: id,
+                id,
                 element: container,
-                title: title,
-                originalParent: container.parentNode
+                title,
+                ...originalState,
             });
         });
 
@@ -343,7 +433,9 @@ export const ExtensionsTabOverhaul = {
                     this.hiddenCompanionExtensions.push({
                         element: extension.element,
                         originalParent: extension.originalParent,
-                        display: extension.element.style.display,
+                        originalNextSibling: extension.originalNextSibling,
+                        originalDisplay: extension.originalDisplay,
+                        originalId: extension.originalId,
                     });
                     extension.element.style.display = 'none';
                     return false;
@@ -368,11 +460,15 @@ export const ExtensionsTabOverhaul = {
         // Store original extensions for cleanup (keep the actual elements, don't clone)
         this.originalExtensions = discoveredExtensions.map(ext => ({
             element: ext.element,
-            originalParent: ext.originalParent
+            originalParent: ext.originalParent,
+            originalNextSibling: ext.originalNextSibling,
+            originalDisplay: ext.originalDisplay,
+            originalId: ext.originalId,
         }));
 
         // Create search and folder controls
         const controlsContainer = document.createElement('div');
+        controlsContainer.id = 'nemo-extensions-controls';
         controlsContainer.innerHTML = `
             <div class="nemo-folder-controls">
                 <div>
@@ -433,9 +529,16 @@ export const ExtensionsTabOverhaul = {
             ext.element.style.display = 'none';
         });
 
-        // Hide settings2 container
-        if(settings2) {
+        // Hide settings2 while the combined interface is active, preserving its native value.
+        if (settings2) {
+            this._settings2Display = settings2.style.display;
             settings2.style.display = 'none';
+        }
+
+        const suiteDrawer = document.getElementById('nemo-suite-drawer');
+        if (suiteDrawer) {
+            this._suiteDrawerDisplay = suiteDrawer.style.display;
+            suiteDrawer.style.display = 'none';
         }
 
         // Prepend our interface to settings1 (don't clear it, just add to the beginning)
@@ -629,8 +732,12 @@ export const ExtensionsTabOverhaul = {
         const titleElement = document.getElementById('nemo-current-extension-title');
         const contentElement = document.getElementById('nemo-extension-view-content');
         
-        if (!overlay) {
+        if (!overlay || !titleElement || !contentElement) {
             this.setupTabExtensionView();
+            const createdOverlay = document.getElementById('nemo-tab-extension-overlay');
+            if (!createdOverlay) {
+                return;
+            }
             return this.openExtensionFullScreen(extensionData);
         }
         
@@ -644,7 +751,7 @@ export const ExtensionsTabOverhaul = {
         contentElement.innerHTML = '';
         
         // Store the original parent for restoration later
-        extensionData.originalParent = extensionData.element.parentNode;
+        extensionData.activeParent = extensionData.element.parentNode;
         
         // Move the ACTUAL extension element (not a clone) to maintain functionality
         const extensionElement = extensionData.element;
@@ -655,6 +762,7 @@ export const ExtensionsTabOverhaul = {
         // If it's a drawer, open it and show content directly
         if (extensionElement.querySelector('.inline-drawer-content')) {
             const drawerContent = extensionElement.querySelector('.inline-drawer-content');
+            this.recordPresentationMutation(drawerContent);
             drawerContent.style.display = 'block';
             // Move the entire extension element to maintain all functionality
             contentElement.appendChild(extensionElement);
@@ -698,6 +806,8 @@ export const ExtensionsTabOverhaul = {
             return;
         }
 
+        this.recordPresentationMutation(mainDrawerContent);
+        this.recordPresentationMutation(extensionElement);
         mainDrawerContent.dataset.nemoSdEnhanced = 'true';
         extensionElement.classList.add('nemo-sd-enhanced');
 
@@ -865,6 +975,8 @@ export const ExtensionsTabOverhaul = {
             return;
         }
 
+        this.recordPresentationMutation(extensionElement);
+        this.recordPresentationMutation(drawerContent);
         extensionElement.classList.add('nemo-qr-enhanced');
         this.observeQuickReplyRerenders(extensionElement, drawerContent);
 
@@ -875,7 +987,7 @@ export const ExtensionsTabOverhaul = {
         drawerContent.dataset.nemoQrEnhancing = 'true';
 
         try {
-            drawerContent.querySelectorAll(':scope > hr').forEach(separator => separator.remove());
+            this.removeElements(Array.from(drawerContent.querySelectorAll(':scope > hr')));
 
             const layout = document.createElement('div');
             layout.className = 'nemo-qr-settings-layout';
@@ -962,6 +1074,7 @@ export const ExtensionsTabOverhaul = {
             }, 0);
         });
         drawerContent._nemoQrObserver.observe(drawerContent, { childList: true });
+        this._observedDrawerContents.add(drawerContent);
     },
 
     enhanceRegexSettings: function(extensionElement) {
@@ -971,9 +1084,11 @@ export const ExtensionsTabOverhaul = {
             return;
         }
 
+        this.recordPresentationMutation(drawerContent);
+        this.recordPresentationMutation(extensionElement);
         drawerContent.dataset.nemoRegexEnhanced = 'true';
         extensionElement.classList.add('nemo-regex-enhanced');
-        drawerContent.querySelectorAll(':scope > hr').forEach(separator => separator.remove());
+        this.removeElements(Array.from(drawerContent.querySelectorAll(':scope > hr')));
 
         const layout = document.createElement('div');
         layout.className = 'nemo-regex-settings-layout';
@@ -984,14 +1099,16 @@ export const ExtensionsTabOverhaul = {
 
         const actionBar = this.getDirectChildContaining(drawerContent, '#open_regex_editor');
         if (actionBar) {
+            this.recordPresentationMutation(actionBar);
             actionBar.classList.add('nemo-regex-action-bar');
-            actionsSection.body.appendChild(actionBar);
+            this.moveElements(actionsSection.body, [actionBar]);
         }
 
         const bulkOperations = this.getDirectChildContaining(drawerContent, '#bulk_select_all_toggle');
         if (bulkOperations) {
+            this.recordPresentationMutation(bulkOperations);
             bulkOperations.classList.add('nemo-regex-bulk-bar');
-            actionsSection.body.appendChild(bulkOperations);
+            this.moveElements(actionsSection.body, [bulkOperations]);
         }
 
         this.moveElements(presetsSection.body, [
@@ -1051,9 +1168,11 @@ export const ExtensionsTabOverhaul = {
             return;
         }
 
+        this.recordPresentationMutation(drawerContent);
+        this.recordPresentationMutation(extensionElement);
         drawerContent.dataset.nemoTtsEnhanced = 'true';
         extensionElement.classList.add('nemo-tts-enhanced');
-        drawerContent.querySelectorAll(':scope > hr, :scope > br').forEach(separator => separator.remove());
+        this.removeElements(Array.from(drawerContent.querySelectorAll(':scope > hr, :scope > br')));
 
         const layout = document.createElement('div');
         layout.className = 'nemo-tts-settings-layout';
@@ -1077,8 +1196,9 @@ export const ExtensionsTabOverhaul = {
 
         const behaviorBlock = this.getDirectChildContaining(drawerContent, '#tts_enabled');
         if (behaviorBlock) {
+            this.recordPresentationMutation(behaviorBlock);
             behaviorBlock.classList.add('nemo-tts-behavior-grid');
-            behaviorSection.body.appendChild(behaviorBlock);
+            this.moveElements(behaviorSection.body, [behaviorBlock]);
         }
 
         this.moveElements(playbackSection.body, [
@@ -1139,9 +1259,11 @@ export const ExtensionsTabOverhaul = {
             return;
         }
 
+        this.recordPresentationMutation(drawerContent);
+        this.recordPresentationMutation(extensionElement);
         drawerContent.dataset.nemoVectorsEnhanced = 'true';
         extensionElement.classList.add('nemo-vectors-enhanced');
-        drawerContent.querySelectorAll(':scope > hr').forEach(separator => separator.remove());
+        this.removeElements(Array.from(drawerContent.querySelectorAll(':scope > hr')));
 
         const layout = document.createElement('div');
         layout.className = 'nemo-vectors-settings-layout';
@@ -1237,6 +1359,7 @@ export const ExtensionsTabOverhaul = {
             return;
         }
 
+        this.recordPresentationMutation(extensionElement);
         extensionElement.classList.add('nemo-memory-enhanced');
 
         let tabsShell = drawerContent.querySelector('.nemo-memory-tabs-shell');
@@ -1266,7 +1389,7 @@ export const ExtensionsTabOverhaul = {
 
             summaryPanel = tabsShell.querySelector('[data-nemo-memory-panel="summary"]');
             lorePanel = tabsShell.querySelector('[data-nemo-memory-panel="nemolore"]');
-            summaryPanel.appendChild(summaryContents);
+            this.moveElements(summaryPanel, [summaryContents]);
 
             tabsShell.querySelectorAll('.nemo-memory-tab').forEach(tab => {
                 tab.addEventListener('click', () => {
@@ -1312,8 +1435,9 @@ export const ExtensionsTabOverhaul = {
 
         const settingsBlock = summaryContents.querySelector('#summarySettingsBlock');
         if (settingsBlock) {
+            this.recordPresentationMutation(settingsBlock);
             settingsBlock.style.display = 'block';
-            settingsSection.body.appendChild(settingsBlock);
+            this.moveElements(settingsSection.body, [settingsBlock]);
         }
 
         [
@@ -1374,7 +1498,9 @@ export const ExtensionsTabOverhaul = {
                 this.hiddenCompanionExtensions.push({
                     element: loreElement,
                     originalParent: loreElement.parentNode,
-                    display: loreElement.style.display,
+                    originalNextSibling: loreElement.nextSibling,
+                    originalDisplay: loreElement.style.display,
+                    originalId: loreElement.id,
                 });
             }
 
@@ -1393,10 +1519,12 @@ export const ExtensionsTabOverhaul = {
     },
 
     enhanceNemoLoreCompanion: function(loreElement) {
+        this.recordPresentationMutation(loreElement);
         loreElement.classList.add('nemo-lore-memory-companion');
 
         const drawerContent = loreElement.querySelector(':scope > .inline-drawer > .inline-drawer-content');
         if (drawerContent) {
+            this.recordPresentationMutation(drawerContent);
             drawerContent.style.display = 'block';
         }
     },
@@ -1413,6 +1541,119 @@ export const ExtensionsTabOverhaul = {
         });
     },
 
+    recordElementMove: function(element) {
+        if (!element?.parentNode || this._movedElementSet.has(element)) {
+            return;
+        }
+
+        this._movedElementSet.add(element);
+        this._movedElements.push({
+            element,
+            parent: element.parentNode,
+            nextSibling: element.nextSibling,
+        });
+    },
+
+    recordElementRemoval: function(element) {
+        if (!element?.parentNode || this._removedElementSet.has(element)) {
+            return;
+        }
+
+        this._removedElementSet.add(element);
+        this._removedElements.push({
+            element,
+            parent: element.parentNode,
+            nextSibling: element.nextSibling,
+        });
+    },
+
+    removeElements: function(elements) {
+        elements.filter(Boolean).forEach(element => {
+            this.recordElementRemoval(element);
+            element.remove();
+        });
+    },
+
+    recordPresentationMutation: function(element) {
+        if (!element || this._presentationMutationSet.has(element)) {
+            return;
+        }
+
+        const ownedClasses = [
+            'nemo-sd-enhanced',
+            'nemo-qr-enhanced',
+            'nemo-regex-enhanced',
+            'nemo-regex-action-bar',
+            'nemo-regex-bulk-bar',
+            'nemo-tts-enhanced',
+            'nemo-tts-behavior-grid',
+            'nemo-vectors-enhanced',
+            'nemo-memory-enhanced',
+            'nemo-lore-memory-companion',
+        ];
+        const ownedDataAttributes = [
+            'data-nemo-sd-enhanced',
+            'data-nemo-qr-enhancing',
+            'data-nemo-regex-enhanced',
+            'data-nemo-tts-enhanced',
+            'data-nemo-vectors-enhanced',
+            'data-nemo-summary-enhanced',
+        ];
+
+        this._presentationMutationSet.add(element);
+        this._presentationMutations.push({
+            element,
+            display: element.style.display,
+            classes: new Map(ownedClasses.map(className => [className, element.classList.contains(className)])),
+            dataAttributes: new Map(ownedDataAttributes.map(attribute => [attribute, element.getAttribute(attribute)])),
+        });
+    },
+
+    restoreDomRecord: function(record) {
+        const { element, parent, nextSibling } = record;
+        if (!element || !parent) {
+            return;
+        }
+
+        if (nextSibling?.parentNode === parent) {
+            parent.insertBefore(element, nextSibling);
+        } else {
+            parent.appendChild(element);
+        }
+    },
+
+    restoreEnhancedSettingsDom: function() {
+        this._movedElements.slice().reverse().forEach(record => this.restoreDomRecord(record));
+        this._removedElements.slice().reverse().forEach(record => this.restoreDomRecord(record));
+
+        this._presentationMutations.slice().reverse().forEach(record => {
+            record.classes.forEach((wasPresent, className) => {
+                record.element.classList.toggle(className, wasPresent);
+            });
+            record.dataAttributes.forEach((value, attribute) => {
+                if (value === null) {
+                    record.element.removeAttribute(attribute);
+                } else {
+                    record.element.setAttribute(attribute, value);
+                }
+            });
+            record.element.style.display = record.display;
+        });
+
+        document.querySelectorAll(
+            '.nemo-sd-settings-layout, .nemo-sd-prompt-suggestions, ' +
+            '.nemo-qr-settings-layout, .nemo-regex-settings-layout, ' +
+            '.nemo-tts-settings-layout, .nemo-vectors-settings-layout, ' +
+            '.nemo-memory-tabs-shell, .nemo-summary-layout'
+        ).forEach(element => element.remove());
+
+        this._movedElements = [];
+        this._movedElementSet = new WeakSet();
+        this._removedElements = [];
+        this._removedElementSet = new WeakSet();
+        this._presentationMutations = [];
+        this._presentationMutationSet = new WeakSet();
+    },
     moveElements: function(target, elements) {
         const seen = new Set();
 
@@ -1421,6 +1662,7 @@ export const ExtensionsTabOverhaul = {
                 return;
             }
             seen.add(element);
+            this.recordElementMove(element);
             target.appendChild(element);
         });
     },
@@ -1448,23 +1690,23 @@ export const ExtensionsTabOverhaul = {
 
     closeFullScreen: function() {
         const overlay = document.getElementById('nemo-tab-extension-overlay');
-        overlay.classList.remove('active');
-        
-        // Restore the extension element to its original location
-        if (this.currentExtension && this.currentExtension.element) {
-            const extensionElement = this.currentExtension.element;
-            const originalParent = this.currentExtension.originalParent;
+        overlay?.classList.remove('active');
 
-            if (originalParent && originalParent.parentNode) {
-                originalParent.appendChild(extensionElement);
+        // Restore the extension element to its active overhaul container.
+        if (this.currentExtension?.element) {
+            const extensionElement = this.currentExtension.element;
+            const activeParent = this.currentExtension.activeParent;
+
+            if (activeParent?.isConnected) {
+                activeParent.appendChild(extensionElement);
 
                 // Hide the element again (since we hid all extensions in createEnhancedInterface)
                 extensionElement.style.display = 'none';
 
                 // If it was a drawer, restore proper state
-                if (extensionElement.querySelector('.inline-drawer-content')) {
-                    const drawerContent = extensionElement.querySelector('.inline-drawer-content');
-                    drawerContent.style.display = 'none'; // Close drawer by default
+                const drawerContent = extensionElement.querySelector('.inline-drawer-content');
+                if (drawerContent) {
+                    drawerContent.style.display = 'none';
                 }
             }
         }
@@ -1609,16 +1851,21 @@ export const ExtensionsTabOverhaul = {
             font-size: 14px;
             line-height: 1.4;
         `;
+        notification.classList.add('nemo-extension-overhaul-notification');
         notification.textContent = message;
         
         document.body.appendChild(notification);
         
-        setTimeout(() => {
+        this.schedule(() => {
             notification.remove();
         }, 4000);
     },
 
     setupContextMenu: function() {
+        if (document.getElementById('nemo-extension-context-menu')) {
+            return;
+        }
+
         const menu = document.createElement('div');
         menu.id = 'nemo-extension-context-menu';
         menu.className = 'nemo-context-menu';
@@ -1918,80 +2165,90 @@ export const ExtensionsTabOverhaul = {
         return 'Unknown Extension';
     },
 
+    restoreOriginalElement: function(record) {
+        const { element, originalParent, originalNextSibling, originalDisplay, originalId } = record;
+        if (!element) {
+            return;
+        }
+
+        const targetParent = originalParent?.isConnected
+            ? originalParent
+            : document.getElementById(originalParent?.id);
+        if (targetParent) {
+            if (originalNextSibling?.parentNode === targetParent) {
+                targetParent.insertBefore(element, originalNextSibling);
+            } else if (element.parentNode !== targetParent) {
+                targetParent.appendChild(element);
+            }
+        }
+
+        element.style.display = originalDisplay ?? '';
+        if (originalId) {
+            element.id = originalId;
+        } else {
+            element.removeAttribute('id');
+        }
+    },
+
     cleanup: function() {
-        // Disconnect the duplicate-detector observer so it stops firing
+        // Invalidate both polling and delayed initialization before touching the DOM.
+        this._lifecycleGeneration++;
+        this.cancelPendingInitialization();
+        this.clearScheduledTimers();
+
         if (this._dupObserver) {
             this._dupObserver.disconnect();
             this._dupObserver = null;
         }
 
-        // Abort document-level click/contextmenu listeners
+        this._hiddenDuplicateDisplays.forEach((display, element) => {
+            if (element?.isConnected) {
+                element.style.display = display;
+            }
+        });
+        this._hiddenDuplicateDisplays.clear();
+
         if (this._listenerCtrl) {
             this._listenerCtrl.abort();
             this._listenerCtrl = null;
         }
 
-        // First, make sure we're showing the main interface
-        this.showMainInterface();
+        this._observedDrawerContents.forEach(drawerContent => {
+            drawerContent._nemoQrObserver?.disconnect();
+            clearTimeout(drawerContent._nemoQrEnhanceTimer);
+            delete drawerContent._nemoQrObserver;
+            delete drawerContent._nemoQrEnhanceTimer;
+        });
+        this._observedDrawerContents.clear();
 
-        // Close any open extension view and restore elements properly
         if (this.currentView === 'extension') {
             this.closeFullScreen();
         }
 
-        // Remove our custom elements
-        const overlay = document.getElementById('nemo-tab-extension-overlay');
-        if (overlay) {
-            overlay.remove();
-        }
+        this.restoreEnhancedSettingsDom();
+        this.originalExtensions.forEach(record => this.restoreOriginalElement(record));
+        this.hiddenCompanionExtensions.forEach(record => this.restoreOriginalElement(record));
 
-        const contextMenu = document.getElementById('nemo-extension-context-menu');
-        if (contextMenu) {
-            contextMenu.remove();
-        }
+        // Remove only nodes owned by this feature. Native and late-added extension
+        // settings remain untouched in their SillyTavern containers.
+        document.getElementById('nemo-tab-extension-overlay')?.remove();
+        document.getElementById('nemo-extension-context-menu')?.remove();
+        document.getElementById('nemo-extensions-controls')?.remove();
+        document.querySelectorAll(
+            '.nemo-extensions-layout, .nemo-folder-selection-dialog, .nemo-extension-overhaul-notification'
+        ).forEach(element => element.remove());
 
-        // Restore original extensions to their containers
-        const settings1 = document.getElementById('extensions_settings');
         const settings2 = document.getElementById('extensions_settings2');
-
-        // COMPLETELY clear settings1 content first
-        if (settings1) {
-            settings1.innerHTML = '';
-            // Remove the data attribute that marks it as grouped
-            settings1.removeAttribute('data-nemo-grouped');
+        if (settings2 && this._settings2Display !== null) {
+            settings2.style.display = this._settings2Display;
         }
+        this._settings2Display = null;
 
-        // Restore settings2 visibility and clear it too
-        if (settings2) {
-            settings2.style.display = '';
-            settings2.innerHTML = '';
+        const suiteDrawer = document.getElementById('nemo-suite-drawer');
+        if (suiteDrawer && this._suiteDrawerDisplay !== null) {
+            suiteDrawer.style.display = this._suiteDrawerDisplay;
         }
-
-        // Restore original extension elements to their proper containers
-        this.originalExtensions.forEach(({ element, originalParent }) => {
-            // Determine target container
-            let targetContainer = settings1; // Default to settings1
-            if (originalParent && originalParent.id === 'extensions_settings2') {
-                targetContainer = settings2;
-            }
-
-            // Restore the extension element
-            if (targetContainer && element) {
-                targetContainer.appendChild(element);
-            }
-        });
-
-        this.hiddenCompanionExtensions.forEach(({ element, originalParent, display }) => {
-            let targetContainer = settings1;
-            if (originalParent && originalParent.id === 'extensions_settings2') {
-                targetContainer = settings2;
-            }
-
-            if (targetContainer && element) {
-                targetContainer.appendChild(element);
-                element.style.display = display ?? '';
-            }
-        });
+        this._suiteDrawerDisplay = null;
 
         this.initialized = false;
         this.currentView = 'main';
@@ -1999,8 +2256,5 @@ export const ExtensionsTabOverhaul = {
         this.originalExtensions = [];
         this.hiddenCompanionExtensions = [];
         this.currentCompanionExtensions = [];
-
-        // Ensure the disabled state is persisted
-        this.saveSettings();
     }
 };

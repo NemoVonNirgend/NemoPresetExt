@@ -6,8 +6,11 @@
  */
 
 import logger from '../../core/logger.js';
-import { validatePromptActivation, getAllPromptsWithState, DIRECTIVE_DOCUMENTATION } from './prompt-directives.js';
+import { DIRECTIVE_DOCUMENTATION } from './prompt-directives.js';
 import { promptManager } from '../../../../../openai.js';
+
+let directiveUiObserver = null;
+let directiveUiTimeout = null;
 
 /**
  * Show a conflict resolution toast
@@ -17,7 +20,8 @@ import { promptManager } from '../../../../../openai.js';
  */
 export function showConflictToast(issues, promptId, onResolve) {
     // Check if there's already a toast showing for this prompt
-    const existingToast = document.querySelector(`.nemo-directive-toast[data-prompt-id="${promptId}"]`);
+    const existingToast = Array.from(document.querySelectorAll('.nemo-directive-toast'))
+        .find(element => element.dataset.promptId === promptId);
     if (existingToast) {
         return;
     }
@@ -30,10 +34,18 @@ export function showConflictToast(issues, promptId, onResolve) {
         return;
     }
 
+    let settled = false;
+    const settle = (proceed) => {
+        if (settled) return;
+        settled = true;
+        onResolve(proceed);
+    };
+
     const toast = document.createElement('div');
     toast.className = 'nemo-directive-toast';
     toast.setAttribute('role', 'alert');
     toast.setAttribute('data-prompt-id', promptId); // Track which prompt this toast is for
+    toast._nemoResolve = settle;
 
     let content = '<div class="nemo-toast-header">';
     if (errors.length > 0) {
@@ -100,7 +112,7 @@ export function showConflictToast(issues, promptId, onResolve) {
     toast.querySelectorAll('[data-action]').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const action = e.target.dataset.action;
-            handleToastAction(action, issues, promptId, toast, onResolve);
+            handleToastAction(action, issues, promptId, toast, settle);
         });
     });
 
@@ -112,6 +124,7 @@ export function showConflictToast(issues, promptId, onResolve) {
         setTimeout(() => {
             if (toast.parentNode) {
                 removeToast(toast);
+                settle(false);
             }
         }, 10000);
     }
@@ -246,6 +259,7 @@ function getIssueTypeLabel(type) {
         'missing-dependency': 'Missing Requirement',
         'category-limit': 'Category Limit',
         'soft-conflict': 'Potential Conflict',
+        'general-warning': 'Warning',
         'deprecated': 'Deprecated'
     };
     return labels[type] || type;
@@ -255,9 +269,12 @@ function getIssueTypeLabel(type) {
  * Escape HTML to prevent XSS
  */
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
 }
 
 /**
@@ -273,21 +290,40 @@ function removeToast(toastElement) {
 }
 
 /**
+ * Set a prompt's enabled state using the current SillyTavern PromptManager API.
+ */
+function setPromptEnabled(identifier, enabled) {
+    if (!promptManager?.activeCharacter) return false;
+
+    try {
+        const prompt = promptManager.getPromptById(identifier);
+        const promptOrderEntry = promptManager.getPromptOrderEntry(promptManager.activeCharacter, identifier);
+
+        if (!prompt || !promptOrderEntry) {
+            logger.warn(`Prompt state entry not found: ${identifier}`);
+            return false;
+        }
+
+        const counts = promptManager.tokenHandler?.getCounts?.();
+        if (counts) counts[identifier] = null;
+
+        promptOrderEntry.enabled = enabled;
+        promptManager.render();
+        const saveResult = promptManager.saveServiceSettings();
+        saveResult?.catch?.(error => logger.error('Error saving prompt state:', error));
+        return true;
+    } catch (error) {
+        logger.error('Error updating prompt state:', error);
+        return false;
+    }
+}
+
+/**
  * Enable a prompt by identifier
  */
 function enablePrompt(identifier) {
-    if (!promptManager) return;
-
-    try {
-        const activeCharacter = promptManager.activeCharacter;
-        const prompt = promptManager.getPromptById(identifier);
-
-        if (prompt && activeCharacter) {
-            promptManager.handleToggle(prompt, activeCharacter, true);
-            logger.info(`Auto-enabled prompt: ${prompt.name}`);
-        }
-    } catch (error) {
-        logger.error('Error enabling prompt:', error);
+    if (setPromptEnabled(identifier, true)) {
+        logger.info(`Auto-enabled prompt: ${identifier}`);
     }
 }
 
@@ -295,18 +331,8 @@ function enablePrompt(identifier) {
  * Disable a prompt by identifier
  */
 function disablePrompt(identifier) {
-    if (!promptManager) return;
-
-    try {
-        const activeCharacter = promptManager.activeCharacter;
-        const prompt = promptManager.getPromptById(identifier);
-
-        if (prompt && activeCharacter) {
-            promptManager.handleToggle(prompt, activeCharacter, false);
-            logger.info(`Auto-disabled prompt: ${prompt.name}`);
-        }
-    } catch (error) {
-        logger.error('Error disabling prompt:', error);
+    if (setPromptEnabled(identifier, false)) {
+        logger.info(`Auto-disabled prompt: ${identifier}`);
     }
 }
 
@@ -315,7 +341,7 @@ function disablePrompt(identifier) {
  */
 export function addDirectiveDocumentation() {
     // Check if already added anywhere in the document
-    if (document.querySelector('.nemo-directive-help')) {
+    if (document.querySelector('.nemo-directive-help, .nemo-directive-help-button')) {
         return;
     }
 
@@ -392,8 +418,17 @@ export function addDirectiveDocumentation() {
  * Show directive help modal
  */
 function showDirectiveHelp() {
+    const existingModal = document.querySelector('.nemo-directive-modal');
+    if (existingModal) {
+        existingModal.querySelector('.nemo-modal-close')?.focus();
+        return;
+    }
+
     const modal = document.createElement('div');
     modal.className = 'nemo-directive-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Prompt Directive Language');
     modal.innerHTML = `
         <div class="nemo-modal-overlay"></div>
         <div class="nemo-modal-content">
@@ -413,12 +448,12 @@ function showDirectiveHelp() {
     const closeBtn = modal.querySelector('.nemo-modal-close');
     const overlay = modal.querySelector('.nemo-modal-overlay');
 
+    let handleEsc;
     const closeModal = () => {
+        modal._nemoCleanup?.();
         modal.classList.add('nemo-modal-removing');
         setTimeout(() => {
-            if (modal.parentNode) {
-                modal.parentNode.removeChild(modal);
-            }
+            modal.remove();
         }, 300);
     };
 
@@ -426,13 +461,14 @@ function showDirectiveHelp() {
     overlay.addEventListener('click', closeModal);
 
     // ESC key to close
-    const handleEsc = (e) => {
+    handleEsc = (e) => {
         if (e.key === 'Escape') {
             closeModal();
-            document.removeEventListener('keydown', handleEsc);
         }
     };
     document.addEventListener('keydown', handleEsc);
+    modal._nemoCleanup = () => document.removeEventListener('keydown', handleEsc);
+    closeBtn.focus();
 }
 
 /**
@@ -469,10 +505,14 @@ function formatDocumentation(markdown) {
  * Initialize directive UI system
  */
 export function initDirectiveUI() {
+    if (directiveUiObserver) {
+        return cleanupDirectiveUI;
+    }
+
     logger.info('Initializing directive UI system');
 
     // Watch for prompt editor popup to appear
-    const observer = new MutationObserver(() => {
+    directiveUiObserver = new MutationObserver(() => {
         // Check if prompt editor popup is visible
         const popup = document.querySelector('.completion_prompt_manager_popup_entry, .dialogue_popup');
         if (popup && popup.style.display !== 'none') {
@@ -481,7 +521,7 @@ export function initDirectiveUI() {
         }
     });
 
-    observer.observe(document.body, {
+    directiveUiObserver.observe(document.body, {
         childList: true,
         subtree: true,
         attributes: true,
@@ -489,7 +529,28 @@ export function initDirectiveUI() {
     });
 
     // Also try immediately in case popup is already open
-    setTimeout(() => addDirectiveDocumentation(), 1000);
+    directiveUiTimeout = setTimeout(() => {
+        directiveUiTimeout = null;
+        addDirectiveDocumentation();
+    }, 1000);
 
     logger.info('Directive UI system initialized - watching for prompt editor');
+    return cleanupDirectiveUI;
+}
+
+export function cleanupDirectiveUI() {
+    directiveUiObserver?.disconnect();
+    directiveUiObserver = null;
+    clearTimeout(directiveUiTimeout);
+    directiveUiTimeout = null;
+
+    document.querySelectorAll('.nemo-directive-toast').forEach(toast => {
+        toast._nemoResolve?.(false);
+        toast.remove();
+    });
+    document.querySelectorAll('.nemo-directive-help, .nemo-directive-help-button, .nemo-directive-modal')
+        .forEach(element => {
+            element._nemoCleanup?.();
+            element.remove();
+        });
 }

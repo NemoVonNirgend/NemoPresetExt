@@ -5,7 +5,6 @@ interface PanelHeaderProps {
     icon?: string;
     isMinimized: boolean;
     isMaximized: boolean;
-    isDocked: boolean;
     onMouseDown: (e: React.MouseEvent) => void;
     onMinimize: () => void;
     onMaximize: () => void;
@@ -17,7 +16,6 @@ const PanelHeader: React.FC<PanelHeaderProps> = ({
     icon,
     isMinimized,
     isMaximized,
-    isDocked,
     onMouseDown,
     onMinimize,
     onMaximize,

@@ -13,7 +13,7 @@ import { showConflictToast } from '../directives/directive-ui.js';
 import { promptManager } from '../../../../../openai.js';
 import { chat_metadata, saveSettingsDebounced, eventSource, event_types } from '../../../../../../script.js';
 import { extension_settings } from '../../../../../extensions.js';
-import { NEMO_EXTENSION_NAME } from '../../core/utils.js';
+import { NEMO_EXTENSION_NAME, isFeatureEnabled } from '../../core/utils.js';
 import storage from '../../core/storage-migration.js';
 import { getTokenCountAsync } from '../../../../../tokenizers.js';
 
@@ -37,6 +37,44 @@ let topLevelDropZone = null; // Drop zone for making prompts top-level
 let isOverTopLevelDropZone = false;
 let isDragging = false; // Flag to pause updates during drag
 let currentContextMenu = null; // Track current context menu for cleanup
+let categoryTrayInitialized = false;
+const categoryTrayTimeouts = new Set();
+let categoryTrayDebounceTimeout = null;
+let dropdownStyleChangeHandler = null;
+let presetChangedHandler = null;
+let promptsOrganizedHandler = null;
+const categoryTrayDocumentCleanups = new Set();
+
+function scheduleCategoryTrayTimeout(callback, delay) {
+    const timeoutId = setTimeout(() => {
+        categoryTrayTimeouts.delete(timeoutId);
+        if (categoryTrayInitialized) {
+            callback();
+        }
+    }, delay);
+    categoryTrayTimeouts.add(timeoutId);
+    return timeoutId;
+}
+
+function clearCategoryTrayTimeout(timeoutId) {
+    if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        categoryTrayTimeouts.delete(timeoutId);
+    }
+}
+
+function addCategoryTrayDocumentListener(type, handler, options) {
+    document.addEventListener(type, handler, options);
+    let active = true;
+    const cleanup = () => {
+        if (!active) return;
+        active = false;
+        document.removeEventListener(type, handler, options);
+        categoryTrayDocumentCleanups.delete(cleanup);
+    };
+    categoryTrayDocumentCleanups.add(cleanup);
+    return cleanup;
+}
 
 /**
  * Get saved presets from extension settings
@@ -348,16 +386,16 @@ function applyCurrentMode() {
         // Then apply accordion mode
         convertToAccordionMode();
         // Refresh counts with delays to catch late DOM updates
-        setTimeout(() => updateAllAccordionSectionCounts(), 100);
-        setTimeout(() => updateAllAccordionSectionCounts(), 300);
+        scheduleCategoryTrayTimeout(() => updateAllAccordionSectionCounts(), 100);
+        scheduleCategoryTrayTimeout(() => updateAllAccordionSectionCounts(), 300);
     } else {
         // First disable accordion mode if it was active
         disableAccordionMode();
         // Then apply tray mode
         convertToTrayMode();
         // Refresh progress bars
-        setTimeout(() => refreshAllSectionProgressBars(), 100);
-        setTimeout(() => refreshAllSectionProgressBars(), 300);
+        scheduleCategoryTrayTimeout(() => refreshAllSectionProgressBars(), 100);
+        scheduleCategoryTrayTimeout(() => refreshAllSectionProgressBars(), 300);
     }
 }
 
@@ -365,18 +403,26 @@ function applyCurrentMode() {
  * Initialize the category tray system
  */
 export function initCategoryTray() {
+    if (categoryTrayInitialized) {
+        logger.warn('Category tray system is already initialized');
+        return;
+    }
+
+    categoryTrayInitialized = true;
+
     console.log('[NemoTray] ====== INIT CALLED ======');
     logger.info('Initializing category tray system');
 
     // Listen for dropdown style changes
-    document.addEventListener('nemo-dropdown-style-changed', (e) => {
+    dropdownStyleChangeHandler = (e) => {
         console.log('[NemoTray] Dropdown style changed:', e.detail?.style);
         applyCurrentMode();
-    });
+    };
+    document.addEventListener('nemo-dropdown-style-changed', dropdownStyleChangeHandler);
 
     // Invalidate cache on preset change
     if (eventSource && event_types) {
-        eventSource.on(event_types.OAI_PRESET_CHANGED_AFTER, () => {
+        presetChangedHandler = () => {
             console.log('[NemoTray] Preset changed - clearing prompt cache and closing trays');
             sectionPromptIdsCache.clear();
             
@@ -404,27 +450,30 @@ export function initCategoryTray() {
                 topLevelPromptsContainer.remove();
                 topLevelPromptsContainer = null;
             }
-        });
+        };
+        eventSource.on(event_types.OAI_PRESET_CHANGED_AFTER, presetChangedHandler);
     }
 
     // Listen for prompt manager organization completion
-    document.addEventListener('nemo-prompts-organized', (e) => {
+    promptsOrganizedHandler = () => {
         console.log('[NemoTray] Prompts organized event received');
         // Debounce just in case multiple events fire rapidly
-        clearTimeout(window._trayDebounce);
-        window._trayDebounce = setTimeout(() => {
+        clearCategoryTrayTimeout(categoryTrayDebounceTimeout);
+        categoryTrayDebounceTimeout = scheduleCategoryTrayTimeout(() => {
+            categoryTrayDebounceTimeout = null;
             if (isDragging) return;
             applyCurrentMode();
             // Refresh progress bars after conversion
-            setTimeout(() => refreshAllSectionProgressBars(), 100);
-            setTimeout(() => refreshAllSectionProgressBars(), 300);
+            scheduleCategoryTrayTimeout(() => refreshAllSectionProgressBars(), 100);
+            scheduleCategoryTrayTimeout(() => refreshAllSectionProgressBars(), 300);
         }, 100);
-    });
+    };
+    document.addEventListener('nemo-prompts-organized', promptsOrganizedHandler);
 
     // Try multiple times with increasing delays to catch sections (initial load backup)
     const delays = [500, 1000, 2000, 3000, 5000];
     delays.forEach(delay => {
-        setTimeout(() => {
+        scheduleCategoryTrayTimeout(() => {
             console.log(`[NemoTray] Checking for sections after ${delay}ms...`);
             applyCurrentMode();
             // Also refresh progress bars to catch any ST overwrites
@@ -433,11 +482,45 @@ export function initCategoryTray() {
     });
 
     // Additional delayed refresh to catch late ST updates
-    setTimeout(() => refreshAllSectionProgressBars(), 6000);
-    setTimeout(() => refreshAllSectionProgressBars(), 8000);
+    scheduleCategoryTrayTimeout(() => refreshAllSectionProgressBars(), 6000);
+    scheduleCategoryTrayTimeout(() => refreshAllSectionProgressBars(), 8000);
 
     console.log('[NemoTray] Event listeners attached');
     logger.info('Category tray system initialized - listening for prompt organization');
+}
+/**
+ * Remove category tray listeners, timers, and DOM conversions.
+ */
+export function cleanupCategoryTray() {
+    if (dropdownStyleChangeHandler) {
+        document.removeEventListener('nemo-dropdown-style-changed', dropdownStyleChangeHandler);
+    }
+    if (promptsOrganizedHandler) {
+        document.removeEventListener('nemo-prompts-organized', promptsOrganizedHandler);
+    }
+    if (presetChangedHandler && eventSource && event_types) {
+        eventSource.removeListener(event_types.OAI_PRESET_CHANGED_AFTER, presetChangedHandler);
+    }
+
+    dropdownStyleChangeHandler = null;
+    promptsOrganizedHandler = null;
+    presetChangedHandler = null;
+
+    clearCategoryTrayTimeout(categoryTrayDebounceTimeout);
+    categoryTrayDebounceTimeout = null;
+    categoryTrayTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+    categoryTrayTimeouts.clear();
+    [...categoryTrayDocumentCleanups].forEach(cleanup => cleanup());
+    categoryTrayInitialized = false;
+
+    disableTrayMode();
+    disableAccordionMode();
+    hideContextMenu();
+    document.querySelectorAll('.nemo-prompt-preview-modal').forEach(modal => {
+        modal._escapeCleanup?.();
+        modal.remove();
+    });
+    sectionPromptIdsCache.clear();
 }
 
 // Track top-level prompts container
@@ -670,8 +753,8 @@ function convertToTrayMode() {
                 content.classList.add('nemo-tray-hidden-content');
 
                 updateSectionProgressFromStoredIds(section);
-                setTimeout(() => updateSectionProgressFromStoredIds(section), 100);
-                setTimeout(() => updateSectionProgressFromStoredIds(section), 500);
+                scheduleCategoryTrayTimeout(() => updateSectionProgressFromStoredIds(section), 100);
+                scheduleCategoryTrayTimeout(() => updateSectionProgressFromStoredIds(section), 500);
 
                 // Set up click handler
                 const clickHandler = (e) => {
@@ -792,8 +875,8 @@ function convertToTrayMode() {
         // Update the section progress bar using stored prompt IDs
         // Update immediately and again after delays to catch ST overwrites
         updateSectionProgressFromStoredIds(section);
-        setTimeout(() => updateSectionProgressFromStoredIds(section), 100);
-        setTimeout(() => updateSectionProgressFromStoredIds(section), 500);
+        scheduleCategoryTrayTimeout(() => updateSectionProgressFromStoredIds(section), 100);
+        scheduleCategoryTrayTimeout(() => updateSectionProgressFromStoredIds(section), 500);
 
         // Create click handler
         const clickHandler = (e) => {
@@ -989,7 +1072,8 @@ async function movePromptToSectionTop(identifier, promptData, fromSection, toSec
 
         // If source tray is open, remove the card from it
         if (fromTray) {
-            const card = fromTray.querySelector(`.nemo-prompt-card[data-identifier="${identifier}"]`);
+            const card = Array.from(fromTray.querySelectorAll('.nemo-prompt-card'))
+                .find(element => element.dataset.identifier === identifier);
             if (card) card.remove();
 
             // Update source tray's prompts array and footer
@@ -1006,7 +1090,7 @@ async function movePromptToSectionTop(identifier, promptData, fromSection, toSec
         if (toTray) {
             // Close and reopen to refresh
             closeTray(toSection);
-            setTimeout(() => openTray(toSection), 50);
+            scheduleCategoryTrayTimeout(() => openTray(toSection), 50);
         }
 
         console.log('[NemoTray] Moved prompt', identifier, 'to top of', getSectionId(toSection));
@@ -1144,7 +1228,7 @@ async function movePromptToTopLevel(identifier, promptData, fromSection, fromTra
             // If top-level tray is open, refresh it
             if (topLevelPromptsContainer._nemoCategoryTray) {
                 closeTray(topLevelPromptsContainer);
-                setTimeout(() => openTray(topLevelPromptsContainer), 50);
+                scheduleCategoryTrayTimeout(() => openTray(topLevelPromptsContainer), 50);
             }
         } else {
             // Create the container if it doesn't exist
@@ -1159,7 +1243,8 @@ async function movePromptToTopLevel(identifier, promptData, fromSection, fromTra
 
         // If source tray is open, remove the card from it
         if (fromTray) {
-            const card = fromTray.querySelector(`.nemo-prompt-card[data-identifier="${identifier}"]`);
+            const card = Array.from(fromTray.querySelectorAll('.nemo-prompt-card'))
+                .find(element => element.dataset.identifier === identifier);
             if (card) card.remove();
 
             // Update source tray's prompts array and footer
@@ -1251,7 +1336,8 @@ function openTray(section) {
         }
 
         // Get directives from cache (fast - no content parsing needed)
-        const cachedDirectives = getCachedDirectives(identifier) || {};
+        const directivesEnabled = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableDirectives');
+        const cachedDirectives = directivesEnabled ? getCachedDirectives(identifier) || {} : {};
         const tooltip = cachedDirectives.tooltip || '';
         const badge = cachedDirectives.badge || null;
         const color = cachedDirectives.color || null;
@@ -1348,17 +1434,10 @@ function openTray(section) {
         // Escape identifier for use in data attribute
         const safeIdentifier = escapeHtml(p.identifier);
 
-        // Build inline styles for color
-        let cardStyle = '';
-        if (p.color) {
-            cardStyle = `style="--nemo-card-color: ${escapeHtml(p.color)}; border-left: 4px solid ${escapeHtml(p.color)};"`;
-        }
-
         // Build badge HTML if present
         let badgeHtml = '';
         if (p.badge) {
-            const badgeBg = p.color || '#4A9EFF';
-            badgeHtml = `<span class="nemo-prompt-card-badge" style="background: ${escapeHtml(badgeBg)};">${escapeHtml(p.badge)}</span>`;
+            badgeHtml = `<span class="nemo-prompt-card-badge">${escapeHtml(p.badge)}</span>`;
         }
 
         // Build dependency indicators
@@ -1394,8 +1473,7 @@ function openTray(section) {
                  data-index="${index}"
                  data-requires="${escapeHtml(JSON.stringify(p.requires))}"
                  data-exclusive="${escapeHtml(JSON.stringify(p.exclusiveWith))}"
-                 data-conflicts="${escapeHtml(JSON.stringify(p.conflictsWith))}"
-                 ${cardStyle}>
+                 data-conflicts="${escapeHtml(JSON.stringify(p.conflictsWith))}">
                 <div class="nemo-prompt-card-drag-handle" title="Drag to reorder">
                     <i class="fa-solid fa-grip-vertical"></i>
                 </div>
@@ -1433,6 +1511,26 @@ function openTray(section) {
     `;
 
     tray.innerHTML = trayContent;
+
+    // Apply validated colors through CSSOM so directive text is never parsed as
+    // additional declarations inside an HTML style attribute.
+    tray.querySelectorAll('.nemo-prompt-card').forEach(card => {
+        const promptIndex = Number.parseInt(card.dataset.index, 10);
+        const prompt = prompts[promptIndex];
+        if (!prompt) return;
+
+        if (prompt.color) {
+            card.style.setProperty('--nemo-card-color', prompt.color);
+            card.style.borderLeftColor = prompt.color;
+            card.style.borderLeftStyle = 'solid';
+            card.style.borderLeftWidth = '4px';
+        }
+
+        const badge = card.querySelector('.nemo-prompt-card-badge');
+        if (badge) {
+            badge.style.backgroundColor = prompt.color || '#4A9EFF';
+        }
+    });
 
     // Initialize drag-and-drop reordering for tray cards
     const trayGrid = tray.querySelector('.nemo-tray-grid');
@@ -1718,7 +1816,7 @@ function openTray(section) {
             savePreset(name, sectionId, enabledPrompts.map(p => p.identifier));
             // Refresh tray to show new preset
             closeTray(section);
-            setTimeout(() => openTray(section), 50);
+            scheduleCategoryTrayTimeout(() => openTray(section), 50);
         }
     });
 
@@ -1952,7 +2050,6 @@ function openTray(section) {
             case 'Escape':
                 blockEvent();
                 closeTray(section);
-                document.removeEventListener('keydown', keyHandler, true);
                 break;
             case 'ArrowDown':
                 blockEvent();
@@ -1989,7 +2086,7 @@ function openTray(section) {
     };
 
     // Use capture phase to intercept before ST handlers
-    document.addEventListener('keydown', keyHandler, true);
+    tray._keyCleanup = addCategoryTrayDocumentListener('keydown', keyHandler, true);
     tray._keyHandler = keyHandler;
 
     // Insert tray AFTER the details element (not inside it, since details is closed)
@@ -2021,12 +2118,13 @@ function openTray(section) {
         // Don't close if clicked in this tray, on this section, or on any other tray/section
         if (!clickedInTray && !clickedOnSection && !clickedOnAnotherTray && !clickedOnAnotherSection) {
             closeTray(section);
-            document.removeEventListener('click', closeOnOutsideClick);
         }
     };
     // Delay adding the listener to avoid immediate trigger
-    setTimeout(() => {
-        document.addEventListener('click', closeOnOutsideClick);
+    scheduleCategoryTrayTimeout(() => {
+        if (section._nemoCategoryTray === tray) {
+            tray._closeCleanup = addCategoryTrayDocumentListener('click', closeOnOutsideClick);
+        }
     }, 10);
     // Store reference so we can remove it on manual close
     tray._closeHandler = closeOnOutsideClick;
@@ -2053,19 +2151,15 @@ function closeTray(section) {
         section._nemoTrayClosing = true;
 
         // Remove click-outside handler
-        if (tray._closeHandler) {
-            document.removeEventListener('click', tray._closeHandler);
-        }
+        tray._closeCleanup?.();
         // Remove keyboard handler (must match capture flag)
-        if (tray._keyHandler) {
-            document.removeEventListener('keydown', tray._keyHandler, true);
-        }
+        tray._keyCleanup?.();
         tray.classList.add('nemo-tray-closing');
 
         // Clear reference immediately to prevent toggleTray confusion
         delete section._nemoCategoryTray;
 
-        setTimeout(() => {
+        scheduleCategoryTrayTimeout(() => {
             tray.remove();
             delete section._nemoTrayClosing;
         }, 200);
@@ -2085,7 +2179,7 @@ function closeTray(section) {
  */
 function refreshTray(section) {
     closeTray(section);
-    setTimeout(() => openTray(section), 50);
+    scheduleCategoryTrayTimeout(() => openTray(section), 50);
 }
 
 /**
@@ -2100,7 +2194,7 @@ function togglePrompt(identifier, enabled, onValidationFailed = null) {
 
     try {
         // Only validate when ENABLING a prompt
-        if (enabled) {
+        if (enabled && isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableDirectives')) {
             const allPrompts = getAllPromptsWithState();
             const issues = validatePromptActivation(identifier, allPrompts);
 
@@ -2158,7 +2252,7 @@ async function performToggle(identifier, enabled) {
 
             // End toggle operation after ST finishes its internal re-render.
             // Use a longer timeout to be safe - ST may have async operations.
-            setTimeout(() => {
+            scheduleCategoryTrayTimeout(() => {
                 if (NemoPresetManager?.endToggle) {
                     NemoPresetManager.endToggle();
                 }
@@ -2377,6 +2471,8 @@ function getAllSections() {
  */
 function hideContextMenu() {
     if (currentContextMenu) {
+        currentContextMenu._closeCleanup?.();
+        currentContextMenu._escapeCleanup?.();
         currentContextMenu.remove();
         currentContextMenu = null;
     }
@@ -2499,23 +2595,23 @@ function showPromptMoveContextMenu(e, promptData, fromSection, fromTray, card) {
     const closeHandler = (evt) => {
         if (!menu.contains(evt.target)) {
             hideContextMenu();
-            document.removeEventListener('click', closeHandler);
         }
     };
 
     // Delay adding listener to avoid immediate close
-    setTimeout(() => {
-        document.addEventListener('click', closeHandler);
+    scheduleCategoryTrayTimeout(() => {
+        if (currentContextMenu === menu) {
+            menu._closeCleanup = addCategoryTrayDocumentListener('click', closeHandler);
+        }
     }, 10);
 
     // Close on escape
     const escHandler = (evt) => {
         if (evt.key === 'Escape') {
             hideContextMenu();
-            document.removeEventListener('keydown', escHandler);
         }
     };
-    document.addEventListener('keydown', escHandler);
+    menu._escapeCleanup = addCategoryTrayDocumentListener('keydown', escHandler);
 }
 
 // Cache for token counts to avoid repeated calculations
@@ -2609,11 +2705,18 @@ function showPromptPreview(identifier, name) {
     // Get global variables from extension_settings
     const globalVariables = extension_settings?.variables?.global || {};
 
-    // Process content to highlight and resolve variables
-    // Match patterns like {{getvar::name}} or {{getglobalvar::name}}
-    const processedContent = content.replace(
-        /\{\{(getvar|getglobalvar)::([^}]+)\}\}/gi,
-        (match, type, varName) => {
+    // Escape all prompt text while preserving the markup that this preview creates
+    // for macros. Prompt content is user-controlled and must never be inserted raw.
+    const macroPattern = /\{\{(getvar|getglobalvar)::([^}]+)\}\}|\{\{([^}]+)\}\}/gi;
+    let finalContent = '';
+    let lastIndex = 0;
+    let macroMatch;
+
+    while ((macroMatch = macroPattern.exec(content)) !== null) {
+        finalContent += escapeHtml(content.slice(lastIndex, macroMatch.index));
+
+        const [match, type, varName, unresolvedMacro] = macroMatch;
+        if (type) {
             let value = '';
             let varSource = '';
 
@@ -2629,21 +2732,19 @@ function showPromptPreview(identifier, name) {
             const hasValue = value !== undefined && value !== null;
             const displayValue = hasValue ? String(value) : '[not set]';
 
-            // Return a marked-up version showing the variable name and its value
-            return `<span class="nemo-var-resolved ${hasValue ? '' : 'nemo-var-unset'}" data-var-name="${escapeHtml(varName)}" data-var-type="${type}" title="${varSource} Variable: ${escapeHtml(varName)}">${escapeHtml(displayValue)}</span>`;
+            finalContent += `<span class="nemo-var-resolved ${hasValue ? '' : 'nemo-var-unset'}" data-var-name="${escapeHtml(varName)}" data-var-type="${type.toLowerCase()}" title="${varSource} Variable: ${escapeHtml(varName)}">${escapeHtml(displayValue)}</span>`;
+        } else {
+            finalContent += `<span class="nemo-macro-unresolved" title="Macro: ${escapeHtml(unresolvedMacro)}">${escapeHtml(match)}</span>`;
         }
-    );
 
-    // Also highlight other macros that aren't resolved (just show them as-is but styled)
-    const finalContent = processedContent.replace(
-        /\{\{(?!getvar|getglobalvar)([^}]+)\}\}/gi,
-        (match, inner) => {
-            return `<span class="nemo-macro-unresolved" title="Macro: ${escapeHtml(inner)}">${escapeHtml(match)}</span>`;
-        }
-    );
+        lastIndex = macroPattern.lastIndex;
+    }
+    finalContent += escapeHtml(content.slice(lastIndex));
 
     // Remove existing preview modal if any
-    document.querySelector('.nemo-prompt-preview-modal')?.remove();
+    const existingPreview = document.querySelector('.nemo-prompt-preview-modal');
+    existingPreview?._escapeCleanup?.();
+    existingPreview?.remove();
 
     // Create modal
     const modal = document.createElement('div');
@@ -2671,14 +2772,19 @@ function showPromptPreview(identifier, name) {
         </div>
     `;
 
+    const closePreview = () => {
+        modal._escapeCleanup?.();
+        modal.remove();
+    };
+
     // Close handlers
     modal.querySelector('.nemo-preview-close').addEventListener('click', (e) => {
         e.stopPropagation();
-        modal.remove();
+        closePreview();
     });
     modal.querySelector('.nemo-preview-backdrop').addEventListener('click', (e) => {
         e.stopPropagation();
-        modal.remove();
+        closePreview();
     });
 
     // Stop propagation of all interaction events from the container to prevent accidental closes
@@ -2691,7 +2797,7 @@ function showPromptPreview(identifier, name) {
     // Edit button - directly open the prompt manager editor
     modal.querySelector('.nemo-preview-edit-btn').addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent bubbling up to background elements
-        modal.remove();
+        closePreview();
 
         // Directly call promptManager methods to open the editor
         try {
@@ -2728,11 +2834,10 @@ function showPromptPreview(identifier, name) {
     // ESC to close
     const escHandler = (e) => {
         if (e.key === 'Escape') {
-            modal.remove();
-            document.removeEventListener('keydown', escHandler);
+            closePreview();
         }
     };
-    document.addEventListener('keydown', escHandler);
+    modal._escapeCleanup = addCategoryTrayDocumentListener('keydown', escHandler);
 
     document.body.appendChild(modal);
     logger.info(`Showing preview for prompt: ${name}`);
@@ -2905,9 +3010,12 @@ function updateAncestorSections(section) {
  * Escape HTML
  */
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
 }
 
 /**
@@ -2922,12 +3030,8 @@ export function disableTrayMode() {
     document.querySelectorAll('.nemo-tray-section').forEach(section => {
         if (section._nemoCategoryTray) {
             const tray = section._nemoCategoryTray;
-            if (tray._closeHandler) {
-                document.removeEventListener('click', tray._closeHandler);
-            }
-            if (tray._keyHandler) {
-                document.removeEventListener('keydown', tray._keyHandler, true);
-            }
+            tray._closeCleanup?.();
+            tray._keyCleanup?.();
             tray.remove();
             delete section._nemoCategoryTray;
         }
@@ -3113,7 +3217,7 @@ function enhancePromptItemForAccordion(item) {
     const toggleBtn = item.querySelector('.prompt-manager-toggle-action');
     if (toggleBtn) {
         const updateHandler = () => {
-            setTimeout(() => updateAccordionItemEnabledState(item), 50);
+            scheduleCategoryTrayTimeout(() => updateAccordionItemEnabledState(item), 50);
         };
         toggleBtn.addEventListener('click', updateHandler);
         item._accordionToggleHandler = updateHandler;

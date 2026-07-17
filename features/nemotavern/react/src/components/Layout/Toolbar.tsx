@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNemoStore } from '../../store';
 
 interface ToolbarProps {
     onCommandPalette: () => void;
@@ -38,8 +37,6 @@ const toggleDrawer = (drawerId: string) => {
 };
 
 const Toolbar: React.FC<ToolbarProps> = ({ onCommandPalette, onSettings }) => {
-    const { quickAccessButtons } = useNemoStore();
-
     return (
         <div className="nemo-toolbar">
             {/* Logo/Brand */}

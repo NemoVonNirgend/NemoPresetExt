@@ -76,8 +76,18 @@ function openPromptManager() {
     }
 }
 
-function wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+function wait(ms, signal) {
+    if (signal?.aborted) return Promise.resolve(false);
+    return new Promise(resolve => {
+        const finish = (completed) => {
+            clearTimeout(timer);
+            signal?.removeEventListener('abort', abort);
+            resolve(completed);
+        };
+        const abort = () => finish(false);
+        const timer = setTimeout(() => finish(true), ms);
+        signal?.addEventListener('abort', abort, { once: true });
+    });
 }
 
 function isVisibleElement(element) {
@@ -105,43 +115,45 @@ function findDrawerIcon(title) {
         });
 }
 
-async function focusDrawerTarget(title, targetSelector) {
+async function focusDrawerTarget(title, targetSelector, { signal } = {}) {
+    if (signal?.aborted) return null;
     const target = document.querySelector(targetSelector);
     if (isVisibleElement(target)) {
         target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-        await wait(350);
+        await wait(350, signal);
         return target;
     }
 
     const icon = findDrawerIcon(title);
-    if (icon && (!icon.classList.contains('openIcon') || !isVisibleElement(target))) {
+    if (!signal?.aborted && icon && (!icon.classList.contains('openIcon') || !isVisibleElement(target))) {
         icon.click();
-        await wait(900);
+        if (!await wait(900, signal)) return null;
     }
 
     const next = document.querySelector(targetSelector);
-    if (next) {
+    if (!signal?.aborted && next) {
         next.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-        await wait(450);
+        await wait(450, signal);
     }
     return next;
 }
 
-async function focusInstallerCard() {
-    return focusDrawerTarget('Extensions', '.nemo-engine-installer-section');
+async function focusInstallerCard(context) {
+    return focusDrawerTarget('Extensions', '.nemo-engine-installer-section', context);
 }
 
-async function focusConnectionPreset() {
-    return focusDrawerTarget('AI Response Configuration', '#settings_preset_openai');
+async function focusConnectionPreset(context) {
+    return focusDrawerTarget('AI Response Configuration', '#settings_preset_openai', context);
 }
 
-async function focusPromptSections() {
-    await focusConnectionPreset();
+async function focusPromptSections(context = {}) {
+    await focusConnectionPreset(context);
+    if (context.signal?.aborted) return;
     openPromptManager();
     const promptList = document.querySelector('#completion_prompt_manager_list');
     if (promptList) {
         promptList.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-        await wait(450);
+        await wait(450, context.signal);
     }
 }
 

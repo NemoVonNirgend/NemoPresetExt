@@ -32,14 +32,14 @@
                             <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
-                                    <input type="checkbox" id="nemoEnablePromptManager" checked>
+                                    <input type="checkbox" id="nemoEnablePromptManager">
                                     <span class="nemo-toggle-slider"></span>
                                 </label>
                             </div>
                             <div class="nemo-setting-info">
-                                <div class="nemo-setting-title">Prompt Manager Enhancements</div>
+                                <div class="nemo-setting-title">Prompt Dropdowns &amp; Tools</div>
                                 <div class="nemo-setting-description">
-                                    Collapsible sections, drag-and-drop reordering, and visual improvements
+                                    Search and filter, collapsible sections, tray/accordion views, drag-and-drop, prompt folders, archive, and snapshots
                                 </div>
                             </div>
                         </div>
@@ -77,7 +77,7 @@
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
-                                    <input type="checkbox" id="nemoEnablePresetNavigator" checked>
+                                    <input type="checkbox" id="nemoEnablePresetNavigator">
                                     <span class="nemo-toggle-slider"></span>
                                 </label>
                             </div>
@@ -92,14 +92,15 @@
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
-                                    <input type="checkbox" id="nemoEnableDirectives" checked>
+                                    <input type="checkbox" id="nemoEnableCharacterNavigator">
                                     <span class="nemo-toggle-slider"></span>
                                 </label>
                             </div>
                             <div class="nemo-setting-info">
-                                <div class="nemo-setting-title">Prompt Directive System</div>
+                                <div class="nemo-setting-title">Character Card Navigator</div>
                                 <div class="nemo-setting-description">
-                                    Allows preset makers to embed rules and dependencies in prompts
+                                    Browse, search, organize, and open locally installed character cards
+                                    <span class="nemo-refresh-note">Requires refresh</span>
                                 </div>
                             </div>
                         </div>
@@ -107,14 +108,44 @@
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
-                                    <input type="checkbox" id="nemoEnableDirectiveAutocomplete" checked>
+                                    <input type="checkbox" id="nemoEnableReasoningCapture">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Improved Reasoning Capture</div>
+                                <div class="nemo-setting-description">
+                                    Reliably capture and format model reasoning without reorganizing SillyTavern's reasoning controls
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableDirectives">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Prompt Directives</div>
+                                <div class="nemo-setting-description">
+                                    Validation, dependencies, message triggers, metadata, and editor help. Enabled for new installs.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableDirectiveAutocomplete">
                                     <span class="nemo-toggle-slider"></span>
                                 </label>
                             </div>
                             <div class="nemo-setting-info">
                                 <div class="nemo-setting-title">Directive Autocomplete</div>
                                 <div class="nemo-setting-description">
-                                    Show autocomplete suggestions when typing directives in the prompt editor
+                                    Show directive-only suggestions inside {{// ... }} prompt comments. Requires Prompt Directives.
                                     <span class="nemo-refresh-note">Requires refresh</span>
                                 </div>
                             </div>
@@ -135,7 +166,7 @@
                             <div class="nemo-setting-info">
                                 <div class="nemo-setting-title">Animated Backgrounds</div>
                                 <div class="nemo-setting-description">
-                                    Support for video backgrounds (webm, mp4) and YouTube URLs with controls
+                                    YouTube backgrounds work directly; video file uploads require the Video Background Loader add-on and are converted to animated WebP
                                     <span class="nemo-refresh-note">Requires refresh</span>
                                 </div>
                             </div>
@@ -144,7 +175,7 @@
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
-                                    <input type="checkbox" id="nemoEnableTabOverhauls" checked>
+                                    <input type="checkbox" id="nemoEnableTabOverhauls">
                                     <span class="nemo-toggle-slider"></span>
                                 </label>
                             </div>
@@ -160,7 +191,7 @@
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
-                                    <input type="checkbox" id="nemoEnableConnectionPanelOverhaul" checked>
+                                    <input type="checkbox" id="nemoEnableConnectionPanelOverhaul">
                                     <span class="nemo-toggle-slider"></span>
                                 </label>
                             </div>
@@ -245,17 +276,20 @@
                             <div class="nemo-setting-info">
                                 <div class="nemo-setting-title">Auto-Trim Old HTML</div>
                                 <div class="nemo-setting-description">
-                                    Automatically convert complex HTML/CSS in old messages to simple text dropdowns to reduce context usage
+                                    Convert complex HTML/CSS in older messages to compact text while keeping a restorable backup in chat metadata
                                     <div style="margin-top: 8px;">
                                         <label style="display: inline-block; margin-right: 10px; color: #aaa; font-size: 0.9em;">
                                             Keep last
                                             <input type="number" id="nemoHTMLTrimmingKeepCount" min="2" max="20" value="4" style="width: 50px; margin: 0 4px; padding: 2px 4px; background: rgba(0,0,0,0.3); border: 1px solid #555; border-radius: 4px; color: #fff;">
                                             messages untouched
                                         </label>
-                                        <button id="nemoManualHTMLTrim" style="padding: 4px 12px; background: #4a4a4a; border: 1px solid #666; border-radius: 4px; color: #fff; cursor: pointer; font-size: 0.9em;">
+                                        <button type="button" id="nemoManualHTMLTrim" class="menu_button">
                                             Trim Now
                                         </button>
-                                        <span id="nemoHTMLTrimStatus" style="margin-left: 8px; font-size: 0.85em; color: #aaa;"></span>
+                                        <button type="button" id="nemoRestoreHTMLTrim" class="menu_button">
+                                            Restore Trimmed
+                                        </button>
+                                        <span id="nemoHTMLTrimStatus" role="status" aria-live="polite" style="margin-left: 8px; font-size: 0.85em; color: #aaa;"></span>
                                     </div>
                                 </div>
                             </div>
@@ -280,7 +314,7 @@
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
-                                    <input type="checkbox" id="nemoEnableMobileEnhancements" checked>
+                                    <input type="checkbox" id="nemoEnableMobileEnhancements">
                                     <span class="nemo-toggle-slider"></span>
                                 </label>
                             </div>
@@ -296,7 +330,7 @@
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
-                                    <input type="checkbox" id="nemoEnableModelSelector" checked>
+                                    <input type="checkbox" id="nemoEnableModelSelector">
                                     <span class="nemo-toggle-slider"></span>
                                 </label>
                             </div>
@@ -309,6 +343,149 @@
                             </div>
                         </div>
 
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableMarketplace">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Nemo Marketplace</div>
+                                <div class="nemo-setting-description">
+                                    Curated extension, preset, and community recommendations
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnablePersonaEnhancements">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Persona UI Enhancements</div>
+                                <div class="nemo-setting-description">
+                                    Reorganize persona actions, add counts, and collapse global persona settings
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableEmojiPicker">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Emoji Picker</div>
+                                <div class="nemo-setting-description">
+                                    Add an emoji picker button beside the message composer
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableItalicDialogueRenderer">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Italic Dialogue Rendering</div>
+                                <div class="nemo-setting-description">
+                                    Apply enhanced formatting to italic dialogue in rendered messages
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableNemoLore">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">NemoLore</div>
+                                <div class="nemo-setting-description">
+                                    Load NemoLore memory settings and runtime features
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableRewrite">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Nemo Rewrite</div>
+                                <div class="nemo-setting-description">
+                                    Load rewrite tools and their settings panel
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableTutorials">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">Tutorials and Welcome Guide</div>
+                                <div class="nemo-setting-description">
+                                    Load tutorials and allow the first-run welcome guide
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableNemoEngineInstaller">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">NemoEngine Installer</div>
+                                <div class="nemo-setting-description">
+                                    Show the bundled NemoEngine preset installer in these settings
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nemo-setting-row">
+                            <div class="nemo-setting-control">
+                                <label class="nemo-toggle-switch">
+                                    <input type="checkbox" id="nemoEnableApiRouter">
+                                    <span class="nemo-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="nemo-setting-info">
+                                <div class="nemo-setting-title">API Router and Model Pipeline</div>
+                                <div class="nemo-setting-description">
+                                    Load saved multi-connection routing and pipeline foundations
+                                    <span class="nemo-refresh-note">Requires refresh</span>
+                                </div>
+                            </div>
+                        </div>
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
@@ -337,7 +514,7 @@
                         <div class="nemo-setting-row">
                             <div class="nemo-setting-control">
                                 <label class="nemo-toggle-switch">
-                                    <input type="checkbox" id="nemoPollinationsPromptBestPractices" checked>
+                                    <input type="checkbox" id="nemoPollinationsPromptBestPractices">
                                     <span class="nemo-toggle-slider"></span>
                                 </label>
                             </div>
@@ -375,7 +552,6 @@
                     </div>
                     </div>
                 </div>
-            </div>
 
             <!-- CUSTOMIZATION SECTION -->
             <div class="inline-drawer">
@@ -1192,5 +1368,14 @@ input:disabled + .nemo-toggle-slider {
     font-size: 0.8em;
     color: var(--SmartThemeBodyColor);
     opacity: 0.6;
+}
+
+/* Native Extensions panel is a narrow column even on wide viewports. */
+.nemo-settings-host .nemo-preset-enhancer-settings .nemo-features-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.nemo-settings-host .nemo-preset-enhancer-settings {
+    min-width: 0;
 }
 </style>

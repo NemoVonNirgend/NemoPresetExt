@@ -2,7 +2,7 @@ import { eventSource, event_types, saveSettingsDebounced } from '../../../../scr
 import { extension_settings } from '../../../extensions.js';
 
 // Core utilities
-import { LOG_PREFIX, ensureSettingsNamespace, waitForElement } from './core/utils.js';
+import { LOG_PREFIX, NEMO_EXTENSION_NAME, ensureSettingsNamespace, isFeatureEnabled, waitForElement } from './core/utils.js';
 import { CONSTANTS } from './core/constants.js';
 import logger from './core/logger.js';
 import { initializeStorage, migrateFromLocalStorage } from './core/storage-migration.js';
@@ -20,17 +20,15 @@ import { initializeThemes, initThemeSelector } from './ui/theme-manager.js';
 import { NemoPresetManager, loadAndSetDividerRegex } from './features/prompts/prompt-manager.js';
 // Legacy prompt archive UI — disabled, replaced by category tray archive
 // import { NemoPromptArchiveUI } from './features/prompts/prompt-archive-ui.js';
-import { initCategoryTray } from './features/prompts/category-tray.js';
+import { cleanupCategoryTray, initCategoryTray } from './features/prompts/category-tray.js';
 
 // Feature modules - Image Generation
 import PollinationsInterceptor, { initPollinationsInterceptor } from './features/pollinations-interceptor.js';
 
 // Feature modules - Directives
-import { initDirectiveUI } from './features/directives/directive-ui.js';
-import { initPromptDirectiveHooks, initMessageTriggerHooks } from './features/directives/prompt-directive-hooks.js';
-import { initDirectiveAutocomplete } from './features/directives/directive-autocomplete-ui.js';
-import { initDirectiveFeatures } from './features/directives/directive-features.js';
-import { initDirectiveFeaturesFixes } from './features/directives/directive-features-fixes.js';
+import { cleanupDirectiveUI, initDirectiveUI } from './features/directives/directive-ui.js';
+import { cleanupMessageTriggerHooks, cleanupPromptDirectiveHooks, initPromptDirectiveHooks, initMessageTriggerHooks } from './features/directives/prompt-directive-hooks.js';
+import { cleanupDirectiveAutocomplete, initDirectiveAutocomplete } from './features/directives/directive-autocomplete-ui.js';
 
 // Feature modules - Backgrounds
 import { animatedBackgrounds } from './features/backgrounds/animated-backgrounds-module.js';
@@ -38,8 +36,8 @@ import { backgroundUIEnhancements } from './features/backgrounds/background-ui-e
 import { backgroundOrganizer } from './features/backgrounds/background-organizer.js';
 
 // Feature modules - Reasoning
-import { applyNemoNetReasoning } from './reasoning/nemonet-reasoning-config.js';
-import { initializeHTMLTrimmer, setupAutoTrim } from './reasoning/html-trimmer.js';
+import { applyNemoNetReasoning, cleanupNemoNetReasoning } from './reasoning/nemonet-reasoning-config.js';
+import { cleanupHTMLTrimmer, initializeHTMLTrimmer, setupAutoTrim } from './reasoning/html-trimmer.js';
 import { initItalicDialogueRenderer } from './features/formatting/italic-dialogue-renderer.js';
 
 // Feature modules - Onboarding/Tutorials
@@ -70,20 +68,218 @@ import { PipelinePresets } from './features/connection/pipeline-presets.js';
 // Archive modules - legacy code kept for reference
 import { PresetNavigator } from './archive/navigator.js';
 
-// Extension name constant for legacy code compatibility
-const NEMO_EXTENSION_NAME = 'NemoPresetExt';
+function featureEnabled(key) {
+    return isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], key);
+}
 
 // Supported APIs for preset navigator initialization (module scope for performance optimization)
 const SUPPORTED_APIS = ['openai', 'novel', 'kobold', 'textgenerationwebui', 'anthropic', 'claude', 'google', 'scale', 'cohere', 'mistral', 'aix', 'openrouter'];
 
 // Initialization guard to prevent double initialization
 let extensionInitialized = false;
+let extensionCleanupInProgress = false;
+const extensionCleanupFunctions = [];
+
+function cleanupExtension() {
+    if (extensionCleanupInProgress || (!extensionInitialized && extensionCleanupFunctions.length === 0)) {
+        return;
+    }
+
+    extensionCleanupInProgress = true;
+    const cleanupFunctions = extensionCleanupFunctions.splice(0);
+
+    try {
+        logger.info('Performing extension cleanup');
+        for (const cleanup of cleanupFunctions) {
+            try {
+                cleanup();
+            } catch (error) {
+                logger.error('Extension cleanup callback failed', error);
+            }
+        }
+
+        try { window.NemoPresetManager?.destroy?.(); } catch (e) { /* ignore */ }
+        try { cleanupPresetNavigatorWrappers(); } catch (e) { /* ignore */ }
+        try { cleanupCategoryTray(); } catch (e) { /* ignore */ }
+        try { NemoPersonaUI.destroy(); } catch (e) { /* ignore */ }
+        try { NemoMarketplace.destroy(); } catch (e) { /* ignore */ }
+        try { NemoGlobalUI.destroy(); } catch (e) { /* ignore */ }
+        try { EmojiPicker.destroy(); } catch (e) { /* ignore */ }
+        try { PollinationsInterceptor.destroy(); } catch (e) { /* ignore */ }
+        try { tutorialLauncher.destroy(); } catch (e) { /* ignore */ }
+        try { tutorialManager.destroy(); } catch (e) { /* ignore */ }
+        try { backgroundOrganizer.destroy(); } catch (e) { /* ignore */ }
+        try { backgroundUIEnhancements.destroy(); } catch (e) { /* ignore */ }
+        try { animatedBackgrounds.destroy(); } catch (e) { /* ignore */ }
+        try { NemoCharacterManager.destroy(); } catch (e) { /* ignore */ }
+        try { cleanupNemoLore(); } catch (e) { /* ignore */ }
+        try { cleanupNemoRewrite(); } catch (e) { /* ignore */ }
+        try { cleanupNemoEngineInstaller(); } catch (e) { /* ignore */ }
+        try { cleanupNemoNetReasoning(); } catch (e) { /* ignore */ }
+        try { cleanupHTMLTrimmer(); } catch (e) { /* ignore */ }
+        try { clearDirectiveCache(); } catch (e) { /* ignore */ }
+        try { removeWidePanelsStyles(); } catch (e) { /* ignore */ }
+        try { NemoWorldInfoUI.destroy(); } catch (e) { /* ignore */ }
+        try { UserSettingsTabs.restoreOriginalLayout(); } catch (e) { /* ignore */ }
+        try { UserSettingsTabs.cleanup(); } catch (e) { /* ignore */ }
+        try { ExtensionsTabOverhaul.cleanup(); } catch (e) { /* ignore */ }
+        try { NemoSettingsUI.destroy(); } catch (e) { /* ignore */ }
+        try { ModelSelector.destroy(); } catch (e) { /* ignore */ }
+        try { TextCompletionSelector.destroy(); } catch (e) { /* ignore */ }
+
+        document.body?.classList.remove(
+            'nemo-extensions-overhaul-enabled',
+            'nemo-animated-backgrounds-enabled',
+            'nemo-lorebook-overhaul-enabled',
+            'nemo-mobile-enhanced',
+        );
+
+        document.querySelectorAll('[data-nemo-patched]').forEach(el => {
+            delete el.dataset.nemoPatched;
+        });
+        document.querySelectorAll('[data-nemo-prompts-initialized]').forEach(el => {
+            delete el.dataset.nemoPromptsInitialized;
+        });
+        document.querySelectorAll('[data-nemo-state-preservation-patched]').forEach(el => {
+            delete el.dataset.nemoStatePreservationPatched;
+        });
+    } finally {
+        extensionInitialized = false;
+        extensionCleanupInProgress = false;
+    }
+}
+
+window.NemoPresetExtCleanup = cleanupExtension;
 
 // --- MAIN INITIALIZATION ---
 const MAIN_SELECTORS = {
     promptsContainer: '#completion_prompt_manager_list',
     promptEditorPopup: '.completion_prompt_manager_popup_entry',
 };
+
+const CUSTOM_OPENAI_COMPATIBLE_SOURCE = 'custom';
+const CUSTOM_OPENAI_TOP_K_SELECTOR = '#top_k_openai';
+const CUSTOM_OPENAI_OMIT_ZERO_FIELDS = ['frequency_penalty', 'presence_penalty', 'repetition_penalty'];
+
+function isZeroNumber(value) {
+    return value !== undefined && value !== null && value !== '' && Number(value) === 0;
+}
+
+function getNumericInputValue(selector) {
+    const value = document.querySelector(selector)?.value;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+}
+
+function addDataSource(element, source) {
+    if (!element) return false;
+
+    const sources = String(element.dataset.source || '')
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean);
+
+    if (sources.includes(source)) {
+        return false;
+    }
+
+    element.dataset.source = [...sources, source].join(',');
+    return true;
+}
+
+function syncSourceVisibility(element) {
+    const sourceSelect = document.querySelector('#chat_completion_source');
+    const selectedSource = sourceSelect?.value;
+
+    if (!element || !selectedSource) return;
+
+    const validSources = String(element.dataset.source || '')
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean);
+    const mode = element.dataset.sourceMode;
+    const matchesSource = validSources.includes(selectedSource);
+    const shouldShow = mode !== 'except' ? matchesSource : !matchesSource;
+    const jquery = window.jQuery || window.$;
+
+    if (typeof jquery === 'function') {
+        jquery(element).toggle(shouldShow);
+    } else {
+        element.style.display = shouldShow ? '' : 'none';
+    }
+}
+
+function patchCustomOpenAiSamplingUi(originalTopKSources) {
+    const topKBlock = document.querySelector(CUSTOM_OPENAI_TOP_K_SELECTOR)?.closest('[data-source]');
+    if (!topKBlock) return;
+    if (!originalTopKSources.has(topKBlock)) {
+        originalTopKSources.set(topKBlock, {
+            hadAttribute: topKBlock.hasAttribute('data-source'),
+            value: topKBlock.getAttribute('data-source'),
+        });
+    }
+
+    const changed = addDataSource(topKBlock, CUSTOM_OPENAI_COMPATIBLE_SOURCE);
+    syncSourceVisibility(topKBlock);
+
+    if (changed) {
+        logger.debug('Enabled Top K control for custom OpenAI-compatible endpoints');
+    }
+}
+
+function normalizeCustomOpenAiSamplingRequest(generateData) {
+    if (!generateData || generateData.chat_completion_source !== CUSTOM_OPENAI_COMPATIBLE_SOURCE) {
+        return;
+    }
+
+    for (const field of CUSTOM_OPENAI_OMIT_ZERO_FIELDS) {
+        if (isZeroNumber(generateData[field])) {
+            delete generateData[field];
+        }
+    }
+
+    const topK = getNumericInputValue(CUSTOM_OPENAI_TOP_K_SELECTOR);
+    if (topK !== null && topK > 0) {
+        generateData.top_k = topK;
+    } else if (isZeroNumber(generateData.top_k)) {
+        delete generateData.top_k;
+    }
+}
+
+function initializeCustomOpenAiSamplingPatch(eventCleanupFunctions) {
+    const originalTopKSources = new Map();
+    patchCustomOpenAiSamplingUi(originalTopKSources);
+    const initialPatchTimeout = setTimeout(() => patchCustomOpenAiSamplingUi(originalTopKSources), 1000);
+
+    const requestReadyHandler = (generateData) => {
+        normalizeCustomOpenAiSamplingRequest(generateData);
+    };
+
+    let sourceChangedTimeout;
+    const sourceChangedHandler = () => {
+        clearTimeout(sourceChangedTimeout);
+        sourceChangedTimeout = setTimeout(() => patchCustomOpenAiSamplingUi(originalTopKSources), 0);
+    };
+
+    eventSource.on(event_types.CHAT_COMPLETION_SETTINGS_READY, requestReadyHandler);
+    eventSource.on(event_types.CHATCOMPLETION_SOURCE_CHANGED, sourceChangedHandler);
+
+    eventCleanupFunctions.push(() => {
+        clearTimeout(initialPatchTimeout);
+        eventSource.removeListener(event_types.CHAT_COMPLETION_SETTINGS_READY, requestReadyHandler);
+        clearTimeout(sourceChangedTimeout);
+        for (const [element, originalSource] of originalTopKSources) {
+            if (originalSource.hadAttribute) {
+                element.dataset.source = originalSource.value;
+            } else {
+                element.removeAttribute('data-source');
+            }
+            syncSourceVisibility(element);
+        }
+        originalTopKSources.clear();
+        eventSource.removeListener(event_types.CHATCOMPLETION_SOURCE_CHANGED, sourceChangedHandler);
+    });
+}
 
 // Immediate execution if element already exists
 const leftNavPanel = document.querySelector('#left-nav-panel');
@@ -103,6 +299,8 @@ async function initializeExtension() {
         return;
     }
     extensionInitialized = true;
+    extensionCleanupFunctions.length = 0;
+    const eventCleanupFunctions = extensionCleanupFunctions;
 
     try {
         console.log('🔧 NemoNet: initializeExtension() called');
@@ -110,112 +308,145 @@ async function initializeExtension() {
 
         console.log('🔧 NemoNet: Ensuring settings namespace...');
         ensureSettingsNamespace();
+        document.body.classList.toggle('nemo-extensions-overhaul-enabled', featureEnabled('nemoEnableExtensionsTabOverhaul'));
+        document.body.classList.toggle('nemo-animated-backgrounds-enabled', featureEnabled('enableAnimatedBackgrounds'));
+        document.body.classList.toggle('nemo-lorebook-overhaul-enabled', featureEnabled('enableLorebookOverhaul'));
         NemoSettingsUI.applyDropdownTheme(extension_settings.NemoPresetExt?.dropdownTheme || 'st');
 
         // Initialize storage and run one-time migration from localStorage
         initializeStorage();
         migrateFromLocalStorage();
 
+        // Register capture before slower UI/feature initialization so a response
+        // completed during startup is handled by the live message lifecycle.
+        if (featureEnabled('enableReasoningCapture')) {
+            applyNemoNetReasoning();
+        }
+
         // Initialize UI themes early (before other UI elements load)
         console.log('🔧 NemoNet: Initializing UI themes...');
         await initializeThemes();
 
-        await loadAndSetDividerRegex();
+        if (featureEnabled('enablePromptManager')) {
+            await loadAndSetDividerRegex();
+        }
 
         // Initialize all modules
         console.log('🔧 NemoNet: Initializing modules...');
-        NemoCharacterManager.initialize();
+        if (featureEnabled('enableCharacterNavigator')) {
+            NemoCharacterManager.initialize();
+        }
         console.log('🔧 NemoNet: Calling NemoSettingsUI.initialize()...');
-        NemoSettingsUI.initialize();
+        await NemoSettingsUI.initialize();
         console.log('🔧 NemoNet: NemoSettingsUI.initialize() returned');
 
         // Initialize theme selector UI handlers (after settings UI is loaded)
         initThemeSelector();
 
-        if (extension_settings.NemoPresetExt?.enableConnectionPanelOverhaul !== false) {
+        if (featureEnabled('enableConnectionPanelOverhaul')) {
             NemoGlobalUI.initialize();
         } else {
             logger.info('Connection panel overhaul is disabled, preserving native SillyTavern layout');
         }
-        NemoMarketplace.initialize();
-        NemoPersonaUI.initialize();
+        if (featureEnabled('enableMarketplace')) {
+            NemoMarketplace.initialize();
+        }
+        if (featureEnabled('enablePersonaEnhancements')) {
+            NemoPersonaUI.initialize();
+        }
         // NemoPromptArchiveUI.initialize(); // Disabled — replaced by category tray archive
 
-        try {
-            await initNemoLore();
-        } catch (error) {
-            logger.error('NemoLore failed to initialize; continuing with core NemoPresetExt UI', error);
+        if (featureEnabled('enableNemoLore')) {
+            try {
+                await initNemoLore();
+            } catch (error) {
+                logger.error('NemoLore failed to initialize; continuing with core NemoPresetExt UI', error);
+            }
         }
 
-        try {
-            await initNemoRewrite();
-        } catch (error) {
-            logger.error('Nemo Rewrite failed to initialize; continuing with core NemoPresetExt UI', error);
+        if (featureEnabled('enableRewrite')) {
+            try {
+                await initNemoRewrite();
+            } catch (error) {
+                logger.error('Nemo Rewrite failed to initialize; continuing with core NemoPresetExt UI', error);
+            }
         }
 
         // Initialize tab overhauls only if enabled
-        if (extension_settings.NemoPresetExt?.enableTabOverhauls !== false) {
+        if (featureEnabled('enableTabOverhauls')) {
             UserSettingsTabs.initialize(); // Handles both User Settings AND Advanced Formatting tabs
             // AdvancedFormattingTabs.initialize(); // Disabled - absorbed into UserSettingsTabs
         }
 
-        if (extension_settings.NemoPresetExt?.enableLorebookOverhaul !== false) {
+        if (featureEnabled('enableLorebookOverhaul')) {
             NemoWorldInfoUI.initialize();
         }
 
         // Initialize Animated Backgrounds if enabled
-        if (extension_settings.NemoPresetExt?.enableAnimatedBackgrounds !== false) {
+        if (featureEnabled('enableAnimatedBackgrounds')) {
             await animatedBackgrounds.initialize();
             animatedBackgrounds.addSettingsToUI();
             await backgroundUIEnhancements.initialize();
             await backgroundOrganizer.initialize();
         }
 
-        // Initialize directive cache for performance (parse once, use everywhere)
-        // This caches all prompt directives so we don't re-parse content repeatedly
-        console.log('🔧 NemoNet: Initializing directive cache...');
-        setTimeout(() => {
-            initializeDirectiveCache();
-            console.log('🔧 NemoNet: Directive cache initialized');
-        }, 1000); // Delay to ensure promptManager is ready
+        // Initialize the supported directive runtime as one lifecycle-managed bundle.
+        // Legacy duplicate panels stay disconnected; the shared cache feeds the prompt tray.
+        if (featureEnabled('enableDirectives')) {
+            eventCleanupFunctions.push(() => {
+                cleanupDirectiveAutocomplete();
+                cleanupMessageTriggerHooks();
+                cleanupPromptDirectiveHooks();
+                cleanupDirectiveUI();
+            });
 
-        // Directive system — deprecated, disabled
-        // initDirectiveUI();
-        // initPromptDirectiveHooks();
-        // initMessageTriggerHooks();
-        // initDirectiveAutocomplete();
-        // initDirectiveFeatures();
-        // initDirectiveFeaturesFixes();
+            initDirectiveUI();
+            initPromptDirectiveHooks();
+            initMessageTriggerHooks();
+            if (featureEnabled('enableDirectiveAutocomplete')) {
+                initDirectiveAutocomplete();
+            }
+            console.log('🔧 NemoNet: Initializing directive cache...');
+            const directiveCacheTimeout = setTimeout(() => {
+                initializeDirectiveCache();
+                console.log('🔧 NemoNet: Directive cache initialized');
+            }, 1000); // Delay to ensure promptManager is ready
+            eventCleanupFunctions.push(() => clearTimeout(directiveCacheTimeout));
+        }
+
 
         // Initialize category tray system for quick prompt selection
-        initCategoryTray();
+        if (featureEnabled('enablePromptManager')) {
+            initCategoryTray();
+        }
 
         // Initialize Pollinations Interceptor (experimental - opt-in)
-        const pollinationsInterceptorEnabled = extension_settings.NemoPresetExt?.nemoEnablePollinationsInterceptor === true;
+        const pollinationsInterceptorEnabled = featureEnabled('nemoEnablePollinationsInterceptor');
         if (pollinationsInterceptorEnabled) {
             logger.info('Initializing Pollinations Interceptor (experimental)...');
             initPollinationsInterceptor();
         }
 
-        // Initialize robust reasoning parser for NemoNet CoT
-        applyNemoNetReasoning();
-
         // Initialize HTML trimmer for reducing context usage in old messages
-        initializeHTMLTrimmer();
-        setupAutoTrim();
+        if (featureEnabled('enableHTMLTrimming')) {
+            initializeHTMLTrimmer();
+            setupAutoTrim();
+        }
 
         // Initialize Emoji Picker
-        if (extension_settings.NemoPresetExt?.enableEmojiPicker !== false) {
+        if (featureEnabled('enableEmojiPicker')) {
             EmojiPicker.initialize();
         }
 
-        // Initialize tutorial system
-        tutorialManager.initialize();
-        tutorialLauncher.initialize();
-        initNemoEngineInstaller();
+        if (featureEnabled('enableTutorials')) {
+            tutorialManager.initialize();
+            tutorialLauncher.initialize();
+            tutorialLauncher.checkWelcomeTutorial();
+        }
 
-        // Check if welcome tutorial should auto-start (for first-time users)
-        tutorialLauncher.checkWelcomeTutorial();
+        if (featureEnabled('enableNemoEngineInstaller')) {
+            initNemoEngineInstaller();
+        }
 
         // Make ExtensionsTabOverhaul available globally for the settings toggle
         window.ExtensionsTabOverhaul = ExtensionsTabOverhaul;
@@ -223,13 +454,14 @@ async function initializeExtension() {
         // Make NemoPresetManager available globally for preset state preservation
         window.NemoPresetManager = NemoPresetManager;
 
-        // Initialize API Router foundation & Pipeline (load saved connections)
-        ConnectionPool.load();
-        window.NemoConnectionPool = ConnectionPool;
-        window.NemoApiRouter = ApiRouter;
-        window.NemoModelPipeline = ModelPipeline;
-        window.NemoPipelinePresets = PipelinePresets;
-        logger.info('API Router + Model Pipeline initialized');
+        if (featureEnabled('enableApiRouter')) {
+            ConnectionPool.load();
+            window.NemoConnectionPool = ConnectionPool;
+            window.NemoApiRouter = ApiRouter;
+            window.NemoModelPipeline = ModelPipeline;
+            window.NemoPipelinePresets = PipelinePresets;
+            logger.info('API Router + Model Pipeline initialized');
+        }
 
         // Make PollinationsInterceptor available globally for manual testing
         // Usage: window.PollinationsInterceptor.init() - Initialize interceptor
@@ -239,13 +471,15 @@ async function initializeExtension() {
         window.PollinationsInterceptor = PollinationsInterceptor;
 
         // Event listener management with cleanup
-        const eventCleanupFunctions = [];
-        initItalicDialogueRenderer(eventCleanupFunctions);
+        initializeCustomOpenAiSamplingPatch(eventCleanupFunctions);
+        if (featureEnabled('enableItalicDialogueRenderer')) {
+            initItalicDialogueRenderer(eventCleanupFunctions);
+        }
 
-        const isEnabled = extension_settings.NemoPresetExt?.nemoEnableExtensionsTabOverhaul !== false;
-        logger.debug('Extensions Tab Overhaul setting check', { isEnabled, fullValue: extension_settings.NemoPresetExt?.nemoEnableExtensionsTabOverhaul });
+        const extensionsOverhaulEnabled = featureEnabled('nemoEnableExtensionsTabOverhaul');
+        logger.debug('Extensions Tab Overhaul setting check', { enabled: extensionsOverhaulEnabled });
 
-        if (isEnabled) {
+        if (extensionsOverhaulEnabled) {
             logger.info('Initializing Extensions Tab Overhaul...');
             ExtensionsTabOverhaul.initialize();
         } else {
@@ -253,7 +487,7 @@ async function initializeExtension() {
         }
 
         // Initialize Wide Panels setting - Add or remove CSS that makes panels take 50% width
-        const widePanelsEnabled = extension_settings.NemoPresetExt?.nemoEnableWidePanels !== false;
+        const widePanelsEnabled = featureEnabled('nemoEnableWidePanels');
         logger.debug('Wide Panels setting check', { widePanelsEnabled, fullValue: extension_settings.NemoPresetExt?.nemoEnableWidePanels });
 
         if (widePanelsEnabled) {
@@ -265,9 +499,11 @@ async function initializeExtension() {
         }
 
         // Add event listener for settings changes to update the panel width behavior
+        let settingsUpdateTimeout;
         const settingsUpdatedHandler = () => {
-            setTimeout(() => {
-                const newWidePanelsEnabled = extension_settings.NemoPresetExt?.nemoEnableWidePanels !== false;
+            clearTimeout(settingsUpdateTimeout);
+            settingsUpdateTimeout = setTimeout(() => {
+                const newWidePanelsEnabled = featureEnabled('nemoEnableWidePanels');
                 logger.debug('Wide Panels setting changed', { newWidePanelsEnabled });
 
                 if (newWidePanelsEnabled) {
@@ -279,11 +515,14 @@ async function initializeExtension() {
                 }
 
                 // Refresh directive cache when settings change (prompts may have been modified)
-                initializeDirectiveCache();
+                if (featureEnabled('enableDirectives')) {
+                    initializeDirectiveCache();
+                }
             }, 100); // Small delay to ensure settings are fully updated
         };
         eventSource.on(event_types.SETTINGS_UPDATED, settingsUpdatedHandler);
         eventCleanupFunctions.push(() => {
+            clearTimeout(settingsUpdateTimeout);
             eventSource.removeListener(event_types.SETTINGS_UPDATED, settingsUpdatedHandler);
         });
 
@@ -292,7 +531,7 @@ async function initializeExtension() {
         const resizeHandler = () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                const widePanelsEnabled = extension_settings.NemoPresetExt?.nemoEnableWidePanels !== false;
+                const widePanelsEnabled = featureEnabled('nemoEnableWidePanels');
                 if (widePanelsEnabled) {
                     applyWidePanelsStyles(); // Will auto-disable on mobile
                 }
@@ -305,15 +544,19 @@ async function initializeExtension() {
         });
 
         // Initialize Mobile Enhancements - auto-detect touch devices
-        const cleanupMobileEnhancements = initializeMobileEnhancements();
-        if (typeof cleanupMobileEnhancements === 'function') {
-            eventCleanupFunctions.push(cleanupMobileEnhancements);
+        if (featureEnabled('enableMobileEnhancements')) {
+            const cleanupMobileEnhancements = initializeMobileEnhancements();
+            if (typeof cleanupMobileEnhancements === 'function') {
+                eventCleanupFunctions.push(cleanupMobileEnhancements);
+            }
+        } else {
+            document.body.classList.remove('nemo-mobile-enhanced');
         }
 
         // Initialize Enhanced Model Selector (searchable dropdowns + favorites + chips)
         // Must run LATE - after ST's own Select2 init on OpenRouter/etc.
-        if (extension_settings.NemoPresetExt?.enableModelSelector !== false) {
-            setTimeout(() => {
+        if (featureEnabled('enableModelSelector')) {
+            const modelSelectorTimeout = setTimeout(() => {
                 try {
                     ModelSelector.initialize();
                     logger.info('Enhanced Model Selector initialized');
@@ -327,15 +570,7 @@ async function initializeExtension() {
                     logger.error('Failed to initialize Text Completion Selector', err);
                 }
             }, 1500); // Delay to ensure ST's own Select2 init has completed
-        } else {
-            // Feature disabled - show re-enable button in the connection panel
-            setTimeout(() => {
-                try {
-                    ModelSelector.injectReEnableButton();
-                } catch (err) {
-                    logger.debug('Could not inject re-enable button', err);
-                }
-            }, 1500);
+            eventCleanupFunctions.push(() => clearTimeout(modelSelectorTimeout));
         }
 
         // Observer management with proper cleanup
@@ -372,6 +607,7 @@ async function initializeExtension() {
                 logger.info('All observers disconnected and cache cleared');
             }
         };
+        eventCleanupFunctions.unshift(() => ExtensionManager.disconnectAll());
 
         // Track initialization state for early exit optimization
         const nemoInitState = {
@@ -380,43 +616,51 @@ async function initializeExtension() {
             isFirstRun: true  // Track if this is the first run (for RAF optimization)
         };
 
+        const promptManagerEnabled = featureEnabled('enablePromptManager');
+        const presetNavigatorEnabled = featureEnabled('enablePresetNavigator');
+
         // Core initialization logic - separated for reuse
         const performNavigatorCheck = () => {
-            // Fast path: if everything initialized, we can stop checking
-            if (nemoInitState.promptList && nemoInitState.apis.size === SUPPORTED_APIS.length) {
-                // But still check if wrapper exists (handles UI regeneration)
-                const wrapperExists = document.getElementById('nemoSearchAndStatusWrapper');
+            if (!promptManagerEnabled && !presetNavigatorEnabled) {
+                return;
+            }
+
+            const promptManagerReady = !promptManagerEnabled || nemoInitState.promptList;
+            const presetNavigatorReady = !presetNavigatorEnabled || nemoInitState.apis.size === SUPPORTED_APIS.length;
+            if (promptManagerReady && presetNavigatorReady) {
+                const wrapperExists = !promptManagerEnabled || document.getElementById('nemoSearchAndStatusWrapper');
                 if (wrapperExists) {
                     return;
                 }
             }
 
-            // Check prompt list initialization
-            // Always re-check if the wrapper is missing (handles SillyTavern regenerating the UI)
-            const promptList = document.querySelector(CONSTANTS.SELECTORS.PROMPT_CONTAINER);
-            const wrapperExists = document.getElementById('nemoSearchAndStatusWrapper');
+            if (promptManagerEnabled) {
+                const promptList = document.querySelector(CONSTANTS.SELECTORS.PROMPT_CONTAINER);
+                const wrapperExists = document.getElementById('nemoSearchAndStatusWrapper');
 
-            if (promptList && (!promptList.dataset.nemoPromptsInitialized || !wrapperExists)) {
-                logger.performance('Prompt Manager Initialization', () => {
-                    // Clear the flag so initialize runs fully
-                    delete promptList.dataset.nemoPromptsInitialized;
-                    NemoPresetManager.initialize(promptList);
-                });
-                nemoInitState.promptList = true;
+                if (promptList && (!promptList.dataset.nemoPromptsInitialized || !wrapperExists)) {
+                    logger.performance('Prompt Manager Initialization', () => {
+                        delete promptList.dataset.nemoPromptsInitialized;
+                        NemoPresetManager.initialize(promptList);
+                    });
+                    nemoInitState.promptList = true;
+                }
             }
 
-            SUPPORTED_APIS.forEach(api => {
-                if (nemoInitState.apis.has(api)) return;
-                const select = document.querySelector(`select[data-preset-manager-for="${api}"]`);
-                if (select && !select.dataset.nemoPatched) {
-                    try {
-                        initPresetNavigatorForApiEnhanced(api);
-                        nemoInitState.apis.add(api);
-                    } catch (error) {
-                        logger.error(`Failed to initialize preset navigator for ${api}`, error);
+            if (presetNavigatorEnabled) {
+                SUPPORTED_APIS.forEach(api => {
+                    if (nemoInitState.apis.has(api)) return;
+                    const select = document.querySelector(`select[data-preset-manager-for="${api}"]`);
+                    if (select && !select.dataset.nemoPatched) {
+                        try {
+                            initPresetNavigatorForApiEnhanced(api);
+                            nemoInitState.apis.add(api);
+                        } catch (error) {
+                            logger.error(`Failed to initialize preset navigator for ${api}`, error);
+                        }
                     }
-                }
-            });
+                });
+            }
         };
 
         // Debounced navigator initialization (for subsequent runs)
@@ -443,16 +687,21 @@ async function initializeExtension() {
         checkAndInitializePresetNavigators();
 
         // Also check after a short delay to catch elements that load slightly after initialization
-        setTimeout(() => {
+        const delayedNavigatorCheckTimeout = setTimeout(() => {
             logger.debug('Running delayed preset navigator check');
             checkAndInitializePresetNavigators();
         }, 500);
 
         // And check again after a longer delay to be extra sure
-        setTimeout(() => {
+        const finalNavigatorCheckTimeout = setTimeout(() => {
             logger.debug('Running final delayed preset navigator check');
             checkAndInitializePresetNavigators();
         }, 2000);
+        eventCleanupFunctions.push(() => {
+            clearTimeout(navigatorCheckTimeout);
+            clearTimeout(delayedNavigatorCheckTimeout);
+            clearTimeout(finalNavigatorCheckTimeout);
+        });
 
         // Track the current observe target for re-attachment
         let currentObserveTarget = null;
@@ -531,9 +780,11 @@ async function initializeExtension() {
         ExtensionManager.observers.set('sentinel', sentinelObserver);
 
         // Listen for events that might require UI refresh
+        let chatCompletionRefreshTimeout;
         const chatCompletionChangeHandler = () => {
             logger.info('Chat completion source changed, will refresh UI');
-            setTimeout(() => {
+            clearTimeout(chatCompletionRefreshTimeout);
+            chatCompletionRefreshTimeout = setTimeout(() => {
                 const promptList = document.querySelector(CONSTANTS.SELECTORS.PROMPT_CONTAINER);
                 if (promptList && promptList.dataset.nemoPromptsInitialized) {
                     logger.performance('UI Refresh', () => {
@@ -545,44 +796,14 @@ async function initializeExtension() {
 
         eventSource.on(event_types.CHATCOMPLETION_SOURCE_CHANGED, chatCompletionChangeHandler);
         eventCleanupFunctions.push(() => {
+            clearTimeout(chatCompletionRefreshTimeout);
             eventSource.removeListener(event_types.CHATCOMPLETION_SOURCE_CHANGED, chatCompletionChangeHandler);
         });
-
-        // Global cleanup function for extension unload/reload
-        window.NemoPresetExtCleanup = () => {
-            logger.info('Performing extension cleanup');
-            ExtensionManager.disconnectAll();
-            eventCleanupFunctions.forEach(cleanup => cleanup());
-            eventCleanupFunctions.length = 0;
-
-            // Clean up NemoPresetManager
-            if (window.NemoPresetManager && typeof window.NemoPresetManager.destroy === 'function') {
-                window.NemoPresetManager.destroy();
-            }
-
-            try { cleanupNemoLore(); } catch (e) { /* ignore */ }
-            try { cleanupNemoRewrite(); } catch (e) { /* ignore */ }
-            try { cleanupNemoEngineInstaller(); } catch (e) { /* ignore */ }
-
-            // Clean up Model Selectors
-            try { ModelSelector.destroy(); } catch (e) { /* ignore */ }
-            try { TextCompletionSelector.destroy(); } catch (e) { /* ignore */ }
-
-            // Reset patched flags
-            document.querySelectorAll('[data-nemo-patched]').forEach(el => {
-                delete el.dataset.nemoPatched;
-            });
-            document.querySelectorAll('[data-nemo-prompts-initialized]').forEach(el => {
-                delete el.dataset.nemoPromptsInitialized;
-            });
-            document.querySelectorAll('[data-nemo-state-preservation-patched]').forEach(el => {
-                delete el.dataset.nemoStatePreservationPatched;
-            });
-        };
 
         logger.info('Initialization complete and observers are running');
     } catch (error) {
         logger.error('Critical failure during initialization', error);
+        cleanupExtension();
         console.error('🚨 [NemoPresetExt] CRITICAL ERROR:', error);
         console.error('🚨 [NemoPresetExt] Stack trace:', error.stack);
     }
@@ -635,7 +856,7 @@ function removeWidePanelsStyles() {
 
 // Mobile Enhancements - Auto-detect touch devices and apply enhanced mobile styles
 function initializeMobileEnhancements() {
-    const isEnabled = extension_settings.NemoPresetExt?.enableMobileEnhancements !== false;
+    const isEnabled = featureEnabled('enableMobileEnhancements');
     const touchMediaQuery = window.matchMedia('(pointer: coarse)');
     const isTouchDevice = touchMediaQuery.matches;
 
@@ -655,7 +876,7 @@ function initializeMobileEnhancements() {
 
     // Listen for device changes (e.g., connecting external mouse on tablet)
     const pointerChangeHandler = (e) => {
-        const isEnabled = extension_settings.NemoPresetExt?.enableMobileEnhancements !== false;
+        const isEnabled = featureEnabled('enableMobileEnhancements');
         if (isEnabled && e.matches) {
             document.body.classList.add('nemo-mobile-enhanced');
             logger.info('Touch device detected - enabling mobile enhancements');
@@ -701,4 +922,16 @@ function initPresetNavigatorForApiEnhanced(apiType) {
     originalSelect.parentElement.insertBefore(wrapper, originalSelect);
     wrapper.appendChild(originalSelect);
     wrapper.appendChild(browseButton);
+}
+
+function cleanupPresetNavigatorWrappers() {
+    document.querySelectorAll('.nemo-preset-selector-wrapper').forEach(wrapper => {
+        const select = wrapper.querySelector(':scope > select[data-preset-manager-for]');
+        if (select && wrapper.parentNode) {
+            wrapper.parentNode.insertBefore(select, wrapper);
+            delete select.dataset.nemoPatched;
+        }
+        wrapper.remove();
+    });
+    document.querySelectorAll('.nemo-favorites-container').forEach(container => container.remove());
 }

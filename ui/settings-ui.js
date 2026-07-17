@@ -7,12 +7,38 @@ import {
     DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES,
     NEMO_EXTENSION_NAME,
     POLLINATIONS_IMAGE_STYLE_PRESETS,
-    ensureSettingsNamespace
+    ensureSettingsNamespace,
+    getExtensionPath,
+    isFeatureEnabled
 } from '../core/utils.js';
 import { loadAndSetDividerRegex, NemoPresetManager } from '../features/prompts/prompt-manager.js';
 import logger from '../core/logger.js';
 
 export const NemoSettingsUI = {
+    _settingsObserver: null,
+
+    _getNativeSettingsHost: function() {
+        let host = document.getElementById('nemo-preset-ext-settings-host');
+        if (host) {
+            return host;
+        }
+
+        const extensionsContainer = document.getElementById('extensions_settings')
+            || document.getElementById('extensions_settings2');
+        if (!extensionsContainer) {
+            return null;
+        }
+
+        host = document.createElement('div');
+        host.id = 'nemo-preset-ext-settings-host';
+        host.className = 'extension_container nemo-settings-host wide100p';
+        host.dataset.extensionName = 'NemoPreset UI Extensions';
+        host.dataset.nemoExtensionId = 'nemo-preset-ext-settings';
+        extensionsContainer.appendChild(host);
+
+        return host;
+    },
+
     initialize: async function() {
         logger.info('NemoSettingsUI: Starting initialization...');
         // Self-healing mount. The panel is injected into ST's extensions settings container,
@@ -22,8 +48,8 @@ export const NemoSettingsUI = {
         // the panel whenever it is missing. `mounting` prevents overlapping async re-mounts
         // during the settings.html fetch.
         let mounting = false;
-        const pollForSettings = setInterval(async () => {
-            const container = document.getElementById('extensions_settings2') || document.getElementById('extensions_settings');
+        const mountSettings = async () => {
+            const container = this._getNativeSettingsHost();
             if (container && !mounting && !document.querySelector('.nemo-preset-enhancer-settings')) {
                 mounting = true;
                 logger.info('NemoSettingsUI: Container found, loading settings...');
@@ -33,20 +59,25 @@ export const NemoSettingsUI = {
                 saveSettingsDebounced();
 
                 try {
-                    // Add cache buster to ensure fresh HTML
-                    const cacheBuster = `${Date.now()}-${Math.random()}`;
-                    const response = await fetch(`scripts/extensions/third-party/${NEMO_EXTENSION_NAME}/settings.html?v=${cacheBuster}`, {
-                        cache: 'no-store'
+                    // This is a static extension document, not a Handlebars template.
+                    // It intentionally documents directive syntax such as `{{// ... }}`,
+                    // which SillyTavern's template renderer tries to compile and rejects.
+                    const response = await fetch(getExtensionPath('settings.html'), {
+                        cache: 'no-store',
                     });
                     if (!response.ok) {
-                        logger.error('Failed to fetch settings.html', response.status);
-                        return;
+                        throw new Error(
+                            `Failed to load NemoPresetExt settings (${response.status} ${response.statusText})`,
+                        );
                     }
 
                     const htmlContent = await response.text();
-                    logger.debug('NemoSettingsUI: HTML fetched', { length: htmlContent.length });
-                    container.insertAdjacentHTML('beforeend', htmlContent);
-                    logger.info('NemoSettingsUI: HTML inserted successfully');
+                    if (!htmlContent.trim()) {
+                        throw new Error('NemoPresetExt settings document was empty');
+                    }
+
+                    container.innerHTML = htmlContent;
+                    logger.info('NemoSettingsUI: Settings mounted in native extension layout');
 
                     // Regex Settings
                     const regexInput = /** @type {HTMLInputElement} */ (document.getElementById('nemoDividerRegexPattern'));
@@ -79,7 +110,7 @@ export const NemoSettingsUI = {
                 // Core Feature Toggles
                 const promptManagerToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnablePromptManager'));
                 if (promptManagerToggle) {
-                    promptManagerToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enablePromptManager ?? true;
+                    promptManagerToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enablePromptManager');
                     promptManagerToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enablePromptManager = promptManagerToggle.checked;
                         saveSettingsDebounced();
@@ -118,7 +149,7 @@ export const NemoSettingsUI = {
 
                 const presetNavigatorToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnablePresetNavigator'));
                 if (presetNavigatorToggle) {
-                    presetNavigatorToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enablePresetNavigator ?? true;
+                    presetNavigatorToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enablePresetNavigator');
                     presetNavigatorToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enablePresetNavigator = presetNavigatorToggle.checked;
                         saveSettingsDebounced();
@@ -126,19 +157,60 @@ export const NemoSettingsUI = {
                     });
                 }
 
+                const additionalFeatureToggles = [
+                    ['nemoEnableCharacterNavigator', 'enableCharacterNavigator'],
+                    ['nemoEnableReasoningCapture', 'enableReasoningCapture'],
+                    ['nemoEnableMarketplace', 'enableMarketplace'],
+                    ['nemoEnablePersonaEnhancements', 'enablePersonaEnhancements'],
+                    ['nemoEnableEmojiPicker', 'enableEmojiPicker'],
+                    ['nemoEnableItalicDialogueRenderer', 'enableItalicDialogueRenderer'],
+                    ['nemoEnableNemoLore', 'enableNemoLore'],
+                    ['nemoEnableRewrite', 'enableRewrite'],
+                    ['nemoEnableTutorials', 'enableTutorials'],
+                    ['nemoEnableNemoEngineInstaller', 'enableNemoEngineInstaller'],
+                    ['nemoEnableApiRouter', 'enableApiRouter'],
+                ];
+
+                for (const [elementId, settingKey] of additionalFeatureToggles) {
+                    const toggle = /** @type {HTMLInputElement | null} */ (document.getElementById(elementId));
+                    if (!toggle) {
+                        logger.warn('NemoSettingsUI: Missing feature toggle', { elementId, settingKey });
+                        continue;
+                    }
+
+                    toggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], settingKey);
+                    toggle.addEventListener('change', () => {
+                        extension_settings[NEMO_EXTENSION_NAME][settingKey] = toggle.checked;
+                        saveSettingsDebounced();
+                        this.showRefreshNotification();
+                    });
+                }
                 const directivesToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableDirectives'));
                 if (directivesToggle) {
-                    directivesToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableDirectives ?? true;
+                    directivesToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableDirectives');
                     directivesToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableDirectives = directivesToggle.checked;
                         saveSettingsDebounced();
+                        syncDirectiveAutocompleteAvailability();
                         this.showRefreshNotification();
                     });
                 }
 
                 const directiveAutocompleteToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableDirectiveAutocomplete'));
+                const syncDirectiveAutocompleteAvailability = () => {
+                    if (!directiveAutocompleteToggle) return;
+                    const directivesEnabled = directivesToggle?.checked === true;
+                    directiveAutocompleteToggle.disabled = !directivesEnabled;
+                    directiveAutocompleteToggle.setAttribute('aria-disabled', String(!directivesEnabled));
+                    directiveAutocompleteToggle.title = directivesEnabled
+                        ? 'Show directive suggestions in the prompt editor'
+                        : 'Enable Prompt Directives to use directive autocomplete';
+                    directiveAutocompleteToggle.closest('.nemo-setting-row')
+                        ?.classList.toggle('nemo-setting-disabled', !directivesEnabled);
+                };
+
                 if (directiveAutocompleteToggle) {
-                    directiveAutocompleteToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableDirectiveAutocomplete ?? true;
+                    directiveAutocompleteToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableDirectiveAutocomplete');
                     directiveAutocompleteToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableDirectiveAutocomplete = directiveAutocompleteToggle.checked;
                         saveSettingsDebounced();
@@ -146,10 +218,12 @@ export const NemoSettingsUI = {
                     });
                 }
 
+
+                syncDirectiveAutocompleteAvailability();
                 // Animated Backgrounds Setting
                 const animatedBgToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableAnimatedBackgrounds'));
                 if (animatedBgToggle) {
-                    animatedBgToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableAnimatedBackgrounds ?? true;
+                    animatedBgToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableAnimatedBackgrounds');
                     animatedBgToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableAnimatedBackgrounds = animatedBgToggle.checked;
                         saveSettingsDebounced();
@@ -160,7 +234,7 @@ export const NemoSettingsUI = {
                 // Lorebook Overhaul Setting
                 const lorebookToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableLorebookOverhaul'));
                 if (lorebookToggle) {
-                    lorebookToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableLorebookOverhaul ?? true;
+                    lorebookToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableLorebookOverhaul');
                     lorebookToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableLorebookOverhaul = lorebookToggle.checked;
                         saveSettingsDebounced();
@@ -171,7 +245,7 @@ export const NemoSettingsUI = {
                 // Reasoning Section Setting
                 const reasoningToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableReasoningSection'));
                 if (reasoningToggle) {
-                    reasoningToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableReasoningSection !== false;
+                    reasoningToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableReasoningSection');
                     reasoningToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableReasoningSection = reasoningToggle.checked;
                         saveSettingsDebounced();
@@ -183,7 +257,7 @@ export const NemoSettingsUI = {
                 // Lorebook Management Setting
                 const lorebookManagementToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableLorebookManagement'));
                 if (lorebookManagementToggle) {
-                    lorebookManagementToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableLorebookManagement !== false;
+                    lorebookManagementToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableLorebookManagement');
                     lorebookManagementToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableLorebookManagement = lorebookManagementToggle.checked;
                         saveSettingsDebounced();
@@ -197,18 +271,21 @@ export const NemoSettingsUI = {
                 const htmlTrimmingKeepCount = /** @type {HTMLInputElement} */ (document.getElementById('nemoHTMLTrimmingKeepCount'));
                 const manualTrimButton = document.getElementById('nemoManualHTMLTrim');
                 const trimStatus = document.getElementById('nemoHTMLTrimStatus');
+                const restoreTrimButton = document.getElementById('nemoRestoreHTMLTrim');
 
                 logger.debug('NemoSettingsUI: HTML Trimming UI elements', {
                     toggle: !!htmlTrimmingToggle,
                     keepCount: !!htmlTrimmingKeepCount,
-                    button: !!manualTrimButton,
-                    status: !!trimStatus
+                    trimButton: !!manualTrimButton,
+                    restoreButton: !!restoreTrimButton,
+                    status: !!trimStatus,
                 });
 
-                if (htmlTrimmingToggle && htmlTrimmingKeepCount && manualTrimButton) {
+                if (htmlTrimmingToggle && htmlTrimmingKeepCount && manualTrimButton && restoreTrimButton && trimStatus) {
                     logger.debug('NemoSettingsUI: Attaching HTML trimming event listeners');
-                    htmlTrimmingToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableHTMLTrimming ?? false;
-                    htmlTrimmingKeepCount.value = extension_settings[NEMO_EXTENSION_NAME]?.htmlTrimmingKeepCount || 4;
+                    htmlTrimmingToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableHTMLTrimming');
+                    const configuredKeepCount = Number(extension_settings[NEMO_EXTENSION_NAME]?.htmlTrimmingKeepCount);
+                    htmlTrimmingKeepCount.value = String(configuredKeepCount >= 2 ? configuredKeepCount : 4);
 
                     htmlTrimmingToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableHTMLTrimming = htmlTrimmingToggle.checked;
@@ -233,10 +310,10 @@ export const NemoSettingsUI = {
                         try {
                             // Dynamic import of HTML trimmer
                             const { trimOldMessagesHTML } = await import('../reasoning/html-trimmer.js');
-                            const keepCount = parseInt(htmlTrimmingKeepCount.value);
+                            const keepCount = Math.max(2, parseInt(htmlTrimmingKeepCount.value) || 4);
                             logger.debug('NemoSettingsUI: Calling trimOldMessagesHTML', { keepCount });
 
-                            const result = trimOldMessagesHTML(keepCount);
+                            const result = await trimOldMessagesHTML(keepCount);
                             logger.debug('NemoSettingsUI: Trim result', result);
 
                             if (result.trimmed > 0) {
@@ -254,6 +331,29 @@ export const NemoSettingsUI = {
 
                         setTimeout(() => { trimStatus.textContent = ''; }, 5000);
                     });
+                    restoreTrimButton.addEventListener('click', async () => {
+                        logger.info('HTML trim restore requested');
+                        trimStatus.textContent = 'Restoring...';
+                        trimStatus.style.color = '#aaa';
+
+                        try {
+                            const { restoreTrimmedMessagesHTML } = await import('../reasoning/html-trimmer.js');
+                            const result = await restoreTrimmedMessagesHTML();
+                            if (result.restored > 0) {
+                                trimStatus.textContent = `Restored ${result.restored} messages`;
+                                trimStatus.style.color = 'lightgreen';
+                            } else {
+                                trimStatus.textContent = 'No trimmed messages to restore';
+                                trimStatus.style.color = '#aaa';
+                            }
+                        } catch (error) {
+                            logger.error('HTML trim restoration failed', error);
+                            trimStatus.textContent = 'Restore failed: ' + error.message;
+                            trimStatus.style.color = 'red';
+                        }
+
+                        setTimeout(() => { trimStatus.textContent = ''; }, 5000);
+                    });
                     logger.debug('NemoSettingsUI: Event listener attached to trim button');
                 } else {
                     logger.warn('NemoSettingsUI: Failed to find HTML trimming UI elements, skipping event listeners');
@@ -262,7 +362,7 @@ export const NemoSettingsUI = {
                 // Tab Overhauls Setting
                 const tabOverhaulsToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableTabOverhauls'));
                 if (tabOverhaulsToggle) {
-                    tabOverhaulsToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableTabOverhauls !== false;
+                    tabOverhaulsToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableTabOverhauls');
                     tabOverhaulsToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableTabOverhauls = tabOverhaulsToggle.checked;
                         saveSettingsDebounced();
@@ -273,7 +373,7 @@ export const NemoSettingsUI = {
                 // Connection Panel Organization Setting
                 const connectionPanelToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableConnectionPanelOverhaul'));
                 if (connectionPanelToggle) {
-                    connectionPanelToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableConnectionPanelOverhaul !== false;
+                    connectionPanelToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableConnectionPanelOverhaul');
                     connectionPanelToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableConnectionPanelOverhaul = connectionPanelToggle.checked;
                         saveSettingsDebounced();
@@ -284,7 +384,7 @@ export const NemoSettingsUI = {
                 // Wide Navigation Panels Setting
                 const widePanelsToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableWidePanels'));
                 if (widePanelsToggle) {
-                    widePanelsToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.nemoEnableWidePanels ?? true;
+                    widePanelsToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'nemoEnableWidePanels');
                     widePanelsToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].nemoEnableWidePanels = widePanelsToggle.checked;
                         saveSettingsDebounced();
@@ -295,7 +395,7 @@ export const NemoSettingsUI = {
                 // Mobile Enhancements Setting
                 const mobileEnhancementsToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableMobileEnhancements'));
                 if (mobileEnhancementsToggle) {
-                    mobileEnhancementsToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableMobileEnhancements ?? true;
+                    mobileEnhancementsToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableMobileEnhancements');
                     mobileEnhancementsToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableMobileEnhancements = mobileEnhancementsToggle.checked;
                         saveSettingsDebounced();
@@ -317,7 +417,7 @@ export const NemoSettingsUI = {
                 // Enhanced Model Selector Setting
                 const modelSelectorToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableModelSelector'));
                 if (modelSelectorToggle) {
-                    modelSelectorToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.enableModelSelector !== false;
+                    modelSelectorToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'enableModelSelector');
                     modelSelectorToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].enableModelSelector = modelSelectorToggle.checked;
                         saveSettingsDebounced();
@@ -328,7 +428,7 @@ export const NemoSettingsUI = {
                 // Pollinations Interceptor Setting
                 const pollinationsInterceptorToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnablePollinationsInterceptor'));
                 if (pollinationsInterceptorToggle) {
-                    pollinationsInterceptorToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.nemoEnablePollinationsInterceptor ?? false;
+                    pollinationsInterceptorToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'nemoEnablePollinationsInterceptor');
                     pollinationsInterceptorToggle.addEventListener('change', async () => {
                         extension_settings[NEMO_EXTENSION_NAME].nemoEnablePollinationsInterceptor = pollinationsInterceptorToggle.checked;
                         saveSettingsDebounced();
@@ -383,7 +483,7 @@ export const NemoSettingsUI = {
                 const resetPromptBestPracticesButton = document.getElementById('nemoResetPollinationsPromptBestPractices');
 
                 if (promptBestPracticesToggle) {
-                    promptBestPracticesToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.nemoPollinationsPromptBestPractices !== false;
+                    promptBestPracticesToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'nemoPollinationsPromptBestPractices');
                     promptBestPracticesToggle.addEventListener('change', () => {
                         extension_settings[NEMO_EXTENSION_NAME].nemoPollinationsPromptBestPractices = promptBestPracticesToggle.checked;
                         saveSettingsDebounced();
@@ -419,10 +519,11 @@ export const NemoSettingsUI = {
                 // Extensions Tab Overhaul Setting
                 const extensionsTabOverhaulToggle = /** @type {HTMLInputElement} */ (document.getElementById('nemoEnableExtensionsTabOverhaul'));
                 if (extensionsTabOverhaulToggle) {
-                    extensionsTabOverhaulToggle.checked = extension_settings[NEMO_EXTENSION_NAME]?.nemoEnableExtensionsTabOverhaul !== false;
+                    extensionsTabOverhaulToggle.checked = isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], 'nemoEnableExtensionsTabOverhaul');
                     extensionsTabOverhaulToggle.addEventListener('change', () => {
                         logger.debug(`Toggle changed to: ${extensionsTabOverhaulToggle.checked}`);
                         extension_settings[NEMO_EXTENSION_NAME].nemoEnableExtensionsTabOverhaul = extensionsTabOverhaulToggle.checked;
+                        document.body.classList.toggle('nemo-extensions-overhaul-enabled', extensionsTabOverhaulToggle.checked);
                         saveSettingsDebounced();
 
                         logger.debug('Setting saved. ExtensionsTabOverhaul available', { available: !!window.ExtensionsTabOverhaul });
@@ -483,7 +584,25 @@ export const NemoSettingsUI = {
                     mounting = false;
                 }
             }
-        }, 500);
+        };
+
+        await mountSettings();
+
+        if (!this._settingsObserver) {
+            this._settingsObserver = new MutationObserver(() => {
+                if (!document.querySelector('.nemo-preset-enhancer-settings')) {
+                    void mountSettings();
+                }
+            });
+            this._settingsObserver.observe(document.body, { childList: true, subtree: true });
+        }
+    },
+
+    destroy: function() {
+        this._settingsObserver?.disconnect();
+        this._settingsObserver = null;
+        document.getElementById('nemo-preset-ext-settings-host')?.remove();
+        this.applyMessageTheme('default');
     },
 
     applyDropdownTheme: function(themeName = 'st') {
@@ -499,6 +618,7 @@ export const NemoSettingsUI = {
     },
 
     applyMessageTheme: function(themeName) {
+        document.body.classList.remove('nemo-message-theme-active');
         // Only remove the message-theme class WE previously applied. The old
         // implementation used /\btheme-\w+/g which also stripped unrelated
         // classes like nemo-theme-discord, ST's own theme-* classes, etc.
@@ -509,6 +629,7 @@ export const NemoSettingsUI = {
         if (themeName && themeName !== 'default') {
             const cls = `theme-${themeName}`;
             document.body.classList.add(cls);
+            document.body.classList.add('nemo-message-theme-active');
             this._lastMessageThemeClass = cls;
         }
     },

@@ -4,8 +4,8 @@
  * to reduce context usage while preserving information
  */
 
-import { saveSettingsDebounced } from '../../../../../script.js';
-import { extension_settings } from '../../../../extensions.js';
+import { eventSource, event_types, syncMesToSwipe } from '../../../../../script.js';
+import { extension_settings, getContext } from '../../../../extensions.js';
 
 // Debug flag - set to true for verbose logging during development
 const DEBUG_HTML_TRIMMER = false;
@@ -13,11 +13,26 @@ const DEBUG_HTML_TRIMMER = false;
 // Conditional logging helper
 function debugLog(...args) {
     if (DEBUG_HTML_TRIMMER) {
-        debugLog('', ...args);
+        console.debug('[NemoNet HTML Trimmer]', ...args);
     }
 }
 
-let getContext;
+let autoTrimHandler = null;
+let autoTrimTimeout = null;
+const NEMO_HTML_TRIMMER_BACKUP_KEY = 'nemoHtmlTrimmerOriginal';
+
+function escapeHtml(value) {
+    const element = document.createElement('div');
+    element.textContent = String(value ?? '');
+    return element.innerHTML;
+}
+
+async function reloadCurrentChat(context) {
+    if (typeof context?.reloadCurrentChat === 'function') {
+        await Promise.resolve(context.reloadCurrentChat());
+    }
+}
+
 
 /**
  * Initialize the HTML trimmer module
@@ -25,20 +40,7 @@ let getContext;
 export function initializeHTMLTrimmer() {
     debugLog(' Initializing...');
 
-    // Import getContext from SillyTavern
-    import('/scripts/extensions.js').then(module => {
-        if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
-            getContext = SillyTavern.getContext;
-        } else {
-            // Fallback: Try to find it in window scope
-            getContext = () => window.SillyTavern?.getContext?.() || { chat: [] };
-        }
-        debugLog(' getContext imported');
-    }).catch(() => {
-        // Final fallback
-        getContext = () => ({ chat: [] });
-        console.warn('NemoNet HTML Trimmer: Could not import getContext, using fallback');
-    });
+    debugLog(' Ready');
 }
 
 /**
@@ -333,17 +335,6 @@ function separateNarrativeFromUI(messageContent) {
     debugLog(' 🔍 STARTING SEPARATION - Total top-level children:', temp.children.length);
     debugLog(' 🔍 Total child nodes (including text):', temp.childNodes.length);
 
-    Array.from(temp.childNodes).forEach((node, index) => {
-        if (node.nodeType === Node.ELEMENT_NODE) {
-            console.log(`NemoNet HTML Trimmer: 🔍 Child node #${index}: ELEMENT <${node.tagName}> - Has ${node.children.length} children`);
-        } else if (node.nodeType === Node.TEXT_NODE) {
-            const textPreview = node.textContent.trim().substring(0, 50);
-            if (textPreview.length > 0) {
-                console.log(`NemoNet HTML Trimmer: 🔍 Child node #${index}: TEXT "${textPreview}..."`);
-            }
-        }
-    });
-
     // Process ALL child nodes (including text nodes!)
     Array.from(temp.childNodes).forEach(node => {
         // Handle text nodes (plain paragraphs)
@@ -361,8 +352,6 @@ function separateNarrativeFromUI(messageContent) {
 
         const child = node;
         const tagName = child.tagName.toLowerCase();
-        const text = child.textContent.trim();
-        const styleAttr = child.getAttribute('style') || '';
 
         // Get class attribute
         const classAttr = child.getAttribute('class') || '';
@@ -387,20 +376,8 @@ function separateNarrativeFromUI(messageContent) {
         const complexityScore = calculateComplexityScore(child);
         const isUIBlock = complexityScore >= 5;
 
-        console.log(`NemoNet HTML Trimmer: 🔍 Evaluating ${tagName} - Score: ${complexityScore}, isUIBlock: ${isUIBlock}`);
-
-        // NARRATIVE detection - prioritize keeping content
-        const isNarrative =
-            tagName === 'p' || // Paragraphs are always narrative
-            tagName === 'blockquote' || // Quotes are always narrative
-            tagName === 'font' || // Font tags (colored dialogue) are always narrative
-            tagName === 'br'; // Line breaks
-
         if (isUIBlock) {
             debugLog(' ✅ UI BLOCK DETECTED - Complexity Score:', complexityScore);
-            console.log('  - Tag:', tagName);
-            console.log('  - Style length:', styleAttr.length);
-            console.log('  - Text preview:', text.substring(0, 80));
             uiBlocks.push(child.outerHTML);
         } else {
             // DEFAULT TO NARRATIVE - preserve all story content (paragraphs, dialogue, cutaways)
@@ -413,9 +390,7 @@ function separateNarrativeFromUI(messageContent) {
                 debugLog(' 🔧 Font wrapper outerHTML preview:', child.outerHTML.substring(0, 200));
 
                 // Recursively process children of the font tag
-                Array.from(child.children).forEach((fontChild, childIndex) => {
-                    console.log(`NemoNet HTML Trimmer: 🔧 Processing font child #${childIndex}:`, fontChild.tagName);
-
+                Array.from(child.children).forEach(fontChild => {
                     // Use helper function to calculate complexity
                     const childComplexity = calculateComplexityScore(fontChild);
                     const isChildUIBlock = childComplexity >= 5;
@@ -501,7 +476,7 @@ function trimMessageHTML(messageContent) {
 📦 Archived UI Elements (Click to expand)
 </summary>
 <div style="padding: 12px 8px; font-size: 0.85em; color: #aaa; line-height: 1.5; white-space: pre-wrap; max-height: 300px; overflow-y: auto; font-family: 'Courier New', monospace;">
-${uiASCII}
+${escapeHtml(uiASCII)}
 </div>
 </details>`;
 
@@ -532,35 +507,10 @@ ${uiASCII}
 }
 
 /**
- * Update message DOM to reflect trimmed content
- */
-function updateMessageDOM(messageId, message) {
-    const messageBlock = document.querySelector(`[mesid="${messageId}"]`);
-    if (!messageBlock) {
-        console.warn(`NemoNet HTML Trimmer: Could not find message block for ID ${messageId}`);
-        return;
-    }
-
-    const mesTextDiv = messageBlock.querySelector('.mes_text');
-    if (!mesTextDiv) {
-        console.warn(`NemoNet HTML Trimmer: Could not find .mes_text in message ${messageId}`);
-        return;
-    }
-
-    // Update the message content
-    mesTextDiv.innerHTML = message.mes;
-
-    // Force browser repaint
-    void mesTextDiv.offsetHeight;
-
-    console.log(`NemoNet HTML Trimmer: Updated DOM for message ${messageId}`);
-}
-
-/**
  * Process old messages and trim HTML
  * @param {number} messagesToKeep - How many recent messages to keep untouched (default: 4)
  */
-export function trimOldMessagesHTML(messagesToKeep = 4) {
+export async function trimOldMessagesHTML(messagesToKeep = 4) {
     console.log(`NemoNet HTML Trimmer: Starting trim of messages older than ${messagesToKeep} messages back...`);
 
     const context = getContext();
@@ -574,7 +524,6 @@ export function trimOldMessagesHTML(messagesToKeep = 4) {
     let processedCount = 0;
     let trimmedCount = 0;
     let totalSaved = 0;
-    const updatedMessageIds = [];
 
     // Calculate how many messages from the end to start processing
     const startIndex = Math.max(0, chat.length - messagesToKeep);
@@ -594,18 +543,26 @@ export function trimOldMessagesHTML(messagesToKeep = 4) {
         const trimmedContent = trimMessageHTML(message.mes);
 
         if (trimmedContent !== message.mes) {
+            if (!message.extra || typeof message.extra !== 'object') {
+                message.extra = {};
+            }
+            if (message.extra[NEMO_HTML_TRIMMER_BACKUP_KEY] === undefined) {
+                message.extra[NEMO_HTML_TRIMMER_BACKUP_KEY] = {
+                    content: message.mes,
+                    trimmedAt: new Date().toISOString(),
+                };
+            }
             message.mes = trimmedContent;
+            syncMesToSwipe(i);
             trimmedCount++;
             totalSaved += (originalLength - trimmedContent.length);
 
-            // Track which messages need DOM updates
-            updatedMessageIds.push(i);
         }
     }
 
     if (trimmedCount > 0) {
         // Save the chat
-        context.saveChat();
+        await context.saveChat();
 
         console.log(`NemoNet HTML Trimmer: ✅ Complete! Processed ${processedCount} messages, trimmed ${trimmedCount}, saved ${totalSaved} characters`);
         debugLog(' Reloading chat to apply formatting...');
@@ -631,6 +588,39 @@ export function trimOldMessagesHTML(messagesToKeep = 4) {
         saved: totalSaved
     };
 }
+/**
+ * Restore messages changed by the HTML trimmer and remove their backups.
+ * @returns {Promise<{restored: number}>}
+ */
+export async function restoreTrimmedMessagesHTML() {
+    const context = getContext();
+    const chat = context?.chat;
+    if (!Array.isArray(chat) || chat.length === 0) {
+        return { restored: 0 };
+    }
+
+    let restored = 0;
+    for (let messageId = 0; messageId < chat.length; messageId++) {
+        const message = chat[messageId];
+        const backup = message?.extra?.[NEMO_HTML_TRIMMER_BACKUP_KEY];
+        const originalContent = typeof backup === 'string' ? backup : backup?.content;
+        if (typeof originalContent !== 'string') {
+            continue;
+        }
+
+        message.mes = originalContent;
+        delete message.extra[NEMO_HTML_TRIMMER_BACKUP_KEY];
+        syncMesToSwipe(messageId);
+        restored++;
+    }
+
+    if (restored > 0) {
+        await context.saveChat();
+        await reloadCurrentChat(context);
+    }
+
+    return { restored };
+}
 
 /**
  * Auto-trim on message send (if enabled)
@@ -638,30 +628,36 @@ export function trimOldMessagesHTML(messagesToKeep = 4) {
 export function setupAutoTrim() {
     debugLog(' Setting up auto-trim hooks...');
 
-    // Import eventSource
-    import('/script.js').then(scriptModule => {
-        const eventSource = scriptModule.eventSource;
+    if (autoTrimHandler) {
+        return cleanupHTMLTrimmer;
+    }
 
-        if (!eventSource) {
-            console.error('NemoNet HTML Trimmer: Failed to import eventSource');
-            return;
+    autoTrimHandler = () => {
+        const settings = extension_settings.NemoPresetExt;
+
+        if (settings?.enableHTMLTrimming === true) {
+            const keepMessages = Math.max(2, Number(settings.htmlTrimmingKeepCount) || 4);
+            debugLog(' Auto-trimming triggered (keeping last', keepMessages, 'messages)');
+
+            clearTimeout(autoTrimTimeout);
+            autoTrimTimeout = setTimeout(() => {
+                void trimOldMessagesHTML(keepMessages).catch(error => {
+                    console.error('NemoNet HTML Trimmer: Automatic trim failed', error);
+                });
+            }, 500);
         }
+    };
 
-        // Trim old messages when new message is sent
-        eventSource.on('MESSAGE_SENT', () => {
-            const settings = extension_settings.NemoPresetExt;
+    eventSource.on(event_types.MESSAGE_SENT, autoTrimHandler);
+    debugLog(' Auto-trim hooks registered');
+    return cleanupHTMLTrimmer;
+}
 
-            if (settings?.enableHTMLTrimming) {
-                const keepMessages = settings.htmlTrimmingKeepCount || 4;
-                debugLog(' Auto-trimming triggered (keeping last', keepMessages, 'messages)');
-
-                // Small delay to ensure message is saved
-                setTimeout(() => {
-                    trimOldMessagesHTML(keepMessages);
-                }, 500);
-            }
-        });
-
-        debugLog(' ✅ Auto-trim hooks registered');
-    });
+export function cleanupHTMLTrimmer() {
+    if (autoTrimHandler) {
+        eventSource.removeListener(event_types.MESSAGE_SENT, autoTrimHandler);
+        autoTrimHandler = null;
+    }
+    clearTimeout(autoTrimTimeout);
+    autoTrimTimeout = null;
 }

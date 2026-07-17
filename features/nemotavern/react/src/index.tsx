@@ -31,7 +31,7 @@ if (document.getElementById('nemo-root')) {
     mount();
 } else {
     // Wait for mount point to be created
-    const observer = new MutationObserver((mutations, obs) => {
+    const observer = new MutationObserver((_mutations, obs) => {
         if (document.getElementById('nemo-root')) {
             obs.disconnect();
             mount();

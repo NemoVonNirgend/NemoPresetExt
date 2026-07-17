@@ -1,13 +1,12 @@
 /**
- * Universal Robust Reasoning Parser for SillyTavern
+ * Conservative fallback reasoning parser for SillyTavern
  *
  * Multi-strategy parser that reliably captures reasoning blocks even when:
  * - Closing tags are missing
  * - Opening tags are incomplete
  * - Content is malformed
- * - Reasoning appears mid-stream
  *
- * Supports ALL major AI model reasoning formats:
+ * Supports common structured reasoning formats:
  * - NemoNet (Council of Vex CoT)
  * - Claude (Extended Thinking with <thinking> tags)
  * - DeepSeek R1 (<think>/<answer> format)
@@ -37,7 +36,6 @@ export class RobustReasoningParser {
                 'Chain of Thought:', // Explicit CoT
             ],
             alternativeSuffixes: config.alternativeSuffixes || [
-                '</think',         // Partial closing tags
                 '</thought>',      // Generic CoT
                 '</thinking>',     // Claude Extended Thinking
                 '</reasoning>',    // Generic reasoning tags
@@ -264,11 +262,10 @@ export class RobustReasoningParser {
 
             // Strategy weights (higher = more trusted)
             strategyWeights: {
-                perfectMatch: 100,
                 partialSuffix: 80,
                 missingSuffix: 70,
                 contentBased: 60,
-                heuristic: 50
+                ...(config.strategyWeights ?? {}),
             }
         };
 
@@ -281,22 +278,16 @@ export class RobustReasoningParser {
      */
     parse(text) {
         const strategies = [
-            // PRIORITY 1: Explicit tag detection (most reliable)
-            this.strategyVariedClosingTags.bind(this),    // <think>...</think> and all tag variants
-            this.strategyGeminiThoughts.bind(this),       // Gemini "Thoughts:" format
-            this.strategyDeepSeekR1.bind(this),           // DeepSeek R1 <think>/<answer> format
-            this.strategyPartialSuffix.bind(this),        // Partial closing tags (</thin, etc.)
+            // Explicit formats are deterministic and take priority.
+            this.strategyDeepSeekR1.bind(this),
+            this.strategyVariedClosingTags.bind(this),
+            this.strategyGeminiThoughts.bind(this),
+            this.strategyPartialSuffix.bind(this),
 
-            // PRIORITY 2: Period quirk detection (common failure mode)
-            this.strategyPeriodQuirk.bind(this),          // Sentence.NoSpace narrative start
-
-            // PRIORITY 3: Universal CoT detection (content-based, works across all formats)
-            this.strategyContentMarkers.bind(this),       // Reasoning markers + structure patterns
-            this.strategyMissingSuffix.bind(this),        // Has opening tag but no closing tag
-            this.strategyHeuristic.bind(this),            // Structure-based transition detection
-
-            // PRIORITY 4: Custom format detection (only if nothing else matches)
-            this.strategyNemoNetCouncil.bind(this)        // NemoNet Council format (tagless custom)
+            // Repaired and tagless formats must provide structural boundaries.
+            this.strategyContentMarkers.bind(this),
+            this.strategyMissingSuffix.bind(this),
+            this.strategyNemoNetCouncil.bind(this),
         ];
 
         for (const strategy of strategies) {
@@ -306,14 +297,14 @@ export class RobustReasoningParser {
                 // AI always produces both reasoning AND narrative, so if content is empty,
                 // this strategy extracted incorrectly and we should try the next one
                 const contentWithoutWhitespace = result.content.trim();
-                if (!contentWithoutWhitespace || contentWithoutWhitespace.length < 15) {
+                if (!contentWithoutWhitespace) {
                     if (this.debug) {
-                        console.warn(`RobustReasoningParser: Strategy ${result.strategy} left content empty (${contentWithoutWhitespace.length} chars), trying next strategy`);
+                        console.warn(`RobustReasoningParser: Strategy ${result.strategy} left content empty, trying next strategy`);
                     }
                     continue; // Skip this strategy, try the next one
                 }
 
-                // CRITICAL: Clean the reasoning to remove any leaked narration/HTML
+                // Normalize accidental wrapper residue without guessing at content boundaries
                 const cleanedReasoning = this.cleanReasoning(result.reasoning);
 
                 if (this.debug) {
@@ -458,13 +449,6 @@ export class RobustReasoningParser {
         const reasoning = text.substring(0, reasoningEnd).trim();
         const content = text.substring(reasoningEnd).trim();
 
-        // Validate we have substantial content
-        if (content.length < 50) {
-            if (this.debug) {
-                console.warn('NemoNetCouncil: Content too short, may have extracted incorrectly');
-            }
-            return null;
-        }
 
         if (this.debug) {
             console.log('RobustReasoningParser: ✅ NEMONET COUNCIL FORMAT DETECTED');
@@ -482,73 +466,6 @@ export class RobustReasoningParser {
     }
 
     /**
-     * PRIORITY STRATEGY 1: Period Quirk Detection
-     * Detects when reasoning ends with a period and narrative starts immediately without space
-     * Examples: "Time to write.The story begins..." or "Done.A profound darkness..."
-     * This is the MOST COMMON failure mode and must be checked FIRST
-     */
-    strategyPeriodQuirk(text) {
-        // Look for any opening tag (from all variants)
-        const allPrefixes = [this.config.prefix, ...this.config.alternativePrefixes];
-        let prefixMatch = null;
-        let prefixIndex = -1;
-
-        for (const prefix of allPrefixes) {
-            const idx = text.indexOf(prefix);
-            if (idx !== -1 && (prefixIndex === -1 || idx < prefixIndex)) {
-                prefixIndex = idx;
-                prefixMatch = prefix;
-            }
-        }
-
-        if (prefixIndex === -1) return null;
-
-        // Extract text after the opening tag
-        const textAfterPrefix = text.substring(prefixIndex + prefixMatch.length);
-
-        // Pattern: Sentence ending with period, immediately followed by capital letter (narrative start)
-        // Must have NO space or only a single space (common typo)
-        const periodQuirkPattern = /\.\s{0,1}([A-Z][a-z]{2,}(?:\s+[a-z]+){2,}[\s\S]+)$/;
-        const match = textAfterPrefix.match(periodQuirkPattern);
-
-        if (match && match[1]) {
-            const capturedNarrative = match[1];
-
-            // Validate this looks like narrative:
-            // - At least 3 words
-            // - Contains lowercase words (not all caps like "TIME TO WRITE")
-            // - Not a reasoning marker (like "Council of Vex" or "Step 1:")
-            const wordCount = capturedNarrative.split(/\s+/).length;
-            const hasLowercase = /[a-z]{3,}/.test(capturedNarrative);
-            const notReasoningMarker = !this.config.reasoningMarkers.some(marker =>
-                capturedNarrative.startsWith(marker)
-            );
-
-            if (wordCount >= 3 && hasLowercase && notReasoningMarker) {
-                // Found the quirk! Split here
-                const reasoningEndIndex = prefixIndex + prefixMatch.length + match.index + 1; // +1 to include the period
-                const reasoning = text.substring(prefixIndex + prefixMatch.length, reasoningEndIndex).trim();
-                const content = (text.substring(0, prefixIndex) + text.substring(reasoningEndIndex)).trim();
-
-                if (this.debug) {
-                    console.log('RobustReasoningParser: 🔍 PERIOD QUIRK DETECTED');
-                    console.log(`  Reasoning ends with: "...${reasoning.substring(reasoning.length - 30)}"`);
-                    console.log(`  Narrative starts with: "${capturedNarrative.substring(0, 50)}..."`);
-                }
-
-                return {
-                    reasoning,
-                    content,
-                    strategy: 'period-quirk',
-                    confidence: 98 // Very high confidence - this is a clear pattern
-                };
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * PRIORITY STRATEGY 2: Varied Closing Tags
      * Systematically checks ALL closing tag variants before moving to complex strategies
      * Supports: </think>, </thought>, </cot>, </thinking>, </reasoning>, etc.
@@ -556,12 +473,13 @@ export class RobustReasoningParser {
     strategyVariedClosingTags(text) {
         // Look for any opening tag (from all variants)
         const allPrefixes = [this.config.prefix, ...this.config.alternativePrefixes];
+        const lowerText = text.toLowerCase();
         let prefixMatch = null;
         let prefixIndex = -1;
 
         for (const prefix of allPrefixes) {
-            const idx = text.indexOf(prefix);
-            if (idx !== -1 && (prefixIndex === -1 || idx < prefixIndex)) {
+            const idx = lowerText.indexOf(prefix.toLowerCase());
+            if (idx !== -1 && (prefixIndex === -1 || idx < prefixIndex || (idx === prefixIndex && prefix.length > (prefixMatch?.length ?? 0)))) {
                 prefixIndex = idx;
                 prefixMatch = prefix;
             }
@@ -587,8 +505,8 @@ export class RobustReasoningParser {
         let closestSuffix = null;
 
         for (const suffix of allSuffixes) {
-            const idx = text.indexOf(suffix, prefixIndex + prefixMatch.length);
-            if (idx !== -1 && (closestSuffixIndex === -1 || idx < closestSuffixIndex)) {
+            const idx = lowerText.indexOf(suffix.toLowerCase(), prefixIndex + prefixMatch.length);
+            if (idx !== -1 && (closestSuffixIndex === -1 || idx < closestSuffixIndex || (idx === closestSuffixIndex && suffix.length > (closestSuffix?.length ?? 0)))) {
                 closestSuffixIndex = idx;
                 closestSuffix = suffix;
             }
@@ -624,14 +542,11 @@ export class RobustReasoningParser {
      */
     strategyGeminiThoughts(text) {
         // Look for "Thoughts:" followed by content, then "Response:" or similar
-        const thoughtsPattern = /^Thoughts?:\s*\n([\s\S]*?)(?:\n\n(?:Response|Answer|Output|Result):|$)/im;
+        const thoughtsPattern = /^Thoughts?:[ \t]*\r?\n([\s\S]*?)(?:\r?\n[ \t]*\r?\n(?:Response|Answer|Output|Result):|$)/i;
         const match = text.match(thoughtsPattern);
 
         if (match) {
             const reasoning = match[1].trim();
-            // Only accept if we have substantial thinking content
-            if (reasoning.length < 20) return null;
-
             const content = text.replace(match[0], '').trim();
 
             return {
@@ -643,13 +558,11 @@ export class RobustReasoningParser {
         }
 
         // Alternative: "Thinking:" header
-        const thinkingPattern = /^Thinking:\s*\n([\s\S]*?)(?:\n\n(?:Response|Answer|Output|Result):|$)/im;
+        const thinkingPattern = /^Thinking:[ \t]*\r?\n([\s\S]*?)(?:\r?\n[ \t]*\r?\n(?:Response|Answer|Output|Result):|$)/i;
         const thinkingMatch = text.match(thinkingPattern);
 
         if (thinkingMatch) {
             const reasoning = thinkingMatch[1].trim();
-            if (reasoning.length < 20) return null;
-
             const content = text.replace(thinkingMatch[0], '').trim();
 
             return {
@@ -697,10 +610,9 @@ export class RobustReasoningParser {
             const reasoning = partialMatch[1].trim();
             const answer = partialMatch[2].trim();
 
-            if (reasoning.length < 20) return null;
-
             const beforeThink = text.substring(0, partialMatch.index);
-            const content = (beforeThink + answer).trim();
+            const afterAnswer = text.substring(partialMatch.index + partialMatch[0].length);
+            const content = (beforeThink + answer + afterAnswer).trim();
 
             return {
                 reasoning,
@@ -719,23 +631,32 @@ export class RobustReasoningParser {
     strategyPartialSuffix(text) {
         const { prefix, suffix } = this.config;
 
-        const prefixIndex = text.indexOf(prefix);
+        const lowerText = text.toLowerCase();
+        const prefixIndex = lowerText.indexOf(prefix.toLowerCase());
         if (prefixIndex === -1) return null;
 
         // Look for partial suffix (e.g., "</thin" instead of "</think>")
         const partialSuffixes = this.generatePartialSuffixes(suffix);
 
         for (const partial of partialSuffixes) {
-            const partialIndex = text.indexOf(partial, prefixIndex + prefix.length);
+            const partialIndex = lowerText.indexOf(partial.toLowerCase(), prefixIndex + prefix.length);
             if (partialIndex !== -1) {
                 const reasoning = text.substring(
                     prefixIndex + prefix.length,
                     partialIndex
                 ).trim();
 
+                const afterPartial = partialIndex + partial.length;
+                const nextCharacter = text[afterPartial];
+                const hasSafeBoundary = nextCharacter === undefined
+                    || nextCharacter === '>'
+                    || /[\s\p{Lu}"'*<]/u.test(nextCharacter);
+                if (!hasSafeBoundary) continue;
+
+                const suffixEnd = nextCharacter === '>' ? afterPartial + 1 : afterPartial;
                 const content = (
                     text.substring(0, prefixIndex) +
-                    text.substring(partialIndex + partial.length)
+                    text.substring(suffixEnd)
                 ).trim();
 
                 return {
@@ -926,311 +847,29 @@ export class RobustReasoningParser {
     }
 
     /**
-     * Strategy 5: Heuristic Detection
-     * Last resort: Use structural patterns to guess where reasoning ends
+     * Return only distinctive malformed closing-tag prefixes. Very short
+     * fragments such as "</" would collide with ordinary HTML in reasoning.
      */
-    strategyHeuristic(text) {
-        // Look for CoT-like structure:
-        // - Multiple sections with headers (═══, ---, etc.)
-        // - Bullet points and lists
-        // - Meta-commentary (brackets, parentheses)
-        // - Then transition to narrative prose
-
-        const hasStructure = this.detectStructuredThinking(text);
-        if (!hasStructure) return null;
-
-        // Try to find the transition point
-        const lines = text.split('\n');
-        let transitionIndex = -1;
-
-        for (let i = 0; i < lines.length - 1; i++) {
-            const currentLine = lines[i];
-            const nextLine = lines[i + 1];
-
-            // Look for transition from structured to narrative
-            if (this.isStructuredLine(currentLine) && this.isNarrativeLine(nextLine)) {
-                transitionIndex = i;
-                break;
-            }
-        }
-
-        if (transitionIndex === -1) {
-            // No clear transition found
-            return null;
-        }
-
-        const reasoning = lines.slice(0, transitionIndex + 1).join('\n').trim();
-        const content = lines.slice(transitionIndex + 1).join('\n').trim();
-
-        return {
-            reasoning,
-            content,
-            strategy: 'heuristic',
-            confidence: this.config.strategyWeights.heuristic
-        };
-    }
-
-    // Helper Methods
-
-    escapeRegex(str) {
-        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-
     generatePartialSuffixes(suffix) {
         const partials = [];
-        // Generate all substrings from length 2 to length-1
-        for (let i = 2; i < suffix.length; i++) {
+        const minimumLength = Math.max(5, Math.ceil(suffix.length * 0.6));
+        for (let i = minimumLength; i < suffix.length; i++) {
             partials.push(suffix.substring(0, i));
         }
-        return partials.reverse(); // Try longer matches first
+        return partials.reverse();
     }
-
-    detectStructuredThinking(text) {
-        const structureMarkers = [
-            /═{3,}/,  // Box drawing
-            /─{3,}/,  // Horizontal lines
-            /^[♢◆●○]\s/m,  // Bullet points
-            /^\d+\./m,  // Numbered lists
-            /^[A-Z_\s]+:/m,  // Section headers
-            /\[.*?\]/,  // Bracketed notes
-        ];
-
-        let markerCount = 0;
-        for (const marker of structureMarkers) {
-            if (marker.test(text)) markerCount++;
-        }
-
-        return markerCount >= 2;
-    }
-
-    isStructuredLine(line) {
-        const patterns = [
-            /^[♢◆●○]\s/,  // Bullet
-            /^[A-Z_\s]+:/,  // Header
-            /═{3,}|─{3,}/,  // Lines
-            /^\d+\./,  // Numbered
-            /^\s*-\s/,  // Dash bullet
-            /^\[.*?\]/,  // Brackets
-            /^<.*?>/,  // Tags
-        ];
-
-        return patterns.some(p => p.test(line.trim()));
-    }
-
-    isNarrativeLine(line) {
-        const trimmed = line.trim();
-
-        // Must be prose-like (starts with capital, has multiple words, ends with punctuation)
-        if (!/^[A-Z]/.test(trimmed)) return false;
-        if (trimmed.split(/\s+/).length < 3) return false;
-        if (!/[.!?"\)]$/.test(trimmed)) return false;
-
-        // Should NOT have structural markers
-        if (this.isStructuredLine(line)) return false;
-
-        return true;
-    }
-
     /**
      * Clean reasoning text - removes any narration/output that leaked into reasoning
      * This is a post-processing step after initial extraction
      */
     cleanReasoning(reasoning) {
-        if (!reasoning || reasoning.length < 10) return reasoning;
+        if (typeof reasoning !== 'string') return reasoning;
 
-        let cleaned = reasoning;
-
-        // Step 1: Remove trailing </think> or similar closing tags that got captured
-        cleaned = cleaned.replace(/<\/(?:think|thinking|thought|reasoning|reflection|analysis)>\s*$/i, '').trim();
-
-        // Step 2: Remove anything after final reasoning marker (more aggressive)
-        // Look for the LAST occurrence of key reasoning end markers
-        const endMarkers = [
-            'Time to write.',
-            'Okay, plan is set.',
-            'Decision/Synthesis',
-            'Final Polish:',
-            'FINAL PULSE CHECK:',
-            '!VITAL! Output',
-            'END OF THINKING',
-            // Lucid Loom v2.8
-            'I will present the tapestry only then.',
-            'denoting my completion of the weave. I will present',
-            'Once I have completed all of the required steps:',
-            'Now, let us continue weaving our story',
-        ];
-
-        let earliestEndIndex = -1;
-        for (const marker of endMarkers) {
-            const index = cleaned.lastIndexOf(marker);
-            if (index !== -1) {
-                const endOfMarker = index + marker.length;
-                if (earliestEndIndex === -1 || endOfMarker < earliestEndIndex) {
-                    earliestEndIndex = endOfMarker;
-                }
-            }
-        }
-
-        // If we found an end marker, cut everything after it
-        if (earliestEndIndex !== -1) {
-            // Look ahead a bit to include any immediate continuation (like numbered lists)
-            const afterMarker = cleaned.substring(earliestEndIndex);
-            const nextParagraphMatch = afterMarker.match(/^[.\n]*?(?:\n\n|$)/);
-            if (nextParagraphMatch) {
-                earliestEndIndex += nextParagraphMatch[0].length;
-            }
-            cleaned = cleaned.substring(0, earliestEndIndex).trim();
-        }
-
-        // Step 2b: Scan from end backwards for narrative prose (fallback)
-        const lines = cleaned.split('\n');
-        let lastReasoningIndex = lines.length - 1;
-
-        let consecutiveNarrativeLines = 0;
-        for (let i = lines.length - 1; i >= 0; i--) {
-            const line = lines[i].trim();
-
-            // Skip empty lines
-            if (!line) continue;
-
-            // Check if this is narrative prose
-            if (this.isNarrativeLine(line) && !this.isStructuredLine(line)) {
-                consecutiveNarrativeLines++;
-                // If we find 2+ consecutive narrative lines, mark this as the cutoff
-                if (consecutiveNarrativeLines >= 2) {
-                    lastReasoningIndex = i - 1;
-                }
-            } else {
-                // Hit reasoning content again, stop scanning
-                break;
-            }
-        }
-
-        // If we found narrative content, truncate it
-        if (lastReasoningIndex < lines.length - 1) {
-            cleaned = lines.slice(0, lastReasoningIndex + 1).join('\n').trim();
-        }
-
-        // Step 3: Remove HTML-formatted narrative paragraphs at the end
-        // These often appear as <p>narrative text</p> or <div>...</div>
-        cleaned = cleaned.replace(/<(?:p|div)[^>]*>(?:(?!<(?:p|div)).)*?<\/(?:p|div)>\s*$/gis, '').trim();
-
-        // Step 4: Remove any obvious HTML block elements that leaked in
-        // (quest journals, character sheets, planning quarters, etc.)
-        // More aggressive - remove ALL HTML after reasoning
-        cleaned = cleaned.replace(/<details[^>]*>[\s\S]*$/gi, '').trim();
-        cleaned = cleaned.replace(/<div\s+style[^>]*>[\s\S]*$/gi, '').trim();
-        cleaned = cleaned.replace(/<p>[\s\S]*$/gi, '').trim();  // Remove any <p> tags and everything after
-
-        // Remove broken HTML fragments (like unclosed tags)
-        cleaned = cleaned.replace(/<(?:div|span|p|details|summary)[^>]*$/gi, '').trim();
-
-        // Step 5: Remove standalone dialogue or narrative that appears after final reasoning check
-        // Pattern: Text after "!VITAL! Output", "END OF THINKING", "FINAL PULSE CHECK", etc.
-        const finalCheckPatterns = [
-            /!VITAL!\s*Output\s*$/i,
-            /END OF THINKING.*$/is,
-            /FINAL PULSE CHECK:[\s\S]*?(?=\n\n[A-Z])/i,
-        ];
-
-        for (const pattern of finalCheckPatterns) {
-            const match = cleaned.match(pattern);
-            if (match) {
-                // Keep everything up to and including the marker, remove everything after
-                cleaned = cleaned.substring(0, match.index + match[0].length).trim();
-            }
-        }
-
-        // Step 6: Remove common narrative indicators at the very end
-        // Like: "The rain-slicked streets...", dialogue starting with quotes, etc.
-        const narrativeStartPatterns = [
-            /\n\n["'*][\s\S]+$/,  // Dialogue or action after double newline
-            /\n\nThe [a-z-]+\s+(?:streets|room|air|world|night|day)[\s\S]+$/,  // "The [noun]..." prose
-            /\n\n[A-Z][a-z]+\s+(?:wiped|walked|stood|sat|moved|ran|looked|glanced)[\s\S]+$/,  // Character action
-            /\n\nA (?:profound|sudden|deep|soft|loud|bright|dark)[\s\S]+$/,  // "A [adjective]..." prose
-            /\n\nFirst,[\s\S]+$/,  // "First, ..." narrative sequencing
-            /\n\nSlowly,[\s\S]+$/,  // "Slowly, ..." narrative pacing
-        ];
-
-        for (const pattern of narrativeStartPatterns) {
-            cleaned = cleaned.replace(pattern, '').trim();
-        }
-
-        // Step 6b: REMOVED - Period quirk handling now done in strategyPeriodQuirk()
-        // This was redundant since the primary strategy catches it first
-
-        // Step 7: Remove any stray opening tags at the very end
-        cleaned = cleaned.replace(/<(?:think|thinking|thought|reasoning|answer)>\s*$/i, '').trim();
-
-        // Step 8: If we removed too much (more than 50% of original), keep original
-        // This prevents over-aggressive cleaning
-        if (cleaned.length < reasoning.length * 0.5) {
-            if (this.debug) {
-                console.log('RobustReasoningParser: Cleaning removed >50% of content, keeping original');
-            }
-            return reasoning;
-        }
-
-        if (this.debug && cleaned !== reasoning) {
-            console.log(`RobustReasoningParser: Cleaned reasoning (${reasoning.length} → ${cleaned.length} chars)`);
-            console.log('Removed:', reasoning.substring(cleaned.length));
-        }
-
-        return cleaned;
+        // Extraction strategies own the content boundary. Cleanup may remove only
+        // accidental outer wrappers; guessing at prose or HTML would lose data.
+        return reasoning
+            .replace(/^\s*<(?:think(?:ing)?|thought|reasoning|reflection|analysis)>\s*/i, '')
+            .replace(/\s*<\/(?:think(?:ing)?|thought|reasoning|reflection|analysis)>\s*$/i, '')
+            .trim();
     }
 }
-
-/**
- * Integration with existing SillyTavern reasoning system
- */
-export function enhanceReasoningParsing() {
-    // Get the existing parseReasoningFromString function
-    const originalParse = window.SillyTavern?.parseReasoningFromString;
-
-    if (!originalParse) {
-        console.warn('RobustReasoningParser: Could not find original parseReasoningFromString');
-        return;
-    }
-
-    // Create parser instance with current settings
-    const parser = new RobustReasoningParser({
-        prefix: window.power_user?.reasoning?.prefix || '<think>',
-        suffix: window.power_user?.reasoning?.suffix || '</think>',
-        debug: false
-    });
-
-    // Replace the parsing function
-    window.SillyTavern.parseReasoningFromString = function(str, options = {}) {
-        // Try original method first (for backward compatibility)
-        const originalResult = originalParse(str, options);
-
-        if (originalResult && originalResult.reasoning) {
-            return originalResult;
-        }
-
-        // Fall back to robust parser
-        const robustResult = parser.parse(str);
-
-        if (robustResult.confidence > 50) {
-            return {
-                reasoning: robustResult.reasoning,
-                content: robustResult.content
-            };
-        }
-
-        // No reasoning found
-        return null;
-    };
-
-    console.log('RobustReasoningParser: Enhanced reasoning parsing enabled');
-}
-
-/**
- * NOTE: The previous auto-init monkeypatched `window.SillyTavern.parseReasoningFromString`,
- * but the core reasoning pipeline calls its own module-local `parseReasoningFromString`
- * internally, so that patch never took effect (dead code). Reasoning capture is now wired
- * in properly via `NemoNetReasoningParser.parse()`, which defers to the fork's native
- * (already robust) `parseReasoningFromString` first and only falls back here for tagless
- * formats. The `enhanceReasoningParsing` export is kept for backward compatibility but is
- * no longer auto-run.
- */

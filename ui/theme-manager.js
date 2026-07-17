@@ -6,10 +6,29 @@
 import { saveSettingsDebounced } from '../../../../../script.js';
 import { extension_settings } from '../../../../extensions.js';
 import { LOG_PREFIX, NEMO_EXTENSION_NAME, getExtensionPath } from '../core/utils.js';
-import { initWin98Enhancements, cleanupWin98Enhancements } from '../themes/win98-enhancements.js';
-import { initDiscordEnhancements, cleanupDiscordEnhancements } from '../themes/discord-enhancements.js';
-import { initCyberpunkEnhancements, cleanupCyberpunkEnhancements } from '../themes/cyberpunk-enhancements.js';
-import { initNemoTavernEnhancements, cleanupNemoTavernEnhancements } from '../themes/nemotavern/nemotavern-enhancements.js';
+
+const THEME_ENHANCEMENTS = {
+    win98: {
+        load: () => import('../themes/win98-enhancements.js'),
+        init: 'initWin98Enhancements',
+        cleanup: 'cleanupWin98Enhancements',
+    },
+    discord: {
+        load: () => import('../themes/discord-enhancements.js'),
+        init: 'initDiscordEnhancements',
+        cleanup: 'cleanupDiscordEnhancements',
+    },
+    cyberpunk: {
+        load: () => import('../themes/cyberpunk-enhancements.js'),
+        init: 'initCyberpunkEnhancements',
+        cleanup: 'cleanupCyberpunkEnhancements',
+    },
+    nemotavern: {
+        load: () => import('../themes/nemotavern/nemotavern-enhancements.js'),
+        init: 'initNemoTavernEnhancements',
+        cleanup: 'cleanupNemoTavernEnhancements',
+    },
+};
 
 // Available themes configuration
 const THEMES = {
@@ -47,6 +66,8 @@ const THEMES = {
 
 // Track loaded theme stylesheets
 let loadedThemeStylesheet = null;
+const loadedThemeEnhancements = new Map();
+let enhancementInitTimer = null;
 
 // Base path now uses centralized getExtensionPath() from core/utils.js
 
@@ -68,15 +89,44 @@ function isMobileViewport() {
 }
 
 /**
- * Run cleanup for every theme's enhancements. Each cleanup is a best-effort
- * teardown that no-ops if its DOM/observers were never created. Calling all
- * four every time avoids needing to track which theme was previously active.
+ * Run cleanup for enhancement modules that have actually been loaded.
+ * Unselected theme modules stay unloaded, so they cannot start observers,
+ * intervals, or other optional UI work.
  */
 function cleanupAllThemeEnhancements() {
-    try { cleanupWin98Enhancements(); } catch (e) { console.warn(`${LOG_PREFIX} Win98 cleanup failed`, e); }
-    try { cleanupDiscordEnhancements(); } catch (e) { console.warn(`${LOG_PREFIX} Discord cleanup failed`, e); }
-    try { cleanupCyberpunkEnhancements(); } catch (e) { console.warn(`${LOG_PREFIX} Cyberpunk cleanup failed`, e); }
-    try { cleanupNemoTavernEnhancements(); } catch (e) { console.warn(`${LOG_PREFIX} NemoTavern cleanup failed`, e); }
+    if (enhancementInitTimer !== null) {
+        clearTimeout(enhancementInitTimer);
+        enhancementInitTimer = null;
+    }
+
+    for (const [themeName, module] of loadedThemeEnhancements) {
+        const cleanupName = THEME_ENHANCEMENTS[themeName]?.cleanup;
+        try {
+            module[cleanupName]?.();
+        } catch (error) {
+            console.warn(`${LOG_PREFIX} ${themeName} cleanup failed`, error);
+        }
+    }
+}
+
+async function initializeThemeEnhancements(themeName) {
+    const enhancement = THEME_ENHANCEMENTS[themeName];
+    const theme = THEMES[themeName];
+    if (!enhancement || !theme?.bodyClass || !document.body.classList.contains(theme.bodyClass)) {
+        return;
+    }
+
+    try {
+        const module = loadedThemeEnhancements.get(themeName) ?? await enhancement.load();
+        loadedThemeEnhancements.set(themeName, module);
+
+        // The selected theme may have changed while its module was loading.
+        if (document.body.classList.contains(theme.bodyClass)) {
+            module[enhancement.init]?.();
+        }
+    } catch (error) {
+        console.error(`${LOG_PREFIX} Failed to initialize ${themeName} enhancements`, error);
+    }
 }
 
 /**
@@ -215,22 +265,11 @@ export async function applyTheme(themeName) {
             console.log(`${LOG_PREFIX} Body classes now: ${document.body.className}`);
         }
 
-        // Initialize theme-specific enhancements
-        if (themeName === 'win98') {
-            setTimeout(() => {
-                initWin98Enhancements();
-            }, 100);
-        } else if (themeName === 'discord') {
-            setTimeout(() => {
-                initDiscordEnhancements();
-            }, 100);
-        } else if (themeName === 'cyberpunk') {
-            setTimeout(() => {
-                initCyberpunkEnhancements();
-            }, 100);
-        } else if (themeName === 'nemotavern') {
-            setTimeout(() => {
-                initNemoTavernEnhancements();
+        // Load observers, intervals, and large theme UI only for the selected theme.
+        if (THEME_ENHANCEMENTS[themeName]) {
+            enhancementInitTimer = setTimeout(() => {
+                enhancementInitTimer = null;
+                void initializeThemeEnhancements(themeName);
             }, 100);
         }
 

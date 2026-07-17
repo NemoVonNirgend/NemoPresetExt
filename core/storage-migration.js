@@ -4,6 +4,7 @@
  */
 
 import { extension_settings } from '../../../../extensions.js';
+import { applySettingsSchema } from './feature-settings.js';
 import { saveSettingsDebounced } from '../../../../../script.js';
 import { LOG_PREFIX, NEMO_EXTENSION_NAME } from './utils.js';
 import logger from './logger.js';
@@ -24,7 +25,7 @@ function getSettingsNamespace() {
         extension_settings[NEMO_EXTENSION_NAME] = {};
     }
 
-    return extension_settings[NEMO_EXTENSION_NAME];
+    return applySettingsSchema(extension_settings[NEMO_EXTENSION_NAME]);
 }
 
 function makePromptLibraryId(prefix = 'archive') {
@@ -189,14 +190,6 @@ export function initializeStorage() {
     settings.favoriteCharacters = settings.favoriteCharacters || [];
     settings.promptStates = settings.promptStates || {};
     settings.openSectionStates = settings.openSectionStates || {};
-
-    // Feature toggles
-    settings.enableTabOverhauls = settings.enableTabOverhauls !== false;
-    settings.enableLorebookOverhaul = settings.enableLorebookOverhaul !== false;
-    settings.enableAnimatedBackgrounds = settings.enableAnimatedBackgrounds !== false;
-    settings.nemoEnableExtensionsTabOverhaul = settings.nemoEnableExtensionsTabOverhaul !== false;
-    settings.enableReasoningSection = settings.enableReasoningSection !== false;
-    settings.enableLorebookManagement = settings.enableLorebookManagement !== false;
 
     logger.info('Storage structure initialized');
 }

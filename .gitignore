@@ -1,4 +1,8 @@
 **/.DS_Store
 node_modules/
+.reference/
 lint_output.txt
 nul
+NEMOTAVERN_FEATURE_AUDIT.md
+.omn/
+.omx/

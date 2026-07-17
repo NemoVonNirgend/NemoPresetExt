@@ -6,10 +6,29 @@ import { LOG_PREFIX } from '../../core/utils.js';
  */
 export const NemoPersonaUI = {
     _initialized: false,
+    _abortController: null,
+    _observers: new Set(),
+    _timeouts: new Set(),
+    _moveRecords: [],
+    _createdElements: new Set(),
+
+    _schedule: function (callback, delay) {
+        const timeout = setTimeout(() => {
+            this._timeouts.delete(timeout);
+            if (this._initialized) callback();
+        }, delay);
+        this._timeouts.add(timeout);
+        return timeout;
+    },
+
+    _recordMove: function (element) {
+        this._moveRecords.push({ element, parent: element.parentNode, nextSibling: element.nextSibling });
+    },
 
     initialize: function () {
         if (this._initialized) return;
         this._initialized = true;
+        this._abortController = new AbortController();
 
         console.log(`${LOG_PREFIX} Initializing Persona UI enhancements...`);
         this._waitForPanel();
@@ -20,7 +39,7 @@ export const NemoPersonaUI = {
         if (panel) {
             this._enhance(panel);
         } else {
-            setTimeout(() => this._waitForPanel(), 500);
+            this._schedule(() => this._waitForPanel(), 500);
         }
     },
 
@@ -46,6 +65,8 @@ export const NemoPersonaUI = {
         const buttons = Array.from(buttonsBlock.querySelectorAll(':scope > .menu_button'));
         if (buttons.length < 6) return;
 
+        buttons.forEach(button => this._recordMove(button));
+
         // Group 1: Edit (rename, sync)
         const editGroup = document.createElement('div');
         editGroup.className = 'nemo-persona-action-group';
@@ -67,6 +88,9 @@ export const NemoPersonaUI = {
         buttonsBlock.appendChild(editGroup);
         buttonsBlock.appendChild(manageGroup);
         buttonsBlock.appendChild(dangerGroup);
+        this._createdElements.add(editGroup);
+        this._createdElements.add(manageGroup);
+        this._createdElements.add(dangerGroup);
     },
 
     /**
@@ -99,11 +123,12 @@ export const NemoPersonaUI = {
         connectionsDiv.querySelectorAll('.icon').forEach(icon => {
             observer.observe(icon, { attributes: true, attributeFilter: ['class'] });
         });
+        this._observers.add(observer);
 
         // Also re-check when buttons are clicked
         connectionsDiv.addEventListener('click', () => {
-            setTimeout(updateLockStates, 100);
-        });
+            this._schedule(updateLockStates, 100);
+        }, { signal: this._abortController.signal });
     },
 
     /**
@@ -128,14 +153,19 @@ export const NemoPersonaUI = {
         content.className = 'nemo-persona-settings-content nemo-persona-collapsed';
 
         const children = Array.from(globalSettings.children).filter(c => c !== header);
-        children.forEach(child => content.appendChild(child));
+        children.forEach(child => {
+            this._recordMove(child);
+            content.appendChild(child);
+        });
         globalSettings.appendChild(content);
+        this._createdElements.add(chevron);
+        this._createdElements.add(content);
 
         header.addEventListener('click', () => {
             const isCollapsed = content.classList.toggle('nemo-persona-collapsed');
             chevron.classList.toggle('fa-chevron-down', !isCollapsed);
             chevron.classList.toggle('fa-chevron-right', isCollapsed);
-        });
+        }, { signal: this._abortController.signal });
     },
 
     /**
@@ -160,13 +190,15 @@ export const NemoPersonaUI = {
         const createBtn = toolbar.querySelector('#create_dummy_persona');
         if (createBtn) {
             createBtn.after(badge);
+            this._createdElements.add(badge);
         }
 
-        setTimeout(updateCount, 100);
+        this._schedule(updateCount, 100);
 
         // Update when personas are added/removed
-        const observer = new MutationObserver(() => setTimeout(updateCount, 50));
+        const observer = new MutationObserver(() => this._schedule(updateCount, 50));
         observer.observe(avatarBlock, { childList: true });
+        this._observers.add(observer);
     },
 
     /**
@@ -186,5 +218,29 @@ export const NemoPersonaUI = {
         styleBanner();
         const observer = new MutationObserver(styleBanner);
         observer.observe(infoBlock, { childList: true, subtree: true });
+        this._observers.add(observer);
+    },
+
+    destroy: function () {
+        this._abortController?.abort();
+        this._abortController = null;
+        for (const observer of this._observers) observer.disconnect();
+        this._observers.clear();
+        for (const timeout of this._timeouts) clearTimeout(timeout);
+        this._timeouts.clear();
+
+        for (const { element, parent, nextSibling } of this._moveRecords.reverse()) {
+            if (!parent?.isConnected) continue;
+            parent.insertBefore(element, nextSibling?.parentNode === parent ? nextSibling : null);
+        }
+        this._moveRecords.length = 0;
+        for (const element of this._createdElements) element.remove();
+        this._createdElements.clear();
+
+        const panel = document.getElementById('PersonaManagement');
+        panel?.querySelectorAll('.nemo-persona-actions, .nemo-persona-connections, .nemo-persona-collapsible-header, .nemo-persona-locked, .nemo-persona-unlocked, .nemo-persona-temp-banner').forEach(element => {
+            element.classList.remove('nemo-persona-actions', 'nemo-persona-connections', 'nemo-persona-collapsible-header', 'nemo-persona-locked', 'nemo-persona-unlocked', 'nemo-persona-temp-banner');
+        });
+        this._initialized = false;
     },
 };

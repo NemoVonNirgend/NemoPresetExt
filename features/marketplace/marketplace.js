@@ -11,7 +11,7 @@ import {
  * Injected into the top settings bar next to the Extensions button.
  */
 
-const RECOMMENDATIONS_URL = 'https://raw.githubusercontent.com/NemoVonNirgend/NemoPresetExt/main/features/marketplace/recommendations.json';
+const RECOMMENDATIONS_URL = new URL('./recommendations.json', import.meta.url);
 
 const CATEGORY_ICONS = {
     extensions: 'fa-puzzle-piece',
@@ -159,18 +159,74 @@ export const NemoMarketplace = {
     _promptLibraryLoading: false,
     _promptLibraryErrors: [],
     _activePromptSource: 'all',
+    _initialized: false,
+    _lifecycleEpoch: 0,
+    _abortController: null,
+    _injectionTimer: null,
+    _closeTimer: null,
+    _focusFrame: null,
+    _personaMove: null,
 
     initialize: function () {
+        if (this._initialized) return;
+        this._initialized = true;
+        const epoch = ++this._lifecycleEpoch;
+        this._abortController = new AbortController();
         console.log(`${LOG_PREFIX} Initializing Marketplace...`);
-        this._injectButton();
-        this._loadData();
+        this._injectButton(epoch);
+        this._loadData(epoch);
     },
 
-    _injectButton: function () {
+    destroy: function () {
+        this._initialized = false;
+        this._lifecycleEpoch++;
+        this._abortController?.abort();
+        this._abortController = null;
+        if (this._injectionTimer) clearTimeout(this._injectionTimer);
+        if (this._closeTimer) clearTimeout(this._closeTimer);
+        if (this._focusFrame) cancelAnimationFrame(this._focusFrame);
+        this._injectionTimer = null;
+        this._closeTimer = null;
+        this._focusFrame = null;
+
+        if (this._escHandler) {
+            document.removeEventListener('keydown', this._escHandler);
+            this._escHandler = null;
+        }
+        document.getElementById('nemo-marketplace-popup')?.remove();
+        document.getElementById('nemo-marketplace-button')?.remove();
+
+        const move = this._personaMove;
+        if (move?.parent?.isConnected && move.element) {
+            if (move.nextSibling?.parentNode === move.parent) {
+                move.parent.insertBefore(move.element, move.nextSibling);
+            } else {
+                move.parent.appendChild(move.element);
+            }
+        }
+        this._personaMove = null;
+        this._isOpen = false;
+        this._promptLibraryLoading = false;
+    },
+
+    _isCurrentLifecycle: function (epoch = this._lifecycleEpoch) {
+        return this._initialized && epoch === this._lifecycleEpoch;
+    },
+
+    _listenerOptions: function () {
+        return this._abortController ? { signal: this._abortController.signal } : undefined;
+    },
+
+    _injectButton: function (epoch = this._lifecycleEpoch) {
+        if (!this._isCurrentLifecycle(epoch)) return;
         const topSettingsHolder = document.getElementById('top-settings-holder');
         if (!topSettingsHolder) {
             console.warn(`${LOG_PREFIX} top-settings-holder not found, retrying...`);
-            setTimeout(() => this._injectButton(), 500);
+            if (this._injectionTimer) clearTimeout(this._injectionTimer);
+            this._injectionTimer = setTimeout(() => {
+                this._injectionTimer = null;
+                this._injectButton(epoch);
+            }, 500);
             return;
         }
 
@@ -188,6 +244,11 @@ export const NemoMarketplace = {
             const icon = d.querySelector('.drawer-icon');
             return icon && (icon.title === 'Persona Management' || icon.getAttribute('data-i18n')?.includes('Persona'));
         });
+        if (personaDrawer && !this._personaMove) {
+            this._personaMove = {
+                element: personaDrawer, parent: personaDrawer.parentNode, nextSibling: personaDrawer.nextSibling,
+            };
+        }
 
         // Create marketplace button
         const marketplaceDrawer = document.createElement('div');
@@ -217,23 +278,30 @@ export const NemoMarketplace = {
         icon.addEventListener('click', (e) => {
             e.stopPropagation();
             this._togglePopup();
-        });
+        }, this._listenerOptions());
 
         console.log(`${LOG_PREFIX} Marketplace button injected`);
     },
 
-    _loadData: async function () {
+    _loadData: async function (epoch = this._lifecycleEpoch) {
         try {
-            const response = await fetch(RECOMMENDATIONS_URL, { cache: 'no-cache' });
+            const response = await fetch(RECOMMENDATIONS_URL, {
+                cache: 'no-cache',
+                signal: this._abortController?.signal,
+            });
             if (response.ok) {
-                this._data = this._mergeLocalRecommendations(await response.json());
-                console.log(`${LOG_PREFIX} Loaded ${this._data.length} marketplace items from GitHub`);
+                const data = await response.json();
+                if (!this._isCurrentLifecycle(epoch)) return;
+                this._data = this._mergeLocalRecommendations(data);
+                console.log(`${LOG_PREFIX} Loaded ${this._data.length} bundled marketplace items`);
                 return;
             }
         } catch (e) {
-            console.warn(`${LOG_PREFIX} Failed to fetch marketplace data from GitHub, using fallback`, e);
+            if (e?.name !== 'AbortError' && this._isCurrentLifecycle(epoch)) {
+                console.warn(`${LOG_PREFIX} Failed to load bundled marketplace data, using fallback`, e);
+            }
         }
-        this._data = FALLBACK_DATA;
+        if (this._isCurrentLifecycle(epoch)) this._data = FALLBACK_DATA;
     },
 
     _mergeLocalRecommendations: function (remoteData) {
@@ -266,6 +334,7 @@ export const NemoMarketplace = {
     },
 
     _openPopup: function () {
+        if (!this._initialized) return;
         if (document.getElementById('nemo-marketplace-popup')) return;
 
         this._isOpen = true;
@@ -279,7 +348,7 @@ export const NemoMarketplace = {
         overlay.className = 'nemo-marketplace-overlay';
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) this._closePopup();
-        });
+        }, this._listenerOptions());
 
         const popup = document.createElement('div');
         popup.className = 'nemo-marketplace-popup';
@@ -346,7 +415,7 @@ export const NemoMarketplace = {
         document.body.appendChild(overlay);
 
         // Wire up close button
-        popup.querySelector('.nemo-marketplace-close').addEventListener('click', () => this._closePopup());
+        popup.querySelector('.nemo-marketplace-close').addEventListener('click', () => this._closePopup(), this._listenerOptions());
 
         const viewSwitch = popup.querySelector('.nemo-marketplace-view-switch');
         const catContainer = popup.querySelector('.nemo-marketplace-categories');
@@ -356,14 +425,14 @@ export const NemoMarketplace = {
             const button = target?.closest('.nemo-marketplace-view-btn');
             if (!button) return;
             this._setActiveView(button.dataset.view);
-        });
+        }, this._listenerOptions());
 
         catContainer.addEventListener('click', (event) => {
             const target = event.target instanceof Element ? event.target : null;
             const button = target?.closest('.nemo-marketplace-cat-btn');
             if (!button) return;
             this._setActiveFilter(button.dataset.category);
-        });
+        }, this._listenerOptions());
 
         const grid = popup.querySelector('#nemo-marketplace-grid');
         grid.addEventListener('click', (event) => {
@@ -371,33 +440,41 @@ export const NemoMarketplace = {
             const importButton = target?.closest('.nemo-marketplace-prompt-import');
             if (!importButton) return;
             this._importPromptFile(importButton.dataset.promptId, importButton);
-        });
+        }, this._listenerOptions());
 
         // Search handler
         const searchInput = popup.querySelector('#nemo-marketplace-search');
         searchInput.addEventListener('input', () => {
             this._searchTerm = searchInput.value.trim().toLowerCase();
             this._renderCurrentView();
-        });
+        }, this._listenerOptions());
 
         this._renderFilters();
         this._renderCurrentView();
 
         // Focus search
-        requestAnimationFrame(() => searchInput.focus());
+        const epoch = this._lifecycleEpoch;
+        this._focusFrame = requestAnimationFrame(() => {
+            this._focusFrame = null;
+            if (this._isCurrentLifecycle(epoch) && searchInput.isConnected) searchInput.focus();
+        });
 
         // ESC to close
         this._escHandler = (e) => {
             if (e.key === 'Escape') this._closePopup();
         };
-        document.addEventListener('keydown', this._escHandler);
+        document.addEventListener('keydown', this._escHandler, this._listenerOptions());
     },
 
     _closePopup: function () {
         const overlay = document.getElementById('nemo-marketplace-popup');
         if (overlay) {
             overlay.classList.add('nemo-marketplace-closing');
-            setTimeout(() => overlay.remove(), 200);
+            if (this._closeTimer) clearTimeout(this._closeTimer);
+            this._closeTimer = setTimeout(() => {
+                this._closeTimer = null;
+                overlay.remove();
+            }, 200);
         }
         this._isOpen = false;
         if (this._escHandler) {
@@ -417,6 +494,12 @@ export const NemoMarketplace = {
             searchInput.placeholder = this._activeView === 'prompts'
                 ? 'Search prompt files...'
                 : 'Search recommendations...';
+        }
+        const searchLabel = popup?.querySelector('.nemo-marketplace-search-label');
+        if (searchLabel) {
+            searchLabel.textContent = this._activeView === 'prompts'
+                ? 'Search prompts'
+                : 'Search marketplace';
         }
 
         popup?.querySelectorAll('.nemo-marketplace-view-btn').forEach(button => {
@@ -559,6 +642,7 @@ export const NemoMarketplace = {
     },
 
     _ensurePromptLibraryLoaded: async function () {
+        const epoch = this._lifecycleEpoch;
         if (this._promptLibraryLoaded || this._promptLibraryLoading) return;
 
         this._promptLibraryLoading = true;
@@ -566,15 +650,19 @@ export const NemoMarketplace = {
 
         try {
             const { files, errors } = await loadPromptLibrary();
+            if (!this._isCurrentLifecycle(epoch)) return;
             this._promptFiles = files;
             this._promptLibraryErrors = errors;
             this._promptLibraryLoaded = true;
         } catch (error) {
+            if (!this._isCurrentLifecycle(epoch)) return;
             this._promptLibraryErrors = [error.message || 'Unable to load prompt library'];
         } finally {
-            this._promptLibraryLoading = false;
-            this._renderFilters();
-            this._renderPromptLibrary();
+            if (this._isCurrentLifecycle(epoch)) {
+                this._promptLibraryLoading = false;
+                this._renderFilters();
+                this._renderPromptLibrary();
+            }
         }
     },
 
@@ -662,6 +750,7 @@ export const NemoMarketplace = {
     },
 
     _importPromptFile: async function (promptId, button) {
+        const epoch = this._lifecycleEpoch;
         const file = this._promptFiles.find(item => item.id === promptId);
         if (!file || !button) return;
 
@@ -671,13 +760,16 @@ export const NemoMarketplace = {
 
         try {
             const bundle = await loadPromptBundle(file);
+            if (!this._isCurrentLifecycle(epoch)) return;
             const result = await importPromptBundle(bundle);
+            if (!this._isCurrentLifecycle(epoch)) return;
             button.innerHTML = '<i class="fa-solid fa-check"></i> Imported';
             window.toastr?.success?.(
                 `Imported ${result.total} prompt${result.total === 1 ? '' : 's'} from ${file.title}.`,
                 'Nemo Marketplace',
             );
         } catch (error) {
+            if (!this._isCurrentLifecycle(epoch)) return;
             button.disabled = false;
             button.innerHTML = originalHtml;
             console.error(`${LOG_PREFIX} Failed to import marketplace prompt file`, error);

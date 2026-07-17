@@ -9,12 +9,18 @@ import { tutorials } from './tutorials.js';
 export class TutorialLauncher {
     constructor() {
         this.menuContainer = null;
+        this._initialized = false;
+        this._settingsInterval = null;
+        this._welcomeTimeout = null;
+        this._tutorialSection = null;
     }
 
     /**
      * Initialize the launcher
      */
     initialize() {
+        if (this._initialized) return;
+        this._initialized = true;
         // Register all tutorials
         Object.entries(tutorials).forEach(([id, tutorial]) => {
             tutorialManager.registerTutorial(id, tutorial);
@@ -31,10 +37,12 @@ export class TutorialLauncher {
      */
     addTutorialButton() {
         // Wait for settings container
-        const checkSettings = setInterval(() => {
+        clearInterval(this._settingsInterval);
+        this._settingsInterval = setInterval(() => {
             const settingsContainer = document.querySelector('.nemo-preset-enhancer-settings');
             if (settingsContainer) {
-                clearInterval(checkSettings);
+                clearInterval(this._settingsInterval);
+                this._settingsInterval = null;
 
                 // Check if button already exists
                 if (settingsContainer.querySelector('.nemo-tutorials-button')) {
@@ -54,6 +62,7 @@ export class TutorialLauncher {
 
                 // Insert at the top of settings
                 settingsContainer.insertBefore(tutorialSection, settingsContainer.firstChild);
+                this._tutorialSection = tutorialSection;
 
                 // Add click handler
                 const button = tutorialSection.querySelector('.nemo-tutorials-button');
@@ -348,10 +357,25 @@ export class TutorialLauncher {
     checkWelcomeTutorial() {
         if (tutorialManager.shouldShowWelcomeTutorial()) {
             // Wait a bit for UI to load
-            setTimeout(() => {
-                this.startTutorial('welcome');
+            clearTimeout(this._welcomeTimeout);
+            this._welcomeTimeout = setTimeout(() => {
+                this._welcomeTimeout = null;
+                if (this._initialized) this.startTutorial('welcome');
             }, 2000);
         }
+    }
+
+    destroy() {
+        clearInterval(this._settingsInterval);
+        clearTimeout(this._welcomeTimeout);
+        this._settingsInterval = null;
+        this._welcomeTimeout = null;
+        this.menuContainer?.remove();
+        this.menuContainer = null;
+        this._tutorialSection?.remove();
+        this._tutorialSection = null;
+        vnDialog.destroy();
+        this._initialized = false;
     }
 }
 

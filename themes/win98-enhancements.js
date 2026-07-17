@@ -568,47 +568,4 @@ export function cleanupWin98Enhancements() {
     console.log('[Win98 Theme] Cleaned up');
 }
 
-// Auto-initialize when DOM is ready
-function autoInit() {
-    // First ensure body class is there (in case theme-manager didn't add it)
-    ensureBodyClass();
-
-    // Then initialize enhancements
-    setTimeout(initWin98Enhancements, 100);
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', autoInit);
-} else {
-    autoInit();
-}
-
-// Also try again after a delay to catch late-loading elements
-setTimeout(autoInit, 1000);
-setTimeout(autoInit, 2000);
-
-// Re-initialize on theme change or stylesheet addition
-const themeObserver = new MutationObserver((mutations) => {
-    mutations.forEach(mutation => {
-        // Check for class changes on body
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-            if (isWin98ThemeActive()) {
-                initWin98Enhancements();
-            }
-        }
-        // Check for new stylesheets being added (theme being applied)
-        if (mutation.type === 'childList' && mutation.target === document.head) {
-            mutation.addedNodes.forEach(node => {
-                if (node.id === 'nemo-theme-stylesheet' && node.href && node.href.includes('win98')) {
-                    ensureBodyClass();
-                    setTimeout(initWin98Enhancements, 100);
-                }
-            });
-        }
-    });
-});
-
-themeObserver.observe(document.body, { attributes: true });
-themeObserver.observe(document.head, { childList: true });
-
 export default { initWin98Enhancements, ensureBodyClass, cleanupWin98Enhancements };

@@ -2,7 +2,7 @@ import { eventSource, event_types } from '../../../../../../script.js';
 import { promptManager as importedPromptManager } from '../../../../../openai.js';
 
 const GITHUB_API_ROOT = 'https://api.github.com/repos/NemoVonNirgend/NemoEngine/contents/';
-const GITHUB_REF = 'main';
+const GITHUB_REF = '1b1049343c4fd5d9164fc5191c0a8054833623fe';
 const PROMPT_FILE_EXTENSIONS = new Set(['.json', '.md', '.txt', '.yaml', '.yml']);
 const DEFAULT_ROLE = 'system';
 

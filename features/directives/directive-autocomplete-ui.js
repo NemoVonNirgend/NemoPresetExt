@@ -15,41 +15,59 @@ let autocompleteDropdown = null;
 let currentSuggestions = [];
 let currentResult = null;
 let selectedIndex = 0;
+let autocompleteObserver = null;
+let checkInterval = null;
+let checkTimeout = null;
+let blurTimeout = null;
+let dispatchTimeout = null;
+let autocompleteInitialized = false;
 
 /**
  * Initialize autocomplete for prompt editor
  */
 export function initDirectiveAutocomplete() {
     // Check if autocomplete is enabled in settings
-    const isEnabled = extension_settings[NEMO_EXTENSION_NAME]?.enableDirectiveAutocomplete ?? true;
+    const isEnabled = extension_settings[NEMO_EXTENSION_NAME]?.enableDirectives === true
+        && extension_settings[NEMO_EXTENSION_NAME]?.enableDirectiveAutocomplete === true;
     if (!isEnabled) {
         logger.info('Directive autocomplete disabled by settings');
-        return;
+        return cleanupDirectiveAutocomplete;
     }
+
+    if (autocompleteInitialized) {
+        return cleanupDirectiveAutocomplete;
+    }
+    autocompleteInitialized = true;
 
     logger.info('Initializing directive autocomplete UI');
 
     // Wait for prompt editor to be available
-    const checkInterval = setInterval(() => {
+    checkInterval = setInterval(() => {
         const textarea = document.querySelector('#completion_prompt_manager_popup_entry_form_prompt');
         if (textarea) {
             attachAutocomplete(textarea);
             clearInterval(checkInterval);
+            checkInterval = null;
         }
     }, 1000);
 
     // Stop checking after 30 seconds
-    setTimeout(() => clearInterval(checkInterval), 30000);
+    checkTimeout = setTimeout(() => {
+        clearInterval(checkInterval);
+        checkInterval = null;
+        checkTimeout = null;
+    }, 30000);
 
     // Also listen for dynamic creation
-    const observer = new MutationObserver(() => {
+    autocompleteObserver = new MutationObserver(() => {
         const textarea = document.querySelector('#completion_prompt_manager_popup_entry_form_prompt');
         if (textarea && textarea !== activeTextarea) {
             attachAutocomplete(textarea);
         }
     });
 
-    observer.observe(document.body, { childList: true, subtree: true });
+    autocompleteObserver.observe(document.body, { childList: true, subtree: true });
+    return cleanupDirectiveAutocomplete;
 }
 
 /**
@@ -60,12 +78,19 @@ function attachAutocomplete(textarea) {
         return;
     }
 
+    if (activeTextarea) {
+        detachAutocomplete(activeTextarea);
+    }
+
     activeTextarea = textarea;
 
     // Create dropdown if it doesn't exist
     if (!autocompleteDropdown) {
         createDropdown();
     }
+    textarea.setAttribute('aria-autocomplete', 'list');
+    textarea.setAttribute('aria-controls', 'nemo-directive-autocomplete');
+    textarea.setAttribute('aria-expanded', 'false');
 
     // Add event listeners
     textarea.addEventListener('input', handleInput);
@@ -76,6 +101,17 @@ function attachAutocomplete(textarea) {
     logger.info('Attached autocomplete to prompt editor textarea');
 }
 
+function detachAutocomplete(textarea) {
+    textarea.removeEventListener('input', handleInput);
+    textarea.removeEventListener('keydown', handleKeyDown);
+    textarea.removeEventListener('blur', handleBlur);
+    textarea.removeEventListener('focus', handleFocus);
+    textarea.removeAttribute('aria-autocomplete');
+    textarea.removeAttribute('aria-controls');
+    textarea.removeAttribute('aria-expanded');
+    textarea.removeAttribute('aria-activedescendant');
+}
+
 /**
  * Create autocomplete dropdown element
  */
@@ -83,17 +119,22 @@ function createDropdown() {
     autocompleteDropdown = document.createElement('div');
     autocompleteDropdown.className = 'nemo-autocomplete-dropdown';
     autocompleteDropdown.style.display = 'none';
+    autocompleteDropdown.id = 'nemo-directive-autocomplete';
+    autocompleteDropdown.setAttribute('role', 'listbox');
+    autocompleteDropdown.setAttribute('aria-label', 'Prompt directive suggestions');
     document.body.appendChild(autocompleteDropdown);
 
     // Click handler for suggestions
-    autocompleteDropdown.addEventListener('mousedown', (e) => {
-        e.preventDefault(); // Prevent blur on textarea
-        const item = e.target.closest('.nemo-autocomplete-item');
-        if (item) {
-            const index = parseInt(item.dataset.index);
-            selectSuggestion(index);
-        }
-    });
+    autocompleteDropdown.addEventListener('mousedown', handleDropdownMouseDown);
+}
+
+function handleDropdownMouseDown(event) {
+    event.preventDefault();
+    const item = event.target.closest('.nemo-autocomplete-item');
+    if (item) {
+        const index = Number.parseInt(item.dataset.index, 10);
+        selectSuggestion(index);
+    }
 }
 
 /**
@@ -156,7 +197,9 @@ function handleKeyDown(e) {
  */
 function handleBlur(e) {
     // Delay hiding to allow click on dropdown
-    setTimeout(() => {
+    clearTimeout(blurTimeout);
+    blurTimeout = setTimeout(() => {
+        blurTimeout = null;
         hideDropdown();
     }, 200);
 }
@@ -175,17 +218,26 @@ function handleFocus(e) {
 function showDropdown(textarea) {
     if (!autocompleteDropdown) return;
 
-    // Position dropdown
     const rect = textarea.getBoundingClientRect();
     const cursorPos = getCursorCoordinates(textarea);
-
-    autocompleteDropdown.style.left = `${rect.left + cursorPos.left}px`;
-    autocompleteDropdown.style.top = `${rect.top + cursorPos.top + 20}px`;
+    const anchorLeft = rect.left + cursorPos.left;
+    const anchorTop = rect.top + cursorPos.top + 20;
 
     // Build dropdown content
     renderSuggestions();
-
     autocompleteDropdown.style.display = 'block';
+
+    const dropdownRect = autocompleteDropdown.getBoundingClientRect();
+    const maxLeft = Math.max(8, window.innerWidth - dropdownRect.width - 8);
+    const left = Math.min(Math.max(8, anchorLeft), maxLeft);
+    const aboveTop = rect.top + cursorPos.top - dropdownRect.height - 4;
+    const fitsBelow = anchorTop + dropdownRect.height <= window.innerHeight - 8;
+    const top = fitsBelow ? anchorTop : Math.max(8, aboveTop);
+
+    autocompleteDropdown.style.left = `${left}px`;
+    autocompleteDropdown.style.top = `${top}px`;
+    textarea.setAttribute('aria-expanded', 'true');
+    textarea.setAttribute('aria-activedescendant', `nemo-directive-option-${selectedIndex}`);
 }
 
 /**
@@ -197,6 +249,8 @@ function hideDropdown() {
     }
     currentSuggestions = [];
     currentResult = null;
+    activeTextarea?.setAttribute('aria-expanded', 'false');
+    activeTextarea?.removeAttribute('aria-activedescendant');
 }
 
 /**
@@ -230,7 +284,7 @@ function renderSuggestions() {
         }
 
         html += `
-            <div class="nemo-autocomplete-item ${isSelected ? 'selected' : ''}" data-index="${index}">
+            <div id="nemo-directive-option-${index}" class="nemo-autocomplete-item ${isSelected ? 'selected' : ''}" data-index="${index}" role="option" aria-selected="${isSelected}">
                 <div class="nemo-ac-item-header">
                     <span class="nemo-ac-icon ${iconClass}">${icon}</span>
                     <span class="nemo-ac-text">${escapeHtml(suggestion.display || suggestion.text)}</span>
@@ -248,6 +302,7 @@ function renderSuggestions() {
     `;
 
     autocompleteDropdown.innerHTML = html;
+    activeTextarea?.setAttribute('aria-activedescendant', `nemo-directive-option-${selectedIndex}`);
 
     // Scroll selected item into view within the dropdown (not the page)
     const selectedItem = autocompleteDropdown.querySelector('.selected');
@@ -296,7 +351,9 @@ function selectSuggestion(index) {
     activeTextarea.focus();
 
     // Trigger input event to refresh autocomplete
-    setTimeout(() => {
+    clearTimeout(dispatchTimeout);
+    dispatchTimeout = setTimeout(() => {
+        dispatchTimeout = null;
         if (activeTextarea) {
             const event = new Event('input', { bubbles: true });
             activeTextarea.dispatchEvent(event);
@@ -308,28 +365,33 @@ function selectSuggestion(index) {
  * Get cursor coordinates in textarea
  */
 function getCursorCoordinates(textarea) {
-    const text = textarea.value;
-    const cursorPos = textarea.selectionStart;
-
-    // Create a mirror div to measure text
+    const computed = window.getComputedStyle(textarea);
     const mirror = document.createElement('div');
     mirror.style.position = 'absolute';
     mirror.style.visibility = 'hidden';
     mirror.style.whiteSpace = 'pre-wrap';
-    mirror.style.wordWrap = 'break-word';
-    mirror.style.font = window.getComputedStyle(textarea).font;
-    mirror.style.width = textarea.clientWidth + 'px';
-    mirror.style.padding = window.getComputedStyle(textarea).padding;
-    mirror.textContent = text.substring(0, cursorPos);
+    mirror.style.overflowWrap = 'break-word';
+    mirror.style.boxSizing = computed.boxSizing;
+    mirror.style.width = `${textarea.offsetWidth}px`;
+    mirror.style.font = computed.font;
+    mirror.style.letterSpacing = computed.letterSpacing;
+    mirror.style.lineHeight = computed.lineHeight;
+    mirror.style.padding = computed.padding;
+    mirror.style.border = computed.border;
+    mirror.textContent = textarea.value.substring(0, textarea.selectionStart);
+
+    const marker = document.createElement('span');
+    marker.textContent = '\u200b';
+    mirror.appendChild(marker);
 
     document.body.appendChild(mirror);
 
     const coordinates = {
-        left: mirror.offsetWidth,
-        top: mirror.offsetHeight
+        left: marker.offsetLeft - textarea.scrollLeft,
+        top: marker.offsetTop - textarea.scrollTop,
     };
 
-    document.body.removeChild(mirror);
+    mirror.remove();
 
     return coordinates;
 }
@@ -341,4 +403,31 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+export function cleanupDirectiveAutocomplete() {
+    autocompleteObserver?.disconnect();
+    autocompleteObserver = null;
+
+    clearInterval(checkInterval);
+    checkInterval = null;
+    clearTimeout(checkTimeout);
+    checkTimeout = null;
+    clearTimeout(blurTimeout);
+    blurTimeout = null;
+    clearTimeout(dispatchTimeout);
+    dispatchTimeout = null;
+
+    if (activeTextarea) {
+        detachAutocomplete(activeTextarea);
+        activeTextarea = null;
+    }
+
+    autocompleteDropdown?.removeEventListener('mousedown', handleDropdownMouseDown);
+    autocompleteDropdown?.remove();
+    autocompleteDropdown = null;
+    currentSuggestions = [];
+    currentResult = null;
+    selectedIndex = 0;
+    autocompleteInitialized = false;
 }

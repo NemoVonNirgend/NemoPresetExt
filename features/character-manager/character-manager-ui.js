@@ -73,10 +73,9 @@ export class CharacterManagerUI {
         this.currentPath = [{ id: 'root', name: 'Home' }];
         this.render();
 
-        callGenericPopup(this.element, POPUP_TYPE.DISPLAY, 'Character Manager', {
+        callGenericPopup(this.element, POPUP_TYPE.DISPLAY, '', {
             wide: true,
             large: true,
-            addCloseButton: true,
         });
     }
 
@@ -179,7 +178,9 @@ export class CharacterManagerUI {
         if (items.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.className = 'char-manager-empty-state';
-            emptyEl.innerHTML = searchTerm ? `<h3>No results for "${searchTerm}"</h3>` : `<h3>This folder is empty.</h3>`;
+            const emptyHeading = document.createElement('h3');
+            emptyHeading.textContent = searchTerm ? `No results for "${searchTerm}"` : 'This folder is empty.';
+            emptyEl.appendChild(emptyHeading);
             fragment.appendChild(emptyEl);
         } else {
             items.forEach(item => {
@@ -213,7 +214,7 @@ export class CharacterManagerUI {
             }
         } catch (error) {
             console.error(`Error loading character ${this.selectedCharacter.name}:`, error);
-            callGenericPopup(`Failed to load character: ${this.selectedCharacter.name}`, 'error');
+            toastr.error(`Failed to load character: ${this.selectedCharacter.name}`);
         }
     }
 
@@ -240,7 +241,8 @@ export class CharacterManagerUI {
         icon.className = 'item-icon';
         if (type === 'character' && data.avatar) {
             // Use the correct thumbnail URL format
-            icon.style.backgroundImage = `url('/thumbnail?type=avatar&file=${encodeURIComponent(data.avatar)}')`;
+            const avatarUrl = `/thumbnail?type=avatar&file=${encodeURIComponent(data.avatar)}`;
+            icon.style.backgroundImage = `url(${JSON.stringify(avatarUrl)})`;
         } else {
             icon.innerHTML = `<i class="fa-solid ${type === 'folder' ? 'fa-folder' : 'fa-user'}"></i>`;
         }
@@ -376,7 +378,7 @@ export class CharacterManagerUI {
         let itemsHTML = '';
 
         if (type === 'folder') {
-            itemsHTML = `<li data-action="rename_folder" data-id="${id}"><i class="fa-solid fa-i-cursor"></i><span>Rename</span></li><li data-action="delete_folder" data-id="${id}"><i class="fa-solid fa-trash-can"></i><span>Delete</span></li>`;
+            itemsHTML = '<li data-action="rename_folder"><i class="fa-solid fa-i-cursor"></i><span>Rename</span></li><li data-action="delete_folder"><i class="fa-solid fa-trash-can"></i><span>Delete</span></li>';
         } else if (type === 'character') {
             // Check if character is favorited
             const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_CHARACTERS_KEY) || '[]');
@@ -385,10 +387,13 @@ export class CharacterManagerUI {
             const favoriteText = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
             const favoriteIcon = isFavorite ? 'fa-star-half-stroke' : 'fa-star';
             
-            itemsHTML = `<li data-action="${favoriteAction}" data-id="${id}"><i class="fa-solid ${favoriteIcon}"></i><span>${favoriteText}</span></li><li data-action="add_to_folder" data-id="${id}"><i class="fa-solid fa-folder-plus"></i><span>Move to Folder...</span></li>`;
+            itemsHTML = `<li data-action="${favoriteAction}"><i class="fa-solid ${favoriteIcon}"></i><span>${favoriteText}</span></li><li data-action="add_to_folder"><i class="fa-solid fa-folder-plus"></i><span>Move to Folder...</span></li>`;
         }
         menu.innerHTML = itemsHTML;
 
+        menu.querySelectorAll('li[data-action]').forEach(menuItem => {
+            menuItem.dataset.id = id;
+        });
         // Find the popup container - ST uses .popup_outer or dialog.popup
         const popupContainer = item.closest('.popup_outer, dialog.popup, .popup');
         if (popupContainer) {
@@ -509,7 +514,8 @@ export class CharacterManagerUI {
 
     // Selection Methods
     toggleBulkSelection(id) {
-        const itemEl = this.mainView.querySelector(`.grid-item[data-id="${id}"]`);
+        const itemEl = Array.from(this.mainView.querySelectorAll('.grid-item'))
+            .find(element => element.dataset.id === id);
         if (this.bulkSelection.has(id)) {
             this.bulkSelection.delete(id);
             itemEl?.classList.remove('bulk-selected');
@@ -602,7 +608,7 @@ export class CharacterManagerUI {
     async moveItemToFolderDialog(itemIds) {
         const folderNames = Object.values(this.metadata.folders).map(f => f.name).join(', ');
         if (!folderNames) {
-            callGenericPopup("No folders created yet. Create a folder first.", 'info');
+            toastr.info("No folders created yet. Create a folder first.");
             return;
         }
         const targetName = await callGenericPopup(`Enter folder name to move to:\n(${folderNames})`, POPUP_TYPE.INPUT);
@@ -614,7 +620,7 @@ export class CharacterManagerUI {
             this.bulkSelection.clear();
             this.updateBulkSelectionVisuals();
         } else if (targetName) {
-            callGenericPopup(`Folder "${targetName}" not found.`, 'error');
+            toastr.error(`Folder "${targetName}" not found.`);
         }
     }
 
@@ -653,14 +659,20 @@ export class CharacterManagerUI {
                 const favoriteItem = document.createElement('div');
                 favoriteItem.className = 'navigator-favorite-item';
                 favoriteItem.innerHTML = `
-                    <div class="favorite-item-icon" style="background-image: url('/thumbnail?type=avatar&file=${encodeURIComponent(avatar)}')">
+                    <div class="favorite-item-icon">
                         <i class="fa-solid fa-user"></i>
                     </div>
-                    <div class="favorite-item-name" title="${character.name}">${character.name}</div>
+                    <div class="favorite-item-name"></div>
                     <button class="favorite-remove-btn" title="Remove from favorites">
                         <i class="fa-solid fa-times"></i>
                     </button>
                 `;
+                const favoriteIcon = favoriteItem.querySelector('.favorite-item-icon');
+                const avatarUrl = `/thumbnail?type=avatar&file=${encodeURIComponent(avatar)}`;
+                favoriteIcon.style.backgroundImage = `url(${JSON.stringify(avatarUrl)})`;
+                const favoriteName = favoriteItem.querySelector('.favorite-item-name');
+                favoriteName.textContent = character.name;
+                favoriteName.title = character.name;
                 favoriteItem.addEventListener('click', () => {
                     // Select this character
                     this.selectedCharacter = character;

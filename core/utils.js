@@ -2,6 +2,8 @@
 
 import { callGenericPopup, POPUP_TYPE } from '../../../../popup.js';
 import { extension_settings } from '../../../../extensions.js';
+import { applySettingsSchema } from './feature-settings.js';
+export { DEFAULT_POLLINATIONS_NEGATIVE_BEST_PRACTICES, DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES, FEATURE_DEFAULTS, SETTINGS_DEFAULTS, SETTINGS_SCHEMA_VERSION, isFeatureEnabled } from './feature-settings.js';
 
 // 1. CONSTANTS
 export const LOG_PREFIX = `[NemoPresetExt]`;
@@ -15,35 +17,6 @@ export const NEMO_CHAR_METADATA_KEY = 'nemoCharacterNavigatorMetadata';
 export const NEMO_FAVORITE_PRESETS_KEY = 'nemo-favorite-presets';
 export const NEMO_FAVORITE_CHARACTERS_KEY = 'nemo-favorite-characters';
 export const NEMO_PROMPT_STATE_KEY = 'nemoPromptToggleState';
-
-export const DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES = [
-    'clear focal subject',
-    'coherent composition',
-    'consistent character design across panels',
-    'accurate anatomy and hands',
-    'expressive faces',
-    'clean readable silhouettes',
-    'consistent lighting and perspective',
-    'background matches the scene',
-    'polished finished illustration'
-].join(', ');
-
-export const DEFAULT_POLLINATIONS_NEGATIVE_BEST_PRACTICES = [
-    'inconsistent character design',
-    'off-model character',
-    'bad anatomy',
-    'bad hands',
-    'extra fingers',
-    'missing fingers',
-    'warped face',
-    'confusing composition',
-    'unreadable panel',
-    'unwanted text',
-    'garbled lettering',
-    'watermark',
-    'logo',
-    'signature'
-].join(', ');
 
 export const POLLINATIONS_IMAGE_STYLE_PRESETS = Object.freeze([
     {
@@ -140,74 +113,12 @@ export function getExtensionPath(relativePath = '') {
 
 // 3. UTILITY FUNCTIONS
 export function ensureSettingsNamespace() {
-    // *** THIS IS THE FIX ***
     if (!extension_settings) {
         return false;
     }
-    extension_settings[NEMO_EXTENSION_NAME] = extension_settings[NEMO_EXTENSION_NAME] || {};
 
-    // Initialize default settings if they don't exist
-    const defaults = {
-        nemoEnableWidePanels: false,
-        enableConnectionPanelOverhaul: true,
-        enableTabOverhauls: true,
-        nemoEnableExtensionsTabOverhaul: true,
-        enablePromptManager: true,
-        dropdownStyle: 'tray',
-        dropdownTheme: 'st',
-        enablePresetNavigator: true,
-        enableDirectives: true,
-        enableAnimatedBackgrounds: true,
-        enablePanelToggle: true,
-        enableReasoningSection: true,
-        enableLorebookManagement: true,
-        enableHTMLTrimming: false,
-        htmlTrimmingKeepCount: 0,  // Default to 0 (no auto-trim)
-        dividerRegexPattern: '',
-        // UI Theme settings - 'none', 'win98', 'discord'
-        uiTheme: 'none',
-        // Mobile enhancements - auto-detected on touch devices, can be disabled
-        enableMobileEnhancements: true,
-        // Enhanced model selector with search, favorites, and quick-switch chips
-        enableModelSelector: true,
-        // Pollinations interceptor prompt consistency helpers
-        nemoPollinationsStylePreset: 'none',
-        nemoPollinationsPromptBestPractices: true,
-        nemoPollinationsBestPracticesPrompt: DEFAULT_POLLINATIONS_PROMPT_BEST_PRACTICES,
-        nemoPollinationsNegativeBestPracticesPrompt: DEFAULT_POLLINATIONS_NEGATIVE_BEST_PRACTICES
-    };
-
-    // Apply defaults for any missing settings
-    for (const [key, value] of Object.entries(defaults)) {
-        if (extension_settings[NEMO_EXTENSION_NAME][key] === undefined) {
-            extension_settings[NEMO_EXTENSION_NAME][key] = value;
-        }
-    }
-
-    // The dropdown theme setting was introduced with Nemo Blue as the first
-    // draft default. Prefer ST theme integration unless users change it later.
-    if (extension_settings[NEMO_EXTENSION_NAME]._dropdownThemeDefaultStV1 !== true) {
-        if (extension_settings[NEMO_EXTENSION_NAME].dropdownTheme === undefined || extension_settings[NEMO_EXTENSION_NAME].dropdownTheme === 'nemo') {
-            extension_settings[NEMO_EXTENSION_NAME].dropdownTheme = 'st';
-        }
-        extension_settings[NEMO_EXTENSION_NAME]._dropdownThemeDefaultStV1 = true;
-    }
-
-    // Correct a short-lived dev migration that disabled primary NemoPresetExt UI
-    // systems. These overhauls are core extension functionality, so restore them
-    // once and leave future user changes alone.
-    if (extension_settings[NEMO_EXTENSION_NAME]._restorePrimaryUiDefaultsV1 !== true) {
-        Object.assign(extension_settings[NEMO_EXTENSION_NAME], {
-            enableConnectionPanelOverhaul: true,
-            enableTabOverhauls: true,
-            nemoEnableExtensionsTabOverhaul: true,
-            enableModelSelector: true,
-            enableReasoningSection: true,
-            enableLorebookManagement: true,
-            _restorePrimaryUiDefaultsV1: true,
-        });
-    }
-
+    extension_settings[NEMO_EXTENSION_NAME] ||= {};
+    applySettingsSchema(extension_settings[NEMO_EXTENSION_NAME]);
     return true;
 }
 

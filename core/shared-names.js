@@ -2,9 +2,7 @@
  * Shared Names Manager - Integration Opportunity 1.1
  * Combines ProsePolisher's comprehensive name database with NemoLore's noun highlighting
  */
-
-// Import ProsePolisher's default names
-import { defaultNames } from '../features/prosepolisher/src/default_names.js';
+import { getContext } from '../../../../extensions.js';
 
 /**
  * SharedNamesManager - Central registry for character/entity names
@@ -31,6 +29,13 @@ class SharedNamesManager {
         if (this.isInitialized) return;
 
         console.log('[Shared Names] Initializing with ProsePolisher name database...');
+        let defaultNames = null;
+        try {
+            ({ defaultNames } = await import('../features/prosepolisher/src/default_names.js'));
+        } catch {
+            console.info('[Shared Names] ProsePolisher is not installed; using the built-in fallback names.');
+        }
+
 
         // Load ProsePolisher's comprehensive name database (1000+ names)
         if (defaultNames && defaultNames.size > 0) {
@@ -71,30 +76,28 @@ class SharedNamesManager {
     async extractNamesFromChat() {
         try {
             // Try to get character name from SillyTavern
-            if (typeof window !== 'undefined' && window.getContext) {
-                const context = window.getContext();
+            const context = getContext();
 
-                // Add active character name
-                if (context?.name2) {
-                    this.extractedNames.add(context.name2.toLowerCase());
-                }
+            // Add active character name
+            if (context?.name2) {
+                this.extractedNames.add(context.name2.toLowerCase());
+            }
 
-                // Add user name
-                if (context?.name1) {
-                    this.extractedNames.add(context.name1.toLowerCase());
-                }
+            // Add user name
+            if (context?.name1) {
+                this.extractedNames.add(context.name1.toLowerCase());
+            }
 
-                // Extract names from chat messages using capitalization heuristics
-                if (context?.chat && Array.isArray(context.chat)) {
-                    for (const message of context.chat) {
-                        if (message.mes) {
-                            this.extractCapitalizedWords(message.mes);
-                        }
+            // Extract names from chat messages using capitalization heuristics
+            if (context?.chat && Array.isArray(context.chat)) {
+                for (const message of context.chat) {
+                    if (message.mes) {
+                        this.extractCapitalizedWords(message.mes);
                     }
                 }
-
-                console.log(`[Shared Names] ✅ Extracted ${this.extractedNames.size} names from chat`);
             }
+
+            console.log(`[Shared Names] ✅ Extracted ${this.extractedNames.size} names from chat`);
         } catch (error) {
             console.warn('[Shared Names] Failed to extract names from chat:', error);
         }

@@ -12,6 +12,18 @@ export class VNDialog {
         this.onNextCallback = null;
         this.onPreviousCallback = null;
         this.onCloseCallback = null;
+        this._timeouts = new Set();
+        this._showEpoch = 0;
+        this._showAbortController = null;
+    }
+
+    _schedule(callback, delay) {
+        const timeout = setTimeout(() => {
+            this._timeouts.delete(timeout);
+            callback();
+        }, delay);
+        this._timeouts.add(timeout);
+        return timeout;
     }
 
     /**
@@ -124,10 +136,15 @@ export class VNDialog {
      * @param {Object} step - Step data from tutorial
      */
     async show(step) {
+        this._showAbortController?.abort();
+        const controller = new AbortController();
+        this._showAbortController = controller;
+        const showEpoch = ++this._showEpoch;
         if (!this.container) {
             this.createDialog();
         }
 
+        const container = this.container;
         // Update character image
         const characterImg = this.container.querySelector('.nemo-vn-character-img');
         if (step.characterImage) {
@@ -172,13 +189,17 @@ export class VNDialog {
 
         if (step.onBeforeHighlight) {
             try {
-                await step.onBeforeHighlight();
+                await step.onBeforeHighlight({ signal: controller.signal });
             } catch (error) {
-                logger.error('Error in step onBeforeHighlight callback:', error);
+                if (!controller.signal.aborted) {
+                    logger.error('Error in step onBeforeHighlight callback:', error);
+                }
             }
         }
 
         // Handle highlight (if step targets a specific UI element)
+
+        if (controller.signal.aborted || showEpoch !== this._showEpoch || container !== this.container || !container?.isConnected) return;
         if (step.highlightSelector) {
             this.highlightElement(step.highlightSelector, step.highlightText);
         } else {
@@ -216,6 +237,9 @@ export class VNDialog {
      * Hide the dialog
      */
     hide() {
+        this._showEpoch++;
+        this._showAbortController?.abort();
+        this._showAbortController = null;
         if (this.container) {
             this.container.style.display = 'none';
             this.isVisible = false;
@@ -383,13 +407,13 @@ export class VNDialog {
         `;
         document.body.appendChild(toast);
 
-        setTimeout(() => {
+        this._schedule(() => {
             toast.classList.add('nemo-vn-toast-show');
         }, 100);
 
-        setTimeout(() => {
+        this._schedule(() => {
             toast.classList.remove('nemo-vn-toast-show');
-            setTimeout(() => toast.remove(), 300);
+            this._schedule(() => toast.remove(), 300);
         }, 3000);
     }
 
@@ -397,6 +421,12 @@ export class VNDialog {
      * Destroy the dialog
      */
     destroy() {
+        for (const timeout of this._timeouts) clearTimeout(timeout);
+        this._timeouts.clear();
+        document.querySelectorAll('.nemo-vn-toast').forEach(toast => toast.remove());
+        this._showEpoch++;
+        this._showAbortController?.abort();
+        this._showAbortController = null;
         this.clearHighlight();
         if (this.container) {
             this.container.remove();

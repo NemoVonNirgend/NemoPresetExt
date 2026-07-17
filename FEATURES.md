@@ -33,7 +33,7 @@ Comprehensive reference for all features, settings, and capabilities of the Nemo
 **Location:** `features/prompts/prompt-manager.js`
 **Setting:** `enablePromptManager` (default: `true`)
 
-The core feature of NemoPresetExt. Transforms SillyTavern's flat prompt list into an organized, searchable, collapsible interface.
+The core feature of NemoPresetExt. Transforms SillyTavern's flat prompt list into an organized, searchable, collapsible interface. The default-on `enablePromptManager` bundle includes the search bar, dropdown sections, tray/accordion view controls, prompt folder navigator, archive, snapshots, tooltips, and drag-and-drop behavior.
 
 ### Capabilities
 
@@ -54,7 +54,7 @@ The core feature of NemoPresetExt. Transforms SillyTavern's flat prompt list int
 | Clear button | `#nemoPresetSearchClear` | Reset search |
 | Toggle sections | `#nemoToggleSectionsBtn` | Expand/collapse all |
 | View mode | `#nemoViewModeBtn` | Switch Tray/Accordion |
-| Navigator button | `#nemoPromptNavigatorBtn` | Open preset browser |
+| Navigator button | `#nemoPromptNavigatorBtn` | Open prompt folder browser |
 | Archive button | `#nemoArchiveNavigatorBtn` | Open archive panel |
 | Snapshot save | `#nemoTakeSnapshotBtn` | Save current state |
 | Snapshot apply | `#nemoApplySnapshotBtn` | Restore saved state |
@@ -137,9 +137,13 @@ Alternative UI mode for prompt organization using folder-style trays.
 ## 5. Directive System
 
 **Location:** `features/directives/` (8 files, ~5,000 lines)
-**Setting:** `enableDirectives` (default: `true`)
+**Settings:** `enableDirectives` (default: `true`), `enableDirectiveAutocomplete` (default: `true`)
 
 A powerful metadata system for prompts using `{{// @directive value }}` syntax inside prompt content.
+The supported runtime enforces activation rules and message triggers, displays tray metadata, and provides directive-only autocomplete. Other compatibility fields in the reference are parsed metadata only; they do not change prompt state or visibility.
+
+The older duplicate directive panels remain intentionally disconnected because they conflict with the current prompt dropdown UI.
+
 
 ### Syntax
 
@@ -153,12 +157,12 @@ Directives are placed inside prompt content as comment blocks. Multiple directiv
 {{// @tooltip Adds character personality
 @tags personality, character, core
 @default-enabled
-@tokenCost 150
+@token-cost 150
 @group Character Setup
 }}
 ```
 
-### Complete Directive Reference
+### Parsed Directive Reference
 
 #### Metadata
 
@@ -169,7 +173,7 @@ Directives are placed inside prompt content as comment blocks. Multiple directiv
 | `@version` | `@version <semver>` | Version (e.g., 2.1.0) |
 | `@deprecated` | `@deprecated <suggestion>` | Mark outdated, suggest replacement |
 | `@help` | `@help <text>` | Help text shown in UI panel |
-| `@documentationUrl` | `@documentationUrl <url>` | Link to full docs |
+| `@documentation-url` | `@documentation-url <url>` | Link to full docs |
 | `@example` | `@example <text>` | Usage example |
 | `@changelog` | `@changelog <text>` | Version history |
 
@@ -186,8 +190,8 @@ Directives are placed inside prompt content as comment blocks. Multiple directiv
 | `@auto-disable` | `@auto-disable <id>,<id>,...` | Auto-disable listed prompts when this is enabled |
 | `@auto-enable-dependencies` | (flag) | Auto-enable required prompts |
 | `@recommended-with` | `@recommended-with <id>,<id>,...` | Prompts that work well together |
-| `@autoEnableWith` | `@autoEnableWith <id>,<id>,...` | Auto-enable together |
-| `@suggestEnableWith` | `@suggestEnableWith <id>,<id>,...` | Suggest enabling together |
+| `@auto-enable-with` | `@auto-enable-with <id>,<id>,...` | Parsed compatibility relationship |
+| `@suggest-enable-with` | `@suggest-enable-with <id>,<id>,...` | Parsed compatibility suggestion |
 
 #### Organization
 
@@ -199,23 +203,23 @@ Directives are placed inside prompt content as comment blocks. Multiple directiv
 | `@group` | `@group <name>` | Collapsible group name |
 | `@group-description` | `@group-description <text>` | Group description |
 | `@mutual-exclusive-group` | `@mutual-exclusive-group <name>` | Auto-disable others in same group |
-| `@priority` | `@priority <1-100>` | Load order (higher = first) |
-| `@loadOrder` | `@loadOrder <number>` | Execution order |
+| `@priority` | `@priority <1-100>` | Parsed priority metadata (1-100) |
+| `@load-order` | `@load-order <number>` | Parsed execution-order metadata |
 
 #### Visibility & Conditionals
 
 | Directive | Syntax | Description |
 |-----------|--------|-------------|
-| `@hidden` | (flag) | Hide from UI (still functions) |
-| `@if-enabled` | `@if-enabled <id>,<id>,...` | Show only if listed prompts are enabled |
-| `@if-disabled` | `@if-disabled <id>,<id>,...` | Show only if listed prompts are disabled |
-| `@if-api` | `@if-api <api>,<api>,...` | Show only for specific APIs |
+| `@hidden` | (flag) | Parsed visibility metadata |
+| `@if-enabled` | `@if-enabled <id>,<id>,...` | Parsed enabled-condition metadata |
+| `@if-disabled` | `@if-disabled <id>,<id>,...` | Parsed disabled-condition metadata |
+| `@if-api` | `@if-api <api>,<api>,...` | Parsed API-condition metadata |
 
 #### Setup & Defaults
 
 | Directive | Syntax | Description |
 |-----------|--------|-------------|
-| `@default-enabled` | (flag) | Auto-enable on first use |
+| `@default-enabled` | (flag) | Parsed default-state metadata |
 | `@recommended-for-beginners` | (flag) | Flag for new users |
 | `@advanced` | (flag) | Mark as expert-only |
 
@@ -223,15 +227,15 @@ Directives are placed inside prompt content as comment blocks. Multiple directiv
 
 | Directive | Syntax | Description |
 |-----------|--------|-------------|
-| `@tokenCost` | `@tokenCost <number>` | Estimated token usage |
-| `@tokenCostWarn` | `@tokenCostWarn <number>` | Warn if exceeds threshold |
-| `@performanceImpact` | `@performanceImpact <low\|medium\|high>` | Performance indicator |
+| `@token-cost` | `@token-cost <number>` | Estimated token usage |
+| `@token-cost-warn` | `@token-cost-warn <number>` | Warn if exceeds threshold |
+| `@performance-impact` | `@performance-impact <low\|medium\|high>` | Performance indicator |
 
 #### Visual Customization
 
 | Directive | Syntax | Description |
 |-----------|--------|-------------|
-| `@icon` | `@icon <emoji>` | Prepended to prompt name |
+| `@icon` | `@icon <emoji>` | Parsed icon metadata |
 | `@color` | `@color <hex>` | Left border color |
 | `@badge` | `@badge <text>` | Badge next to name |
 | `@highlight` | (flag) | Visual highlight in list |
@@ -242,26 +246,26 @@ Directives are placed inside prompt content as comment blocks. Multiple directiv
 |-----------|--------|-------------|
 | `@unstable` | (flag) | May be unreliable |
 | `@experimental` | (flag) | New/testing feature |
-| `@testedWith` | `@testedWith <model>,...` | Known working models |
+| `@tested-with` | `@tested-with <model>,...` | Known working models |
 
 #### Model Optimization
 
 | Directive | Syntax | Description |
 |-----------|--------|-------------|
-| `@modelOptimized` | `@modelOptimized <model>,...` | Works best with listed models |
-| `@modelIncompatible` | `@modelIncompatible <model>,...` | Doesn't work with listed models |
-| `@recommendedApi` | `@recommendedApi <api>,...` | Best API choice |
+| `@model-optimized` | `@model-optimized <model>,...` | Works best with listed models |
+| `@model-incompatible` | `@model-incompatible <model>,...` | Doesn't work with listed models |
+| `@recommended-api` | `@recommended-api <api>,...` | Best API choice |
 | `@incompatible-api` | `@incompatible-api <api>,...` | Incompatible APIs |
 
 #### Message-Based Triggers
 
 | Directive | Syntax | Description |
 |-----------|--------|-------------|
-| `@enableAtMessage` | `@enableAtMessage <N>` | Auto-enable at message count N |
-| `@disableAtMessage` | `@disableAtMessage <N>` | Auto-disable at message count N |
-| `@messageRange` | `@messageRange {start: N, end: M}` | Active only between N-M messages |
-| `@enableAfterMessage` | `@enableAfterMessage <N>` | Enable after N messages (stays on) |
-| `@disableAfterMessage` | `@disableAfterMessage <N>` | Disable after N messages (stays off) |
+| `@enable-at-message` | `@enable-at-message <N>` | Auto-enable at or after message count N |
+| `@disable-at-message` | `@disable-at-message <N>` | Auto-disable at or after message count N |
+| `@message-range` | `@message-range <start>-<end>` | Active only between N-M messages |
+| `@enable-after-message` | `@enable-after-message <N>` | Enable after N messages (stays on) |
+| `@disable-after-message` | `@disable-after-message <N>` | Disable after N messages (stays off) |
 
 ### Conflict Resolution
 
@@ -277,43 +281,38 @@ Issue severity:
 
 ### Autocomplete
 
-Typing `@` in the prompt editor triggers autocomplete suggestions showing directive name, syntax, description, and example.
+Typing `{{// @` in the prompt editor triggers directive-only autocomplete suggestions showing directive name, syntax, description, and example.
 
 ### Directive Cache
 
-Parsed directives are cached with a 2,000-entry LRU cache and 60-second TTL per entry. Cache is keyed by content hash for performance.
+Parsed directives are cached with a bounded 2,000-entry cache and 60-second TTL per entry. Cache is keyed by exact prompt content to avoid collisions.
 
 ---
 
 ## 6. Animated Backgrounds
 
-**Location:** `features/backgrounds/` (3 files)
-**Setting:** `enableAnimatedBackgrounds` (default: `true`)
+**Location:** `features/backgrounds/` (6 files)
+**Setting:** `enableAnimatedBackgrounds` (default: `false`)
 
-Full-featured background media system supporting video, animated images, and YouTube.
+Opt-in animated-image and YouTube support, plus video uploads when SillyTavern's optional Video Background Loader converter is installed.
 
 ### Supported Formats
 
-| Type | Extensions |
-|------|-----------|
-| Video | MP4, WebM, AVI, MOV, MKV, OGV |
-| Animated Image | GIF, WebP |
-| Static Image | JPG, PNG, BMP, TIFF, SVG, ICO |
-| Streaming | YouTube URLs |
-| Embed | iFrame embeds |
+| Type | Handling |
+|------|----------|
+| Video upload | Requires Video Background Loader; converted through `globalThis.convertVideoToAnimatedWebp` to animated WebP |
+| Animated image | GIF, WebP, and APNG remain on SillyTavern's native path |
+| Static image | Delegated to SillyTavern's native upload path |
+| YouTube | Validated YouTube and YouTube-nocookie URLs; no converter add-on required |
 
 ### Capabilities
 
-- **Playlist System** — Queue multiple backgrounds, shuffle/repeat modes.
-- **Favorites** — Star backgrounds for quick access.
-- **Drag-to-Reorder** — Reorder playlist items.
-- **Playback Controls** — Autoplay, loop, mute toggles.
-- **Volume Control** — Adjustable volume slider (0-1, default 0.1).
-- **YouTube Integration** — Paste YouTube URLs, quality selector (720p/1080p).
-- **Particle Effects** — Optional particle overlay.
-- **Background Fit** — Cover/contain/stretch options.
-- **Preload Optimization** — Preload media for smooth transitions.
-- **Thumbnail Fallback** — Show thumbnail while loading.
+- **Native Integration** — Uses current background events without patching private globals.
+- **Optional Video Conversion** — Clearly reports whether Video Background Loader is available and leaves upload handling to SillyTavern.
+- **Saved YouTube Shortcuts** — Stores pasted links as extension-owned favorites; there is no separate playlist-selection UI.
+- **Privacy-Enhanced YouTube** — Uses validated IDs and `youtube-nocookie.com` embeds without the video-converter add-on.
+- **Native Organization** — SillyTavern remains authoritative for folders and sort options.
+- **Idempotent Lifecycle** — Fully removes listeners, timers, observers, media, controls, styles, and restores native visibility.
 
 ### Settings
 
@@ -324,63 +323,59 @@ Full-featured background media system supporting video, animated images, and You
     enableMute: true,
     videoVolume: 0.1,
     enablePreload: true,
-    fallbackToThumbnail: true,
-    youtubeQuality: 'hd720',
-    enableParticles: false
+    fallbackToThumbnail: false,
+    backgroundFitting: 'cover'
 }
 ```
 
 ---
 
-## 7. Reasoning Parser
+## 7. Improved Reasoning Capture
 
-**Location:** `reasoning/robust-reasoning-parser.js`, `reasoning/nemonet-reasoning-config.js`
+**Location:** `reasoning/reasoning-capture-core.js`, `reasoning/robust-reasoning-parser.js`, `reasoning/nemonet-reasoning-config.js`
 
-Universal chain-of-thought reasoning block parser supporting multiple AI models.
+**Setting:** `enableReasoningCapture` (default: `true`)
 
-### Supported Models
+A native-first post-processor for reasoning formats that SillyTavern did not already capture. It stores accepted reasoning in the standard message metadata and leaves rendering, saving, and swipe behavior with SillyTavern.
 
-| Model | Format | Tags |
-|-------|--------|------|
-| Claude | Extended Thinking | `<thinking>...</thinking>` |
-| DeepSeek R1 | Think blocks | `<think>...</think>` → `<answer>` |
-| OpenAI o1/o3 | Reasoning tokens | Step markers |
-| Gemini 2.0+ | Thoughts section | `Thoughts:` prefix |
-| NemoNet | Custom CoT | `<think>...</think>` + `NARRATION FOLLOWS` |
-| Generic | Various | `<thought>`, `<reasoning>`, etc. |
+### Supported formats
 
-### Parsing Strategies (by confidence)
+| Format | Example |
+|--------|---------|
+| Configured/native delimiters | SillyTavern's current reasoning prefix and suffix |
+| Common alternate delimiters | `<thinking>`, `<thoughts>`, `<reason>`, `<cot>`, special-token, and square-bracket forms |
+| DeepSeek answer blocks | `<think>...</think><answer>...</answer>` |
+| Sectioned output | `Thoughts:` / `Thinking:` followed by an explicit response header |
+| Structured NemoNet | Council/Context Scan blocks with a clear narrative boundary |
+| Deterministic repair | Distinctive partial suffixes or explicit NemoNet narration markers |
 
-1. **Perfect Match** (100) — Both opening + closing tags present
-2. **Partial Suffix** (90) — Opening found, closing partial
-3. **Missing Suffix** (85) — Opening found, no closing (heuristic end detection)
-4. **Content-Based** (75) — No tags, but 150+ reasoning markers detected
-5. **Heuristic** (60) — Contextual clues (indentation, formatting)
+### Correctness safeguards
 
-### NemoNet-Specific Features
+- Runs only for assistant messages that begin with a recognized format.
+- Treats existing provider/native reasoning as authoritative.
+- Requires both non-empty reasoning and non-empty visible content; concise answers are allowed.
+- Delegates only structurally closed blocks to native parsing and leaves embedded examples or ambiguous unclosed blocks unchanged.
+- Parses canonical message text only, never already-rendered HTML.
+- Applies native reasoning regex placement, preserves metadata, and synchronizes accepted changes into the active swipe.
+- Uses a cheap candidate gate, so normal and even very large marker-free messages never enter the multi-strategy parser.
+- Skips pristine one-message greetings to preserve SillyTavern's greeting macro/swipe semantics.
 
-- **Council of Vex** — Multi-perspective reasoning with personas (Plot_Vex, Romantic_Vex, Action_Vex, Mystery_Vex, Comedy_Vex, Danger_Vex)
-- **7 Story Sections** — NEMO NET AWAKENING → GATHERING THE THREADS → SCENE CALIBRATION → COUNCIL CONVERSATION → RESOLUTION → CRAFTING → Custom CoT
-- **8 Exploration Steps** — Sequential discovery phases
-- **Special Sections** — Scene type/ratio, character capabilities, character voice, freshness checks, final review
+### Runtime
 
-### Parse Output
+The feature uses four bounded events: `MESSAGE_RECEIVED`, `MESSAGE_UPDATED`, `MESSAGE_SWIPED`, and `CHAT_CHANGED`. It has no chat-wide DOM observer, polling loop, delayed retry callbacks, or custom reasoning DOM. Cleanup removes the same listener references synchronously.
+
+### Parser result
 
 ```javascript
 {
-    hasReasoning: boolean,
-    reasoningBlocks: [{
-        content: string,
-        startIndex: number,
-        endIndex: number,
-        confidence: number,    // 0-100
-        strategy: string,
-        modelDetected: string
-    }],
-    narration: string,
-    modelType: string
+    reasoning: string,
+    content: string,
+    strategy: string,
+    confidence: number
 }
 ```
+
+A result is validated before the canonical message changes. Rejected results are atomic no-ops.
 
 ---
 
@@ -407,9 +402,11 @@ Converts HTML-rich old messages to compact ASCII text to reduce context token us
 ### Behavior
 
 - Width: 40-80 characters, auto-wraps long lines
-- Preserves information while reducing from ~500 lines HTML to ~20-30 lines ASCII
-- `htmlTrimmingKeepCount`: Number of recent messages to skip (0 = trim all old messages)
-- Applied via `setupAutoTrim()` which watches for new messages
+- Preserves meaningful text while reducing large HTML/CSS payloads
+- Effective keep range is 2-20 recent messages (fallback: 4)
+- Stores the original message in `extra.nemoHtmlTrimmerOriginal` before replacement
+- **Restore Trimmed** writes backed-up originals back to the chat and saves once
+- Applied via `setupAutoTrim()`, which watches for new messages
 
 ---
 
@@ -516,26 +513,27 @@ Interactive guided tutorials with a visual novel-style dialog character named Ve
 
 ## 12. World Info / Lorebook UI
 
-**Location:** `features/world-info/world-info-ui.js`
-**Setting:** `enableLorebookManagement` (default: `true`)
+**Location:** `features/world-info/`
+**Setting:** `enableLorebookOverhaul` (default: `false`)
 
-Enhanced lorebook/world info management interface.
+Responsive lorebook workspace layered on SillyTavern's supported World Info editor and events.
 
 ### Capabilities
 
-- **Two-Column Layout** — Left panel for book/folder list, right panel for entry details.
-- **Folder System** — Organize entries into folders with color coding.
-- **Bulk Selection** — Multi-select entries with Shift/Ctrl click.
-- **Clipboard** — Cut/copy/paste entries between books.
-- **Entry Presets** — Save and load entry configurations.
-- **Drag-and-Drop** — Reorder entries and move between folders.
-- **Inline Editing** — Edit entry fields directly in the list view.
-- **Active Entry Tracking** — Shows which entries are currently active.
+- **Two-Column Workspace** — Searchable lorebook sidebar and focused entry workspace.
+- **Clear States** — Accessible idle, loading, ready, empty, and error feedback.
+- **Folder and Preset Tools** — Organize books and save active-lorebook sets.
+- **Bulk Selection and Clipboard** — Shift/Ctrl selection plus cut/copy/duplicate workflows.
+- **Native Entry Editing** — Keeps SillyTavern's current entry editor and render targets.
+- **Analysis Tools** — Active-entry tracking, multi-book order helper, and an explicitly limited primary-keyword preview.
+- **Responsive Accessibility** — Keyboard tabs, focus-visible controls, mobile sidebar, and reduced-motion support.
+- **Reversible Lifecycle** — Restores the complete native World Info panel and removes owned observers/listeners.
 
-### HTML/CSS
+### Files
 
-- `features/world-info/world-info-ui.html` — UI template
-- `features/world-info/world-info-ui.css` — Specific styles
+- `features/world-info/world-info-ui.js` — Lifecycle and interactions
+- `features/world-info/world-info-ui.html` — Accessible workspace template
+- `features/world-info/world-info-ui.css` — Scoped responsive styles
 
 ---
 
@@ -609,17 +607,17 @@ Main settings panel for NemoPresetExt. Loads `settings.html` into the extensions
 ### User Settings Tabs (`user-settings-tabs.js`)
 
 Reorganizes SillyTavern's user settings into tabbed panels for better navigation.
-**Setting:** `enableTabOverhauls` (default: `true`)
+**Setting:** `enableTabOverhauls` (default: `false`)
 
 ### Advanced Formatting Tabs (`advanced-formatting-tabs.js`)
 
 Reorganizes advanced formatting options into categorized tabs.
-**Setting:** `enableTabOverhauls` (default: `true`)
+**Setting:** `enableTabOverhauls` (default: `false`)
 
 ### Extensions Tab Overhaul (`extensions-tab-overhaul.js`)
 
 Reorganizes the extensions settings panel layout with grouping and collapsible sections.
-**Setting:** `nemoEnableExtensionsTabOverhaul` (default: `true`)
+**Setting:** `nemoEnableExtensionsTabOverhaul` (default: `false`)
 Available globally as `window.ExtensionsTabOverhaul`.
 
 ### Theme Manager (`theme-manager.js`)
@@ -672,7 +670,7 @@ Features: priority-based listener ordering, one-time listeners, event history (1
 
 ### directive-cache.js
 
-LRU cache for parsed prompt directives. 2,000 entries max, 60-second TTL, hash-based keys.
+Prompt-id metadata cache backed by the parser's bounded 2,000-entry, 60-second exact-content cache.
 
 ### storage-migration.js
 
@@ -690,21 +688,37 @@ All settings stored under `extension_settings.NemoPresetExt`:
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `enablePromptManager` | bool | `true` | Prompt manager enhancements |
+| `enablePromptManager` | bool | `true` | Prompt dropdowns, search/filter, folders, archive, snapshots, and related tools |
 | `enablePresetNavigator` | bool | `true` | Preset browser |
-| `enableDirectives` | bool | `true` | Directive system |
-| `enableAnimatedBackgrounds` | bool | `true` | Background media system |
-| `enablePanelToggle` | bool | `true` | Panel toggle controls |
-| `enableLorebookManagement` | bool | `true` | World info UI enhancements |
+| `enableDirectives` | bool | `true` | Prompt validation, metadata, and message triggers |
+| `enableAnimatedBackgrounds` | bool | `false` | Background media system |
+| `enableCharacterNavigator` | bool | `true` | Character-card browser |
+| `enableLorebookManagement` | bool | `false` | World info UI enhancements |
 | `enableHTMLTrimming` | bool | `false` | HTML-to-ASCII context compression |
 | `htmlTrimmingKeepCount` | number | `0` | Recent messages to skip when trimming |
 | `dividerRegexPattern` | string | `''` | Custom divider patterns (comma-separated) |
 | `uiTheme` | string | `'none'` | Active theme: none/win98/discord/cyberpunk/nemotavern |
-| `enableMobileEnhancements` | bool | `true` | Auto-detect touch devices |
-| `enableTabOverhauls` | bool | `true` | Reorganize settings tabs |
+| `enableMobileEnhancements` | bool | `false` | Auto-detect touch devices |
+| `enableTabOverhauls` | bool | `false` | Reorganize settings tabs |
 | `nemoEnableWidePanels` | bool | `false` | 50% viewport width panels |
-| `nemoEnableExtensionsTabOverhaul` | bool | `true` | Extensions panel reorganization |
+| `nemoEnableExtensionsTabOverhaul` | bool | `false` | Extensions panel reorganization |
 | `nemoEnablePollinationsInterceptor` | bool | `false` | Pollinations API interceptor |
+| `enableReasoningCapture` | bool | `true` | Improved reasoning capture |
+| `enableDirectiveAutocomplete` | bool | `true` | Directive-only autocomplete UI |
+| `enableConnectionPanelOverhaul` | bool | `false` | Connection panel reorganization |
+| `enableLorebookOverhaul` | bool | `false` | Lorebook panel reorganization |
+| `enableReasoningSection` | bool | `false` | Prompt-manager reasoning section |
+| `enableModelSelector` | bool | `false` | Enhanced model selectors |
+| `nemoPollinationsPromptBestPractices` | bool | `false` | Pollinations prompt additions |
+| `enableEmojiPicker` | bool | `false` | Emoji picker UI |
+| `enableMarketplace` | bool | `false` | Extension marketplace |
+| `enablePersonaEnhancements` | bool | `false` | Persona management enhancements |
+| `enableNemoLore` | bool | `false` | NemoLore workflows |
+| `enableRewrite` | bool | `false` | Rewrite workflows |
+| `enableTutorials` | bool | `false` | Tutorial UI |
+| `enableNemoEngineInstaller` | bool | `false` | NemoEngine installer |
+| `enableItalicDialogueRenderer` | bool | `false` | Italic dialogue renderer |
+| `enableApiRouter` | bool | `false` | API router and model pipeline |
 | `dropdownStyle` | string | — | Display mode: 'tray' or 'accordion' |
 
 ---
@@ -754,8 +768,8 @@ NemoPresetExt/
 │   │
 │   ├── directives/                     # Directive system
 │   │   ├── prompt-directives.js        # Core parser (70+ directives)
-│   │   ├── directive-features.js       # Feature implementation
-│   │   ├── directive-features-fixes.js # Reliability fixes
+│   │   ├── directive-features.js       # Legacy advanced panel (not initialized)
+│   │   ├── directive-features-fixes.js # Legacy duplicate fixes (not initialized)
 │   │   ├── directive-autocomplete.js   # Editor autocomplete
 │   │   ├── directive-autocomplete-ui.js# Autocomplete UI
 │   │   ├── directive-ui.js             # Toast notifications
@@ -799,6 +813,7 @@ NemoPresetExt/
 │   └── pollinations-interceptor.js     # Image gen API interceptor
 │
 ├── reasoning/                          # Chain-of-thought system
+│   ├── reasoning-capture-core.js          # Safe candidate gating
 │   ├── robust-reasoning-parser.js      # Universal CoT parser
 │   ├── nemonet-reasoning-config.js     # NemoNet-specific config
 │   ├── html-trimmer.js                # HTML→ASCII converter
@@ -832,31 +847,17 @@ NemoPresetExt/
 
 ## Initialization Order
 
-`content.js` bootstraps everything in this order:
+`content.js` initializes the extension through feature gates rather than starting every bundled module:
 
-1. Wait for `#left-nav-panel` DOM element (max 10s)
-2. `ensureSettingsNamespace()` — Create settings with defaults
-3. `initializeStorage()` + `migrateFromLocalStorage()` — One-time migration
-4. `initializeThemes()` — Load theme CSS early
-5. `loadAndSetDividerRegex()` — Compile divider patterns
-6. `NemoCharacterManager.initialize()` — Character management
-7. `NemoSettingsUI.initialize()` — Settings panel (polls for container)
-8. `initThemeSelector()` — Theme picker handlers
-9. `NemoGlobalUI.initialize()` — Global UI helpers
-10. `NemoPromptArchiveUI.initialize()` — Archive panel
-11. `UserSettingsTabs` + `AdvancedFormattingTabs` — Tab overhauls (if enabled)
-12. `NemoWorldInfoUI.initialize()` — Lorebook UI (if enabled)
-13. `animatedBackgrounds.initialize()` — Backgrounds (if enabled)
-14. `initializeDirectiveCache()` — Cache (1s delay)
-15. `initDirectiveUI()` — Directive toast notifications
-16. `initPromptDirectiveHooks()` + `initMessageTriggerHooks()` — Toggle interception
-17. `initDirectiveAutocomplete()` — Editor autocomplete
-18. `initDirectiveFeatures()` + `initDirectiveFeaturesFixes()` — Directive features
-19. `initCategoryTray()` — Tray display mode
-20. `initPollinationsInterceptor()` — Pollinations (if enabled)
-21. `applyNemoNetReasoning()` — Reasoning parser
-22. `initializeHTMLTrimmer()` + `setupAutoTrim()` — HTML trimming
-23. `tutorialManager.initialize()` + `tutorialLauncher.initialize()` — Tutorials
-24. `ExtensionsTabOverhaul.initialize()` — Extensions panel (if enabled)
-25. `initializeMobileEnhancements()` — Touch device detection
-26. MutationObserver setup — Watch for DOM changes to reinitialize prompt list
+1. Wait for the primary SillyTavern navigation DOM.
+2. Apply the versioned settings schema, initialize extension storage, and run the one-time localStorage migration.
+3. Initialize themes and mount the native Extensions-panel settings UI.
+4. Start the approved default-on prompt, preset, character-card, reasoning-capture, and directive features.
+5. Start opt-in integrations only when their canonical feature flag is strictly `true`.
+6. Start directive UI, validation hooks, message triggers, directive-only autocomplete, and the shared cache as one disposable bundle when `enableDirectives` is enabled.
+7. Start the category tray with the prompt-manager bundle; directive metadata and validation still honor the directive master switch.
+8. Register settings, viewport, prompt-list, and SillyTavern lifecycle handlers with matching teardown callbacks.
+
+The legacy `directive-features.js` and `directive-features-fixes.js` advanced panels are retained for reference but are not imported or initialized. Their behavior overlaps the current prompt dropdown and would create duplicate observers and controls.
+
+Every delayed initializer, event listener, observer, moved native element, and owned UI surface is released through `cleanupExtension()` so a failed or repeated initialization can recover cleanly.

@@ -940,41 +940,4 @@ export function cleanupDiscordEnhancements() {
     console.log('[Discord Theme] Cleaned up');
 }
 
-// Auto-initialize when DOM is ready
-function autoInit() {
-    ensureBodyClass();
-    setTimeout(initDiscordEnhancements, 500);
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', autoInit);
-} else {
-    autoInit();
-}
-
-setTimeout(autoInit, 1500);
-setTimeout(autoInit, 3000);
-
-// Re-initialize on theme change
-const themeObserver = new MutationObserver((mutations) => {
-    mutations.forEach(mutation => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-            if (isDiscordThemeActive() && !initialized) {
-                initDiscordEnhancements();
-            }
-        }
-        if (mutation.type === 'childList' && mutation.target === document.head) {
-            mutation.addedNodes.forEach(node => {
-                if (node.id === 'nemo-theme-stylesheet' && node.href && node.href.includes('discord')) {
-                    ensureBodyClass();
-                    setTimeout(initDiscordEnhancements, 500);
-                }
-            });
-        }
-    });
-});
-
-themeObserver.observe(document.body, { attributes: true });
-themeObserver.observe(document.head, { childList: true });
-
 export default { initDiscordEnhancements, ensureBodyClass, cleanupDiscordEnhancements };

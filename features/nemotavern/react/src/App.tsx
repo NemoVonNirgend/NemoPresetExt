@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNemoStore } from './store';
 import CommandPalette from './components/CommandPalette/CommandPalette';
 import UnifiedSettings from './components/UnifiedSettings/UnifiedSettings';
@@ -14,7 +14,6 @@ const App: React.FC = () => {
         commandPaletteOpen,
         settingsOpen,
         panels,
-        dockZones,
         toggleCommandPalette,
         toggleSettings
     } = useNemoStore();
@@ -37,12 +36,12 @@ const App: React.FC = () => {
             <Toolbar onCommandPalette={toggleCommandPalette} onSettings={toggleSettings} />
 
             {/* Dock Zones */}
-            <DockZone zone="left" panels={dockZones.left} />
-            <DockZone zone="right" panels={dockZones.right} />
+            <DockZone zone="left" />
+            <DockZone zone="right" />
 
             {/* Floating Panels */}
             {Object.entries(panels).map(([id, panel]) => (
-                <FloatingPanel key={id} id={id} {...panel} />
+                <FloatingPanel key={id} {...panel} />
             ))}
 
             {/* Command Palette */}

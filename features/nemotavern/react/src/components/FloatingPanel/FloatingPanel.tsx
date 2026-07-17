@@ -124,7 +124,6 @@ const FloatingPanel: React.FC<FloatingPanelProps> = ({
                 icon={icon}
                 isMinimized={isMinimized}
                 isMaximized={isMaximized}
-                isDocked={!!dockedTo}
                 onMouseDown={handleHeaderMouseDown}
                 onMinimize={() => isMinimized ? restorePanel(id) : minimizePanel(id)}
                 onMaximize={() => isMaximized ? restorePanel(id) : maximizePanel(id)}
