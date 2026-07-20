@@ -49,7 +49,6 @@ import { NemoCharacterManager } from './features/character-manager/character-man
 import { NemoWorldInfoUI } from './features/world-info/world-info-ui.js';
 import { NemoMarketplace } from './features/marketplace/marketplace.js';
 import { NemoPersonaUI } from './features/persona/persona-ui.js';
-import { initNemoRewrite, cleanupNemoRewrite } from './features/rewrite/runtime.js';
 import { initNemoEngineInstaller, cleanupNemoEngineInstaller } from './features/preset-installer/runtime.js';
 import domCache from './features/character-manager/dom-cache.js';
 
@@ -111,7 +110,6 @@ function cleanupExtension() {
         try { backgroundUIEnhancements.destroy(); } catch (e) { /* ignore */ }
         try { animatedBackgrounds.destroy(); } catch (e) { /* ignore */ }
         try { NemoCharacterManager.destroy(); } catch (e) { /* ignore */ }
-        try { cleanupNemoRewrite(); } catch (e) { /* ignore */ }
         try { cleanupNemoEngineInstaller(); } catch (e) { /* ignore */ }
         try { cleanupNemoNetReasoning(); } catch (e) { /* ignore */ }
         try { cleanupHTMLTrimmer(); } catch (e) { /* ignore */ }
@@ -353,14 +351,6 @@ async function initializeExtension() {
             NemoPersonaUI.initialize();
         }
         // NemoPromptArchiveUI.initialize(); // Disabled — replaced by category tray archive
-
-        if (featureEnabled('enableRewrite')) {
-            try {
-                await initNemoRewrite();
-            } catch (error) {
-                logger.error('Nemo Rewrite failed to initialize; continuing with core NemoPresetExt UI', error);
-            }
-        }
 
         // Initialize tab overhauls only if enabled
         if (featureEnabled('enableTabOverhauls')) {

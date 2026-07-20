@@ -178,11 +178,11 @@ Standalone NemoLore owns current memory behavior. Retired bundled data is not de
 
 ### Nemo Rewrite
 
-Default: Off (`enableRewrite`)
+The bundled runtime is retired. Install the maintained standalone extension from the Extension Hub.
 
 Selecting text in a rendered chat message opens a floating menu with **Rewrite**, **Shorten**, **Expand**, **Custom**, and **Delete** actions. AI-assisted actions use the active SillyTavern backend, can stream into the selected span, can apply SillyTavern AI-output regex scripts, and support fixed or selection-aware token budgets. Recent rewrites have an undo path.
 
-Optional edit notes can be kept locally and, when NemoLore is loaded, offered as preference evidence. The runtime can pause itself if the separate standalone rewrite extension is detected, avoiding two selection menus.
+Optional edit notes can be kept locally and, when NemoLore is loaded, offered as preference evidence. Existing `NemoPresetExt.rewrite` settings remain untouched so the standalone extension can migrate them automatically.
 
 AI rewrite actions send the selected text and configured rewrite prompt to the active model and may incur normal provider usage costs.
 
@@ -347,7 +347,7 @@ The table below is the canonical new-install state. Most feature toggles should 
 | `enableMarketplace` | Off | Nemo Marketplace |
 | `enablePersonaEnhancements` | Off | Persona UI Enhancements |
 | `enableNemoLore` | Off | NemoLore |
-| `enableRewrite` | Off | Nemo Rewrite |
+| `enableRewrite` | Off | Retired; preserved only for standalone Nemo Rewrite migration |
 | `enableTutorials` | Off | Tutorials and Welcome Guide |
 | `enableNemoEngineInstaller` | Off | NemoEngine Installer |
 | `enableItalicDialogueRenderer` | Off | Italic Dialogue Rendering |

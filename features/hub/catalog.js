@@ -29,6 +29,16 @@ export const NEMO_EXTENSION_CATALOG = Object.freeze([
         recommended: false,
         requiresReload: true,
     }),
+    Object.freeze({
+        id: 'NemoRewrite',
+        name: 'Nemo Rewrite',
+        repository: 'https://github.com/NemoVonNirgend/NemoRewrite',
+        description: 'Selection-based rewriting, shortening, expansion, custom editing, deletion, undo, and optional NemoLore preference evidence.',
+        category: 'Writing Tools',
+        icon: 'fa-solid fa-wand-magic-sparkles',
+        recommended: false,
+        requiresReload: true,
+    }),
 ]);
 
 export function findCatalogEntry(id) {

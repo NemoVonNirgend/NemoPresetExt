@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const modelCards = read('../features/connection/model-cards.js');
-const rewriteRuntime = read('../features/rewrite/runtime.js');
+const contentSource = read('../content.js');
 const promptArchive = read('../features/prompts/prompt-archive.js');
 const promptLibrary = read('../features/marketplace/prompt-library.js');
 const marketplace = read('../features/marketplace/marketplace.js');
@@ -20,14 +20,9 @@ test('enhanced model cards cover every staging-only provider', () => {
     assert.match(modelCards, /'minimax':\s*'MiniMax'/);
 });
 
-test('rewrite generation uses the current generateRaw options contract', () => {
-    assert.match(rewriteRuntime, /generateRaw\(\{[\s\S]*?prompt,[\s\S]*?responseLength:/);
-    assert.doesNotMatch(rewriteRuntime, /generateRaw\(prompt,\s*null,/);
-});
-
-test('bundled rewrite stays idle when the standalone extension owns the runtime', () => {
-    assert.match(rewriteRuntime, /window\.NemoRewrite\?\.standalone === true/);
-    assert.match(rewriteRuntime, /Standalone Nemo Rewrite detected; bundled runtime will remain idle/);
+test('bundled rewrite is disconnected in favor of the standalone extension', () => {
+    assert.doesNotMatch(contentSource, /features\/rewrite\/runtime\.js/);
+    assert.doesNotMatch(contentSource, /initNemoRewrite|cleanupNemoRewrite/);
 });
 
 test('legacy prompt archive awaits every asynchronous preset save', () => {

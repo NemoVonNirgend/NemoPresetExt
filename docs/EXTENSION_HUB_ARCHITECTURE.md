@@ -11,6 +11,7 @@ The Hub delegates installation to SillyTavern's exported `installExtension` func
 - **NemoLore** — standalone memory and lore extension. The older bundled implementation remains temporarily as migration input only.
 - **Ember** — standalone interactive scripting and artifact extension.
 - **Nemo Guides** — standalone narrative planning, scene, writing, and utility tools.
+- **Nemo Rewrite** — standalone selection-based rewriting and edit-note tools.
 
 ## Extraction order
 
