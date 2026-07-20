@@ -13,6 +13,7 @@ import {
 } from '../core/utils.js';
 import { loadAndSetDividerRegex, NemoPresetManager } from '../features/prompts/prompt-manager.js';
 import logger from '../core/logger.js';
+import { NemoExtensionHub } from '../features/hub/hub-ui.js';
 
 export const NemoSettingsUI = {
     _settingsObserver: null,
@@ -78,6 +79,7 @@ export const NemoSettingsUI = {
 
                     container.innerHTML = htmlContent;
                     logger.info('NemoSettingsUI: Settings mounted in native extension layout');
+                    NemoExtensionHub.mount();
 
                     // Regex Settings
                     const regexInput = /** @type {HTMLInputElement} */ (document.getElementById('nemoDividerRegexPattern'));
