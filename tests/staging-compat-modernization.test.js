@@ -25,6 +25,11 @@ test('rewrite generation uses the current generateRaw options contract', () => {
     assert.doesNotMatch(rewriteRuntime, /generateRaw\(prompt,\s*null,/);
 });
 
+test('bundled rewrite stays idle when the standalone extension owns the runtime', () => {
+    assert.match(rewriteRuntime, /window\.NemoRewrite\?\.standalone === true/);
+    assert.match(rewriteRuntime, /Standalone Nemo Rewrite detected; bundled runtime will remain idle/);
+});
+
 test('legacy prompt archive awaits every asynchronous preset save', () => {
     const saveCalls = promptArchive.match(/syspromptManager\.savePreset\(/g) || [];
     const awaitedSaveCalls = promptArchive.match(/await syspromptManager\.savePreset\(/g) || [];

@@ -275,7 +275,7 @@ function updateTokenSettingsUi() {
 }
 
 function isStandaloneRewriteDetected() {
-    return Boolean(document.querySelector('.rewrite-extension-settings'));
+    return Boolean(window.NemoRewrite?.standalone === true || document.querySelector('.rewrite-extension-settings'));
 }
 
 function isNativeMenuSuppressed() {
@@ -1228,6 +1228,10 @@ function escapeHtml(value) {
 }
 
 export async function initNemoRewrite() {
+    if (window.NemoRewrite?.standalone === true) {
+        logger.info('Standalone Nemo Rewrite detected; bundled runtime will remain idle');
+        return;
+    }
     if (initialized) return;
     initialized = true;
     try {
