@@ -19,6 +19,16 @@ export const NEMO_EXTENSION_CATALOG = Object.freeze([
         recommended: true,
         requiresReload: true,
     }),
+    Object.freeze({
+        id: 'NemoGuides',
+        name: 'Nemo Guides',
+        repository: 'https://github.com/NemoVonNirgend/NemoGuides',
+        description: 'Optional scene assessment, planning, writing, DM notes, rules, and narrative utility tools.',
+        category: 'Narrative Tools',
+        icon: 'fa-solid fa-compass-drafting',
+        recommended: false,
+        requiresReload: true,
+    }),
 ]);
 
 export function findCatalogEntry(id) {
