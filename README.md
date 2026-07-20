@@ -162,7 +162,9 @@ Because this changes stored chat message text, keep backups for important chats 
 
 Default: Off (`enableNemoLore`)
 
-NemoLore combines long-horizon memory, archive retrieval, preference learning, and optional model tools. Turning on the root feature only loads its runtime and settings panel; the internal **NemoLore memory** and **NemoLore Guides** masters both remain off until separately enabled. Its settings include:
+The older NemoLore runtime formerly bundled with NemoPresetExt is retired and no longer initializes. Install the maintained standalone NemoLore repository from the Nemo Extension Hub. Existing bundled local data is preserved while a versioned migration/export path is developed.
+
+The retired source contained long-horizon memory, archive retrieval, preference learning, and optional model tools. These capabilities are being evaluated separately rather than running a second memory engine alongside standalone NemoLore. Its historical settings included:
 
 - timeline compression and a configurable live-message window;
 - a raw archive plus optional SillyTavern vector-storage retrieval;
@@ -172,7 +174,7 @@ NemoLore combines long-horizon memory, archive retrieval, preference learning, a
 - optional NemoLore Guides tools for rules, scene assessment, planning, prose checks, DM notes, prompt advice, and custom tools;
 - native tool-call, stealth-tool, or silent preflight workflows for compatible models.
 
-After enabling and refreshing, configure the **NemoLore** settings card before relying on it. Vector retrieval needs SillyTavern's vector-storage support. Guide tool calls need a tool-capable model/backend; silent preflight can instead use a configured model profile. NemoLore data is not deleted when its master feature is disabled.
+Standalone NemoLore owns current memory behavior. Retired bundled data is not deleted when its old feature flag is disabled.
 
 ### Nemo Rewrite
 

@@ -14,7 +14,7 @@ The Hub delegates installation to SillyTavern's exported `installExtension` func
 ## Extraction order
 
 1. Prove install and installed-state handling with NemoLore and Ember.
-2. Add migration messaging for the bundled NemoLore settings and disable duplicate runtime activation.
+2. Keep the bundled NemoLore runtime retired while preserving its localforage records for an explicit migration/export path.
 3. Extract NemoRewrite into its own repository.
 4. Extract the connection router/pipeline suite.
 5. Evaluate World Info, backgrounds/media, persona, marketplace, and onboarding bundles by shared dependency density before splitting them.

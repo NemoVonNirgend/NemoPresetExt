@@ -713,7 +713,7 @@ All settings stored under `extension_settings.NemoPresetExt`:
 | `enableEmojiPicker` | bool | `false` | Emoji picker UI |
 | `enableMarketplace` | bool | `false` | Extension marketplace |
 | `enablePersonaEnhancements` | bool | `false` | Persona management enhancements |
-| `enableNemoLore` | bool | `false` | NemoLore workflows |
+| `enableNemoLore` | bool | `false` | Retired bundled-runtime migration flag; standalone NemoLore is installed from the Hub |
 | `enableRewrite` | bool | `false` | Rewrite workflows |
 | `enableTutorials` | bool | `false` | Tutorial UI |
 | `enableNemoEngineInstaller` | bool | `false` | NemoEngine installer |

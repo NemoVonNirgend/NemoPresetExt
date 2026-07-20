@@ -166,12 +166,20 @@ export const NemoSettingsUI = {
                     ['nemoEnablePersonaEnhancements', 'enablePersonaEnhancements'],
                     ['nemoEnableEmojiPicker', 'enableEmojiPicker'],
                     ['nemoEnableItalicDialogueRenderer', 'enableItalicDialogueRenderer'],
-                    ['nemoEnableNemoLore', 'enableNemoLore'],
                     ['nemoEnableRewrite', 'enableRewrite'],
                     ['nemoEnableTutorials', 'enableTutorials'],
                     ['nemoEnableNemoEngineInstaller', 'enableNemoEngineInstaller'],
                     ['nemoEnableApiRouter', 'enableApiRouter'],
                 ];
+
+                const retiredNemoLoreToggle = /** @type {HTMLInputElement | null} */ (document.getElementById('nemoEnableNemoLore'));
+                if (retiredNemoLoreToggle) {
+                    retiredNemoLoreToggle.checked = false;
+                    retiredNemoLoreToggle.disabled = true;
+                    retiredNemoLoreToggle.setAttribute('aria-disabled', 'true');
+                    extension_settings[NEMO_EXTENSION_NAME].enableNemoLore = false;
+                    saveSettingsDebounced();
+                }
 
                 for (const [elementId, settingKey] of additionalFeatureToggles) {
                     const toggle = /** @type {HTMLInputElement | null} */ (document.getElementById(elementId));

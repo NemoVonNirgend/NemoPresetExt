@@ -49,7 +49,6 @@ import { NemoCharacterManager } from './features/character-manager/character-man
 import { NemoWorldInfoUI } from './features/world-info/world-info-ui.js';
 import { NemoMarketplace } from './features/marketplace/marketplace.js';
 import { NemoPersonaUI } from './features/persona/persona-ui.js';
-import { initNemoLore, cleanupNemoLore } from './features/nemolore/runtime.js';
 import { initNemoRewrite, cleanupNemoRewrite } from './features/rewrite/runtime.js';
 import { initNemoEngineInstaller, cleanupNemoEngineInstaller } from './features/preset-installer/runtime.js';
 import domCache from './features/character-manager/dom-cache.js';
@@ -112,7 +111,6 @@ function cleanupExtension() {
         try { backgroundUIEnhancements.destroy(); } catch (e) { /* ignore */ }
         try { animatedBackgrounds.destroy(); } catch (e) { /* ignore */ }
         try { NemoCharacterManager.destroy(); } catch (e) { /* ignore */ }
-        try { cleanupNemoLore(); } catch (e) { /* ignore */ }
         try { cleanupNemoRewrite(); } catch (e) { /* ignore */ }
         try { cleanupNemoEngineInstaller(); } catch (e) { /* ignore */ }
         try { cleanupNemoNetReasoning(); } catch (e) { /* ignore */ }
@@ -355,14 +353,6 @@ async function initializeExtension() {
             NemoPersonaUI.initialize();
         }
         // NemoPromptArchiveUI.initialize(); // Disabled — replaced by category tray archive
-
-        if (featureEnabled('enableNemoLore')) {
-            try {
-                await initNemoLore();
-            } catch (error) {
-                logger.error('NemoLore failed to initialize; continuing with core NemoPresetExt UI', error);
-            }
-        }
 
         if (featureEnabled('enableRewrite')) {
             try {
