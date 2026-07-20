@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 96863)
-Total output lines: 14370
-
 /* styles.css for NemoPresetExt */
 
 /* === TUTORIAL SYSTEM STYLES === */
@@ -3484,7 +3481,6412 @@ span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action { whi
 
 .nemo-tray-header {
     display: flex;
-    justify-content: space-bet…46863 tokens truncated…name="themeToggles"] .checkbox_label:hover {
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nemo-tray-title {
+    font-weight: 600;
+    color: var(--nemo-text-high-contrast, #fff);
+    font-size: 14px;
+}
+
+.nemo-tray-close {
+    background: none;
+    border: none;
+    color: var(--nemo-text-medium-contrast, #aaa);
+    cursor: pointer;
+    font-size: 20px;
+    padding: 0 4px;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.nemo-tray-close:hover {
+    color: #ff6b6b;
+}
+
+/* Header controls container */
+.nemo-tray-header-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Toggle all button */
+.nemo-tray-toggle-all {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: var(--nemo-text-medium-contrast, #aaa);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 8px;
+    transition: all 0.2s;
+}
+
+.nemo-tray-toggle-all:hover {
+    background: rgba(74, 158, 255, 0.2);
+    border-color: rgba(74, 158, 255, 0.4);
+    color: #fff;
+}
+
+.nemo-tray-toggle-all.nemo-all-enabled {
+    background: rgba(81, 207, 102, 0.2);
+    border-color: rgba(81, 207, 102, 0.4);
+    color: #51cf66;
+}
+
+.nemo-tray-toggle-all.nemo-all-enabled:hover {
+    background: rgba(255, 107, 107, 0.2);
+    border-color: rgba(255, 107, 107, 0.4);
+    color: #ff6b6b;
+}
+
+/* Grid of prompt cards */
+.nemo-tray-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* Individual prompt card - use consistent border widths to prevent layout shift */
+.nemo-prompt-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-left: 4px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    display: flex;
+    gap: 8px;
+    overflow: hidden;
+    align-items: stretch;
+}
+
+.nemo-prompt-card:hover {
+    background: rgba(74, 158, 255, 0.1);
+    border-color: rgba(74, 158, 255, 0.4);
+    border-left-color: rgba(74, 158, 255, 0.6);
+}
+
+/* Drag handle */
+.nemo-prompt-card-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    min-width: 20px;
+    color: rgba(255, 255, 255, 0.3);
+    cursor: grab;
+    font-size: 12px;
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.nemo-prompt-card-drag-handle:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.nemo-prompt-card-drag-handle:active {
+    cursor: grabbing;
+}
+
+.nemo-prompt-card-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Drag states for tray cards - kept minimal for performance */
+.nemo-tray-card-ghost {
+    opacity: 0.3 !important;
+    visibility: hidden !important; /* Hide ghost to reduce visual clutter */
+}
+
+/* Style for the card being dragged (native drag) */
+.nemo-prompt-card.sortable-chosen {
+    opacity: 0.5;
+    cursor: grabbing !important;
+}
+
+/* Sortable drag class */
+.nemo-prompt-card.sortable-drag {
+    opacity: 0.9;
+    z-index: 99999 !important;
+}
+
+/* Prevent tray layout from shifting during drag */
+.nemo-tray-grid {
+    min-height: 50px;
+}
+
+/* Sub-section divider in tray view */
+.nemo-tray-subsection-divider {
+    width: 100%;
+    padding: 6px 8px 4px;
+    margin-top: 4px;
+    font-size: 0.85em;
+    opacity: 0.7;
+    border-left: 2px solid var(--SmartThemeQuoteColor, #888);
+    grid-column: 1 / -1;
+}
+
+.nemo-tray-subsection-name {
+    font-weight: 500;
+}
+
+/* Drop target indicator for section headers */
+.nemo-drop-target-active {
+    background: rgba(74, 158, 255, 0.2) !important;
+    outline: 2px dashed rgba(74, 158, 255, 0.7) !important;
+    outline-offset: -2px;
+}
+
+.nemo-drop-target-active::after {
+    content: ' (drop here)';
+    color: rgba(74, 158, 255, 0.9);
+    font-size: 0.8em;
+    font-style: italic;
+}
+
+/* Top-level prompts section */
+.nemo-top-level-section {
+    border-left: 3px solid #f39c12 !important;
+    margin-bottom: 8px;
+}
+
+.nemo-top-level-section > summary {
+    background: linear-gradient(90deg, rgba(243, 156, 18, 0.1) 0%, transparent 50%);
+}
+
+.nemo-top-level-section > summary .completion_prompt_manager_prompt_name a {
+    color: #f39c12 !important;
+    font-weight: 600;
+}
+
+/* Top-level drop zone for moving prompts outside sections */
+.nemo-top-level-drop-zone {
+    padding: 12px 16px;
+    margin: 8px 0;
+    border: 2px dashed rgba(74, 158, 255, 0.4);
+    border-radius: 8px;
+    background: rgba(74, 158, 255, 0.05);
+    text-align: center;
+    cursor: pointer;
+}
+
+.nemo-top-level-drop-zone .nemo-drop-zone-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: rgba(74, 158, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+.nemo-top-level-drop-zone .nemo-drop-zone-content i {
+    font-size: 1rem;
+}
+
+.nemo-top-level-drop-zone.nemo-drop-zone-active {
+    border-color: rgba(74, 158, 255, 0.8);
+    background: rgba(74, 158, 255, 0.15);
+}
+
+.nemo-top-level-drop-zone.nemo-drop-zone-active .nemo-drop-zone-content {
+    color: rgba(74, 158, 255, 1);
+}
+
+/* Enabled card - only change colors, not sizes to prevent layout shift */
+.nemo-prompt-card-enabled {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(39, 174, 96, 0.12));
+    border-color: #2ecc71;
+    border-left-color: #2ecc71;
+    box-shadow: 0 2px 8px rgba(46, 204, 113, 0.2);
+    opacity: 1;
+}
+
+/* Enabled card title gets green tint */
+.nemo-prompt-card-enabled .nemo-prompt-card-name {
+    color: #5ddb8a !important;
+}
+
+/* Style the existing status checkmark */
+.nemo-prompt-card-enabled .nemo-prompt-card-status {
+    color: #2ecc71 !important;
+    font-size: 18px;
+}
+
+.nemo-prompt-card-enabled:hover {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(39, 174, 96, 0.18));
+    border-color: #3de07d;
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.25);
+}
+
+/* Disabled card styling - dimmed but same size */
+.nemo-prompt-card:not(.nemo-prompt-card-enabled) {
+    opacity: 0.55;
+}
+
+.nemo-prompt-card:not(.nemo-prompt-card-enabled):hover {
+    opacity: 0.85;
+}
+
+.nemo-prompt-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    min-height: 20px;
+}
+
+.nemo-prompt-card-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--nemo-text-high-contrast, #fff);
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
+    flex: 1;
+    min-width: 0;
+}
+
+.nemo-prompt-card-status {
+    color: #51cf66;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* Legacy class - keep for backwards compatibility */
+.nemo-prompt-card-tooltip {
+    font-size: 13px;
+    color: var(--nemo-text-muted, #bbb);
+    line-height: 1.5;
+    margin-top: 6px;
+    display: block;
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* Card badge (from directive) */
+.nemo-prompt-card-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    color: white;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+/* Card icon (from directive) */
+.nemo-prompt-card-icon {
+    margin-right: 6px;
+    font-size: 14px;
+}
+
+/* Highlighted/glow card (from directive) */
+.nemo-prompt-card-highlighted {
+    animation: nemo-card-glow 2s ease-in-out infinite;
+    box-shadow: 0 0 8px var(--nemo-card-color, rgba(74, 158, 255, 0.5));
+}
+
+@keyframes nemo-card-glow {
+    0%, 100% {
+        box-shadow: 0 0 5px var(--nemo-card-color, rgba(74, 158, 255, 0.4)),
+                    0 0 10px var(--nemo-card-color, rgba(74, 158, 255, 0.2));
+    }
+    50% {
+        box-shadow: 0 0 10px var(--nemo-card-color, rgba(74, 158, 255, 0.6)),
+                    0 0 20px var(--nemo-card-color, rgba(74, 158, 255, 0.4));
+    }
+}
+
+/* Card with color - subtle background tint */
+.nemo-prompt-card[style*="--nemo-card-color"] {
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.03) 0%,
+        color-mix(in srgb, var(--nemo-card-color) 10%, transparent) 100%
+    );
+}
+
+.nemo-prompt-card[style*="--nemo-card-color"]:hover {
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        color-mix(in srgb, var(--nemo-card-color) 20%, transparent) 100%
+    );
+}
+
+/* Tray footer */
+.nemo-tray-footer {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nemo-tray-hint {
+    font-size: 11px;
+    color: var(--nemo-text-muted, #888);
+}
+
+/* Scrollbar styling for tray grid */
+.nemo-tray-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nemo-tray-grid::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.nemo-tray-grid::-webkit-scrollbar-thumb {
+    background: rgba(74, 158, 255, 0.3);
+    border-radius: 3px;
+}
+
+.nemo-tray-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 158, 255, 0.5);
+}
+
+.nemo-prompt-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.nemo-prompt-card-edit,
+.nemo-prompt-card-move {
+    color: var(--nemo-text-muted, #888);
+    cursor: pointer;
+    padding: 3px 5px;
+    border-radius: 3px;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.nemo-prompt-card-edit:hover {
+    color: #4a9eff;
+    background: rgba(74, 158, 255, 0.15);
+}
+
+.nemo-prompt-card-move:hover {
+    color: #f39c12;
+    background: rgba(243, 156, 18, 0.15);
+}
+
+/* Prompt card meta section (tokens, tooltip) */
+.nemo-prompt-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--nemo-text-muted, #888);
+    margin-top: 6px;
+}
+
+.nemo-prompt-card-tokens {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: var(--monoFontFamily, monospace);
+    font-size: 10px;
+    white-space: nowrap;
+    width: fit-content;
+}
+
+.nemo-prompt-card-tokens i {
+    color: #f1c40f;
+    opacity: 0.8;
+    font-size: 9px;
+}
+
+.nemo-token-value {
+    min-width: 20px;
+}
+
+.nemo-prompt-card-tooltip-text {
+    font-size: 11px;
+    line-height: 1.4;
+    opacity: 0.75;
+    color: var(--nemo-text-muted, #aaa);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Compact mode adjustments for meta */
+.nemo-tray-compact .nemo-prompt-card-meta {
+    margin-top: 2px;
+}
+
+.nemo-tray-compact .nemo-prompt-card-tokens {
+    padding: 1px 4px;
+    font-size: 9px;
+}
+
+/* ========================================
+   COMPACT VIEW MODE
+   ======================================== */
+
+.nemo-tray-compact .nemo-tray-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nemo-tray-compact .nemo-prompt-card {
+    padding: 6px 10px;
+    border-radius: 4px;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+.nemo-tray-compact .nemo-prompt-card-content {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 18px;
+}
+
+.nemo-tray-compact .nemo-prompt-card-header {
+    margin-bottom: 0;
+}
+
+.nemo-tray-compact .nemo-prompt-card-name {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nemo-tray-compact .nemo-prompt-card-meta {
+    display: none !important;
+}
+
+.nemo-tray-compact .nemo-prompt-card-tooltip,
+.nemo-tray-compact .nemo-prompt-card-tooltip-text {
+    display: none;
+}
+
+.nemo-tray-compact-toggle,
+.nemo-tray-compact-all {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: var(--nemo-text-medium-contrast, #aaa);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    padding: 4px 8px;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.nemo-tray-compact-toggle:hover,
+.nemo-tray-compact-all:hover {
+    background: rgba(74, 158, 255, 0.2);
+    border-color: rgba(74, 158, 255, 0.4);
+    color: #fff;
+}
+
+.nemo-tray-compact-toggle.nemo-compact-active {
+    background: rgba(74, 158, 255, 0.3);
+    border-color: rgba(74, 158, 255, 0.5);
+    color: #4a9eff;
+}
+
+/* ========================================
+   PRESETS DROPDOWN
+   ======================================== */
+
+.nemo-tray-presets-dropdown {
+    position: relative;
+}
+
+.nemo-tray-presets-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: var(--nemo-text-medium-contrast, #aaa);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.nemo-tray-presets-btn:hover {
+    background: rgba(255, 193, 7, 0.2);
+    border-color: rgba(255, 193, 7, 0.4);
+    color: #ffc107;
+}
+
+.nemo-preset-count {
+    background: rgba(255, 193, 7, 0.8);
+    color: #000;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 1px 5px;
+    border-radius: 8px;
+    min-width: 14px;
+    text-align: center;
+}
+
+.nemo-presets-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: linear-gradient(135deg, rgba(35, 35, 50, 0.98) 0%, rgba(25, 25, 40, 0.98) 100%);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 8px;
+    min-width: 200px;
+    max-width: 280px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+}
+
+.nemo-presets-menu.nemo-presets-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.nemo-presets-header {
+    font-weight: 600;
+    color: #ffc107;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nemo-preset-save {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 12px;
+    background: none;
+    border: none;
+    color: #51cf66;
+    cursor: pointer;
+    font-size: 13px;
+    text-align: left;
+    transition: background 0.2s;
+}
+
+.nemo-preset-save:hover {
+    background: rgba(81, 207, 102, 0.15);
+}
+
+.nemo-presets-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 4px 0;
+}
+
+.nemo-presets-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.nemo-preset-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.nemo-preset-item:hover {
+    background: rgba(74, 158, 255, 0.15);
+}
+
+.nemo-preset-name {
+    flex: 1;
+    font-size: 13px;
+    color: var(--nemo-text-high-contrast, #fff);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nemo-preset-info {
+    font-size: 11px;
+    color: var(--nemo-text-muted, #888);
+}
+
+.nemo-preset-delete {
+    background: none;
+    border: none;
+    color: var(--nemo-text-muted, #666);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+    transition: all 0.2s;
+    opacity: 0.5;
+}
+
+.nemo-preset-item:hover .nemo-preset-delete {
+    opacity: 1;
+}
+
+.nemo-preset-delete:hover {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.15);
+}
+
+.nemo-presets-empty {
+    padding: 12px;
+    text-align: center;
+    color: var(--nemo-text-muted, #666);
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* Preset Name Modal */
+.nemo-preset-name-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nemo-preset-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+}
+
+.nemo-preset-modal-container {
+    position: relative;
+    background: linear-gradient(135deg, rgba(35, 35, 55, 0.98) 0%, rgba(25, 25, 40, 0.98) 100%);
+    border: 1px solid rgba(255, 193, 7, 0.4);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 193, 7, 0.1);
+    animation: nemo-modal-appear 0.25s ease-out;
+    overflow: hidden;
+}
+
+@keyframes nemo-modal-appear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.nemo-preset-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    background: linear-gradient(90deg, rgba(255, 193, 7, 0.15) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(255, 193, 7, 0.2);
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffc107;
+}
+
+.nemo-preset-modal-header i {
+    font-size: 18px;
+}
+
+.nemo-preset-modal-body {
+    padding: 20px;
+}
+
+.nemo-preset-modal-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.nemo-preset-modal-section {
+    font-weight: 500;
+    color: var(--nemo-text-high-contrast, #fff);
+}
+
+.nemo-preset-modal-count {
+    font-size: 12px;
+    color: #51cf66;
+    background: rgba(81, 207, 102, 0.15);
+    padding: 3px 8px;
+    border-radius: 10px;
+}
+
+.nemo-preset-modal-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--nemo-text-medium-contrast, #aaa);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nemo-preset-modal-input {
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: var(--nemo-text-high-contrast, #fff);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.nemo-preset-modal-input:focus {
+    border-color: rgba(255, 193, 7, 0.5);
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
+}
+
+.nemo-preset-modal-input::placeholder {
+    color: var(--nemo-text-muted, #666);
+}
+
+.nemo-preset-modal-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.nemo-preset-suggestion {
+    padding: 5px 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    font-size: 12px;
+    color: var(--nemo-text-medium-contrast, #aaa);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nemo-preset-suggestion:hover {
+    background: rgba(255, 193, 7, 0.15);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #ffc107;
+}
+
+.nemo-preset-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.nemo-preset-modal-cancel {
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: var(--nemo-text-medium-contrast, #aaa);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nemo-preset-modal-cancel:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.nemo-preset-modal-save {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.8) 0%, rgba(255, 152, 0, 0.8) 100%);
+    border: none;
+    border-radius: 6px;
+    color: #000;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nemo-preset-modal-save:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 1) 0%, rgba(255, 152, 0, 1) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.nemo-preset-modal-save:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ========================================
+   DEPENDENCY INDICATORS
+   ======================================== */
+
+.nemo-prompt-card-deps {
+    display: flex;
+    gap: 4px;
+    margin-right: 4px;
+}
+
+.nemo-dep-requires,
+.nemo-dep-exclusive,
+.nemo-dep-conflicts {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    font-size: 10px;
+    cursor: help;
+}
+
+.nemo-dep-requires {
+    background: rgba(74, 158, 255, 0.2);
+    color: #4a9eff;
+}
+
+.nemo-dep-exclusive {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+.nemo-dep-conflicts {
+    background: rgba(255, 107, 107, 0.2);
+    color: #ff6b6b;
+}
+
+/* Related prompt highlighting on hover */
+.nemo-related-required {
+    outline: 2px solid rgba(74, 158, 255, 0.6) !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 12px rgba(74, 158, 255, 0.4);
+}
+
+.nemo-related-exclusive {
+    outline: 2px solid rgba(255, 193, 7, 0.6) !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 12px rgba(255, 193, 7, 0.4);
+}
+
+.nemo-related-conflict {
+    outline: 2px solid rgba(255, 107, 107, 0.6) !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 12px rgba(255, 107, 107, 0.4);
+}
+
+/* ========================================
+   KEYBOARD NAVIGATION
+   ======================================== */
+
+.nemo-category-tray:focus {
+    outline: none;
+}
+
+.nemo-prompt-card.nemo-card-focused {
+    outline: 2px solid rgba(74, 158, 255, 0.8);
+    outline-offset: 2px;
+    box-shadow: 0 0 15px rgba(74, 158, 255, 0.5);
+}
+
+.nemo-tray-compact .nemo-prompt-card.nemo-card-focused {
+    outline-offset: 1px;
+}
+
+/* ========================================
+   IMPROVED SUB-SECTION STYLING
+   ======================================== */
+
+/* Sub-section differentiation */
+details.nemo-engine-section.nemo-sub-section {
+    margin-left: 16px;
+    border-left: 2px solid rgba(74, 158, 255, 0.3);
+    padding-left: 8px;
+}
+
+details.nemo-engine-section.nemo-sub-section > summary {
+    font-size: 0.95em;
+}
+
+details.nemo-engine-section.nemo-sub-section > summary::before {
+    content: '└─';
+    margin-right: 6px;
+    color: rgba(74, 158, 255, 0.5);
+    font-family: monospace;
+}
+
+/* Nested sub-section visual hierarchy */
+details.nemo-engine-section.nemo-sub-section details.nemo-engine-section.nemo-sub-section {
+    margin-left: 12px;
+    border-left-color: rgba(255, 193, 7, 0.3);
+}
+
+details.nemo-engine-section.nemo-sub-section details.nemo-engine-section.nemo-sub-section > summary::before {
+    color: rgba(255, 193, 7, 0.5);
+}
+
+/* Section hover effect */
+details.nemo-engine-section > summary:hover {
+    background: rgba(74, 158, 255, 0.08);
+}
+
+details.nemo-engine-section.nemo-sub-section > summary:hover {
+    background: rgba(74, 158, 255, 0.12);
+}
+
+/* Tray mode section folder icon improvements */
+.nemo-tray-section > summary::after {
+    transition: all 0.2s ease;
+}
+
+.nemo-tray-section:hover > summary::after {
+    transform: scale(1.1);
+}
+
+/* Section with open tray indicator */
+.nemo-tray-section.nemo-tray-open > summary {
+    background: rgba(74, 158, 255, 0.15);
+    border-radius: 4px;
+}
+
+/* Keyboard focus for section summaries */
+.nemo-tray-section > summary:focus {
+    outline: 2px solid rgba(74, 158, 255, 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.nemo-tray-section > summary:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.nemo-tray-section > summary:focus-visible {
+    outline: 2px solid rgba(74, 158, 255, 0.8);
+    outline-offset: 2px;
+}
+
+/* Sub-section tray positioning */
+details.nemo-engine-section.nemo-sub-section + .nemo-category-tray {
+    margin-left: 24px;
+    border-left: 2px solid rgba(74, 158, 255, 0.2);
+}
+
+/* Progress bar improvements for sub-sections */
+details.nemo-engine-section.nemo-sub-section .nemo-section-progress {
+    height: 3px;
+}
+
+/* Alternating sub-section colors for better hierarchy */
+details.nemo-engine-section.nemo-sub-section:nth-child(odd) {
+    border-left-color: rgba(147, 112, 219, 0.3);
+}
+
+details.nemo-engine-section.nemo-sub-section:nth-child(odd) > summary::before {
+    color: rgba(147, 112, 219, 0.5);
+}
+
+/* Improved section header styling */
+details.nemo-engine-section > summary {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+details.nemo-engine-section > summary .completion_prompt_manager_prompt_name {
+    flex: 1;
+}
+
+/* Section count badge styling */
+details.nemo-engine-section .nemo-enabled-count {
+    font-size: 12px;
+    color: var(--nemo-text-muted, #888);
+    margin-left: 8px;
+    font-weight: normal;
+}
+
+/* ============================================
+   ACCORDION MODE STYLES
+   ============================================ */
+
+/* Accordion section styling */
+.nemo-accordion-section {
+    margin-bottom: 4px;
+}
+
+.nemo-accordion-section > summary {
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.08), rgba(147, 112, 219, 0.05));
+    border: 1px solid rgba(74, 158, 255, 0.15);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.nemo-accordion-section > summary:hover {
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.15), rgba(147, 112, 219, 0.1));
+    border-color: rgba(74, 158, 255, 0.3);
+}
+
+.nemo-accordion-section[open] > summary {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-color: transparent;
+}
+
+.nemo-accordion-section[open] > .nemo-section-content {
+    border: 1px solid rgba(74, 158, 255, 0.15);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.15);
+    animation: nemo-accordion-expand 0.2s ease-out;
+}
+
+@keyframes nemo-accordion-expand {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 1000px;
+    }
+}
+
+/* Accordion prompt item styling */
+.nemo-accordion-prompt {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.nemo-accordion-prompt .drag-handle {
+    cursor: grab;
+    opacity: 0.5;
+    margin-right: 8px;
+    font-size: 14px;
+    transition: opacity 0.2s ease;
+}
+
+.nemo-accordion-prompt:hover .drag-handle {
+    opacity: 1;
+}
+
+.nemo-accordion-prompt .drag-handle:active {
+    cursor: grabbing;
+}
+
+/* ENABLED state - prominent visual indication */
+.nemo-accordion-prompt-enabled {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(39, 174, 96, 0.12));
+    border: 2px solid rgba(46, 204, 113, 0.5);
+    border-left: 5px solid #2ecc71;
+    box-shadow: 0 2px 6px rgba(46, 204, 113, 0.15);
+}
+
+.nemo-accordion-prompt-enabled:hover {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(39, 174, 96, 0.18));
+    border-color: rgba(46, 204, 113, 0.7);
+}
+
+.nemo-accordion-prompt-enabled .prompt-manager-toggle-action {
+    color: #2ecc71 !important;
+}
+
+.nemo-accordion-prompt-enabled .completion_prompt_manager_prompt_name a {
+    color: #5ddb8a !important;
+}
+
+/* DISABLED state - subtle but clear */
+.nemo-accordion-prompt-disabled {
+    background: rgba(0, 0, 0, 0.12);
+    border-color: rgba(255, 255, 255, 0.05);
+    opacity: 0.55;
+}
+
+.nemo-accordion-prompt-disabled:hover {
+    opacity: 0.85;
+    background: rgba(0, 0, 0, 0.18);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.nemo-accordion-prompt-disabled .prompt-manager-toggle-action {
+    color: #888 !important;
+}
+
+/*
+ * INSTANT STATE STYLING - Uses :has() to directly match SillyTavern's toggle state.
+ * This prevents the flash/flicker when toggling because it doesn't rely on JS adding classes.
+ * The styling is always in sync with ST's actual toggle button state.
+ */
+
+/* Enabled state - match when toggle button has fa-toggle-on */
+.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(39, 174, 96, 0.12)) !important;
+    border: 2px solid rgba(46, 204, 113, 0.5) !important;
+    border-left: 5px solid #2ecc71 !important;
+    box-shadow: 0 2px 6px rgba(46, 204, 113, 0.15) !important;
+}
+
+.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on):hover {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(39, 174, 96, 0.18)) !important;
+    border-color: rgba(46, 204, 113, 0.7) !important;
+}
+
+.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .completion_prompt_manager_prompt_name a {
+    color: #5ddb8a !important;
+}
+
+/* Disabled state - match when toggle button does NOT have fa-toggle-on */
+.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)) {
+    background: rgba(0, 0, 0, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    opacity: 0.55;
+}
+
+.nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)):hover {
+    opacity: 0.85;
+    background: rgba(0, 0, 0, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Also apply to general engine sections (fallback for non-accordion mode) */
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(39, 174, 96, 0.12)) !important;
+    border: 2px solid rgba(46, 204, 113, 0.5) !important;
+    border-left: 5px solid #2ecc71 !important;
+    box-shadow: 0 2px 6px rgba(46, 204, 113, 0.15) !important;
+}
+
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on):hover {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(39, 174, 96, 0.18)) !important;
+    border-color: rgba(46, 204, 113, 0.7) !important;
+}
+
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .completion_prompt_manager_prompt_name a {
+    color: #5ddb8a !important;
+}
+
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)) {
+    background: rgba(0, 0, 0, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    opacity: 0.55;
+}
+
+.nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)):hover {
+    opacity: 0.85;
+    background: rgba(0, 0, 0, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ============================================
+   THEME-AWARE PROMPT DROPDOWNS
+   ============================================ */
+
+body.nemo-dropdown-theme-nemo {
+    --nemo-dropdown-panel-bg: linear-gradient(135deg, rgba(25, 25, 40, 0.98) 0%, rgba(15, 15, 30, 0.98) 100%);
+    --nemo-dropdown-panel-border: rgba(74, 158, 255, 0.3);
+    --nemo-dropdown-panel-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    --nemo-dropdown-header-border: rgba(255, 255, 255, 0.1);
+    --nemo-dropdown-content-bg: rgba(0, 0, 0, 0.15);
+    --nemo-dropdown-card-bg: rgba(255, 255, 255, 0.03);
+    --nemo-dropdown-card-bg-hover: rgba(74, 158, 255, 0.1);
+    --nemo-dropdown-card-border: rgba(255, 255, 255, 0.1);
+    --nemo-dropdown-card-border-left: rgba(255, 255, 255, 0.15);
+    --nemo-dropdown-card-border-hover: rgba(74, 158, 255, 0.4);
+    --nemo-dropdown-card-border-left-hover: rgba(74, 158, 255, 0.6);
+    --nemo-dropdown-control-bg: rgba(255, 255, 255, 0.1);
+    --nemo-dropdown-control-bg-hover: rgba(74, 158, 255, 0.2);
+    --nemo-dropdown-control-border: rgba(255, 255, 255, 0.2);
+    --nemo-dropdown-control-border-hover: rgba(74, 158, 255, 0.4);
+    --nemo-dropdown-text: var(--nemo-text-high-contrast, #fff);
+    --nemo-dropdown-muted: var(--nemo-text-muted, #888);
+    --nemo-dropdown-soft-text: var(--nemo-text-medium-contrast, #aaa);
+    --nemo-dropdown-accent: #4a9eff;
+    --nemo-dropdown-accent-soft: rgba(74, 158, 255, 0.2);
+    --nemo-dropdown-success: #2ecc71;
+    --nemo-dropdown-success-text: #5ddb8a;
+    --nemo-dropdown-success-bg: linear-gradient(135deg, rgba(46, 204, 113, 0.18), rgba(39, 174, 96, 0.12));
+    --nemo-dropdown-success-bg-hover: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(39, 174, 96, 0.18));
+    --nemo-dropdown-success-border: rgba(46, 204, 113, 0.5);
+    --nemo-dropdown-success-shadow: 0 2px 8px rgba(46, 204, 113, 0.2);
+    --nemo-dropdown-disabled-bg: rgba(0, 0, 0, 0.12);
+    --nemo-dropdown-disabled-bg-hover: rgba(0, 0, 0, 0.18);
+    --nemo-dropdown-disabled-border: rgba(255, 255, 255, 0.05);
+    --nemo-dropdown-disabled-border-hover: rgba(255, 255, 255, 0.1);
+    --nemo-dropdown-danger: #ff6b6b;
+    --nemo-dropdown-warning: #f39c12;
+}
+
+body.nemo-dropdown-theme-st {
+    --nemo-dropdown-panel-bg: var(--SmartThemeBlurTintColor, rgba(22, 22, 26, 0.96));
+    --nemo-dropdown-panel-border: var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.18));
+    --nemo-dropdown-panel-shadow: 0 4px 22px rgba(0, 0, 0, 0.45);
+    --nemo-dropdown-header-border: var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.14));
+    --nemo-dropdown-content-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.35)) 72%, transparent);
+    --nemo-dropdown-card-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.28)) 78%, transparent);
+    --nemo-dropdown-card-bg-hover: color-mix(in srgb, var(--SmartThemeQuoteColor, #4a9eff) 16%, var(--nemo-dropdown-card-bg));
+    --nemo-dropdown-card-border: var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.16));
+    --nemo-dropdown-card-border-left: color-mix(in srgb, var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.2)) 70%, transparent);
+    --nemo-dropdown-card-border-hover: var(--SmartThemeQuoteColor, #4a9eff);
+    --nemo-dropdown-card-border-left-hover: var(--SmartThemeQuoteColor, #4a9eff);
+    --nemo-dropdown-control-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.25)) 65%, transparent);
+    --nemo-dropdown-control-bg-hover: color-mix(in srgb, var(--SmartThemeQuoteColor, #4a9eff) 18%, transparent);
+    --nemo-dropdown-control-border: var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.18));
+    --nemo-dropdown-control-border-hover: var(--SmartThemeQuoteColor, #4a9eff);
+    --nemo-dropdown-text: var(--SmartThemeBodyColor, #fff);
+    --nemo-dropdown-muted: color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 62%, transparent);
+    --nemo-dropdown-soft-text: color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 76%, transparent);
+    --nemo-dropdown-accent: var(--SmartThemeQuoteColor, #4a9eff);
+    --nemo-dropdown-accent-soft: color-mix(in srgb, var(--SmartThemeQuoteColor, #4a9eff) 20%, transparent);
+    --nemo-dropdown-success: var(--SmartThemeQuoteColor, #2ecc71);
+    --nemo-dropdown-success-text: var(--SmartThemeQuoteColor, #5ddb8a);
+    --nemo-dropdown-success-bg: color-mix(in srgb, var(--SmartThemeQuoteColor, #2ecc71) 16%, var(--nemo-dropdown-card-bg));
+    --nemo-dropdown-success-bg-hover: color-mix(in srgb, var(--SmartThemeQuoteColor, #2ecc71) 24%, var(--nemo-dropdown-card-bg));
+    --nemo-dropdown-success-border: var(--SmartThemeQuoteColor, #2ecc71);
+    --nemo-dropdown-success-shadow: 0 2px 8px color-mix(in srgb, var(--SmartThemeQuoteColor, #2ecc71) 18%, transparent);
+    --nemo-dropdown-disabled-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.22)) 70%, transparent);
+    --nemo-dropdown-disabled-bg-hover: color-mix(in srgb, var(--SmartThemeQuoteColor, #4a9eff) 10%, var(--nemo-dropdown-disabled-bg));
+    --nemo-dropdown-disabled-border: var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.12));
+    --nemo-dropdown-disabled-border-hover: var(--SmartThemeQuoteColor, #4a9eff);
+    --nemo-dropdown-danger: var(--SmartThemeFatalColor, #ff6b6b);
+    --nemo-dropdown-warning: var(--SmartThemeQuoteColor, #f39c12);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-category-tray,
+body.nemo-dropdown-theme-st .nemo-category-tray {
+    background: var(--nemo-dropdown-panel-bg);
+    border-color: var(--nemo-dropdown-panel-border);
+    color: var(--nemo-dropdown-text);
+    box-shadow: var(--nemo-dropdown-panel-shadow);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-tray-header,
+body.nemo-dropdown-theme-nemo .nemo-tray-footer,
+body.nemo-dropdown-theme-nemo .nemo-presets-header,
+body.nemo-dropdown-theme-st .nemo-tray-header,
+body.nemo-dropdown-theme-st .nemo-tray-footer,
+body.nemo-dropdown-theme-st .nemo-presets-header {
+    border-color: var(--nemo-dropdown-header-border);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-tray-title,
+body.nemo-dropdown-theme-nemo .nemo-prompt-card-name,
+body.nemo-dropdown-theme-nemo .nemo-preset-name,
+body.nemo-dropdown-theme-st .nemo-tray-title,
+body.nemo-dropdown-theme-st .nemo-prompt-card-name,
+body.nemo-dropdown-theme-st .nemo-preset-name {
+    color: var(--nemo-dropdown-text);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-tray-hint,
+body.nemo-dropdown-theme-nemo .nemo-prompt-card-tooltip,
+body.nemo-dropdown-theme-nemo .nemo-prompt-card-tooltip-text,
+body.nemo-dropdown-theme-nemo .nemo-prompt-card-meta,
+body.nemo-dropdown-theme-nemo .nemo-preset-info,
+body.nemo-dropdown-theme-st .nemo-tray-hint,
+body.nemo-dropdown-theme-st .nemo-prompt-card-tooltip,
+body.nemo-dropdown-theme-st .nemo-prompt-card-tooltip-text,
+body.nemo-dropdown-theme-st .nemo-prompt-card-meta,
+body.nemo-dropdown-theme-st .nemo-preset-info {
+    color: var(--nemo-dropdown-muted);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-tray-close,
+body.nemo-dropdown-theme-nemo .nemo-prompt-card-drag-handle,
+body.nemo-dropdown-theme-st .nemo-tray-close,
+body.nemo-dropdown-theme-st .nemo-prompt-card-drag-handle {
+    color: var(--nemo-dropdown-soft-text);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-tray-close:hover,
+body.nemo-dropdown-theme-st .nemo-tray-close:hover {
+    color: var(--nemo-dropdown-danger);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-tray-toggle-all,
+body.nemo-dropdown-theme-nemo .nemo-tray-compact-toggle,
+body.nemo-dropdown-theme-nemo .nemo-tray-compact-all,
+body.nemo-dropdown-theme-nemo .nemo-tray-presets-btn,
+body.nemo-dropdown-theme-st .nemo-tray-toggle-all,
+body.nemo-dropdown-theme-st .nemo-tray-compact-toggle,
+body.nemo-dropdown-theme-st .nemo-tray-compact-all,
+body.nemo-dropdown-theme-st .nemo-tray-presets-btn {
+    background: var(--nemo-dropdown-control-bg);
+    border-color: var(--nemo-dropdown-control-border);
+    color: var(--nemo-dropdown-soft-text);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-tray-toggle-all:hover,
+body.nemo-dropdown-theme-nemo .nemo-tray-compact-toggle:hover,
+body.nemo-dropdown-theme-nemo .nemo-tray-compact-all:hover,
+body.nemo-dropdown-theme-st .nemo-tray-toggle-all:hover,
+body.nemo-dropdown-theme-st .nemo-tray-compact-toggle:hover,
+body.nemo-dropdown-theme-st .nemo-tray-compact-all:hover {
+    background: var(--nemo-dropdown-control-bg-hover);
+    border-color: var(--nemo-dropdown-control-border-hover);
+    color: var(--nemo-dropdown-text);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-tray-toggle-all.nemo-all-enabled,
+body.nemo-dropdown-theme-nemo .nemo-tray-compact-toggle.nemo-compact-active,
+body.nemo-dropdown-theme-st .nemo-tray-toggle-all.nemo-all-enabled,
+body.nemo-dropdown-theme-st .nemo-tray-compact-toggle.nemo-compact-active {
+    background: var(--nemo-dropdown-success-bg);
+    border-color: var(--nemo-dropdown-success-border);
+    color: var(--nemo-dropdown-success-text);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-prompt-card:not([style*="--nemo-card-color"]),
+body.nemo-dropdown-theme-st .nemo-prompt-card:not([style*="--nemo-card-color"]) {
+    background: var(--nemo-dropdown-card-bg);
+    border-color: var(--nemo-dropdown-card-border);
+    border-left-color: var(--nemo-dropdown-card-border-left);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-prompt-card:not([style*="--nemo-card-color"]):hover,
+body.nemo-dropdown-theme-st .nemo-prompt-card:not([style*="--nemo-card-color"]):hover {
+    background: var(--nemo-dropdown-card-bg-hover);
+    border-color: var(--nemo-dropdown-card-border-hover);
+    border-left-color: var(--nemo-dropdown-card-border-left-hover);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-prompt-card-enabled,
+body.nemo-dropdown-theme-st .nemo-prompt-card-enabled {
+    background: var(--nemo-dropdown-success-bg);
+    border-color: var(--nemo-dropdown-success-border);
+    border-left-color: var(--nemo-dropdown-success-border);
+    box-shadow: var(--nemo-dropdown-success-shadow);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-prompt-card-enabled:hover,
+body.nemo-dropdown-theme-st .nemo-prompt-card-enabled:hover {
+    background: var(--nemo-dropdown-success-bg-hover);
+    border-color: var(--nemo-dropdown-success-border);
+    box-shadow: var(--nemo-dropdown-success-shadow);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-prompt-card-enabled .nemo-prompt-card-name,
+body.nemo-dropdown-theme-nemo .nemo-prompt-card-enabled .nemo-prompt-card-status,
+body.nemo-dropdown-theme-st .nemo-prompt-card-enabled .nemo-prompt-card-name,
+body.nemo-dropdown-theme-st .nemo-prompt-card-enabled .nemo-prompt-card-status {
+    color: var(--nemo-dropdown-success-text) !important;
+}
+
+body.nemo-dropdown-theme-nemo .nemo-prompt-card-status,
+body.nemo-dropdown-theme-st .nemo-prompt-card-status {
+    color: var(--nemo-dropdown-success);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-prompt-card-tokens,
+body.nemo-dropdown-theme-st .nemo-prompt-card-tokens {
+    background: var(--nemo-dropdown-control-bg);
+    color: var(--nemo-dropdown-soft-text);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-tray-grid::-webkit-scrollbar-track,
+body.nemo-dropdown-theme-st .nemo-tray-grid::-webkit-scrollbar-track {
+    background: var(--nemo-dropdown-control-bg);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-tray-grid::-webkit-scrollbar-thumb,
+body.nemo-dropdown-theme-st .nemo-tray-grid::-webkit-scrollbar-thumb {
+    background: var(--nemo-dropdown-accent-soft);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-presets-menu,
+body.nemo-dropdown-theme-st .nemo-presets-menu {
+    background: var(--nemo-dropdown-panel-bg);
+    border-color: var(--nemo-dropdown-panel-border);
+    box-shadow: var(--nemo-dropdown-panel-shadow);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-presets-header,
+body.nemo-dropdown-theme-st .nemo-presets-header {
+    color: var(--nemo-dropdown-accent);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-preset-item:hover,
+body.nemo-dropdown-theme-st .nemo-preset-item:hover {
+    background: var(--nemo-dropdown-card-bg-hover);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-accordion-section > summary,
+body.nemo-dropdown-theme-st .nemo-accordion-section > summary {
+    background: var(--nemo-dropdown-card-bg);
+    border-color: var(--nemo-dropdown-panel-border);
+    color: var(--nemo-dropdown-text);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-accordion-section > summary:hover,
+body.nemo-dropdown-theme-st .nemo-accordion-section > summary:hover {
+    background: var(--nemo-dropdown-card-bg-hover);
+    border-color: var(--nemo-dropdown-card-border-hover);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-accordion-section[open] > .nemo-section-content,
+body.nemo-dropdown-theme-st .nemo-accordion-section[open] > .nemo-section-content {
+    background: var(--nemo-dropdown-content-bg);
+    border-color: var(--nemo-dropdown-panel-border);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-accordion-prompt,
+body.nemo-dropdown-theme-st .nemo-accordion-prompt {
+    color: var(--nemo-dropdown-text);
+}
+
+body.nemo-dropdown-theme-nemo .nemo-accordion-prompt-enabled,
+body.nemo-dropdown-theme-nemo .nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on),
+body.nemo-dropdown-theme-nemo .nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on),
+body.nemo-dropdown-theme-st .nemo-accordion-prompt-enabled,
+body.nemo-dropdown-theme-st .nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on),
+body.nemo-dropdown-theme-st .nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) {
+    background: var(--nemo-dropdown-success-bg) !important;
+    border-color: var(--nemo-dropdown-success-border) !important;
+    border-left-color: var(--nemo-dropdown-success-border) !important;
+    box-shadow: var(--nemo-dropdown-success-shadow) !important;
+}
+
+body.nemo-dropdown-theme-nemo .nemo-accordion-prompt-enabled:hover,
+body.nemo-dropdown-theme-nemo .nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on):hover,
+body.nemo-dropdown-theme-nemo .nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on):hover,
+body.nemo-dropdown-theme-st .nemo-accordion-prompt-enabled:hover,
+body.nemo-dropdown-theme-st .nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on):hover,
+body.nemo-dropdown-theme-st .nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on):hover {
+    background: var(--nemo-dropdown-success-bg-hover) !important;
+    border-color: var(--nemo-dropdown-success-border) !important;
+}
+
+body.nemo-dropdown-theme-nemo .nemo-accordion-prompt-enabled .completion_prompt_manager_prompt_name a,
+body.nemo-dropdown-theme-nemo .nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .completion_prompt_manager_prompt_name a,
+body.nemo-dropdown-theme-nemo .nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .completion_prompt_manager_prompt_name a,
+body.nemo-dropdown-theme-st .nemo-accordion-prompt-enabled .completion_prompt_manager_prompt_name a,
+body.nemo-dropdown-theme-st .nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .completion_prompt_manager_prompt_name a,
+body.nemo-dropdown-theme-st .nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action.fa-toggle-on) .completion_prompt_manager_prompt_name a {
+    color: var(--nemo-dropdown-success-text) !important;
+}
+
+body.nemo-dropdown-theme-nemo .nemo-accordion-prompt-disabled,
+body.nemo-dropdown-theme-nemo .nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)),
+body.nemo-dropdown-theme-nemo .nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)),
+body.nemo-dropdown-theme-st .nemo-accordion-prompt-disabled,
+body.nemo-dropdown-theme-st .nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)),
+body.nemo-dropdown-theme-st .nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)) {
+    background: var(--nemo-dropdown-disabled-bg) !important;
+    border-color: var(--nemo-dropdown-disabled-border) !important;
+}
+
+body.nemo-dropdown-theme-nemo .nemo-accordion-prompt-disabled:hover,
+body.nemo-dropdown-theme-nemo .nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)):hover,
+body.nemo-dropdown-theme-nemo .nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)):hover,
+body.nemo-dropdown-theme-st .nemo-accordion-prompt-disabled:hover,
+body.nemo-dropdown-theme-st .nemo-accordion-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)):hover,
+body.nemo-dropdown-theme-st .nemo-engine-section li.completion_prompt_manager_prompt:has(.prompt-manager-toggle-action:not(.fa-toggle-on)):hover {
+    background: var(--nemo-dropdown-disabled-bg-hover) !important;
+    border-color: var(--nemo-dropdown-disabled-border-hover) !important;
+}
+
+/* Drag and drop styles for accordion - kept minimal for performance */
+.nemo-accordion-drag-ghost {
+    opacity: 0.3;
+}
+
+.nemo-accordion-drag-active {
+    cursor: grabbing !important;
+}
+
+/* Select control styling in settings */
+.nemo-select-control {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+    color: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    min-width: 140px;
+}
+
+.nemo-select-control:hover {
+    border-color: rgba(74, 158, 255, 0.3);
+}
+
+.nemo-select-control:focus {
+    outline: none;
+    border-color: rgba(74, 158, 255, 0.5);
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+}
+
+/* Prompt Preview Modal */
+.nemo-prompt-preview-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2147483647; /* Ensure it's on top of everything */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px; /* Prevent touching edges on small screens */
+}
+
+.nemo-preview-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: -1;
+}
+
+.nemo-preview-container {
+    position: relative;
+    background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 0.98) 100%);
+    border: 1px solid rgba(74, 158, 255, 0.3);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 85vh; /* Increased slightly */
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: nemo-preview-appear 0.2s ease-out;
+    margin: auto; /* Ensure centering works even if flex has issues */
+}
+
+@keyframes nemo-preview-appear {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.nemo-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nemo-preview-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--nemo-text-high-contrast, #fff);
+}
+
+.nemo-preview-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nemo-preview-edit-btn {
+    background: rgba(74, 158, 255, 0.2);
+    border: 1px solid rgba(74, 158, 255, 0.4);
+    border-radius: 6px;
+    color: #4a9eff;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 6px 12px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nemo-preview-edit-btn:hover {
+    background: rgba(74, 158, 255, 0.3);
+    border-color: rgba(74, 158, 255, 0.6);
+}
+
+.nemo-preview-close {
+    background: none;
+    border: none;
+    color: var(--nemo-text-medium-contrast, #aaa);
+    cursor: pointer;
+    font-size: 24px;
+    padding: 0 8px;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.nemo-preview-close:hover {
+    color: #ff6b6b;
+}
+
+.nemo-preview-legend {
+    display: flex;
+    gap: 20px;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 11px;
+}
+
+.nemo-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--nemo-text-muted, #888);
+}
+
+.nemo-var-resolved-sample {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background: rgba(81, 207, 102, 0.3);
+    border: 1px dashed #51cf66;
+    border-radius: 2px;
+}
+
+.nemo-macro-unresolved-sample {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid rgba(255, 193, 7, 0.5);
+    border-radius: 2px;
+}
+
+.nemo-preview-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--nemo-text-high-contrast, #ddd);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Resolved variable highlighting */
+.nemo-var-resolved {
+    background: rgba(81, 207, 102, 0.2);
+    border: 1px dashed rgba(81, 207, 102, 0.6);
+    border-radius: 3px;
+    padding: 1px 6px;
+    color: #51cf66;
+    font-weight: 500;
+    cursor: help;
+    position: relative;
+}
+
+.nemo-var-resolved::before {
+    content: '📌 ';
+    font-size: 10px;
+}
+
+/* Unset variable styling */
+.nemo-var-resolved.nemo-var-unset {
+    background: rgba(255, 107, 107, 0.2);
+    border-color: rgba(255, 107, 107, 0.6);
+    color: #ff6b6b;
+}
+
+.nemo-var-resolved.nemo-var-unset::before {
+    content: '⚠️ ';
+}
+
+/* Unresolved macro highlighting */
+.nemo-macro-unresolved {
+    background: rgba(255, 193, 7, 0.15);
+    border: 1px solid rgba(255, 193, 7, 0.4);
+    border-radius: 3px;
+    padding: 1px 4px;
+    color: #ffc107;
+    font-size: 12px;
+}
+
+.nemo-preview-footer {
+    padding: 12px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.nemo-preview-hint {
+    font-size: 11px;
+    color: var(--nemo-text-muted, #888);
+    font-style: italic;
+}
+
+/* Preview content scrollbar */
+.nemo-preview-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.nemo-preview-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.nemo-preview-content::-webkit-scrollbar-thumb {
+    background: rgba(74, 158, 255, 0.3);
+    border-radius: 4px;
+}
+
+.nemo-preview-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 158, 255, 0.5);
+}
+
+/* ============================================
+   BASE MOBILE STYLES - Always Applied
+   ============================================
+   These basic mobile fixes apply to all users regardless of
+   the mobile enhancements setting.
+*/
+
+@media (max-width: 768px) {
+    /* Ensure prompt card names are always visible on mobile */
+    .nemo-prompt-card-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .nemo-prompt-card-name {
+        white-space: normal;
+        text-align: center;
+        width: 100%;
+        overflow: visible;
+        word-wrap: break-word;
+    }
+
+    .nemo-prompt-card-actions {
+        justify-content: center;
+    }
+
+    .nemo-prompt-card-meta {
+        align-items: center;
+        text-align: center;
+    }
+
+    .nemo-prompt-card-tokens {
+        margin: 0 auto;
+    }
+
+    .nemo-prompt-card-tooltip-text {
+        text-align: center;
+    }
+
+    .nemo-prompt-card-content {
+        align-items: center;
+        text-align: center;
+    }
+
+    /* Fix: Ensure Preview Modal is visible and centered on mobile */
+    .nemo-prompt-preview-modal {
+        padding: 10px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        z-index: 2147483647 !important;
+    }
+
+    .nemo-preview-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 85vh !important;
+        margin: auto !important;
+        animation: none !important;
+    }
+}
+
+/* ============================================
+   MOBILE STYLES - Category Tray & Preview
+   ============================================
+
+   These styles only apply when:
+   1. The screen is small enough (media query)
+   2. AND the mobile enhancements setting is enabled (.nemo-mobile-enhanced class on body)
+
+   Users can disable mobile enhancements in extension settings.
+*/
+
+/* Tablet breakpoint - Enhanced mobile styles (optional) */
+@media (max-width: 768px) {
+    /* Category Tray - Full width on tablet */
+    .nemo-mobile-enhanced .nemo-category-tray {
+        margin: 8px 0;
+        padding: 14px;
+        border-radius: 8px;
+    }
+
+    /* Single column grid for readability on mobile */
+    .nemo-mobile-enhanced .nemo-tray-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        max-height: 60vh;
+    }
+
+    /* Bigger touch targets for cards */
+    .nemo-mobile-enhanced .nemo-prompt-card {
+        padding: 16px;
+        min-height: 80px;
+    }
+
+    /* Large, readable title */
+    .nemo-mobile-enhanced .nemo-prompt-card-name {
+        font-size: 17px;
+        font-weight: 600;
+        white-space: normal;
+        word-break: break-word;
+        line-height: 1.4;
+        color: #fff;
+        text-align: center;
+        width: 100%;
+        overflow: visible;
+    }
+
+    /* Show full tooltip without truncation */
+    .nemo-mobile-enhanced .nemo-prompt-card-tooltip-text {
+        font-size: 14px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.8);
+        -webkit-line-clamp: unset;
+        display: block;
+        margin-top: 8px;
+        text-align: center;
+    }
+
+    /* Center card content on tablet */
+    .nemo-mobile-enhanced .nemo-prompt-card-content {
+        align-items: center;
+        text-align: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-meta {
+        align-items: center;
+        text-align: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-tokens {
+        margin: 0 auto;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-actions {
+        justify-content: center;
+    }
+
+    /* Larger edit button for touch */
+    .nemo-mobile-enhanced .nemo-prompt-card-edit {
+        padding: 8px 10px;
+        font-size: 18px;
+    }
+
+    /* Larger status checkmark */
+    .nemo-mobile-enhanced .nemo-prompt-card-status {
+        font-size: 20px;
+    }
+
+    /* Larger toggle-all button */
+    .nemo-mobile-enhanced .nemo-tray-toggle-all,
+    .nemo-mobile-enhanced .nemo-tray-compact-toggle,
+    .nemo-mobile-enhanced .nemo-tray-compact-all {
+        padding: 10px 14px;
+        font-size: 15px;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-close {
+        font-size: 28px;
+        padding: 4px 8px;
+    }
+
+    /* Tray header improvements */
+    .nemo-mobile-enhanced .nemo-tray-header {
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-title {
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    /* Footer text more readable */
+    .nemo-mobile-enhanced .nemo-tray-hint {
+        font-size: 13px;
+    }
+
+    /* Preview Modal - More screen space */
+    .nemo-mobile-enhanced .nemo-preview-container {
+        width: 95%;
+        max-height: 85vh;
+        border-radius: 8px;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-header {
+        padding: 12px 16px;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-title {
+        font-size: 15px;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-content {
+        padding: 16px;
+        font-size: 14px;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-legend {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 8px 16px;
+    }
+
+    /* Section headers - prevent truncation */
+    .nemo-mobile-enhanced .nemo-tray-section > summary .completion_prompt_manager_prompt_name a {
+        white-space: normal !important;
+        word-break: break-word;
+    }
+}
+
+/* Mobile phone breakpoint - Enhanced mobile styles (optional) */
+@media (max-width: 480px) {
+    /* Category Tray - Stack vertically with good padding */
+    .nemo-mobile-enhanced .nemo-category-tray {
+        margin: 6px 0;
+        padding: 12px;
+        border-radius: 10px;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-header {
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-title {
+        flex: 1 1 100%;
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #fff;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-header-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* Single column grid for small phones */
+    .nemo-mobile-enhanced .nemo-tray-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        max-height: 55vh;
+    }
+
+    /* Cards take full width with generous padding */
+    .nemo-mobile-enhanced .nemo-prompt-card {
+        padding: 16px;
+        min-height: auto;
+        border-radius: 8px;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-header {
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 6px;
+        gap: 8px;
+    }
+
+    /* Large readable title on phones */
+    .nemo-mobile-enhanced .nemo-prompt-card-name {
+        font-size: 16px;
+        font-weight: 600;
+        flex: none;
+        width: 100%;
+        text-align: center;
+        line-height: 1.3;
+        color: #fff;
+        white-space: normal;
+        word-wrap: break-word;
+        overflow: visible;
+    }
+
+    /* Full tooltip text - no truncation on phones */
+    .nemo-mobile-enhanced .nemo-prompt-card-tooltip-text {
+        font-size: 14px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.75);
+        -webkit-line-clamp: unset;
+        display: block;
+        margin-top: 8px;
+        text-align: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-actions {
+        gap: 12px;
+        flex-shrink: 0;
+        justify-content: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-edit {
+        padding: 10px 12px;
+        font-size: 18px;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-status {
+        font-size: 20px;
+        min-width: 28px;
+        text-align: center;
+    }
+
+    /* Center meta section on mobile */
+    .nemo-mobile-enhanced .nemo-prompt-card-meta {
+        align-items: center;
+        text-align: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-tokens {
+        margin: 0 auto;
+    }
+
+    /* Center card content on mobile */
+    .nemo-mobile-enhanced .nemo-prompt-card-content {
+        align-items: center;
+        text-align: center;
+    }
+
+    /* Larger footer text */
+    .nemo-mobile-enhanced .nemo-tray-footer {
+        padding: 12px 8px;
+        margin-top: 12px;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-hint {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    /* Preview Modal - Nearly full screen */
+    .nemo-mobile-enhanced .nemo-preview-container {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        height: 100vh;
+        border-radius: 0;
+        margin: 0;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-header {
+        padding: 14px;
+        position: sticky;
+        top: 0;
+        background: rgba(30, 30, 45, 0.98);
+        z-index: 10;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-title {
+        font-size: 16px;
+        white-space: normal;
+        word-break: break-word;
+        flex: 1;
+        margin-right: 10px;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-header-actions {
+        flex-shrink: 0;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-edit-btn {
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-close {
+        font-size: 32px;
+        padding: 4px 12px;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-legend {
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 14px;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-content {
+        padding: 14px;
+        font-size: 13px;
+        line-height: 1.7;
+        flex: 1;
+    }
+
+    /* Resolved variables - more visible on mobile */
+    .nemo-mobile-enhanced .nemo-var-resolved {
+        padding: 2px 8px;
+        font-size: 13px;
+        display: inline-block;
+        margin: 2px 0;
+    }
+
+    .nemo-mobile-enhanced .nemo-macro-unresolved {
+        padding: 2px 6px;
+        font-size: 12px;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-footer {
+        padding: 12px 14px;
+        position: sticky;
+        bottom: 0;
+        background: rgba(20, 20, 35, 0.98);
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-hint {
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    /* Section headers on mobile */
+    .nemo-mobile-enhanced .nemo-tray-section > summary {
+        padding: 10px 8px !important;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-section > summary .completion_prompt_manager_prompt_name {
+        flex: 1;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-section > summary .completion_prompt_manager_prompt_name a {
+        font-size: 14px !important;
+        white-space: normal !important;
+        word-break: break-word;
+        display: block;
+    }
+
+    /* Progress bar more visible */
+    .nemo-mobile-enhanced .nemo-section-progress {
+        height: 4px !important;
+        margin-top: 4px;
+    }
+}
+
+/* Very small phones - Enhanced mobile styles (optional) */
+@media (max-width: 360px) {
+    .nemo-mobile-enhanced .nemo-tray-grid {
+        max-height: 50vh;
+        gap: 8px;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card {
+        padding: 14px;
+    }
+
+    /* Still readable on tiny screens */
+    .nemo-mobile-enhanced .nemo-prompt-card-name {
+        font-size: 15px;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-tooltip-text {
+        font-size: 13px;
+        text-align: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-title {
+        font-size: 16px;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-content {
+        font-size: 12px;
+    }
+}
+
+/* Touch device optimizations - Enhanced mobile styles (optional) */
+@media (pointer: coarse) {
+    /* Larger touch targets for better accessibility */
+    .nemo-mobile-enhanced .nemo-prompt-card {
+        min-height: 70px;
+    }
+
+    .nemo-mobile-enhanced .nemo-prompt-card-edit {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-toggle-all,
+    .nemo-mobile-enhanced .nemo-tray-compact-toggle,
+    .nemo-mobile-enhanced .nemo-tray-compact-all {
+        min-height: 44px;
+        min-width: 70px;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-close {
+        min-width: 48px;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-close {
+        min-width: 48px;
+        min-height: 48px;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-edit-btn {
+        min-height: 44px;
+    }
+
+    /* Better tap feedback */
+    .nemo-mobile-enhanced .nemo-prompt-card:active {
+        transform: scale(0.98);
+        transition: transform 0.1s;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-toggle-all:active,
+    .nemo-mobile-enhanced .nemo-tray-compact-toggle:active,
+    .nemo-mobile-enhanced .nemo-tray-compact-all:active,
+    .nemo-mobile-enhanced .nemo-prompt-card-edit:active {
+        opacity: 0.7;
+    }
+}
+
+/* Landscape mobile - use horizontal space (optional) */
+@media (orientation: landscape) and (max-height: 500px) {
+    .nemo-mobile-enhanced .nemo-category-tray {
+        max-height: 70vh;
+    }
+
+    .nemo-mobile-enhanced .nemo-tray-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        max-height: 45vh;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-container {
+        max-height: 95vh;
+        width: 90%;
+    }
+
+    .nemo-mobile-enhanced .nemo-preview-content {
+        max-height: 50vh;
+    }
+}
+
+/* ============================================
+   MOBILE STYLES - Main Prompt List & Sections
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Main section headers - readable names */
+    .nemo-mobile-enhanced .nemo-extension .nemo-engine-section > summary {
+        padding: 10px 8px;
+        flex-wrap: wrap;
+    }
+
+    .nemo-mobile-enhanced .nemo-extension .nemo-engine-section > summary .completion_prompt_manager_prompt_name {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .nemo-mobile-enhanced .nemo-extension .nemo-engine-section > summary .completion_prompt_manager_prompt_name a {
+        white-space: normal !important;
+        word-break: break-word;
+        font-size: 14px;
+        line-height: 1.4;
+        display: block;
+    }
+
+    /* Prompt items in list - readable names */
+    .nemo-mobile-enhanced .nemo-extension .completion_prompt_manager_prompt {
+        padding: 8px 6px;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .nemo-mobile-enhanced .nemo-extension .completion_prompt_manager_prompt .completion_prompt_manager_prompt_name {
+        flex: 1 1 60%;
+        min-width: 0;
+    }
+
+    .nemo-mobile-enhanced .nemo-extension .completion_prompt_manager_prompt .completion_prompt_manager_prompt_name a {
+        white-space: normal !important;
+        word-break: break-word;
+        font-size: 13px;
+        line-height: 1.3;
+    }
+
+    /* Controls stay visible but compact */
+    .nemo-mobile-enhanced .nemo-extension .prompt_manager_prompt_controls {
+        flex-shrink: 0;
+        gap: 8px;
+    }
+
+    .nemo-mobile-enhanced .nemo-extension .prompt_manager_prompt_controls span {
+        font-size: 16px;
+        padding: 4px;
+        min-width: 28px;
+        min-height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Token count - smaller on mobile */
+    .nemo-mobile-enhanced .nemo-extension .prompt_manager_prompt_tokens {
+        font-size: 11px;
+        flex-shrink: 0;
+    }
+
+    /* Drag handle - larger touch target */
+    .nemo-mobile-enhanced .nemo-extension .drag-handle {
+        padding: 8px;
+        font-size: 16px;
+    }
+
+    /* Enabled count badge */
+    .nemo-mobile-enhanced .nemo-extension .nemo-enabled-count {
+        font-size: 12px;
+    }
+
+    /* Progress bar */
+    .nemo-mobile-enhanced .nemo-extension .nemo-section-progress {
+        height: 3px;
+        margin-top: 4px;
+        width: 100%;
+    }
+
+    /* Badges - wrap to new line if needed */
+    .nemo-mobile-enhanced .nemo-extension .nemo-prompt-badge {
+        font-size: 9px !important;
+        padding: 2px 6px !important;
+        margin-left: 0 !important;
+        margin-top: 4px;
+    }
+
+    /* Tooltip indicators */
+    .nemo-mobile-enhanced .nemo-extension .nemo-has-tooltip::after {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Even more compact on phones */
+    .nemo-mobile-enhanced .nemo-extension .nemo-engine-section > summary .completion_prompt_manager_prompt_name a {
+        font-size: 13px;
+    }
+
+    .nemo-mobile-enhanced .nemo-extension .completion_prompt_manager_prompt {
+        padding: 10px 6px;
+    }
+
+    .nemo-mobile-enhanced .nemo-extension .completion_prompt_manager_prompt .completion_prompt_manager_prompt_name a {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    /* Stack controls below name on very small screens */
+    .nemo-mobile-enhanced .nemo-extension .completion_prompt_manager_prompt {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .nemo-mobile-enhanced .nemo-extension .prompt_manager_prompt_controls span {
+        font-size: 18px;
+        min-width: 32px;
+        min-height: 32px;
+    }
+
+    /* Hide token count on very small screens to save space */
+    .nemo-mobile-enhanced .nemo-extension .prompt_manager_prompt_tokens {
+        display: none;
+    }
+
+    /* Section content padding */
+    .nemo-mobile-enhanced .nemo-extension .nemo-section-content {
+        padding-left: 8px;
+    }
+}
+
+/* Touch devices - larger tap targets for prompts */
+@media (pointer: coarse) {
+    .nemo-mobile-enhanced .nemo-extension .completion_prompt_manager_prompt {
+        min-height: 48px;
+    }
+
+    .nemo-mobile-enhanced .nemo-extension .prompt_manager_prompt_controls span {
+        min-width: 36px;
+        min-height: 36px;
+    }
+
+    .nemo-mobile-enhanced .nemo-extension .nemo-engine-section > summary {
+        min-height: 44px;
+    }
+
+    /* Active state feedback */
+    .nemo-mobile-enhanced .nemo-extension .completion_prompt_manager_prompt:active {
+        background: rgba(74, 158, 255, 0.1);
+    }
+
+    .nemo-mobile-enhanced .nemo-extension .prompt_manager_prompt_controls span:active {
+        opacity: 0.6;
+        transform: scale(0.95);
+    }
+}
+
+.nemo-extension .prompt_manager_prompt_controls { display: flex; align-items: center; gap: 6px; line-height: 1; }
+.nemo-extension .nemo-section-master-toggle { font-size: 0.9em; padding: 2px 5px; min-width: auto; line-height: 1; background-color: var(--nemo-tertiary-bg); border: 1px solid var(--nemo-border-color); }
+.nemo-section-master-toggle.nemo-active { background-color: var(--nemo-primary-accent); border-color: var(--nemo-primary-accent); }
+
+/* --- Preset Selector --- */
+.nemo-preset-selector-wrapper { display: flex; align-items: center; gap: 5px; }
+.nemo-preset-selector-wrapper > .text_pole, .nemo-preset-selector-wrapper > select { flex-grow: 1; }
+
+/* --- Search Bar & Snapshot Controls --- */
+#nemoSearchAndStatusWrapper {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+#nemoPresetSearchContainer {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px;
+    flex-wrap: wrap !important;
+    height: auto !important;
+    justify-content: flex-end !important;
+}
+
+#nemoPresetSearchContainer .text_pole {
+    flex-grow: 1;
+    margin-right: 0;
+    min-width: 200px;
+    height: 36px;
+}
+
+.nemo-search-controls {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0.25em;
+    flex-wrap: nowrap;
+}
+
+.nemo-search-controls .menu_button {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 8px;
+    font-size: 0.9em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nemo-search-divider {
+    width: 1px;
+    height: 24px;
+    background-color: var(--nemo-border-color);
+    margin: 0 4px;
+}
+.nemo-search-controls .menu_button.nemo-active { color: var(--nemo-primary-accent); border-color: var(--nemo-primary-accent); box-shadow: 0 0 5px var(--nemo-glow-color); }
+
+/* --- Snapshot Status Message --- */
+.nemo-status-message { text-align: center; padding: 0 8px; margin-top: 0; border-radius: 4px; font-style: italic; font-size: 0.9em; opacity: 0; max-height: 0; overflow: hidden; transition: opacity 0.3s ease, max-height 0.3s ease, padding 0.3s ease, margin-top 0.3s ease; }
+.nemo-status-message.visible { opacity: 1; max-height: 50px; padding: 8px; margin-top: 8px; }
+.nemo-status-message.success { color: var(--green); background-color: var(--green10a); }
+.nemo-status-message.info { color: var(--nemo-secondary-accent); background-color: var(--yellow10a); }
+.nemo-status-message.error { color: var(--red); background-color: var(--red10a); }
+
+/* --- Contextual Triggers --- */
+.nemo-triggers-container { margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--nemo-border-color); }
+.nemo-triggers-settings { display: flex; gap: 15px; margin-top: 5px; flex-wrap: wrap; }
+
+/* --- Reasoning Section (now uses SillyTavern built-in styling) --- */
+/* Most styling is handled by SillyTavern's inline-drawer and range-block classes */
+/* Only add minimal custom styling where needed */
+
+#nemoReasoningSection {
+    /* Inherits from inline-drawer wide100p nemo-converted-drawer classes */
+}
+
+/* Ensure proper spacing for reasoning controls in mobile */
+#nemoReasoningSection .flex-container.alignItemsBaseline {
+    gap: 10px;
+}
+
+#nemoReasoningSection .flex1 {
+    flex: 1;
+}
+
+/* --- Start Reply With Block (in Chat Completion section) --- */
+.nemo-start-reply-block { 
+    margin-top: 15px; 
+    padding: 10px; 
+    background-color: var(--nemo-secondary-bg); 
+    border: 1px solid var(--nemo-border-color); 
+    border-radius: 4px; 
+}
+
+.nemo-start-reply-content { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px; 
+}
+
+.nemo-start-reply-header { 
+    color: var(--nemo-secondary-accent); 
+    font-weight: 500; 
+}
+
+.nemo-start-reply-textarea-container { 
+    flex-grow: 1; 
+}
+
+.nemo-start-reply-textarea-container textarea { 
+    width: 100%; 
+    resize: vertical; 
+    font-size: 14px; 
+    border: 1px solid var(--nemo-border-color); 
+    background-color: var(--nemo-primary-bg); 
+    color: var(--nemo-text-color); 
+    border-radius: 4px; 
+    padding: 8px; 
+}
+
+.nemo-start-reply-textarea-container textarea:focus { 
+    border-color: var(--nemo-primary-accent); 
+    outline: none; 
+    box-shadow: 0 0 0 2px var(--nemo-glow-color); 
+}
+
+.nemo-start-reply-checkbox { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    cursor: pointer; 
+    color: var(--nemo-text-color); 
+}
+
+.nemo-start-reply-checkbox input[type="checkbox"] { 
+    cursor: pointer; 
+}
+
+.nemo-start-reply-checkbox small { 
+    cursor: pointer; 
+    user-select: none; 
+}
+
+/* === PRESET NAVIGATOR (UNSTYLED - USES DEFAULT POPUP) === */
+/* The outer modal styling has been removed to use the default SillyTavern popup style. */
+/* We only style the *content* that we are injecting into the popup. */
+
+.nemo-preset-navigator-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 80vh;
+    overflow: hidden;
+}
+
+.nemo-preset-navigator-content-wrapper .navigator-body {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.nemo-preset-navigator-content-wrapper .navigator-main-panel {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--nemo-secondary-bg);
+    padding: 0;
+    border-radius: 8px;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* Grid Header & Search */
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-grid-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--nemo-border-color); flex-shrink: 0; gap: 20px; flex-wrap: wrap; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-breadcrumbs { font-size: 1.1em; color: var(--nemo-text-color); flex-shrink: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-breadcrumbs .link { color: var(--nemo-secondary-accent); cursor: pointer; text-decoration: none; border-bottom: 1px dotted var(--nemo-secondary-accent); transition: color 0.2s; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-breadcrumbs .link:hover { color: var(--nemo-text-color); }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-header-controls { display: flex; align-items: center; gap: 15px; flex-shrink: 0; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-search-controls { display: flex; align-items: center; position: relative; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-search-input { width: 220px; padding-right: 30px; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-search-clear { position: absolute; right: 0; top: 0; bottom: 0; background: transparent; border: none; cursor: pointer; color: var(--nemo-text-muted); padding: 0 10px; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-search-clear:hover { color: var(--nemo-text-color); }
+.nemo-header-buttons { display: flex; gap: 5px; }
+
+/* Main View Area */
+@keyframes fadeInItems { from { transform: translateY(10px); } to { transform: translateY(0); } }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-grid-view.fade-in .grid-item,
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-grid-view.fade-in .list-item { animation: fadeInItems 0.4s ease-out both; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-grid-view.fade-in .grid-item:nth-child(2),
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-grid-view.fade-in .list-item:nth-child(2) { animation-delay: 0.02s; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-grid-view.fade-in .grid-item:nth-child(3),
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-grid-view.fade-in .list-item:nth-child(3) { animation-delay: 0.04s; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-grid-view.fade-in .grid-item:nth-child(n+4) { animation-delay: 0.06s; }
+
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) #navigator-grid-view {
+    overflow-y: auto;
+    flex-grow: 1;
+    padding: 10px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    min-height: 0; /* Critical: allows flex child to shrink and scroll */
+    height: 100%; /* Ensures scrollable area */
+}
+
+/* Enhanced empty state styling */
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .navigator-empty-state {
+    text-align: center;
+    color: var(--nemo-text-medium-contrast, #e0e0e0);
+    padding: 60px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .navigator-empty-state .empty-state-icon {
+    font-size: 4em;
+    color: var(--nemo-text-low-contrast, #b0b0b0);
+    opacity: 0.5;
+}
+
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .navigator-empty-state h3 {
+    margin: 0;
+    font-size: 1.5em;
+    color: var(--nemo-text-high-contrast, #fff);
+}
+
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .navigator-empty-state p {
+    margin: 0;
+    color: var(--nemo-text-medium-contrast, #e0e0e0);
+    max-width: 400px;
+}
+
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .navigator-empty-state .empty-state-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .navigator-empty-state .menu_button {
+    min-height: 44px;
+    padding: 12px 24px;
+}
+
+/* Grid View Mode */
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .view-mode-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    align-content: flex-start;
+    width: 100%;
+    min-width: 0;
+}
+
+/* Preset Navigator specific grid sizing */
+.nemo-preset-navigator-content-wrapper .view-mode-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.nemo-preset-navigator-content-wrapper .grid-item {
+    min-height: 160px;
+    padding: 12px;
+}
+
+.nemo-preset-navigator-content-wrapper .grid-item .item-name {
+    /* This rule is intentionally left specific to override any theme issues. */
+    flex-grow: 1;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.9em;
+    background-color: rgba(0,0,0,0.2);
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
+    color: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.8) !important;
+    min-height: 3.6em;
+}
+
+.nemo-preset-navigator-content-wrapper .grid-item .item-icon {
+    height: 100px;
+    flex-shrink: 0;
+    font-size: 2.5em;
+    margin-bottom: 8px;
+}
+
+/* Prompt Navigator specific container and grid */
+.nemo-prompt-navigator-content-wrapper .navigator-main-panel { 
+    width: 100%; 
+    min-width: 0; 
+}
+
+.nemo-prompt-navigator-content-wrapper #prompt-navigator-grid-view {
+    padding: 10px;
+    overflow-y: auto;
+    flex-grow: 1;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 0; /* Critical: allows flex child to shrink and scroll */
+    height: 100%; /* Ensures scrollable area */
+}
+
+.nemo-prompt-navigator-content-wrapper .view-mode-grid { 
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
+    gap: 12px; 
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.nemo-prompt-navigator-content-wrapper .grid-item { 
+    min-height: 140px; 
+    width: 100%;
+}
+
+.nemo-prompt-navigator-content-wrapper .grid-item .item-icon { 
+    height: 85px; 
+    font-size: 2.8em; 
+}
+
+.nemo-prompt-navigator-content-wrapper .grid-item .item-name { 
+    font-size: 0.85em; 
+    padding: 6px; 
+}
+
+/* Prompt Navigator responsive breakpoints - using auto-fit for better width utilization */
+@media (min-width: 1200px) {
+    .nemo-prompt-navigator-content-wrapper .view-mode-grid { 
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); 
+        gap: 10px; 
+    }
+}
+
+@media (min-width: 1400px) {
+    .nemo-prompt-navigator-content-wrapper .view-mode-grid { 
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+        gap: 10px; 
+    }
+}
+
+@media (min-width: 1600px) {
+    .nemo-prompt-navigator-content-wrapper .view-mode-grid { 
+        grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); 
+        gap: 8px; 
+    }
+}
+
+/* For very wide screens, ensure better utilization */
+@media (min-width: 1920px) {
+    .nemo-prompt-navigator-content-wrapper .view-mode-grid { 
+        grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); 
+        gap: 8px; 
+    }
+}
+
+/* Prompt Navigator Button Sizing */
+.nemo-prompt-navigator-content-wrapper .menu_button {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 1em;
+    min-width: 40px;
+}
+
+.nemo-prompt-navigator-content-wrapper .nemo-header-buttons {
+    gap: 8px;
+}
+
+.nemo-prompt-navigator-content-wrapper .nemo-header-buttons .menu_button {
+    min-height: 42px;
+    padding: 10px 14px;
+    font-size: 1.05em;
+}
+
+.nemo-prompt-navigator-content-wrapper #prompt-navigator-search-clear {
+    padding: 8px;
+    font-size: 1em;
+}
+
+.nemo-prompt-navigator-content-wrapper #prompt-navigator-load-btn {
+    padding: 12px 20px;
+    font-size: 1.1em;
+    font-weight: 500;
+}
+
+.nemo-prompt-navigator-content-wrapper #prompt-navigator-search-input {
+    padding: 8px 40px 8px 12px;
+    font-size: 1em;
+}
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item { min-height: 160px; background-color: var(--nemo-tertiary-bg); border-radius: 8px; border: 2px solid transparent; display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease-in-out; user-select: none; position: relative; overflow: hidden; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item:hover { transform: translateY(-4px); box-shadow: 0 6px 12px var(--nemo-shadow-color); border-color: var(--nemo-border-color); }
+@keyframes pulse-glow { 0% { box-shadow: 0 0 5px var(--nemo-glow-color), 0 0 10px var(--nemo-glow-color); } 50% { box-shadow: 0 0 10px var(--nemo-glow-color), 0 0 20px var(--nemo-glow-color); } 100% { box-shadow: 0 0 5px var(--nemo-glow-color), 0 0 10px var(--nemo-glow-color); } }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.selected { border-color: var(--nemo-primary-accent); background-color: var(--nemo-item-hover-bg); animation: pulse-glow 2s infinite ease-in-out; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item .item-icon { height: 100px; width: 100%; flex-shrink: 0; display: flex; justify-content: center; align-items: center; font-size: 3.5em; color: var(--nemo-secondary-accent); border-top-left-radius: 6px; border-top-right-radius: 6px; background-size: cover; background-position: center; background-repeat: no-repeat; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.folder .item-icon { color: var(--nemo-folder-color); }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.preset .item-icon { color: var(--nemo-secondary-accent); }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item .item-name { flex-grow: 1; padding: 8px; text-align: center; font-size: 0.9em; background-color: rgba(0,0,0,0.2); border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; white-space: normal; word-break: break-word; line-height: 1.3; color: var(--text-primary); min-height: auto; }
+
+/* List View Mode */
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .view-mode-list { display: flex; flex-direction: column; gap: 5px; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item { min-height: auto; flex-direction: row; align-items: center; padding: 5px 10px; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item:hover { transform: none; box-shadow: none; background-color: var(--nemo-item-hover-bg); }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item .item-icon { height: 40px; width: 40px; font-size: 1.2em; background-size: cover; background-position: center; background-repeat: no-repeat; border-radius: 4px; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item .item-name { background: none; text-align: left; flex-grow: 1; padding: 0 10px; white-space: normal; word-break: break-word; color: var(--nemo-text-high-contrast); }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item .item-date { font-size: 0.9em; color: var(--nemo-text-muted); flex-shrink: 0; }
+
+/* Item Menu Button (Three Dots) - WCAG 2.1 compliant touch targets */
+.nemo-item-menu-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: var(--nemo-z-controls);
+    background-color: rgba(0, 0, 0, 0.4);
+    border: none;
+    border-radius: 50%;
+    /* WCAG 2.1 AAA minimum touch target: 44px × 44px */
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    font-size: 1.1em;
+    color: var(--nemo-text-color);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out, background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item:hover .nemo-item-menu-btn,
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item:hover .nemo-item-menu-btn,
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item:focus-within .nemo-item-menu-btn,
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item:focus-within .nemo-item-menu-btn {
+    opacity: 1;
+}
+.nemo-item-menu-btn:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item .nemo-item-menu-btn {
+    position: static;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+@media (pointer: coarse), (max-width: 768px) {
+    .grid-item .nemo-item-menu-btn,
+    .list-item .nemo-item-menu-btn {
+        opacity: 1;
+        background-color: rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* Navigator Footer (inside popup) */
+.nemo-preset-navigator-content-wrapper .modal-footer { border-top: 1px solid var(--nemo-border-color); padding-top: 15px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.nemo-preset-navigator-content-wrapper .modal-footer .action-controls { display: flex; gap: 10px; align-items: center; }
+
+/* Drag, Drop, and Selection Styles */
+/* Enhanced drag-drop visual feedback */
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.dragging-source {
+    opacity: 0.4;
+    transform: scale(0.95);
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.dragging {
+    position: fixed;
+    z-index: var(--nemo-z-drag);
+    pointer-events: none;
+    opacity: 0.9;
+    transform: rotate(2deg);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    cursor: grabbing !important;
+}
+
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.folder.drag-over {
+    border: 3px dashed var(--nemo-primary-accent);
+    background-color: var(--nemo-item-hover-bg);
+    transform: scale(1.08);
+    box-shadow: 0 0 20px var(--SmartThemeQuoteColor, #4a9eff);
+    animation: nemo-pulse-glow 1s ease-in-out infinite;
+}
+
+@keyframes nemo-pulse-glow {
+    0%, 100% { box-shadow: 0 0 15px var(--SmartThemeQuoteColor, #4a9eff); }
+    50% { box-shadow: 0 0 30px var(--SmartThemeQuoteColor, #4a9eff); }
+}
+
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.bulk-selected {
+    outline: 2px solid var(--nemo-primary-accent);
+    outline-offset: 2px;
+    background-color: var(--nemo-item-hover-bg);
+}
+
+/* Context Menu & Color Picker */
+.nemo-context-menu { display: none; position: absolute; background-color: var(--nemo-primary-bg); border: 1px solid var(--nemo-border-color); z-index: var(--nemo-z-context-menu); list-style: none; padding: 5px 0; margin: 0; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.nemo-extension .nemo-context-menu li { padding: 8px 12px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.nemo-context-menu li:hover { background-color: var(--nemo-item-hover-bg); }
+.nemo-context-menu li.active { background-color: var(--nemo-primary-accent); color: var(--nemo-text-color); }
+.nemo-context-menu i { width: 1em; text-align: center; }
+
+.nemo-color-picker-popup {
+    padding: 10px;
+    position: relative;
+    z-index: 10003; /* Higher than other modals to appear on top */
+}
+.nemo-color-picker-popup h4 { margin-top: 0; margin-bottom: 15px; text-align: center; color: var(--nemo-secondary-accent); }
+.nemo-color-swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; justify-content: center; }
+.nemo-color-swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid var(--nemo-border-color); transition: transform 0.1s ease, box-shadow 0.1s ease; }
+.nemo-color-swatch:hover { transform: scale(1.1); box-shadow: 0 0 5px var(--nemo-glow-color); }
+.nemo-color-swatch.selected { border-color: var(--nemo-primary-accent); transform: scale(1.1); box-shadow: 0 0 8px var(--nemo-glow-color); }
+#nemo-clear-folder-color { display: block; margin: 10px auto 0; }
+
+/* === MOBILE RESPONSIVENESS IMPROVEMENTS === */
+
+/* Large tablets and small desktops */
+@media (max-width: 1024px) {
+    :root {
+        --nemo-wi-left-panel-width: 250px;
+        --nemo-wi-toggle-offset: 230px;
+    }
+    .nemo-world-info-left-column { width: var(--nemo-wi-left-panel-width); }
+    #navigator-search-input, #char-manager-search-input { width: 180px; }
+    .view-mode-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; }
+}
+
+/* Small tablets */
+@media (max-width: 768px) {
+    /* Navigator and Grid Headers */
+    #navigator-grid-header, #char-manager-grid-header { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 10px; 
+    }
+    
+    /* Search controls */
+    #navigator-header-controls, #char-manager-header-controls { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 10px; 
+    }
+    
+    #navigator-search-controls, #char-manager-search-controls { 
+        order: -1; /* Move search to top */
+    }
+    
+    #navigator-search-input, #char-manager-search-input { 
+        width: 100%; 
+    }
+    
+    /* Button groups */
+    .nemo-header-buttons { 
+        justify-content: center; 
+        flex-wrap: wrap; 
+    }
+    
+    /* Grid layout improvements */
+    .view-mode-grid { 
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); 
+        gap: 10px; 
+    }
+    
+    .grid-item { 
+        min-height: 140px; 
+    }
+    
+    .grid-item .item-icon { 
+        height: 80px; 
+        font-size: 3em; 
+    }
+    
+    .grid-item .item-name {
+        font-size: 0.8em;
+        padding: 5px;
+        color: #ffffff !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.8) !important;
+    }
+    
+    /* Modal footer */
+    .nemo-preset-navigator-content-wrapper .modal-footer,
+    .nemo-character-manager-content-wrapper .modal-footer { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 10px; 
+    }
+    
+    /* World Info specific improvements */
+    .nemo-world-info-container { 
+        flex-direction: column; 
+    }
+    
+    .nemo-world-info-left-column { 
+        width: 100%; 
+        max-height: 300px; 
+        border-right: none; 
+        border-bottom: 1px solid var(--nemo-border-color); 
+    }
+    
+    .nemo-world-info-list-header { 
+        flex-wrap: wrap; 
+        gap: 5px; 
+    }
+    
+    .nemo-world-info-list-header > input { 
+        flex-basis: 100%; 
+        margin-bottom: 5px; 
+    }
+    
+    /* Preset controls */
+    .nemo-world-info-preset-controls { 
+        flex-wrap: wrap; 
+    }
+    
+    .nemo-world-info-preset-controls > select { 
+        flex-basis: 100%; 
+        margin-bottom: 5px; 
+    }
+    
+    /* Entries header */
+    .nemo-world-info-entries-header { 
+        flex-wrap: wrap; 
+        gap: 3px; 
+    }
+    
+    .nemo-world-info-entries-header > input,
+    .nemo-world-info-entries-header > select { 
+        flex-basis: 100%; 
+        margin-bottom: 5px; 
+    }
+    
+    /* Pagination controls */
+    .nemo-pagination-controls { 
+        flex-wrap: wrap; 
+        gap: 5px; 
+    }
+    
+    .pagination-info { 
+        order: -1; 
+        flex-basis: 100%; 
+        text-align: center; 
+        padding: 5px 0; 
+    }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+    /* Even smaller grid items */
+    .view-mode-grid { 
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); 
+        gap: 8px; 
+    }
+    
+    .grid-item { 
+        min-height: 120px; 
+    }
+    
+    .grid-item .item-icon { 
+        height: 70px; 
+        font-size: 2.5em; 
+    }
+    
+    .grid-item .item-name {
+        font-size: 0.75em;
+        padding: 4px;
+        color: #ffffff !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.8) !important;
+    }
+    
+    /* Stack all controls vertically */
+    .nemo-search-controls,
+    .nemo-header-buttons {
+        justify-content: center;
+    }
+    
+    /* World Info specific mobile improvements */
+    .nemo-world-info-left-column { 
+        max-height: 250px; 
+    }
+    
+    .nemo-world-info-tabs { 
+        flex-wrap: wrap; 
+    }
+    
+    .nemo-world-info-tab { 
+        flex: 1; 
+        text-align: center; 
+        min-width: 80px; 
+        padding: 8px 5px; 
+        font-size: 0.9em; 
+    }
+    
+    
+    /* Improve touch targets */
+    .nemo-item-menu-btn { 
+        opacity: 1; /* Always visible on mobile */
+    }
+    
+    /* Pagination improvements */
+    .pagination-btn { 
+    }
+    
+    .pagination-goto { 
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    /* Preset search mobile improvements */
+    #nemoPresetSearchContainer {
+        flex-direction: row !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    #nemoPresetSearchContainer .text_pole { 
+        min-width: unset; 
+        width: 100%; 
+    }
+    
+    .nemo-search-controls { 
+        justify-content: center; 
+    }
+    
+    /* Context menu mobile improvements */
+    .nemo-context-menu { 
+        min-width: 160px; 
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    .nemo-context-menu li { 
+        padding: 12px 16px; /* Larger touch targets */
+        display: flex !important; 
+        align-items: center; 
+    }
+    
+    /* Triggers settings mobile */
+    .nemo-triggers-settings { 
+        flex-direction: column; 
+        align-items: stretch; 
+    }
+    
+    /* Preset selector mobile */
+    .nemo-preset-selector-wrapper { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 8px; 
+    }
+    
+    /* Reasoning section mobile */
+    #nemoReasoningSection .flex-container.alignItemsBaseline { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 8px; 
+    }
+    
+    #nemoReasoningSection .oneline-dropdown { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 5px; 
+    }
+    
+    #nemoReasoningSection .oneline-dropdown label { 
+        min-width: unset; 
+    }
+    
+    #nemoReasoningSection select, 
+    #nemoReasoningSection input[type="number"], 
+    #nemoReasoningSection textarea { 
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    #nemoReasoningSection .inline-drawer .flex-container { 
+        flex-direction: column; 
+        gap: 8px; 
+    }
+    
+    /* Start Reply With mobile */
+    .nemo-start-reply-block { 
+        margin-top: 8px; 
+        padding: 8px; 
+    }
+    
+    .nemo-start-reply-content { 
+        gap: 6px; 
+    }
+    
+    .nemo-start-reply-textarea-container textarea { 
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 320px) {
+    .view-mode-grid { 
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
+        gap: 5px; 
+    }
+    
+    .grid-item { 
+        min-height: 100px; 
+    }
+    
+    .grid-item .item-icon { 
+        height: 60px; 
+        font-size: 2em; 
+    }
+    
+    .nemo-world-info-tab { 
+        font-size: 0.8em; 
+        padding: 6px 3px; 
+    }
+    
+    
+    .nemo-search-divider { 
+        display: none; /* Hide dividers on very small screens */
+    }
+}
+
+/* Portrait orientation specific adjustments */
+@media (orientation: portrait) and (max-width: 768px) {
+    .nemo-world-info-left-column { 
+        max-height: 250px; 
+        overflow-y: auto; 
+    }
+    
+    .navigator-body { 
+        min-height: 70vh; 
+    }
+}
+
+/* Landscape orientation specific adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+    :root {
+        --nemo-wi-left-panel-width: 200px;
+        --nemo-wi-toggle-offset: 180px;
+    }
+
+    .nemo-world-info-container {
+        flex-direction: row;
+    }
+
+    .nemo-world-info-left-column {
+        width: var(--nemo-wi-left-panel-width);
+        max-height: none;
+        border-right: 1px solid var(--nemo-border-color);
+        border-bottom: none;
+    }
+    
+    .navigator-body { 
+        min-height: 60vh; 
+    }
+}
+
+/* === GENERAL MOBILE TOUCH IMPROVEMENTS === */
+/* Apply to all mobile devices regardless of screen size */
+@media (pointer: coarse) {
+    /* Ensure all input fields have proper font size for iOS */
+    input[type="text"], 
+    input[type="search"], 
+    input[type="number"], 
+    textarea, 
+    select { 
+        font-size: 16px !important; 
+    }
+    
+    /* Improve tap targets for all interactive elements */
+    .menu_button, 
+    button, 
+    .inline-drawer-toggle, 
+    .completion_prompt_manager_prompt_controls > *, 
+    .nemo-section-master-toggle { 
+    }
+    
+    /* Improve checkbox and radio button tap targets */
+    input[type="checkbox"], 
+    input[type="radio"] { 
+        min-width: 20px; 
+        min-height: 20px; 
+        transform: scale(1.2); 
+    }
+    
+    /* Better touch scrolling */
+    .nemo-world-info-list, 
+    #navigator-grid-view, 
+    #char-manager-grid-view, 
+    .nemo-panel-content-wrapper { 
+        -webkit-overflow-scrolling: touch; 
+        overscroll-behavior: contain; 
+    }
+    
+    /* Improve drag handle visibility and size */
+    :is(#completion_prompt_manager_list, .nemo-engine-section) .drag-handle,
+    .nemo-drag-handle { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+    }
+}
+
+/* Header items in the prompt list are not draggable */
+.nemo-header-item { cursor: default; }
+
+/* Drag and Drop for Prompt List */
+:is(#completion_prompt_manager_list, .nemo-engine-section) .drag-handle {
+    cursor: grab;
+    padding: 0 10px;
+    margin-left: -10px; /* Keep alignment neat */
+    font-size: 1.2em;
+    color: var(--nemo-text-muted);
+    position: relative; /* Ensure it's on top */
+    z-index: var(--nemo-z-base);
+}
+
+:is(#completion_prompt_manager_list, .nemo-engine-section) .drag-handle:hover {
+    color: var(--nemo-text-color);
+}
+
+:is(#completion_prompt_manager_list, .nemo-engine-section) .drag-handle:active {
+    cursor: grabbing;
+}
+
+li.completion_prompt_manager_prompt[draggable="true"] {
+    cursor: default;
+} /* Remove grab cursor from the whole item */
+
+li.completion_prompt_manager_prompt.nemo-dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+#nemo-drop-indicator {
+    position: absolute;
+    height: 2px;
+    background-color: var(--nemo-primary-accent);
+    width: 100%;
+    pointer-events: none;
+    z-index: var(--nemo-z-controls);
+    box-shadow: 0 0 5px var(--nemo-glow-color);
+    display: none;
+}
+
+/* Prevent dropping into summary/header elements */
+.nemo-engine-section summary {
+    position: relative;
+}
+
+/* Make summary a non-droppable zone using pseudo-element overlay during drag */
+.sortable-fallback ~ .nemo-engine-section summary::before,
+body.sortable-dragging .nemo-engine-section summary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--nemo-z-sidebar);
+    pointer-events: auto;
+    background: transparent;
+}
+
+/* Ensure header item inside summary is not a valid drop container */
+.nemo-engine-section summary .nemo-header-item {
+    pointer-events: none;
+}
+
+.nemo-engine-section summary .nemo-header-item * {
+    pointer-events: auto; /* Re-enable for buttons/controls */
+}
+
+/* Visual feedback for invalid drop zones */
+.nemo-engine-section summary.sortable-over {
+    background: rgba(255, 107, 107, 0.2) !important;
+    border-left-color: var(--nemo-error) !important;
+}
+
+/* Improve dragging visual feedback */
+:is(#completion_prompt_manager_list, .nemo-engine-section) .sortable-ghost {
+    opacity: 0.4 !important;
+    background-color: rgba(74, 158, 255, 0.3) !important;
+    border: 2px dashed var(--nemo-info) !important;
+}
+
+:is(#completion_prompt_manager_list, .nemo-engine-section) .sortable-drag {
+    opacity: 1 !important;
+    box-shadow: var(--nemo-shadow-xl) !important;
+}
+
+/* Ensure section content areas are valid drop zones */
+.nemo-section-content {
+    min-height: 40px; /* Ensure there's always a drop zone even if empty */
+    position: relative;
+}
+
+.nemo-sub-section > .nemo-section-content {
+    min-height: 0; /* Remove min-height for sub-sections to reduce spacing */
+}
+
+/* === NEMO CHARACTER MANAGER ENHANCEMENTS === */
+/* All styles removed as the button is now injected into the standard button bar. */
+
+/* === NEMO GLOBAL UI TWEAKS === */
+@keyframes nemo-pulsing-stop-animation { 0% { box-shadow: 0 0 0 0px var(--nemo-glow-color); border-color: var(--nemo-border-color); } 50% { box-shadow: 0 0 10px 4px var(--nemo-glow-color); border-color: var(--nemo-primary-accent); } 100% { box-shadow: 0 0 0 0px var(--nemo-glow-color); border-color: var(--nemo-border-color); } }
+#send_form_stop_button.nemo-generating-animation { border: 2px solid var(--nemo-border-color) !important; border-radius: 50%; animation: nemo-pulsing-stop-animation 1.5s infinite ease-in-out; }
+
+.inline-drawer.nemo-converted-drawer .inline-drawer-header { background-color: var(--nemo-tertiary-bg); padding: 8px 10px; margin-bottom: 5px; border-radius: 4px; }
+.inline-drawer.nemo-converted-drawer .inline-drawer-header b { color: var(--nemo-secondary-accent); }
+.inline-drawer.nemo-converted-drawer .inline-drawer-content { padding: 0 10px 10px 20px; border-left: 2px solid var(--nemo-border-color); margin-left: 5px; }
+
+/* Styles for the new standalone prompt header */
+.nemo-standalone-prompt-header {
+    background-color: var(--nemo-tertiary-bg);
+    padding: 8px 10px;
+    margin-top: 15px; /* Add some space above the header */
+    margin-bottom: 5px;
+    border-radius: 4px;
+    color: var(--nemo-secondary-accent);
+    font-weight: bold;
+}
+
+/* === CHARACTER MANAGER (Pop-out) === */
+.nemo-character-manager-content-wrapper .navigator-body { display: flex; flex-grow: 1; overflow: hidden; min-height: 60vh; }
+.nemo-character-manager-content-wrapper .navigator-main-panel { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--nemo-secondary-bg); padding: 15px; border-radius: 8px; }
+
+/* Grid Header & Search */
+#char-manager-grid-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--nemo-border-color); flex-shrink: 0; gap: 20px; flex-wrap: wrap; }
+#char-manager-breadcrumbs { font-size: 1.1em; color: var(--nemo-text-color); flex-shrink: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#char-manager-breadcrumbs .link { color: var(--nemo-secondary-accent); cursor: pointer; text-decoration: none; border-bottom: 1px dotted var(--nemo-secondary-accent); transition: color 0.2s; }
+#char-manager-breadcrumbs .link:hover { color: var(--nemo-text-color); }
+#char-manager-header-controls { display: flex; align-items: center; gap: 15px; flex-shrink: 0; }
+#char-manager-search-controls { display: flex; align-items: center; position: relative; }
+#char-manager-search-input { width: 220px; padding-right: 30px; }
+#char-manager-search-clear { position: absolute; right: 0; top: 0; bottom: 0; background: transparent; border: none; cursor: pointer; color: var(--nemo-text-muted); padding: 0 10px; }
+#char-manager-search-clear:hover { color: var(--nemo-text-color); }
+
+/* Main View Area */
+#char-manager-grid-view {
+    overflow-y: auto;
+    flex-grow: 1;
+    padding: 10px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    min-height: 0; /* Critical: allows flex child to shrink and scroll */
+    height: 100%; /* Ensures scrollable area */
+}
+.char-manager-empty-state { text-align: center; color: var(--nemo-text-muted); padding: 40px; }
+.char-manager-empty-state h3 { margin: 0 0 10px; }
+.char-manager-empty-state p { margin: 0; }
+
+/* Grid View Mode */
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .view-mode-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 20px;
+    align-content: flex-start;
+    width: 100%;
+    min-width: 0;
+}
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item .item-icon {
+    height: 100px;
+    width: 100%;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3.5em;
+    color: var(--nemo-secondary-accent);
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.folder .item-icon { color: var(--nemo-folder-color); }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.character .item-icon { color: var(--nemo-secondary-accent); }
+
+/* List View Mode */
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .view-mode-list { display: flex; flex-direction: column; gap: 5px; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item { min-height: auto; flex-direction: row; align-items: center; padding: 5px 10px; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item:hover { transform: none; box-shadow: none; background-color: var(--nemo-item-hover-bg); }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item .item-icon { height: 40px; width: 40px; font-size: 1.2em; background-size: cover; background-position: center; background-repeat: no-repeat; border-radius: 4px; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item .item-name { background: none; text-align: left; flex-grow: 1; padding: 0 10px; white-space: normal; word-break: break-word; color: var(--nemo-text-high-contrast); }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item .item-date { font-size: 0.9em; color: var(--nemo-text-muted); flex-shrink: 0; }
+
+/* Item Menu Button (Three Dots) */
+.nemo-item-menu-btn { position: absolute; top: 4px; right: 4px; z-index: var(--nemo-z-controls); background-color: rgba(0, 0, 0, 0.4); border: none; border-radius: 50%; width: 28px; height: 28px; padding: 0; font-size: 1em; color: var(--nemo-text-color); cursor: pointer; opacity: 0; transition: opacity 0.2s ease-in-out, background-color 0.2s; display: flex; align-items: center; justify-content: center; }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item:hover .nemo-item-menu-btn,
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item:hover .nemo-item-menu-btn,
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item:focus-within .nemo-item-menu-btn,
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item:focus-within .nemo-item-menu-btn { opacity: 1; }
+.nemo-item-menu-btn:hover { background-color: rgba(0, 0, 0, 0.7); }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .list-item .nemo-item-menu-btn { position: static; margin-left: auto; flex-shrink: 0; }
+
+/* Footer */
+.nemo-character-manager-content-wrapper .modal-footer { border-top: 1px solid var(--nemo-border-color); padding-top: 15px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.nemo-character-manager-content-wrapper .modal-footer .action-controls { display: flex; gap: 10px; align-items: center; }
+
+/* Drag, Drop, and Selection Styles */
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.dragging-source { opacity: 0.4; transform: scale(0.95); }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.folder.drag-over { border: 2px dashed var(--nemo-primary-accent); background-color: var(--nemo-item-hover-bg); transform: scale(1.05); }
+:is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) .grid-item.bulk-selected { outline: 2px solid var(--nemo-primary-accent); outline-offset: 2px; background-color: var(--nemo-item-hover-bg); }
+
+/* === EXTENSION SORTING STYLES === */
+.nemo-sortable-ghost { opacity: 0.4; background-color: var(--nemo-item-hover-bg); border: 1px dashed var(--nemo-primary-accent); }
+.nemo-sortable-drag { opacity: 0.9; background-color: var(--nemo-tertiary-bg); box-shadow: 0 5px 15px var(--nemo-shadow-color); }
+body.nemo-extensions-overhaul-enabled #extensions_settings .inline-drawer-header, body.nemo-extensions-overhaul-enabled #extensions_settings2 .inline-drawer-header { cursor: grab; }
+body.nemo-extensions-overhaul-enabled #extensions_settings .inline-drawer-header:active, body.nemo-extensions-overhaul-enabled #extensions_settings2 .inline-drawer-header:active { cursor: grabbing; }
+
+/* === GROUPING STYLES === */
+.nemo-group-container { padding: 5px; background-color: rgba(0,0,0,0.2); border-radius: 5px; margin-bottom: 10px; }
+.nemo-group-header { display: flex; justify-content: space-between; align-items: center; padding: 8px; background-color: var(--nemo-tertiary-bg); border-radius: 4px; }
+.nemo-group-title { font-weight: bold; color: var(--nemo-secondary-accent); }
+.nemo-group-controls { display: flex; gap: 10px; }
+.nemo-group-controls i { cursor: pointer; }
+.nemo-group-content { min-height: 20px; padding: 10px 5px 5px; }
+#nemo-add-group-button { margin-left: auto; }
+.nemo-hidden-by-script {
+    display: none !important;
+}
+
+/* === NEMO WORLD INFO UI === */
+/* CSS Variables for maintainability */
+:root {
+    --nemo-wi-left-panel-width: 300px;
+    --nemo-wi-toggle-offset: 280px;
+    /* UI chrome height: header (~60px) + tabs (~50px) + padding (~40px) + margins (~50px) = ~200px */
+    --nemo-wi-ui-chrome-height: 200px;
+}
+
+.nemo-world-info-container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    background-color: var(--nemo-secondary-bg);
+    color: var(--nemo-text-color);
+    position: relative;
+    overflow: hidden;
+    overscroll-behavior: contain;
+}
+
+.nemo-world-info-left-column {
+    width: var(--nemo-wi-left-panel-width);
+    border-right: 1px solid var(--nemo-border-color);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease, margin-left 0.3s ease;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Hidden left panel state */
+.nemo-world-info-container.left-panel-hidden .nemo-world-info-left-column {
+    width: 0;
+    min-width: 0;
+    margin-left: calc(var(--nemo-wi-left-panel-width) * -1);
+    overflow: hidden;
+}
+
+.nemo-world-info-container.left-panel-hidden .nemo-world-info-right-column {
+    left: 30px;
+}
+
+/* Mobile header for close button */
+.nemo-world-info-mobile-header {
+    display: none;
+    justify-content: flex-end;
+    padding: 10px;
+    border-bottom: 1px solid var(--nemo-border-color);
+}
+
+#nemo-world-info-close-left-panel {
+    background: var(--SmartThemeBodyColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    color: var(--SmartThemeQuoteColor);
+}
+
+.nemo-world-info-list-header {
+    padding: 10px;
+    border-bottom: 1px solid var(--nemo-border-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.nemo-world-info-list-header > input {
+    flex-basis: 100%;
+}
+
+.nemo-folder-header {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    background-color: var(--black10a, rgba(0, 0, 0, 0.15));
+    font-weight: bold;
+    position: relative;
+    border: 1px solid var(--nemo-border-color);
+    border-left: 3px solid var(--nemo-primary-accent, #6eb5ff);
+    margin-top: -1px; /* Collapse borders */
+    user-select: none; /* Prevent text selection when clicking to expand/collapse */
+}
+
+.nemo-delete-folder-button {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 1.2em;
+    display: none; /* Hidden by default */
+}
+
+.nemo-folder-header:hover .nemo-delete-folder-button {
+    display: block; /* Show on hover */
+}
+
+.sortable-drag .nemo-folder-header {
+    background-color: var(--nemo-primary-accent-light);
+}
+
+.nemo-folder-header:hover {
+    background-color: var(--nemo-hover-bg);
+}
+
+.nemo-folder-toggle {
+    margin-right: 8px;
+    transition: transform 0.2s;
+}
+
+/* World Info folder content - scoped to avoid conflicts with other folder UIs */
+.nemo-world-info-list .nemo-folder-content {
+    padding-left: 20px;
+    /* Initially hidden, shown on toggle */
+    display: none;
+    min-height: 20px; /* Ensure a drop area even when empty */
+    flex-direction: column; /* Stack items vertically */
+}
+
+.nemo-world-info-list .nemo-folder.open > .nemo-folder-header > .nemo-folder-toggle {
+    transform: rotate(90deg);
+}
+
+.nemo-world-info-list .nemo-folder.open > .nemo-folder-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Empty folder visual indicator */
+.nemo-world-info-list .nemo-folder.open > .nemo-folder-content:empty::after {
+    content: 'Drop lorebooks here';
+    display: block;
+    text-align: center;
+    color: var(--nemo-text-color-secondary, #888);
+    font-style: italic;
+    font-size: 0.9em;
+    padding: 10px;
+    opacity: 0.7;
+}
+
+/* Unassigned lorebooks container styling for better visual hierarchy */
+#nemo-unassigned-lorebooks-container {
+    margin-top: 10px;
+    border-top: 1px solid var(--nemo-border-color);
+    padding-top: 5px;
+}
+
+/* Add subtle indicator for unassigned section when it's not empty */
+#nemo-unassigned-lorebooks-container:not(:empty)::before {
+    content: 'Unassigned Lorebooks';
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--nemo-text-color-secondary, #888);
+    padding: 5px 10px;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.nemo-world-info-active-section {
+    padding: 15px 10px;
+    border-bottom: 1px solid var(--nemo-border-color);
+    background: var(--black10a, rgba(0, 0, 0, 0.1));
+}
+
+.nemo-world-info-active-header {
+    font-weight: bold;
+    margin-bottom: 8px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--nemo-text-high-contrast, #fff);
+}
+
+.nemo-world-info-active-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.nemo-world-info-preset-section {
+    padding: 15px 10px;
+    border-bottom: 1px solid var(--nemo-border-color);
+    background: var(--black10a, rgba(0, 0, 0, 0.1));
+}
+
+.nemo-world-info-preset-header {
+    font-weight: bold;
+    margin-bottom: 8px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--nemo-text-high-contrast, #fff);
+}
+
+.nemo-world-info-preset-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+}
+
+.nemo-world-info-preset-controls > select {
+    flex-grow: 1;
+    min-width: 120px;
+    margin-bottom: 5px;
+}
+
+.nemo-active-lorebook-item {
+    background-color: var(--nemo-primary-accent);
+    color: var(--nemo-text-color);
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    white-space: normal;
+    word-break: break-word; /* Break at word boundaries, not mid-word */
+    max-width: 100%;
+}
+
+.nemo-remove-lorebook-button {
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.nemo-lorebook-item {
+    padding: 8px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    border: 1px solid var(--nemo-border-color);
+    margin-top: -1px; /* Collapse borders */
+    background-color: var(--nemo-bg-color);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Lorebooks inside folders have subtle visual distinction */
+.nemo-folder-content > .nemo-lorebook-item {
+    background-color: var(--black5a, rgba(0, 0, 0, 0.05));
+}
+
+.nemo-lorebook-item:hover {
+    background-color: var(--nemo-hover-bg, rgba(255, 255, 255, 0.05));
+}
+
+.nemo-drag-handle {
+    cursor: grab;
+    margin-right: 6px;
+    font-size: 1.2em;
+    display: none; /* Hidden by default */
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+}
+
+/* Show drag handle on hover or in move mode for better discoverability */
+.nemo-lorebook-item:hover .nemo-drag-handle,
+.nemo-move-mode .nemo-drag-handle {
+    display: block; /* Visible on hover or in move mode */
+}
+
+.nemo-move-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.nemo-world-info-container .sortable-ghost {
+    opacity: 0.4;
+    background-color: var(--nemo-primary-accent);
+}
+
+.nemo-lorebook-item-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+    margin-right: 8px;
+}
+
+.nemo-lorebook-item:hover {
+    background-color: var(--nemo-hover-bg);
+}
+
+.nemo-add-lorebook-button {
+    font-size: 1.2em;
+    font-weight: bold;
+    flex-shrink: 0;
+    width: 24px;
+    text-align: center;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+}
+
+.nemo-lorebook-item:hover .nemo-add-lorebook-button {
+    opacity: 1;
+}
+
+.nemo-world-info-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100vh - var(--nemo-wi-ui-chrome-height));
+    scroll-behavior: smooth;
+}
+
+.nemo-world-info-right-column {
+    position: absolute;
+    top: 0;
+    left: var(--nemo-wi-left-panel-width);
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    transition: left 0.3s ease;
+    overflow: hidden;
+}
+
+/* Header controls no longer needed - button is now fixed positioned */
+
+/* Use higher specificity instead of !important */
+.nemo-extension #nemo-world-info-toggle-left-panel {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-left: none;
+    color: white;
+    transition: all 0.2s ease;
+    font-weight: bold;
+    width: 24px;
+    height: 100%;
+    border-radius: 0 4px 4px 0;
+    position: fixed;
+    top: 0;
+    left: var(--nemo-wi-toggle-offset);
+    z-index: var(--nemo-z-panel-toggle);
+    opacity: 0.9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: visible;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+}
+
+.nemo-extension #nemo-world-info-toggle-left-panel:hover {
+    opacity: 1;
+    color: var(--SmartThemeEmColor, #4CAF50);
+}
+
+#nemo-world-info-toggle-left-panel:active {
+    transform: scale(0.95);
+}
+
+/* Visual state when panel is hidden - peek from left edge without covering content */
+.nemo-extension .nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel {
+    left: 0;
+    width: 16px;
+    color: white;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-left: none;
+    opacity: 0.6;
+    border-radius: 0 4px 4px 0;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+    font-size: 11px;
+}
+
+.nemo-extension .nemo-world-info-container.left-panel-hidden #nemo-world-info-toggle-left-panel:hover {
+    opacity: 1;
+    width: 24px;
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.8);
+    border-color: var(--SmartThemeQuoteColor, #4a9eff);
+    box-shadow: 2px 0 12px rgba(74, 158, 255, 0.3);
+}
+
+/* When panel is visible, position button on the panel edge with subtle styling */
+.nemo-extension .nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel {
+    left: var(--nemo-wi-toggle-offset);
+    opacity: 0.7;
+    background: rgba(0, 0, 0, 0.3);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.nemo-extension .nemo-world-info-container:not(.left-panel-hidden) #nemo-world-info-toggle-left-panel:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.5);
+    border-right-color: var(--SmartThemeQuoteColor, #4a9eff);
+}
+
+.nemo-world-info-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--nemo-border-color);
+}
+
+.nemo-world-info-tab {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.nemo-world-info-tab.active {
+    border-bottom-color: var(--nemo-primary-accent);
+    color: var(--nemo-primary-accent);
+}
+
+.nemo-world-info-panel {
+    display: none;
+    flex-grow: 1;
+    overflow: hidden; /* Let the inner wrapper handle scrolling */
+    height: 100%;
+}
+
+.nemo-panel-content-wrapper {
+    padding: 15px;
+    height: 100%;
+    overflow: auto;
+    box-sizing: border-box;
+    position: relative; /* Ensure proper positioning for child elements */
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.nemo-world-info-panel.active {
+    display: block;
+}
+
+.nemo-world-info-container #world_popup_entries_list {
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100vh - var(--nemo-wi-ui-chrome-height));
+    scroll-behavior: smooth;
+}
+
+
+.nemo-world-info-entries-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.nemo-world-info-container .pagination-container {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nemo-world-info-entries-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.nemo-lorebook-item.selected {
+    background-color: var(--nemo-primary-accent-light);
+    border-color: var(--nemo-primary-accent);
+}
+
+#nemo-wi-context-menu {
+    position: fixed;
+    background-color: var(--nemo-bg-color);
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 5px;
+    padding: 5px;
+    z-index: var(--nemo-z-popup);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.nemo-context-menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    position: relative;
+}
+
+.nemo-context-menu-item:hover {
+    background-color: var(--nemo-hover-bg);
+}
+
+.nemo-context-menu-item:hover .nemo-context-submenu {
+    display: block;
+}
+
+.nemo-context-submenu {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: -5px; /* Align with parent item */
+    background-color: var(--nemo-bg-color);
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 5px;
+    padding: 5px;
+    min-width: 150px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.nemo-context-submenu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.nemo-context-submenu-item:hover {
+    background-color: var(--nemo-hover-bg);
+}
+
+.nemo-context-submenu-item.disabled {
+    color: var(--nemo-text-color-secondary);
+    cursor: default;
+}
+
+/* === ACCESSIBILITY IMPROVEMENTS === */
+/* Focus indicators for keyboard navigation */
+.nemo-lorebook-item:focus-visible,
+.nemo-folder-header:focus-visible,
+.nemo-world-info-tab:focus-visible,
+.nemo-world-info-container button:focus-visible,
+.nemo-world-info-container input:focus-visible,
+.nemo-world-info-container select:focus-visible {
+    outline: 2px solid var(--nemo-primary-accent, #6eb5ff);
+    outline-offset: 2px;
+}
+
+.nemo-context-menu-item:focus-visible,
+.nemo-context-submenu-item:focus-visible {
+    outline: 2px solid var(--nemo-primary-accent, #6eb5ff);
+    outline-offset: -2px;
+    background-color: var(--nemo-hover-bg);
+}
+
+/* Ensure sufficient contrast for disabled items */
+.nemo-world-info-container button:disabled,
+.nemo-world-info-container input:disabled,
+.nemo-world-info-container select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 768px) {
+    .nemo-world-info-tab {
+        min-height: 44px; /* WCAG minimum touch target */
+        padding: 10px 8px;
+    }
+
+    .nemo-world-info-container button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+.nemo-world-info-order-helper-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.nemo-world-info-order-helper-header label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.nemo-world-info-order-helper-header input[type="number"] {
+    width: 80px;
+    color: var(--nemo-text-color);
+    background-color: var(--nemo-primary-bg);
+    border: 1px solid var(--nemo-border-color);
+}
+
+#nemo-world-info-order-helper-panel .nemo-panel-content-wrapper,
+#nemo-world-info-settings-panel .nemo-panel-content-wrapper {
+    white-space: normal; /* Ensure content wraps */
+}
+
+.nemo-extension #nemo-world-info-settings-panel #wiActivationSettings {
+    display: block;
+}
+
+.nemo-extension #nemo-world-info-settings-panel #wiSliders,
+.nemo-extension #nemo-world-info-settings-panel #wiCheckboxes {
+    display: block;
+    width: 100%;
+    flex: none;
+}
+
+#nemo-world-info-order-helper-panel .nemo-panel-content-wrapper {
+    padding-left: 20px; /* Add some padding to align with the other tabs */
+}
+
+.nemo-lore-simulator-results-header {
+    margin-top: 15px;
+    border-bottom: 1px solid var(--nemo-border-color);
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+#nemo-lore-simulator-results .list-group-item {
+    background-color: var(--nemo-tertiary-bg);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+/* === PAGINATION CONTROLS === */
+
+.nemo-pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid var(--nemo-border-color);
+    border-bottom: 1px solid var(--nemo-border-color);
+    margin: 10px 0;
+    background-color: var(--nemo-primary-bg);
+    border-radius: 4px;
+}
+
+.nemo-pagination-controls.hidden {
+    display: none;
+}
+
+.nemo-extension .pagination-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border: 1px solid var(--nemo-border-color);
+    background-color: var(--nemo-secondary-bg);
+    color: var(--nemo-text-color);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.nemo-world-info-container .pagination-btn:hover:not(:disabled) {
+    background-color: var(--nemo-item-hover-bg);
+    border-color: var(--nemo-primary-accent);
+    color: var(--nemo-primary-accent);
+}
+
+.nemo-world-info-container .pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--nemo-primary-bg);
+}
+
+.nemo-world-info-container .pagination-info {
+    padding: 0 15px;
+    font-size: 14px;
+    color: var(--nemo-text-color);
+    white-space: nowrap;
+}
+
+.nemo-extension .pagination-goto {
+    width: 80px;
+    height: 32px;
+    padding: 4px 8px;
+    text-align: center;
+    font-size: 14px;
+    border: 1px solid var(--nemo-border-color);
+    background-color: var(--nemo-secondary-bg);
+    color: var(--nemo-text-color);
+    border-radius: 4px;
+}
+
+.nemo-world-info-container .pagination-goto:focus {
+    border-color: var(--nemo-primary-accent);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--nemo-glow-color);
+}
+
+/* Infinite scroll toggle */
+#nemo-world-info-infinite-scroll {
+    margin-right: 5px;
+}
+
+/* Entries per page selector */
+#nemo-world-info-entries-per-page {
+    min-width: 60px;
+}
+
+/* Update buffer size select styling */
+#nemo-world-info-buffer-size {
+    min-width: 100px;
+}
+
+/* === MOBILE-FRIENDLY WORLD INFO STYLES === */
+@media (max-width: 768px) {
+    .nemo-world-info-container {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .nemo-extension .nemo-world-info-left-column {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--nemo-border-color);
+        max-height: 300px;
+        order: 2; /* Move to bottom on mobile */
+    }
+    
+    .nemo-world-info-right-column {
+        position: relative;
+        left: 0;
+        width: 100%;
+        height: auto;
+        order: 1; /* Move to top on mobile */
+    }
+    
+    /* Always show left panel toggle button on mobile */
+    .nemo-extension #nemo-world-info-toggle-left-panel {
+        display: block;
+        top: 60px;
+        left: 10px;
+    }
+    
+    /* On mobile, hide left panel by default */
+    .nemo-world-info-container:not(.mobile-left-panel-visible) .nemo-world-info-left-column {
+        display: none;
+    }
+    
+    .nemo-world-info-container.mobile-left-panel-visible .nemo-world-info-left-column {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: var(--nemo-z-sidebar);
+        background: var(--nemo-secondary-bg);
+        max-height: none;
+        border-bottom: none;
+    }
+    
+    /* Show mobile header on mobile devices */
+    .nemo-extension .nemo-world-info-mobile-header {
+        display: flex;
+    }
+    
+    /* Compact tabs for mobile */
+    .nemo-world-info-tabs {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .nemo-world-info-tab {
+        padding: 8px 12px;
+        font-size: 0.9em;
+        flex: 1;
+        text-align: center;
+        min-width: 80px;
+    }
+    
+    /* Compact entries header on mobile */
+    .nemo-world-info-entries-header {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .nemo-world-info-entries-header > input,
+    .nemo-world-info-entries-header > select {
+        min-width: 120px;
+        flex: 1;
+    }
+    
+    /* Compact preset controls */
+    .nemo-world-info-preset-controls {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .nemo-world-info-preset-controls > select {
+        width: 100%;
+    }
+    
+    /* Compact active lorebooks */
+    .nemo-active-lorebook-item {
+        font-size: 0.9em;
+        padding: 4px 8px;
+    }
+    
+    /* Stack folder controls vertically on mobile */
+    .nemo-world-info-list-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .nemo-world-info-list-header > input {
+        order: -1;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    .nemo-world-info-tab {
+        padding: 6px 8px;
+        font-size: 0.8em;
+        min-width: 60px;
+    }
+    
+    .nemo-world-info-header-controls {
+        margin-bottom: 5px;
+    }
+    
+    .nemo-world-info-entries-header > .menu_button {
+        padding: 6px;
+        font-size: 0.9em;
+    }
+}
+
+/* === WORLD INFO POLISH: Selected lorebook, empty state, toolbar, names === */
+
+/* Selected lorebook highlight */
+.nemo-lorebook-item.nemo-lorebook-selected {
+    background-color: var(--nemo-primary-accent-light, rgba(110, 181, 255, 0.15));
+    border-left: 3px solid var(--nemo-primary-accent, #6eb5ff);
+    border-color: var(--nemo-primary-accent, #6eb5ff);
+}
+
+.nemo-lorebook-item.nemo-lorebook-selected .nemo-lorebook-item-text {
+    color: var(--nemo-primary-accent, #6eb5ff);
+    font-weight: 600;
+}
+
+/* Empty state for right panel */
+.nemo-wi-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 30px;
+    text-align: center;
+    color: var(--nemo-text-color-secondary, #888);
+    height: 100%;
+    min-height: 300px;
+}
+
+.nemo-wi-empty-state-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    opacity: 0.3;
+    color: var(--nemo-primary-accent, #6eb5ff);
+}
+
+.nemo-wi-empty-state h3 {
+    font-size: 1.4em;
+    margin-bottom: 10px;
+    color: var(--nemo-text-high-contrast, #fff);
+}
+
+.nemo-wi-empty-state p {
+    font-size: 0.95em;
+    line-height: 1.5;
+    max-width: 400px;
+}
+
+.nemo-wi-empty-state-hint {
+    margin-top: 15px;
+    font-size: 0.85em !important;
+    opacity: 0.7;
+}
+
+/* Toolbar icon grouping with separators */
+.nemo-wi-toolbar-group {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+}
+
+.nemo-wi-toolbar-separator {
+    display: inline-block;
+    width: 1px;
+    height: 20px;
+    background: var(--nemo-border-color, rgba(255, 255, 255, 0.15));
+    margin: 0 6px;
+    vertical-align: middle;
+}
+
+/* Action buttons in sidebar */
+.nemo-wi-action-buttons {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.nemo-wi-action-buttons .menu_button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85em;
+    padding: 5px 10px;
+}
+
+.nemo-wi-action-buttons .menu_button i {
+    font-size: 0.9em;
+}
+
+/* Order helper item styling */
+.nemo-order-helper-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--nemo-border-color);
+    margin-bottom: -1px;
+    background: var(--nemo-bg-color);
+    cursor: grab;
+    transition: background-color 0.15s;
+}
+
+.nemo-order-helper-item:hover {
+    background: var(--nemo-hover-bg);
+}
+
+.nemo-order-helper-handle {
+    cursor: grab;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+.nemo-order-helper-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nemo-order-helper-order {
+    flex-shrink: 0;
+    font-size: 0.85em;
+    color: var(--nemo-text-color-secondary, #888);
+    font-family: monospace;
+}
+
+/* Helper empty message */
+.nemo-wi-helper-empty {
+    padding: 30px 20px;
+    text-align: center;
+    color: var(--nemo-text-color-secondary, #888);
+    font-style: italic;
+}
+
+/* Lore simulator controls */
+.nemo-lore-simulator-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.nemo-lore-simulator-controls label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+}
+
+.nemo-lore-simulator-controls select {
+    min-width: 160px;
+}
+
+/* Left sidebar section headers with icons */
+.nemo-world-info-active-header i,
+.nemo-world-info-preset-header i {
+    margin-right: 5px;
+    opacity: 0.7;
+}
+
+/* Tab icons */
+.nemo-world-info-tab i {
+    margin-right: 4px;
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+.nemo-world-info-tab.active i {
+    opacity: 1;
+}
+
+/* Move toggle label icon */
+.nemo-move-toggle-container label i {
+    font-size: 0.85em;
+}
+
+/* === NEMO MARKETPLACE === */
+
+/* Marketplace button in top bar */
+#nemo-marketplace-button .drawer-icon {
+    cursor: pointer;
+    transition: color 0.2s, transform 0.2s;
+}
+
+#nemo-marketplace-button .drawer-icon:hover {
+    color: var(--SmartThemeEmColor, #4CAF50);
+    transform: scale(1.1);
+}
+
+.nemo-marketplace-overlay {
+    position: fixed;
+    inset: 0;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.64);
+    backdrop-filter: blur(6px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: nemo-mp-fade-in 0.2s ease;
+}
+
+.nemo-marketplace-overlay.nemo-marketplace-closing {
+    animation: nemo-mp-fade-out 0.2s ease forwards;
+}
+
+@keyframes nemo-mp-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes nemo-mp-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.nemo-marketplace-popup {
+    background: var(--SmartThemeBlurTintColor, #15171d);
+    border: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    width: min(1180px, 96vw);
+    height: min(820px, 90vh);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--SmartThemeBodyColor, #f4f4f4);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.52);
+    animation: nemo-mp-slide-up 0.3s ease;
+}
+
+@keyframes nemo-mp-slide-up {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.nemo-marketplace-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.1));
+    background: rgba(0, 0, 0, 0.24);
+}
+
+.nemo-marketplace-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.nemo-marketplace-title-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: rgba(110, 181, 255, 0.14);
+    color: var(--nemo-primary-accent, #6eb5ff);
+}
+
+.nemo-marketplace-title-mark i {
+    font-size: 1.15em;
+}
+
+.nemo-marketplace-title h2 {
+    margin: 0;
+    font-size: 1.18em;
+    font-weight: 700;
+    color: var(--nemo-text-high-contrast, #fff);
+    line-height: 1.2;
+}
+
+.nemo-marketplace-subtitle {
+    margin: 3px 0 0;
+    font-size: 0.84em;
+    color: var(--nemo-text-color-secondary, #888);
+    line-height: 1.35;
+}
+
+.nemo-marketplace-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.nemo-marketplace-stat {
+    min-width: 58px;
+    padding: 5px 9px;
+    border: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.045);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+}
+
+.nemo-marketplace-stat strong {
+    font-size: 1em;
+    color: var(--nemo-text-high-contrast, #fff);
+}
+
+.nemo-marketplace-stat span {
+    font-size: 0.68em;
+    color: var(--nemo-text-color-secondary, #888);
+    text-transform: uppercase;
+}
+
+.nemo-marketplace-close {
+    font-size: 1.1em;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.nemo-marketplace-close:hover {
+    opacity: 1;
+}
+
+.nemo-marketplace-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+
+.nemo-marketplace-sidebar {
+    width: 260px;
+    flex: 0 0 260px;
+    padding: 16px;
+    border-right: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.08));
+    background: rgba(0, 0, 0, 0.12);
+    overflow-y: auto;
+}
+
+.nemo-marketplace-view-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-bottom: 12px;
+}
+
+.nemo-marketplace-view-btn {
+    min-width: 0;
+    min-height: 34px;
+    padding: 7px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.12));
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--nemo-text-color, #ccc);
+    cursor: pointer;
+    font-size: 0.82em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+}
+
+.nemo-marketplace-view-btn:hover {
+    border-color: var(--nemo-primary-accent, #6eb5ff);
+    background: rgba(255, 255, 255, 0.075);
+}
+
+.nemo-marketplace-view-btn.active {
+    background: var(--nemo-primary-accent, #6eb5ff);
+    border-color: var(--nemo-primary-accent, #6eb5ff);
+    color: #fff;
+}
+
+.nemo-marketplace-search-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.nemo-marketplace-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    padding: 0 12px;
+    width: 100%;
+}
+
+.nemo-marketplace-search-wrap i {
+    color: var(--nemo-text-color-secondary, #888);
+    font-size: 0.85em;
+}
+
+.nemo-marketplace-search-wrap input {
+    border: none;
+    background: transparent;
+    padding: 9px 0;
+    flex: 1;
+    font-size: 0.9em;
+    min-width: 0;
+}
+
+.nemo-marketplace-search-wrap input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.nemo-marketplace-filter-title {
+    margin: 16px 0 8px;
+    font-size: 0.72em;
+    font-weight: 700;
+    color: var(--nemo-text-color-secondary, #888);
+    text-transform: uppercase;
+}
+
+.nemo-marketplace-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.nemo-marketplace-cat-btn {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.15));
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--nemo-text-color, #ccc);
+    cursor: pointer;
+    font-size: 0.86em;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    text-align: left;
+}
+
+.nemo-marketplace-cat-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--nemo-primary-accent, #6eb5ff);
+}
+
+.nemo-marketplace-cat-btn.active {
+    background: var(--nemo-primary-accent, #6eb5ff);
+    color: #fff;
+    border-color: var(--nemo-primary-accent, #6eb5ff);
+}
+
+.nemo-marketplace-cat-btn span {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nemo-marketplace-cat-btn i {
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.nemo-marketplace-cat-btn strong {
+    min-width: 24px;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    color: inherit;
+    font-size: 0.74em;
+    text-align: center;
+}
+
+.nemo-marketplace-results {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.nemo-marketplace-results-head {
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.08));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.nemo-marketplace-results-kicker {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 0.68em;
+    font-weight: 700;
+    color: var(--nemo-primary-accent, #6eb5ff);
+    text-transform: uppercase;
+}
+
+.nemo-marketplace-results-head h3 {
+    margin: 0;
+    font-size: 1em;
+    line-height: 1.2;
+    color: var(--nemo-text-high-contrast, #fff);
+}
+
+.nemo-marketplace-result-count {
+    flex-shrink: 0;
+    padding: 4px 9px;
+    border: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    color: var(--nemo-text-color-secondary, #888);
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 0.78em;
+}
+
+.nemo-marketplace-grid {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+    align-content: start;
+}
+
+.nemo-marketplace-warning {
+    grid-column: 1 / -1;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 193, 7, 0.24);
+    border-radius: 7px;
+    background: rgba(255, 193, 7, 0.08);
+    color: var(--nemo-text-color-secondary, #d8c177);
+    font-size: 0.84em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nemo-marketplace-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-height: 286px;
+    overflow: hidden;
+    text-decoration: none !important;
+    color: inherit;
+}
+
+.nemo-marketplace-card:hover {
+    border-color: var(--nemo-primary-accent, #6eb5ff);
+    background: rgba(255, 255, 255, 0.07);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+}
+
+.nemo-marketplace-card:focus-visible {
+    outline: 2px solid var(--nemo-primary-accent, #6eb5ff);
+    outline-offset: 2px;
+}
+
+.nemo-marketplace-card[aria-disabled="true"] {
+    cursor: default;
+    opacity: 0.72;
+}
+
+.nemo-marketplace-card-image {
+    height: 122px;
+    flex-shrink: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.05));
+    overflow: hidden;
+}
+
+.nemo-marketplace-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.nemo-marketplace-card-image-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nemo-marketplace-card-image-placeholder i {
+    font-size: 2.2em;
+    opacity: 0.18;
+}
+
+.nemo-marketplace-card-body {
+    padding: 13px 14px 14px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+}
+
+.nemo-marketplace-card-category {
+    font-size: 0.68em;
+    text-transform: uppercase;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.nemo-marketplace-card-title {
+    margin: 0;
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--nemo-text-high-contrast, #fff);
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.nemo-marketplace-card-desc {
+    margin: 0;
+    font-size: 0.85em;
+    color: var(--nemo-text-color-secondary, #999);
+    line-height: 1.5;
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.nemo-marketplace-card-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.nemo-marketplace-card-author {
+    font-size: 0.75em;
+    color: var(--nemo-text-color-secondary, #888);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.nemo-marketplace-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.nemo-marketplace-tag {
+    font-size: 0.65em;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--nemo-text-color-secondary, #888);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nemo-marketplace-card-action {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7em;
+    color: #fff;
+    opacity: 0.48;
+    transition: opacity 0.2s;
+}
+
+.nemo-marketplace-card:hover .nemo-marketplace-card-action {
+    opacity: 0.9;
+}
+
+.nemo-marketplace-prompt-card {
+    min-height: 178px;
+    padding: 14px;
+    border: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    overflow: hidden;
+}
+
+.nemo-marketplace-prompt-card:hover {
+    border-color: var(--nemo-primary-accent, #6eb5ff);
+    background: rgba(255, 255, 255, 0.065);
+}
+
+.nemo-marketplace-prompt-source {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--nemo-primary-accent, #6eb5ff);
+    font-size: 0.76em;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.nemo-marketplace-prompt-source span {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nemo-marketplace-prompt-source strong {
+    flex-shrink: 0;
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--nemo-text-color-secondary, #888);
+    font-size: 0.78em;
+}
+
+.nemo-marketplace-prompt-card h3 {
+    margin: 0;
+    font-size: 1em;
+    line-height: 1.3;
+    color: var(--nemo-text-high-contrast, #fff);
+    overflow-wrap: anywhere;
+}
+
+.nemo-marketplace-prompt-card p {
+    margin: 0;
+    color: var(--nemo-text-color-secondary, #999);
+    font-size: 0.8em;
+    line-height: 1.45;
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.nemo-marketplace-prompt-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.nemo-marketplace-prompt-actions .menu_button {
+    min-height: 30px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none !important;
+}
+
+.nemo-marketplace-prompt-import {
+    color: #fff;
+    border-color: var(--nemo-primary-accent, #6eb5ff);
+    background: color-mix(in srgb, var(--nemo-primary-accent, #6eb5ff) 72%, transparent);
+}
+
+.nemo-marketplace-prompt-import:disabled {
+    cursor: default;
+    opacity: 0.72;
+}
+
+.nemo-marketplace-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 62px 20px;
+    color: var(--nemo-text-color-secondary, #888);
+}
+
+.nemo-marketplace-empty i {
+    font-size: 3em;
+    margin-bottom: 15px;
+    opacity: 0.3;
+}
+
+.nemo-marketplace-empty h3 {
+    margin: 0 0 6px;
+    font-size: 1em;
+    color: var(--nemo-text-high-contrast, #fff);
+}
+
+.nemo-marketplace-empty p {
+    margin: 0;
+    font-size: 0.88em;
+}
+
+.nemo-marketplace-footer {
+    padding: 10px 18px;
+    border-top: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.08));
+    text-align: center;
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.nemo-marketplace-footer-text {
+    font-size: 0.8em;
+    color: var(--nemo-text-color-secondary, #888);
+}
+
+.nemo-marketplace-footer-text i {
+    color: #e74c3c;
+}
+
+@media (max-width: 768px) {
+    .nemo-marketplace-overlay {
+        padding: 0;
+    }
+
+    .nemo-marketplace-popup {
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        max-height: none;
+        border-radius: 0;
+    }
+
+    .nemo-marketplace-header {
+        padding: 12px 14px;
+        gap: 8px;
+    }
+
+    .nemo-marketplace-title {
+        gap: 8px;
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .nemo-marketplace-title h2 {
+        font-size: 1em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .nemo-marketplace-title-mark {
+        width: 34px;
+        height: 34px;
+    }
+
+    .nemo-marketplace-close {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2em;
+    }
+
+    .nemo-marketplace-stat {
+        display: none;
+    }
+
+    .nemo-marketplace-subtitle {
+        display: none;
+    }
+
+    .nemo-marketplace-body {
+        flex-direction: column;
+    }
+
+    .nemo-marketplace-sidebar {
+        width: auto;
+        flex: 0 0 auto;
+        border-right: none;
+        border-bottom: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.08));
+        padding: 12px 14px;
+    }
+
+    .nemo-marketplace-view-switch {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .nemo-marketplace-search-wrap {
+        max-width: none;
+    }
+
+    .nemo-marketplace-categories {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 2px;
+    }
+
+    .nemo-marketplace-cat-btn {
+        width: auto;
+        flex: 0 0 auto;
+    }
+
+    .nemo-marketplace-results-head {
+        padding: 12px 14px;
+    }
+
+    .nemo-marketplace-grid {
+        grid-template-columns: 1fr;
+        padding: 14px;
+    }
+
+    .nemo-marketplace-footer {
+        padding: 8px 14px;
+    }
+}
+
+/* Favorite Preset Button Styles */
+.nemo-favorite-btn {
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.nemo-favorite-btn:hover {
+    color: #ffeb3b;
+}
+
+.nemo-favorite-btn.favorited {
+    color: #ffeb3b;
+}
+
+.nemo-favorites-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.nemo-favorite-preset-button {
+    background-color: #444;
+    border: 1px solid #555;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.nemo-favorite-preset-button:hover {
+    background-color: #555;
+}
+
+/* === LOREBOOK MANAGEMENT STYLES === */
+
+/* Lorebook entry display */
+.nemo-active-lorebooks-list {
+    margin-top: 8px;
+    border: 1px solid var(--nemo-border-color);
+    border-radius: 4px;
+    background-color: var(--nemo-secondary-bg);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.nemo-lorebook-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--nemo-border-color);
+    transition: background-color 0.2s ease;
+}
+
+.nemo-lorebook-entry:last-child {
+    border-bottom: none;
+}
+
+.nemo-lorebook-entry:hover {
+    background-color: var(--nemo-item-hover-bg);
+}
+
+.nemo-lorebook-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.nemo-lorebook-name {
+    font-weight: 500;
+    color: var(--nemo-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.nemo-lorebook-details {
+    font-size: 0.85em;
+    color: var(--nemo-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.nemo-remove-lorebook {
+    flex-shrink: 0;
+    background-color: var(--nemo-tertiary-bg);
+    border: 1px solid var(--nemo-border-color);
+    color: var(--nemo-text-color);
+    padding: 4px 8px;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+}
+
+.nemo-remove-lorebook:hover {
+    background-color: var(--SmartThemeQuoteColor);
+    border-color: var(--SmartThemeQuoteColor);
+    color: white;
+}
+
+.nemo-no-lorebooks {
+    padding: 16px;
+    text-align: center;
+    color: var(--nemo-text-muted);
+    font-style: italic;
+}
+
+/* Add lorebook controls */
+#nemo-add-lorebook-btn {
+    background-color: var(--nemo-primary-accent);
+    border-color: var(--nemo-primary-accent);
+    color: white;
+    transition: all 0.2s ease;
+}
+
+#nemo-add-lorebook-btn:hover {
+    background-color: var(--nemo-secondary-accent);
+    border-color: var(--nemo-secondary-accent);
+    box-shadow: 0 0 5px var(--nemo-glow-color);
+}
+
+#nemo-add-lorebook-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Mobile responsiveness for lorebook section */
+@media (max-width: 768px) {
+    .nemo-active-lorebooks-list {
+        max-height: 150px;
+    }
+    
+    .nemo-lorebook-entry {
+        padding: 12px;
+    }
+    
+    
+    .nemo-lorebook-details {
+        font-size: 0.8em;
+    }
+}
+
+@media (max-width: 480px) {
+    .nemo-active-lorebooks-list {
+        max-height: 120px;
+    }
+    
+    /* Mobile-friendly lorebook management */
+    .nemo-lorebook-entry {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .nemo-lorebook-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .nemo-remove-lorebook {
+        align-self: flex-end;
+    }
+}
+
+/* === MESSAGE THEMES === */
+
+/* --- Generic Message Styling --- */
+body.nemo-message-theme-active .mes_block {
+    font-family: var(--panel-font) !important;
+    border: 1px solid var(--panel-border) !important;
+    background-color: var(--panel-bg-primary) !important;
+    box-shadow: 0 2px 5px var(--panel-shadow) !important;
+    color: var(--text-primary) !important;
+    border-radius: 8px !important;
+    margin-bottom: 10px !important;
+    overflow: hidden !important;
+}
+
+body.nemo-message-theme-active .mes_block .ch_name {
+    background: var(--header-bg-primary) !important;
+    color: var(--header-text) !important;
+    border-bottom: 1px solid var(--panel-border) !important;
+    padding: 8px 12px !important;
+}
+
+/* Ensure name text has high contrast */
+body.nemo-message-theme-active .mes_block .ch_name .name_text {
+    color: var(--header-text) !important;
+    font-weight: 600 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Timestamp and other header elements */
+body.nemo-message-theme-active .mes_block .ch_name .timestamp,
+body.nemo-message-theme-active .mes_block .ch_name small {
+    color: var(--header-text) !important;
+    opacity: 0.8 !important;
+}
+
+/* Icons and other header elements */
+body.nemo-message-theme-active .mes_block .ch_name i,
+body.nemo-message-theme-active .mes_block .ch_name svg {
+    color: var(--header-text) !important;
+    fill: var(--header-text) !important;
+    opacity: 0.7 !important;
+}
+
+body.nemo-message-theme-active .mes_block .mes_text {
+    color: var(--text-primary) !important;
+    padding: 12px !important;
+    background-color: var(--panel-bg-primary) !important;
+    border-radius: 0 0 8px 8px !important;
+}
+
+/* Ensure block text elements within mes_text inherit the theme color
+   (q/em/strong are handled by their own dialogue/italics rules below) */
+body.nemo-message-theme-active .mes_block .mes_text p,
+body.nemo-message-theme-active .mes_block .mes_text div,
+body.nemo-message-theme-active .mes_block .mes_text span {
+    color: var(--text-primary) !important;
+}
+
+/* Code blocks need high contrast for readability */
+body.nemo-message-theme-active .mes_block .mes_text code {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    color: #ffffff !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-weight: bold !important;
+}
+
+/* User message differentiation */
+body.nemo-message-theme-active .mes_block.is_user {
+    background-color: var(--panel-bg-secondary) !important;
+    border-color: var(--panel-border) !important;
+}
+
+body.nemo-message-theme-active .mes_block.is_user .ch_name {
+    background: var(--header-bg-primary) !important;
+    color: var(--header-text) !important;
+    opacity: 0.8 !important;
+}
+
+body.nemo-message-theme-active .mes_block.is_user .mes_text {
+    background-color: var(--panel-bg-secondary) !important;
+}
+
+/* Additional reasoning header elements */
+body.nemo-message-theme-active .mes_block .mes_reasoning_summary * {
+    color: var(--header-text, #333333) !important;
+}
+
+body.nemo-message-theme-active .mes_block .mes_reasoning_summary .mes_reasoning_arrow {
+    color: var(--header-text, #333333) !important;
+}
+
+body.nemo-message-theme-active .mes_block .mes_reasoning_summary svg {
+    fill: var(--header-text, #333333) !important;
+}
+
+/* Emergency contrast fix for reasoning title */
+body.nemo-message-theme-active .mes_block .mes_reasoning_summary {
+    background-color: var(--header-bg-primary) !important;
+    color: var(--header-text) !important;
+}
+
+/* Ensure reasoning content is readable */
+body.nemo-message-theme-active .mes_block .mes_reasoning p,
+body.nemo-message-theme-active .mes_block .mes_reasoning li,
+body.nemo-message-theme-active .mes_block .mes_reasoning span,
+body.nemo-message-theme-active .mes_block .mes_reasoning div,
+body.nemo-message-theme-active .mes_block .mes_reasoning ol,
+body.nemo-message-theme-active .mes_block .mes_reasoning ul {
+    color: var(--text-primary) !important;
+    background-color: transparent !important;
+}
+
+/* Main reasoning block container */
+body.nemo-message-theme-active .mes_block .mes_reasoning_details {
+    background-color: var(--panel-bg-secondary) !important;
+    border: 1px solid var(--panel-border) !important;
+    border-radius: 4px !important;
+    margin: 8px 0 !important;
+    opacity: 0.95 !important;
+}
+
+/* Reasoning content area */
+body.nemo-message-theme-active .mes_block .mes_reasoning {
+    color: var(--text-primary) !important;
+    background-color: var(--panel-bg-primary) !important;
+    padding: 12px !important;
+    font-size: 0.9em !important;
+}
+
+/* Fix for specific reasoning elements when expanded */
+body.nemo-message-theme-active .mes_block .mes_reasoning_details[open] .mes_reasoning {
+    background-color: var(--panel-bg-primary) !important;
+    border-top: 1px solid var(--panel-border) !important;
+}
+
+body.nemo-message-theme-active .main-container {
+    background-color: var(--panel-bg-secondary);
+}
+
+/* === DIALOGUE AND ITALICS STYLING FOR ALL THEMES === */
+
+/* Dialogue styling - text within quotes (color only; let ST theme control style/weight) */
+body.nemo-message-theme-active .mes_block .mes_text q,
+body.nemo-message-theme-active .mes_block .mes_text q::before,
+body.nemo-message-theme-active .mes_block .mes_text q::after {
+    color: var(--dialogue-color, var(--SmartThemeQuoteColor)) !important;
+}
+
+/* Italics styling (color only; let ST theme decide whether to italicize) */
+body.nemo-message-theme-active .mes_block .mes_text em,
+body.nemo-message-theme-active .mes_block .mes_text i {
+    color: var(--italics-color, var(--SmartThemeEmColor)) !important;
+}
+
+/* Reasoning block dialogue (color only; let ST theme control style/weight) */
+body.nemo-message-theme-active .mes_block .mes_reasoning q {
+    color: var(--dialogue-color, var(--SmartThemeQuoteColor)) !important;
+}
+
+body.nemo-message-theme-active .mes_block .mes_reasoning em,
+body.nemo-message-theme-active .mes_block .mes_reasoning i {
+    color: var(--italics-color, var(--SmartThemeEmColor)) !important;
+}
+
+/* --- Theme Definitions --- */
+
+body.theme-cheerful {
+  --panel-font: 'Verdana', 'Geneva', sans-serif;
+  --panel-border: #FFC107;
+  --panel-bg-primary: #FFFDE7;
+  --panel-bg-secondary: #FFF8E1;
+  --panel-shadow: rgba(255,193,7,0.3);
+  --header-bg-primary: #FFF9C4;
+  --header-text: #424242;
+  --text-primary: #5D4037;
+  --dialogue-color: #2E7D32;
+  --italics-color: #E65100;
+}
+
+body.theme-divine {
+  --panel-font: 'Garamond', 'Palatino', serif;
+  --panel-border: #FFD700;
+  --panel-bg-primary: #FFFFFF;
+  --panel-bg-secondary: #F8F8FF;
+  --panel-shadow: rgba(255,215,0,0.3);
+  --header-bg-primary: #F0F8FF;
+  --header-text: #1a3a3a;
+  --text-primary: #2F4F4F;
+  --dialogue-color: #8B4513;
+  --italics-color: #4B0082;
+}
+
+body.theme-fantasy {
+  --panel-font: 'Georgia', 'Times New Roman', serif;
+  --panel-border: #8B4513;
+  --panel-bg-primary: #2F1B14;
+  --panel-bg-secondary: #3d2518;
+  --panel-shadow: rgba(0,0,0,0.7);
+  --header-bg-primary: #6b3e1a;
+  --header-text: #F4E4BC;
+  --text-primary: #E8DCC6;
+  --dialogue-color: #90EE90;
+  --italics-color: #DDA0DD;
+}
+
+body.theme-royal {
+  --panel-font: 'Garamond', 'Book Antiqua', serif;
+  --panel-border: #C0C0C0;
+  --panel-bg-primary: #4B0082;
+  --panel-bg-secondary: #6a1fb3;
+  --panel-shadow: rgba(0,0,0,0.5);
+  --header-bg-primary: #8B6914;
+  --header-text: #FFFFFF;
+  --text-primary: #F8F8FF;
+  --dialogue-color: #FFD700;
+  --italics-color: #FF69B4;
+}
+
+body.theme-steampunk {
+  --panel-font: 'Times New Roman', 'Baskerville', serif;
+  --panel-border: #B8860B;
+  --panel-bg-primary: #5D4037;
+  --panel-bg-secondary: #6d4c41;
+  --panel-shadow: rgba(0,0,0,0.6);
+  --header-bg-primary: #1a4480;
+  --header-text: #F5DEB3;
+  --text-primary: #F5DEB3;
+  --dialogue-color: #87CEEB;
+  --italics-color: #CD853F;
+}
+
+body.theme-solarpunk {
+  --panel-font: 'Nunito', 'Segoe UI', sans-serif;
+  --panel-border: #228B22;
+  --panel-bg-primary: #F0FFF0;
+  --panel-bg-secondary: #E8F5E8;
+  --panel-shadow: rgba(34,139,34,0.2);
+  --header-bg-primary: #FFF3CD;
+  --header-text: #2c5530;
+  --text-primary: #2c5530;
+  --dialogue-color: #FF6347;
+  --italics-color: #9932CC;
+}
+
+body.theme-goth {
+  --panel-font: 'Georgia', 'Times New Roman', serif;
+  --panel-border: #444444;
+  --panel-bg-primary: #1a1a1a;
+  --panel-bg-secondary: #2a2a2a;
+  --panel-shadow: rgba(0,0,0,0.8);
+  --header-bg-primary: #4a1a1a;
+  --header-text: #E0E0E0;
+  --text-primary: #CCCCCC;
+  --dialogue-color: #DC143C;
+  --italics-color: #8A2BE2;
+}
+
+body.theme-pastel {
+  --panel-font: 'Segoe UI', 'Candara', sans-serif;
+  --panel-border: #D1C4E9;
+  --panel-bg-primary: #FFFFFF;
+  --panel-bg-secondary: #F8F6FF;
+  --panel-shadow: rgba(0,0,0,0.1);
+  --header-bg-primary: #E1F5FE;
+  --header-text: #1a1a1a;
+  --text-primary: #2c3e50;
+  --dialogue-color: #FF69B4;
+  --italics-color: #9370DB;
+}
+
+body.theme-passionate {
+  --panel-font: 'Arial Black', 'Impact', sans-serif;
+  --panel-border: #B22222;
+  --panel-bg-primary: #1A1A1A;
+  --panel-bg-secondary: #2a2a2a;
+  --panel-shadow: rgba(178,34,34,0.5);
+  --header-bg-primary: #8B1538;
+  --header-text: #FFFFFF;
+  --text-primary: #F5F5F5;
+  --dialogue-color: #FF4500;
+  --italics-color: #FFA500;
+}
+
+body.theme-horror {
+  --panel-font: 'Georgia', 'Times New Roman', serif;
+  --panel-border: #4B0082;
+  --panel-bg-primary: #1A0B1A;
+  --panel-bg-secondary: #2a1a2a;
+  --panel-shadow: rgba(0,0,0,0.9);
+  --header-bg-primary: #3a1a5a;
+  --header-text: #D8BFD8;
+  --text-primary: #C8B8C8;
+  --dialogue-color: #FF6B6B;
+  --italics-color: #DDA0DD;
+}
+
+body.theme-melancholy {
+  --panel-font: 'Garamond', 'Palatino', serif;
+  --panel-border: #78909C;
+  --panel-bg-primary: #37474F;
+  --panel-bg-secondary: #455a64;
+  --panel-shadow: rgba(0,0,0,0.4);
+  --header-bg-primary: #546e7a;
+  --header-text: #ECEFF1;
+  --text-primary: #CFD8DC;
+  --dialogue-color: #81C784;
+  --italics-color: #BA68C8;
+}
+
+body.theme-romance {
+  --panel-font: 'Candara', 'Calibri', sans-serif;
+  --panel-border: #d8bfd8;
+  --panel-bg-primary: #4a3f56;
+  --panel-bg-secondary: #5a4f66;
+  --panel-shadow: rgba(0,0,0,0.3);
+  --header-bg-primary: #8B4B8B;
+  --header-text: #f0e8f8;
+  --text-primary: #f0e8f8;
+  --dialogue-color: #FFB6C1;
+  --italics-color: #DDA0DD;
+}
+
+body.theme-cyberpunk {
+  --panel-font: 'Courier New', 'Monaco', monospace;
+  --panel-border: #00FFFF;
+  --panel-bg-primary: #001122;
+  --panel-bg-secondary: #002233;
+  --panel-shadow: rgba(0,255,255,0.4);
+  --header-bg-primary: #004466;
+  --header-text: #E0FFFF;
+  --text-primary: #E0FFFF;
+  --dialogue-color: #FF00FF;
+  --italics-color: #00FF00;
+}
+
+body.theme-dyslexia {
+  --panel-font: 'OpenDyslexic', 'Verdana', 'Arial', sans-serif;
+  --panel-border: #8B7355;
+  --panel-bg-primary: #FFFEF7;
+  --panel-bg-secondary: #F8F5E8;
+  --panel-shadow: rgba(139,115,85,0.2);
+  --header-bg-primary: #F0E6C8;
+  --header-text: #2d2d2d;
+  --text-primary: #2d2d2d;
+  --dialogue-color: #CC0000;
+  --italics-color: #0066CC;
+}
+
+body.theme-dyslexia-dark {
+  --panel-font: 'OpenDyslexic', 'Verdana', 'Arial', sans-serif;
+  --panel-border: #8B7355;
+  --panel-bg-primary: #1a1a1a;
+  --panel-bg-secondary: #2a2a2a;
+  --panel-shadow: rgba(0,0,0,0.6);
+  --header-bg-primary: #3a3a3a;
+  --header-text: #f0f0f0;
+  --text-primary: #f0f0f0;
+  --dialogue-color: #87CEEB;
+  --italics-color: #FFA500;
+}
+
+/* === DYSLEXIA-FRIENDLY ENHANCEMENTS === */
+
+/* Enhanced text styling for dyslexia readability */
+body.theme-dyslexia .mes_block .mes_text {
+    line-height: 1.6 !important;
+    font-size: 20px !important;
+    letter-spacing: 0.05em !important;
+    word-spacing: 0.15em !important;
+}
+
+body.theme-dyslexia-dark .mes_block .mes_text {
+    line-height: 1.8 !important;
+    font-size: 20px !important;
+    letter-spacing: 0.08em !important;
+    word-spacing: 0.18em !important;
+}
+
+body.theme-dyslexia .mes_block .mes_text p {
+    margin-bottom: 1.2em !important;
+    text-align: left !important;
+    font-size: 20px !important;
+}
+
+body.theme-dyslexia-dark .mes_block .mes_text p {
+    margin-bottom: 1.4em !important;
+    text-align: left !important;
+    font-size: 20px !important;
+}
+
+/* Improved header readability */
+body.theme-dyslexia .mes_block .ch_name .name_text {
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+}
+
+body.theme-dyslexia-dark .mes_block .ch_name .name_text {
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.06em !important;
+}
+
+/* Timestamp and small elements */
+body.theme-dyslexia .mes_block .ch_name .timestamp,
+body.theme-dyslexia .mes_block .ch_name small,
+body.theme-dyslexia-dark .mes_block .ch_name .timestamp,
+body.theme-dyslexia-dark .mes_block .ch_name small {
+    font-size: 16px !important;
+}
+
+/* Enhanced reasoning block readability */
+body.theme-dyslexia .mes_block .mes_reasoning {
+    line-height: 1.7 !important;
+    font-size: 19px !important;
+    letter-spacing: 0.04em !important;
+}
+
+body.theme-dyslexia-dark .mes_block .mes_reasoning {
+    line-height: 1.9 !important;
+    font-size: 19px !important;
+    letter-spacing: 0.07em !important;
+}
+
+body.theme-dyslexia .mes_block .mes_reasoning p,
+body.theme-dyslexia .mes_block .mes_reasoning li {
+    margin-bottom: 1em !important;
+    font-size: 19px !important;
+}
+
+body.theme-dyslexia-dark .mes_block .mes_reasoning p,
+body.theme-dyslexia-dark .mes_block .mes_reasoning li {
+    margin-bottom: 1.3em !important;
+    font-size: 19px !important;
+}
+
+/* Reasoning header title */
+body.theme-dyslexia .mes_block .mes_reasoning_summary .mes_reasoning_header_title,
+body.theme-dyslexia-dark .mes_block .mes_reasoning_summary .mes_reasoning_header_title {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+}
+
+/* Dyslexia-friendly code blocks with higher contrast */
+body.theme-dyslexia .mes_block .mes_text code {
+    background-color: #2F2F2F !important;
+    color: #FDF6E3 !important;
+    font-family: 'OpenDyslexic Mono', 'Courier New', monospace !important;
+    font-size: 19px !important;
+    letter-spacing: 0.02em !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+}
+
+body.theme-dyslexia-dark .mes_block .mes_text code {
+    background-color: #404040 !important;
+    color: #E0E0E0 !important;
+    font-family: 'OpenDyslexic Mono', 'Courier New', monospace !important;
+    font-size: 19px !important;
+    letter-spacing: 0.02em !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+}
+
+/* Reduced visual clutter - simpler borders */
+body.theme-dyslexia .mes_block,
+body.theme-dyslexia-dark .mes_block {
+    border-width: 2px !important;
+    border-style: solid !important;
+}
+
+/* Enhanced focus indicators */
+body.theme-dyslexia .mes_block .mes_text *:focus,
+body.theme-dyslexia-dark .mes_block .mes_text *:focus {
+    outline: 3px solid #8B7355 !important;
+    outline-offset: 2px !important;
+}
+
+/* Additional contrast enhancements for dyslexia light theme */
+body.theme-dyslexia .mes_block .mes_text,
+body.theme-dyslexia .mes_block .mes_text p,
+body.theme-dyslexia .mes_block .mes_text div,
+body.theme-dyslexia .mes_block .mes_text span,
+body.theme-dyslexia .mes_block .mes_text q,
+body.theme-dyslexia .mes_block .mes_text em,
+body.theme-dyslexia .mes_block .mes_text strong {
+    color: #2d2d2d !important;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Additional contrast enhancements for dyslexia dark theme */
+body.theme-dyslexia-dark .mes_block .mes_text,
+body.theme-dyslexia-dark .mes_block .mes_text p,
+body.theme-dyslexia-dark .mes_block .mes_text div,
+body.theme-dyslexia-dark .mes_block .mes_text span,
+body.theme-dyslexia-dark .mes_block .mes_text q,
+body.theme-dyslexia-dark .mes_block .mes_text em,
+body.theme-dyslexia-dark .mes_block .mes_text strong {
+    color: #f0f0f0 !important;
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Enhanced header contrast - light theme */
+body.theme-dyslexia .mes_block .ch_name .name_text {
+    color: #1d1d1d !important;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Enhanced header contrast - dark theme */
+body.theme-dyslexia-dark .mes_block .ch_name .name_text {
+    color: #f0f0f0 !important;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Reasoning block text contrast - light theme */
+body.theme-dyslexia .mes_block .mes_reasoning,
+body.theme-dyslexia .mes_block .mes_reasoning p,
+body.theme-dyslexia .mes_block .mes_reasoning li,
+body.theme-dyslexia .mes_block .mes_reasoning span,
+body.theme-dyslexia .mes_block .mes_reasoning div {
+    color: #2d2d2d !important;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Reasoning block text contrast - dark theme */
+body.theme-dyslexia-dark .mes_block .mes_reasoning,
+body.theme-dyslexia-dark .mes_block .mes_reasoning p,
+body.theme-dyslexia-dark .mes_block .mes_reasoning li,
+body.theme-dyslexia-dark .mes_block .mes_reasoning span,
+body.theme-dyslexia-dark .mes_block .mes_reasoning div {
+    color: #f0f0f0 !important;
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* High contrast code blocks - light theme */
+body.theme-dyslexia .mes_block .mes_text code {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+    text-shadow: none !important;
+    border: 1px solid #333333 !important;
+}
+
+/* High contrast code blocks - dark theme */
+body.theme-dyslexia-dark .mes_block .mes_text code {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    text-shadow: none !important;
+    border: 1px solid #CCCCCC !important;
+}
+
+.mes_block :is(.mes_text, .mes_reasoning) .nemo-italic-dialogue {
+    color: var(--dialogue-color, var(--SmartThemeQuoteColor)) !important;
+    font-style: italic !important;
+}
+
+.mes_block :is(.mes_text, .mes_reasoning) .nemo-italic-dialogue :is(strong, b) {
+    color: inherit !important;
+    font-style: inherit !important;
+    font-weight: 700 !important;
+}
+
+/* Preserve explicit message colors around nested markdown/dialogue elements. */
+body.nemo-message-theme-active .mes_block :is(.mes_text, .mes_reasoning) font[color] :is(p, div, span, q, em, i, strong, b),
+body.nemo-message-theme-active .mes_block :is(.mes_text, .mes_reasoning) font[color] q::before,
+body.nemo-message-theme-active .mes_block :is(.mes_text, .mes_reasoning) font[color] q::after {
+    color: inherit !important;
+}
+
+.mes_block :is(.mes_text, .mes_reasoning) font[color] .nemo-italic-dialogue,
+.mes_block :is(.mes_text, .mes_reasoning) font[color] .nemo-italic-dialogue :is(strong, b) {
+    color: inherit !important;
+}
+
+/* === USER SETTINGS TABBED INTERFACE === */
+
+/* Tab navigation styles */
+.nemo-user-settings-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--nemo-border-color);
+    margin-bottom: 20px;
+    background-color: var(--nemo-secondary-bg);
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+}
+
+.nemo-user-settings-tab {
+    flex: 1;
+    padding: 12px 20px;
+    background-color: var(--nemo-tertiary-bg);
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--nemo-text-color);
+    border-right: 1px solid var(--nemo-border-color);
+    transition: all 0.3s ease;
+    position: relative;
+    text-align: center;
+}
+
+.nemo-user-settings-tab:last-child {
+    border-right: none;
+}
+
+.nemo-user-settings-tab:hover {
+    background-color: var(--nemo-item-hover-bg);
+    color: var(--nemo-primary-accent);
+}
+
+.nemo-user-settings-tab.active {
+    background-color: var(--nemo-primary-bg);
+    color: var(--nemo-primary-accent);
+    border-bottom: 3px solid var(--nemo-primary-accent);
+}
+
+.nemo-user-settings-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--nemo-primary-bg);
+}
+
+/* Tab content styles */
+.nemo-user-settings-tab-content {
+    display: none;
+    padding: 20px 0;
+}
+
+.nemo-user-settings-tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Ensure proper layout within tabs */
+.nemo-user-settings-tab-content > div {
+    max-width: 100%;
+}
+
+/* UI Theme tab specific styling */
+#nemo-tab-ui-theme {
+    display: none;
+}
+
+#nemo-tab-ui-theme.active {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+/* Theme selector section - compact inline layout */
+#nemo-tab-ui-theme #UI-presets-block {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+/* Hide the entire H4 heading — we'll merge its buttons into the dropdown row via JS */
+#nemo-tab-ui-theme #UI-presets-block > h4 {
+    display: none !important;
+}
+
+/* Make preset dropdown row compact and inline */
+#nemo-tab-ui-theme #UI-presets-block .flex-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+#nemo-tab-ui-theme #UI-presets-block select {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Main content area - single column, full width */
+.nemo-ui-theme-main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+}
+
+/* Theme elements use full width */
+.nemo-ui-theme-main-content > [name="themeElements"] {
+    width: 100% !important;
+}
+
+/* Custom CSS as a collapsible section at the bottom */
+.nemo-ui-theme-main-content > #CustomCSS-block {
+    width: 100% !important;
+}
+
+/* Make sure elements inside themeElements use full width */
+#nemo-tab-ui-theme [name="themeElements"] > * {
+    width: 100%;
+}
+
+/* Form elements should expand but buttons shouldn't stretch */
+#nemo-tab-ui-theme select,
+#nemo-tab-ui-theme input[type="range"],
+#nemo-tab-ui-theme input[type="number"],
+#nemo-tab-ui-theme textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Buttons should not stretch - keep natural size */
+#nemo-tab-ui-theme .menu_button {
+    width: auto;
+    flex-shrink: 0;
+}
+
+/* Flex containers should distribute space, not stretch content */
+#nemo-tab-ui-theme .flex-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#nemo-tab-ui-theme .flex-container.alignItemsBaseline {
+    align-items: baseline;
+}
+
+/* For select elements in flex containers, only the select should grow */
+#nemo-tab-ui-theme .flex-container select.flex1 {
+    flex: 1;
+}
+
+#nemo-tab-ui-theme .flex-container select:not(.flex1) {
+    width: auto;
+    flex-shrink: 0;
+}
+
+/* Fix specific theme elements */
+#nemo-tab-ui-theme [name="FontBlurChatWidthBlock"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    width: 100%;
+}
+
+#nemo-tab-ui-theme [name="FontBlurChatWidthBlock"] .flex-container {
+    flex: 1;
+    min-width: 200px;
+}
+
+#nemo-tab-ui-theme .neo-range-slider {
+    width: 100%;
+}
+
+/* Fix color picker block */
+#nemo-tab-ui-theme #color-picker-block .flex-container {
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+/* Ensure inline drawers expand */
+#nemo-tab-ui-theme .inline-drawer {
+    width: 100%;
+}
+
+/* Custom CSS block — inline drawer style at bottom */
+#nemo-tab-ui-theme #CustomCSS-block {
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+#nemo-tab-ui-theme #CustomCSS-block > h4 {
+    cursor: pointer;
+    padding: 10px 14px;
+    margin: 0;
+    background: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2));
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#nemo-tab-ui-theme #CustomCSS-block > h4 span[data-i18n],
+#nemo-tab-ui-theme #CustomCSS-block > h4 > :first-child {
+    flex: 1;
+}
+
+/* Make Custom CSS textarea resizable */
+#nemo-tab-ui-theme #customCSS {
+    resize: vertical !important;
+    min-height: 150px !important;
+    max-height: 600px !important;
+    width: 100% !important;
+    box-sizing: border-box;
+    padding: 10px;
+    margin: 0;
+    border: none;
+    border-top: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.1));
+}
+
+/* Theme toggles multi-column layout */
+#nemo-tab-ui-theme [name="themeToggles"] {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px 20px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+#nemo-tab-ui-theme [name="themeToggles"] .checkbox_label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--nemo-tertiary-bg, rgba(255, 255, 255, 0.05));
+    border-radius: 6px;
+    border: 1px solid var(--nemo-border-color, rgba(255, 255, 255, 0.1));
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#nemo-tab-ui-theme [name="themeToggles"] .checkbox_label:hover {
     background-color: var(--nemo-item-hover-bg, rgba(255, 255, 255, 0.08));
 }
 
