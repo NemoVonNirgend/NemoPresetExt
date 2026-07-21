@@ -18,3 +18,10 @@ test('Hub catalog contains unique stable ids and HTTPS repositories', async () =
     const rewrite = NEMO_EXTENSION_CATALOG.find(entry => entry.id === 'NemoRewrite');
     assert.equal(rewrite.repository, 'https://github.com/NemoVonNirgend/NemoRewrite');
 });
+
+test('Hub installer validates bounded timeouts before calling SillyTavern', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const source = await readFile(new URL('../features/hub/installer.js', import.meta.url), 'utf8');
+    assert.match(source, /timeoutMs = 90_000/);
+    assert.match(source, /SillyTavern did not finish installing/);
+});
