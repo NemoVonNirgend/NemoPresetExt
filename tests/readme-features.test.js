@@ -13,15 +13,13 @@ test('README documents every active core feature default', () => {
     for (const row of [
         '`enableDirectives`: `true`',
         '`enableDirectiveAutocomplete`: `true`',
-        '`enableNemoEngineInstaller`: `false`',
-    ]) {
-        assert.ok(README.includes(row), `Missing core default ${row}`);
-    }
+        '`enableNemoEngineInstaller`: `true`',
+    ]) assert.ok(README.includes(row), `Missing core default ${row}`);
 });
 
 test('README documents the extracted extension migration', () => {
     for (const extension of ['NemoPromptTools', 'NemoUIOverhaul', 'NemoEmojiPicker', 'NemoImageGeneration']) {
         assert.ok(README.includes(`NemoVonNirgend/${extension}`));
     }
-    assert.ok(README.includes('Legacy settings keys are retained only for migration compatibility'));
+    assert.ok(README.includes('Legacy keys already stored in `extension_settings.NemoPresetExt` remain untouched'));
 });

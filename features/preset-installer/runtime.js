@@ -3,20 +3,16 @@ import { extension_settings } from '../../../../../extensions.js';
 import { oai_settings, openai_setting_names, openai_settings } from '../../../../../openai.js';
 import { escapeHtml, getExtensionPath } from '../../core/utils.js';
 import logger from '../../core/logger.js';
-import { tutorialLauncher } from '../onboarding/tutorial-launcher.js';
-import {
-    GUIDES_TOOL_RESULTS_VARIABLE_NAME,
-    PREFERENCES_VARIABLE_NAME,
-} from '../nemolore/constants.js';
-import { getNemoLoreSettings } from '../nemolore/settings.js';
 
 const PRESET_VERSION = '9.3.1';
 const PRESET_NAME = `Nemo Engine ${PRESET_VERSION}`;
 const PRESET_ASSET_PATH = 'assets/nemo-engine-latest.json';
 const INSTALLER_CARD_CLASS = 'nemo-engine-installer-section';
 const INSTALLER_STYLE_ID = 'nemo-engine-installer-styles';
-const SETTINGS_SELECTOR = '.nemo-preset-enhancer-settings';
+const SETTINGS_SELECTOR = '#nemo-preset-ext-settings';
 const STATUS_IDLE = 'Bundled preset: Nemo Engine 9.3.1.';
+const PREFERENCES_VARIABLE_NAME = 'NemoLorePreferences';
+const GUIDES_TOOL_RESULTS_VARIABLE_NAME = 'NemoGuidesToolResults';
 const CORE_PACK_VARIABLE_SLOTS = [
     { name: 'NemoLoreTimeline', label: 'timeline memory' },
     { name: 'NemoLoreRetrievedArchive', label: 'retrieved archive' },
@@ -300,10 +296,6 @@ export async function getNemoEngineSetupReport() {
     report.activeName = getActiveOpenAiPresetName();
     report.activeIsInstalled = !!report.installedName && report.activeName === report.installedName;
 
-    const loreSettings = getNemoLoreSettings();
-    const guidesSettings = loreSettings.guides || {};
-    const preferenceVariable = String(loreSettings.preferenceVariableName || PREFERENCES_VARIABLE_NAME).trim();
-    const toolResultsVariable = String(guidesSettings.toolResultsVariableName || GUIDES_TOOL_RESULTS_VARIABLE_NAME).trim();
 
     report.checks.push({
         state: 'ok',
@@ -330,16 +322,7 @@ export async function getNemoEngineSetupReport() {
         label: 'Nemo Engine is selected as the active Chat Completion preset',
         detail: report.activeName ? `Active preset: ${report.activeName}.` : 'No active OpenAI preset detected yet.',
     });
-    report.checks.push({
-        state: preferenceVariable === PREFERENCES_VARIABLE_NAME ? 'ok' : 'warning',
-        label: 'Preference variable matches the bundled core pack',
-        detail: `${preferenceVariable} -> expected ${PREFERENCES_VARIABLE_NAME}.`,
-    });
-    report.checks.push({
-        state: toolResultsVariable === GUIDES_TOOL_RESULTS_VARIABLE_NAME ? 'ok' : 'warning',
-        label: 'Guides tool result variable matches the bundled core pack',
-        detail: `${toolResultsVariable} -> expected ${GUIDES_TOOL_RESULTS_VARIABLE_NAME}.`,
-    });
+
 
     report.hasErrors = report.checks.some(check => check.state === 'error');
     report.hasWarnings = report.checks.some(check => check.state === 'warning');
@@ -549,7 +532,7 @@ function createInstallerCard() {
     });
 
     guideButton.addEventListener('click', () => {
-        tutorialLauncher.startTutorial('nemoEngineSetup');
+        window.open('/' + getExtensionPath('NEMO_ENGINE_SETUP.md'), '_blank', 'noopener');
     });
 
     return card;
@@ -559,13 +542,8 @@ function mountInstallerCard(settingsContainer) {
     if (!settingsContainer || settingsContainer.querySelector(`.${INSTALLER_CARD_CLASS}`)) return;
 
     const card = createInstallerCard();
-    const tutorialSection = settingsContainer.querySelector('.nemo-tutorials-button')?.closest('.nemo-settings-section');
+    settingsContainer.insertBefore(card, settingsContainer.firstChild);
 
-    if (tutorialSection) {
-        tutorialSection.insertAdjacentElement('afterend', card);
-    } else {
-        settingsContainer.insertBefore(card, settingsContainer.firstChild);
-    }
 
     loadBundledNemoEnginePreset()
         .then(({ stats }) => {

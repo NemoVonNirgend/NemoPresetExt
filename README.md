@@ -1,75 +1,72 @@
 # NemoPresetExt
 
-NemoPresetExt is the core package for Nemo prompt directives, custom divider configuration, NemoEngine installation, and Nemo Hub.
+NemoPresetExt is the small core package for Nemo prompt directives, custom divider configuration, NemoEngine installation, and Nemo Hub.
 
-**Version:** 5.0.0
+**Version:** 5.1.0
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
-Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's extension installer, then reload SillyTavern. The extension must be installed globally under `public/scripts/extensions/third-party/NemoPresetExt` for Nemo Hub's global extension paths.
-
-No SillyTavern source modifications are required. This release is tested against the current SillyTavern staging extension contract.
+Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
 
 ## Core features
 
-- Prompt directives and their runtime validation hooks.
-- Directive suggestions rendered through SillyTavern's native autocomplete components.
-- Custom prompt-divider patterns, kept at the top of the settings drawer.
-- NemoEngine installer and setup workflow.
+- Prompt directives and runtime validation hooks.
+- Directive suggestions through SillyTavern's native autocomplete components.
+- Custom prompt-divider patterns at the top of the settings drawer.
+- NemoEngine preset installer and setup report.
 - Nemo Hub for optional Nemo extensions.
 
-New-install feature defaults:
+New-install defaults:
 
 - `enableDirectives`: `true`
 - `enableDirectiveAutocomplete`: `true`
-- `enableNemoEngineInstaller`: `false`
-
-Legacy settings keys are retained only for migration compatibility. NemoPresetExt no longer initializes their optional runtimes.
+- `enableNemoEngineInstaller`: `true`
 
 ## Optional extensions
 
-Install these from Nemo Hub as needed:
+Install these independently from Nemo Hub:
 
 | Extension | Features |
 | --- | --- |
-| [Nemo Prompt Tools](https://github.com/NemoVonNirgend/NemoPromptTools) | Preset navigator, character navigator, prompt dropdowns and tools, improved reasoning capture. |
-| [Nemo UI Overhaul](https://github.com/NemoVonNirgend/NemoUIOverhaul) | Animated backgrounds, settings/connection/extension/lorebook UI, quick lorebook access, wide and mobile navigation, unified reasoning UI, model selector, customization. |
-| [Nemo Emoji Picker](https://github.com/NemoVonNirgend/NemoEmojiPicker) | Searchable composer emoji picker. |
-| [Nemo Image Generation](https://github.com/NemoVonNirgend/NemoImageGeneration) | Pollinations detection and automatic image generation through SillyTavern providers. |
+| [Nemo Prompt Tools](https://github.com/NemoVonNirgend/NemoPromptTools) | Preset and character navigation, prompt dropdowns/tools, improved reasoning capture. |
+| [Nemo UI Overhaul](https://github.com/NemoVonNirgend/NemoUIOverhaul) | Backgrounds, settings/connection/extensions/lorebook UI, wide/mobile panels, model selector, and themes. |
+| [Nemo Emoji Picker](https://github.com/NemoVonNirgend/NemoEmojiPicker) | Composer emoji picker. |
+| [Nemo Image Generation](https://github.com/NemoVonNirgend/NemoImageGeneration) | Pollinations detection and automatic image workflows through SillyTavern providers. |
 | [NemoLore](https://github.com/NemoVonNirgend/NemoLore) | Memory, summaries, retrieval, and lore maintenance. |
 | [Ember](https://github.com/NemoVonNirgend/Ember) | Interactive HTML/JavaScript chat artifacts. |
 | [NemoRewrite](https://github.com/NemoVonNirgend/NemoRewrite) | Selection-based rewriting tools. |
 
+Every extracted package owns its settings namespace and native Extensions drawer. Compatible 4.x choices migrate on first launch.
+
 ## Prompt directives
 
-Directive metadata lives inside prompt comments such as `{{// @tooltip Example }}`. Enable directives in NemoPresetExt settings. The autocomplete adapter uses SillyTavern's `AutoComplete`, `AutoCompleteNameResult`, and `AutoCompleteOption` surfaces and only activates inside Nemo directive comments, leaving ordinary macro autocomplete under SillyTavern control.
+Directive metadata lives inside prompt comments such as `{{// @tooltip Example }}`. The adapter uses SillyTavern's `AutoComplete`, `AutoCompleteNameResult`, and `AutoCompleteOption` surfaces only while editing directive comments, leaving ordinary native macro autocomplete in control everywhere else.
 
 ## Custom dividers
 
-Add comma-separated regular expressions under **Custom dividers** and save. Nemo Prompt Tools reads this core setting when it organizes prompt sections, so divider ownership remains in NemoPresetExt even though the prompt browser is optional.
+Add comma-separated regular expressions under **Custom dividers** and save. Nemo Prompt Tools consumes the core divider contract when installed.
 
 ## NemoEngine
 
-Enable the NemoEngine installer only when you want the guided preset installation workflow. Provider credentials remain owned by SillyTavern.
+The installer adds or updates the bundled Nemo Engine Chat Completion preset without changing SillyTavern source. Its setup report validates the bundled and installed prompt slots. Provider credentials remain owned by SillyTavern. The **Open Setup Guide** action opens `NEMO_ENGINE_SETUP.md` from this extension.
 
 ## Nemo Hub
 
-Hub installs use SillyTavern's native global extension installer. The first third-party installation may show SillyTavern's standard security confirmation. Installed extensions require a page reload before their full UI is available.
+Hub installs use SillyTavern's native global extension installer. The first third-party installation may show SillyTavern's standard security confirmation. Reload after installation.
 
-## Migration from 4.x
+## Migration from 4.x and 5.0
 
-- Optional feature settings are preserved but no longer cause bundled runtimes to initialize.
-- Install the corresponding standalone extension from Nemo Hub to continue using an extracted feature.
+- Optional source and runtime ownership moved out of NemoPresetExt in 5.1.
+- Legacy keys already stored in `extension_settings.NemoPresetExt` remain untouched so standalone packages can migrate them.
+- Removing bundled code does not delete existing browser-stored data, localforage records, chats, presets, or extension settings.
 - Custom divider patterns and prompt-directive settings remain in `extension_settings.NemoPresetExt`.
-- Nemo Prompt Tools prefers the core divider setting and falls back to its own namespace only for compatibility.
-- Existing NemoLore and NemoRewrite data remains untouched for their standalone migrations.
 
 ## Troubleshooting
 
-- Confirm the folder name matches the repository name exactly.
-- Reload after every install.
-- If a Hub install appears to wait indefinitely, complete SillyTavern's third-party extension warning dialog.
-- Check the first relevant browser-console error and verify `manifest.json` parses.
-- Directive suggestions require a current SillyTavern build with the native autocomplete modules under `scripts/autocomplete/`.
+- Confirm the installed folder is named `NemoPresetExt` exactly.
+- Reload after every Hub install or feature-gate change.
+- Complete SillyTavern's third-party extension warning if an install appears paused.
+- Use a current SillyTavern build containing `scripts/autocomplete/AutoComplete.js`.
+- If settings do not persist, check the `/api/settings/save` response in the browser network panel.

@@ -135,11 +135,6 @@ test('directive autocomplete supports subsequent lines in a comment block', () =
     assert.match(directiveAutocomplete, /\(\?:\\\{\\\{\\\/\\\/\\s\*\)\?\(@\[\\w-\]\+\)/);
 });
 
-test('tray metadata and validation honor the directive master switch', () => {
-    const categoryTray = read('../features/prompts/category-tray.js');
-    assert.match(categoryTray, /isFeatureEnabled\(extension_settings\[NEMO_EXTENSION_NAME\], 'enableDirectives'\)/);
-});
-
 test('directive autocomplete setting exposes its dependency on the master switch', () => {
     const settingsUi = read('../ui/settings-ui.js');
     assert.match(settingsUi, /directiveAutocompleteToggle\.disabled\s*=\s*!directivesEnabled/);

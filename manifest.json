@@ -1,16 +1,12 @@
 {
-    "display_name":  "NemoPresetExt",
-    "author":  "@NemoVonNirgend",
-    "version":  "5.0.0",
-    "description":  "Core prompt directives, custom dividers, NemoEngine setup, and the Nemo Hub extension catalog.",
-    "requires":  [
-
-                 ],
-    "optional":  [
-
-                 ],
-    "js":  "content.js",
-    "css":  "styles.css",
-    "homePage":  "https://github.com/NemoVonNirgend/NemoPresetExt",
-    "loading_order":  1000
+  "display_name": "NemoPresetExt",
+  "author": "@NemoVonNirgend",
+  "version": "5.1.0",
+  "description": "Core prompt directives, custom dividers, NemoEngine setup, and the Nemo Hub extension catalog.",
+  "requires": [],
+  "optional": [],
+  "js": "content.js",
+  "css": "styles.css",
+  "homePage": "https://github.com/NemoVonNirgend/NemoPresetExt",
+  "loading_order": 1000
 }

@@ -1,7 +1,6 @@
 import { extension_settings } from '../../../extensions.js';
 import { ensureSettingsNamespace, isFeatureEnabled, waitForElement, NEMO_EXTENSION_NAME } from './core/utils.js';
 import logger from './core/logger.js';
-import { initializeStorage, migrateFromLocalStorage } from './core/storage-migration.js';
 import { initializeDirectiveCache, clearDirectiveCache } from './core/directive-cache.js';
 import { NemoSettingsUI } from './ui/settings-ui.js';
 import { getCustomDividerPatterns, validateDividerPatterns } from './core/divider-patterns.js';
@@ -58,8 +57,6 @@ export async function initializeExtension() {
 
     try {
         ensureSettingsNamespace();
-        initializeStorage();
-        migrateFromLocalStorage();
         validateDividerPatterns();
         await NemoSettingsUI.initialize();
 

@@ -1,17 +1,14 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
+import test from 'node:test';
 
-test('retired bundled NemoLore cannot initialize from the NemoPresetExt entrypoint', async () => {
+test('retired bundled NemoLore cannot initialize from NemoPresetExt', async () => {
     const content = await readFile(new URL('../content.js', import.meta.url), 'utf8');
-    assert.doesNotMatch(content, /from ['"]\.\/features\/nemolore\/runtime\.js['"]/);
-    assert.doesNotMatch(content, /\binitNemoLore\s*\(/);
+    assert.doesNotMatch(content, /features\/nemolore|initNemoLore/);
+    await assert.rejects(access(new URL('../features/nemolore/runtime.js', import.meta.url)));
 });
 
-test('retired NemoLore data remains present for a future explicit migration', async () => {
-    const storage = await readFile(new URL('../features/nemolore/storage.js', import.meta.url), 'utf8');
-    const audit = await readFile(new URL('../docs/BUNDLED_NEMOLORE_AUDIT.md', import.meta.url), 'utf8');
-    assert.match(storage, /getArchiveKey/);
-    assert.match(storage, /getPreferencesKey/);
-    assert.match(audit, /persisted localforage records are not deleted/i);
+test('migration notes preserve user-data safety guidance', async () => {
+    const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
+    assert.match(readme, /does not delete existing browser-stored data/i);
 });
