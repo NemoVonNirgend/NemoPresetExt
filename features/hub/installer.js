@@ -5,7 +5,7 @@ export function isHubExtensionInstalled(id, names = extensionNames) {
     return includesExtension(names, id);
 }
 
-export async function installHubExtension(entry, { global = false, timeoutMs = 90_000 } = {}) {
+export async function installHubExtension(entry, { global = true, timeoutMs = 90_000 } = {}) {
     if (!entry?.id || !entry?.repository) throw new TypeError('A catalog extension with an id and repository is required.');
     if (isHubExtensionInstalled(entry.id)) return { installed: true, alreadyInstalled: true, id: entry.id };
     const timeout = Number(timeoutMs);

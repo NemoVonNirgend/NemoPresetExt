@@ -23,5 +23,6 @@ test('Hub installer validates bounded timeouts before calling SillyTavern', asyn
     const { readFile } = await import('node:fs/promises');
     const source = await readFile(new URL('../features/hub/installer.js', import.meta.url), 'utf8');
     assert.match(source, /timeoutMs = 90_000/);
+    assert.match(source, /global = true/);
     assert.match(source, /SillyTavern did not finish installing/);
 });
