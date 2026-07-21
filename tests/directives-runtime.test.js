@@ -48,7 +48,9 @@ test('directive listeners, observers, and timers have explicit teardown paths', 
     assert.match(directiveUi, /\.disconnect\(\)/);
     assert.match(directiveAutocompleteUi, /export function cleanupDirectiveAutocomplete\(\)/);
     assert.match(directiveAutocompleteUi, /\.disconnect\(\)/);
-    assert.match(directiveAutocompleteUi, /removeEventListener/);
+    assert.match(directiveAutocompleteUi, /autocomplete\.hide\(\)/);
+    assert.ok(directiveAutocompleteUi.includes("from '../../../../../autocomplete/AutoComplete.js'"));
+    assert.doesNotMatch(directiveAutocompleteUi, /nemo-autocomplete-dropdown/);
 });
 
 test('directive parser supports multiple directives in one comment block', () => {

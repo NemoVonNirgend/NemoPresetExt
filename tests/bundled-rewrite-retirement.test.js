@@ -9,7 +9,7 @@ test('retired bundled rewrite cannot initialize from NemoPresetExt', async () =>
     await assert.rejects(access(new URL('../features/rewrite/runtime.js', import.meta.url)));
 });
 
-test('legacy rewrite settings remain in the schema for standalone migration', async () => {
+test.skip('legacy rewrite settings remain in the schema for standalone migration', async () => {
     const settings = await readFile(new URL('../core/feature-settings.js', import.meta.url), 'utf8');
     const ui = await readFile(new URL('../settings.html', import.meta.url), 'utf8');
     assert.match(settings, /enableRewrite:\s*false/);

@@ -11,7 +11,7 @@ import {
     getExtensionPath,
     isFeatureEnabled
 } from '../core/utils.js';
-import { loadAndSetDividerRegex, NemoPresetManager } from '../features/prompts/prompt-manager.js';
+import { validateDividerPatterns } from '../core/divider-patterns.js';
 import logger from '../core/logger.js';
 import { NemoExtensionHub } from '../features/hub/hub-ui.js';
 
@@ -100,8 +100,8 @@ export const NemoSettingsUI = {
                         }
                         extension_settings[NEMO_EXTENSION_NAME].dividerRegexPattern = customPatternString;
                         saveSettingsDebounced();
-                        await loadAndSetDividerRegex();
-                        await NemoPresetManager.organizePrompts();
+                        validateDividerPatterns();
+                        await window.NemoPromptManager?.organizePrompts?.();
                         statusDiv.textContent = 'Pattern saved!'; statusDiv.style.color = 'lightgreen';
                     } catch(e) {
                         statusDiv.textContent = `Invalid Regex part: ${e.message}`; statusDiv.style.color = 'red';

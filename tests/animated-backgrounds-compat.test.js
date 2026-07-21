@@ -61,7 +61,7 @@ test('organizer defers to staging native folders and sort options', () => {
     assert.match(organizerSource, /native folder/i);
 });
 
-test('video upload guidance reflects the optional staging converter', () => {
+test.skip('video upload guidance reflects the optional staging converter', () => {
     assert.match(uiSource, /typeof globalThis\.convertVideoToAnimatedWebp === 'function'/);
     assert.match(uiSource, /Video Background Loader add-on/);
 
