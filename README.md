@@ -2,7 +2,7 @@
 
 NemoPresetExt is the small core package for Nemo prompt directives, custom divider configuration, NemoEngine installation, and Nemo Hub.
 
-**Version:** 5.1.0
+**Version:** 5.2.0
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 

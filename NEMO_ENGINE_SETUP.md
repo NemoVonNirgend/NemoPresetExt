@@ -6,8 +6,8 @@ This extension bundles the latest Nemo Engine preset as `assets/nemo-engine-late
 
 1. Open SillyTavern extension settings.
 2. Open `NemoPresetExt`.
-3. Click `Install / Update Nemo Engine 9.3.1`.
-4. Confirm `Nemo Engine 9.3.1` is selected in the Chat Completion preset dropdown.
+3. Click `Install / Update Nemo Engine v11.3`.
+4. Confirm `Nemo Engine v11.3` is selected in the Chat Completion preset dropdown.
 
 The installer uses SillyTavern's normal `/api/presets/save` endpoint with `apiId: "openai"`, so the preset is saved exactly like a manual Chat Completion preset import.
 

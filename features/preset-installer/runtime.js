@@ -4,13 +4,13 @@ import { oai_settings, openai_setting_names, openai_settings } from '../../../..
 import { escapeHtml, getExtensionPath } from '../../core/utils.js';
 import logger from '../../core/logger.js';
 
-const PRESET_VERSION = '9.3.1';
-const PRESET_NAME = `Nemo Engine ${PRESET_VERSION}`;
+const PRESET_VERSION = '11.3';
+const PRESET_NAME = `Nemo Engine v${PRESET_VERSION}`;
 const PRESET_ASSET_PATH = 'assets/nemo-engine-latest.json';
 const INSTALLER_CARD_CLASS = 'nemo-engine-installer-section';
 const INSTALLER_STYLE_ID = 'nemo-engine-installer-styles';
 const SETTINGS_SELECTOR = '#nemo-preset-ext-settings';
-const STATUS_IDLE = 'Bundled preset: Nemo Engine 9.3.1.';
+const STATUS_IDLE = `Bundled preset: ${PRESET_NAME}.`;
 const PREFERENCES_VARIABLE_NAME = 'NemoLorePreferences';
 const GUIDES_TOOL_RESULTS_VARIABLE_NAME = 'NemoGuidesToolResults';
 const CORE_PACK_VARIABLE_SLOTS = [
@@ -299,7 +299,7 @@ export async function getNemoEngineSetupReport() {
 
     report.checks.push({
         state: 'ok',
-        label: 'Bundled Nemo Engine 9.3.1 preset is readable',
+        label: `Bundled ${PRESET_NAME} preset is readable`,
         detail: formatStats(stats),
     });
     report.checks.push({
