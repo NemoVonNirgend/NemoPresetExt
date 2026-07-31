@@ -21,14 +21,16 @@ test('core settings expose only core runtime controls plus Nemo Hub', () => {
 });
 
 test('NemoEngine installer mount stays inside the NemoPresetExt drawer', () => {
+    const settingsRoot = settings.indexOf('id="nemo-preset-ext-settings"');
     const drawerContent = settings.indexOf('<div class="inline-drawer-content">');
     const engineHeading = settings.indexOf('<h4>NemoEngine</h4>');
-    const installerMount = settings.indexOf('id="nemo-preset-ext-settings"');
+    const installerMount = settings.indexOf('id="nemo-engine-installer-mount"');
     const hubHeading = settings.indexOf('<h4>Nemo Hub</h4>');
 
-    assert.ok(drawerContent >= 0);
+    assert.ok(settingsRoot >= 0);
+    assert.ok(drawerContent > settingsRoot);
     assert.ok(engineHeading > drawerContent);
     assert.ok(installerMount > engineHeading);
     assert.ok(hubHeading > installerMount);
-    assert.doesNotMatch(settings.slice(0, drawerContent), /id="nemo-preset-ext-settings"/);
+    assert.doesNotMatch(settings.slice(0, drawerContent), /id="nemo-engine-installer-mount"/);
 });
