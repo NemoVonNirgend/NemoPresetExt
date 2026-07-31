@@ -11,7 +11,8 @@ const utils = readFileSync(new URL('../core/utils.js', import.meta.url), 'utf8')
 test('core source has no hidden optional runtime dependencies', () => {
     assert.doesNotMatch(content, /storage-migration/);
     assert.doesNotMatch(installer, /features\/onboarding|\.\.\/onboarding|\.\.\/nemolore/);
-    assert.match(installer, /#nemo-preset-ext-settings/);
+    assert.match(installer, /#nemo-engine-installer-mount/);
+    assert.doesNotMatch(installer, /SETTINGS_SELECTOR = '#nemo-preset-ext-settings'/);
     assert.doesNotMatch(settingsUi, /Pollinations|Reasoning|ModelSelector|AnimatedBackground|HTMLTrimming/);
     assert.doesNotMatch(utils, /POLLINATIONS|NEMO_SNAPSHOT|PREDEFINED_COLORS|LocalStorageAsync/);
 });
