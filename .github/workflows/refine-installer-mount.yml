@@ -1,0 +1,104 @@
+name: Refine installer mount
+
+on:
+  push:
+    branches:
+      - agent/fix-installer-drawer-placement
+
+permissions:
+  contents: write
+
+jobs:
+  refine:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/fix-installer-drawer-placement
+          fetch-depth: 0
+
+      - name: Give the installer a dedicated drawer mount
+        shell: python
+        run: |
+          from pathlib import Path
+
+          settings = Path('settings.html')
+          source = settings.read_text()
+          source = source.replace(
+              '<div class="nemo-preset-ext-settings">',
+              '<div id="nemo-preset-ext-settings" class="nemo-preset-ext-settings">',
+              1,
+          )
+          source = source.replace(
+              '<div id="nemo-preset-ext-settings" class="nemo-engine-installer-mount"></div>',
+              '<div id="nemo-engine-installer-mount" class="nemo-engine-installer-mount"></div>',
+              1,
+          )
+          settings.write_text(source)
+
+          runtime = Path('features/preset-installer/runtime.js')
+          source = runtime.read_text().replace(
+              "const SETTINGS_SELECTOR = '#nemo-preset-ext-settings';",
+              "const SETTINGS_SELECTOR = '#nemo-engine-installer-mount';",
+              1,
+          )
+          runtime.write_text(source)
+
+          boundary = Path('tests/core-settings-boundary.test.js')
+          source = boundary.read_text()
+          old = '''test('NemoEngine installer mount stays inside the NemoPresetExt drawer', () => {
+              const drawerContent = settings.indexOf('<div class="inline-drawer-content">');
+              const engineHeading = settings.indexOf('<h4>NemoEngine</h4>');
+              const installerMount = settings.indexOf('id="nemo-preset-ext-settings"');
+              const hubHeading = settings.indexOf('<h4>Nemo Hub</h4>');
+
+              assert.ok(drawerContent >= 0);
+              assert.ok(engineHeading > drawerContent);
+              assert.ok(installerMount > engineHeading);
+              assert.ok(hubHeading > installerMount);
+              assert.doesNotMatch(settings.slice(0, drawerContent), /id="nemo-preset-ext-settings"/);
+          });
+          '''
+          new = '''test('NemoEngine installer mount stays inside the NemoPresetExt drawer', () => {
+              const settingsRoot = settings.indexOf('id="nemo-preset-ext-settings"');
+              const drawerContent = settings.indexOf('<div class="inline-drawer-content">');
+              const engineHeading = settings.indexOf('<h4>NemoEngine</h4>');
+              const installerMount = settings.indexOf('id="nemo-engine-installer-mount"');
+              const hubHeading = settings.indexOf('<h4>Nemo Hub</h4>');
+
+              assert.ok(settingsRoot >= 0);
+              assert.ok(drawerContent > settingsRoot);
+              assert.ok(engineHeading > drawerContent);
+              assert.ok(installerMount > engineHeading);
+              assert.ok(hubHeading > installerMount);
+              assert.doesNotMatch(settings.slice(0, drawerContent), /id="nemo-engine-installer-mount"/);
+          });
+          '''
+          if old not in source:
+              raise RuntimeError('Expected core settings regression block was not found.')
+          boundary.write_text(source.replace(old, new, 1))
+
+          source_boundary = Path('tests/core-source-boundary.test.js')
+          source = source_boundary.read_text().replace(
+              '    assert.match(installer, /#nemo-preset-ext-settings/);',
+              "    assert.match(installer, /#nemo-engine-installer-mount/);\n    assert.doesNotMatch(installer, /SETTINGS_SELECTOR = '#nemo-preset-ext-settings'/);",
+              1,
+          )
+          source_boundary.write_text(source)
+
+      - name: Validate the refined fix
+        run: |
+          node --test tests/*.test.js
+          find . -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Publish the refined repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/refine-installer-mount.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add settings.html features/preset-installer/runtime.js tests/core-settings-boundary.test.js tests/core-source-boundary.test.js .github/workflows/refine-installer-mount.yml
+          git commit -m 'refactor: give installer a dedicated drawer mount'
+          git push origin HEAD:agent/fix-installer-drawer-placement
