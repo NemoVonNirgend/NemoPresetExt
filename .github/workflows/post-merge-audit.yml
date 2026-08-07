@@ -56,18 +56,13 @@ jobs:
 
           path = Path('repos/NemoPresetExt/scripts/final_release_audit.py')
           text = path.read_text(encoding='utf-8')
-          original = '''    optional_missing = {
-              ("NemoUIOverhaul", "../features/prosepolisher/src/default_names.js"),
-          }
-          '''
-          replacement = '''    optional_missing = {
-              ("NemoUIOverhaul", "../features/prosepolisher/src/default_names.js"),
-              ("NemoPromptTools", "../features/prosepolisher/src/default_names.js"),
-          }
-          '''
-          if original not in text:
-              raise SystemExit('Optional import exception block was not found')
-          path.write_text(text.replace(original, replacement), encoding='utf-8')
+          anchor = '("NemoUIOverhaul", "../features/prosepolisher/src/default_names.js"),'
+          addition = '\n        ("NemoPromptTools", "../features/prosepolisher/src/default_names.js"),'
+          if anchor not in text:
+              raise SystemExit('Optional import exception anchor was not found')
+          if 'NemoPromptTools", "../features/prosepolisher/src/default_names.js' not in text:
+              text = text.replace(anchor, anchor + addition, 1)
+          path.write_text(text, encoding='utf-8')
           PY
 
       - name: Audit all three repositories
