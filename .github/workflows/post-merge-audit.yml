@@ -20,21 +20,21 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Check out NemoUIOverhaul main release
-        uses: actions/checkout@v4
-        with:
-          repository: NemoVonNirgend/NemoUIOverhaul
-          ref: a7e3e405d6e32800adac29ae39b327949f0b5638
-          path: repos/NemoUIOverhaul
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Check out NemoPromptTools main bridge
+      - name: Check out NemoPromptTools 1.2.1 main
         uses: actions/checkout@v4
         with:
           repository: NemoVonNirgend/NemoPromptTools
-          ref: 614762ee7bc62d0fcfc6da8255b8f9e81af03a2a
+          ref: da0729b225f45da10bd49dc7c9474835c22c83e1
           path: repos/NemoPromptTools
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out NemoUIOverhaul 1.2.1 main
+        uses: actions/checkout@v4
+        with:
+          repository: NemoVonNirgend/NemoUIOverhaul
+          ref: c87822664d7bd66e3ad3ad392a2b55ab5a1408e3
+          path: repos/NemoUIOverhaul
           fetch-depth: 1
           persist-credentials: false
 
@@ -46,25 +46,25 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install audit parsers
-        run: python -m pip install --disable-pip-version-check tinycss2==1.4.0 PyYAML==6.0.2
+      - name: Install audit parser
+        run: python -m pip install --disable-pip-version-check tinycss2==1.4.0
 
       - name: Audit all three repositories
         id: audit
         continue-on-error: true
         run: |
-          python repos/NemoPresetExt/scripts/post_merge_audit.py \
-            --workspace "$GITHUB_WORKSPACE/repos" \
-            --output "$GITHUB_WORKSPACE/post-merge-audit-report.json"
+          python repos/NemoPresetExt/scripts/final_release_audit.py \
+            "$GITHUB_WORKSPACE/repos" \
+            "$GITHUB_WORKSPACE/final-release-audit.json"
 
       - name: Upload audit report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nemo-post-merge-audit
+          name: nemo-final-release-audit
           path: |
-            post-merge-audit-report.json
-            post-merge-audit-report.md
+            final-release-audit.json
+            final-release-audit.md
           if-no-files-found: warn
           retention-days: 14
 
