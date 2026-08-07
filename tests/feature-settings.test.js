@@ -25,11 +25,11 @@ test('schema contains the merged prompt workstation and retained core gates', ()
     assert.deepEqual(FEATURE_DEFAULTS, EXPECTED_DEFAULTS);
 });
 
-test('new namespaces receive Classic+ and prompt workstation defaults', () => {
+test('new namespaces receive Classic 3.4 and prompt workstation defaults', () => {
     const settings = {};
     applySettingsSchema(settings);
     assert.equal(settings._settingsSchemaVersion, SETTINGS_SCHEMA_VERSION);
-    assert.equal(settings.promptUiMode, PROMPT_UI_MODES.CLASSIC_PLUS);
+    assert.equal(settings.promptUiMode, PROMPT_UI_MODES.CLASSIC);
     assert.equal(settings.enablePromptManager, true);
     assert.equal(settings.enableDirectives, true);
     assert.equal(settings.dividerRegexPattern, '');
@@ -39,7 +39,7 @@ test('empty standalone namespaces do not change a fresh installation into Modern
     const settings = {};
     assert.equal(migratePromptToolsSettings(settings, {}), false);
     applySettingsSchema(settings);
-    assert.equal(settings.promptUiMode, PROMPT_UI_MODES.CLASSIC_PLUS);
+    assert.equal(settings.promptUiMode, PROMPT_UI_MODES.CLASSIC);
     assert.equal(settings._promptToolsMerged, undefined);
 });
 
