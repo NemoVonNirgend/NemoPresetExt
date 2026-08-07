@@ -6,16 +6,16 @@ import { NemoPromptArchive } from './prompt-archive.js';
 
 export const NemoPromptArchiveUI = {
     initialized: false,
-    
+
     initialize: function() {
         if (this.initialized) return;
-        
+
         // Initialize the archive system first
         NemoPromptArchive.initialize();
-        
+
         // Add archive UI to prompt manager
         this.injectArchiveUI();
-        
+
         this.initialized = true;
     },
 
@@ -33,7 +33,7 @@ export const NemoPromptArchiveUI = {
     createArchiveSection: function() {
         // Find a good place to inject the archive UI
         const promptManagerContainer = document.querySelector('#completion_prompt_manager_list').parentElement;
-        
+
         // Create archive section
         const archiveSection = document.createElement('details');
         archiveSection.id = 'nemo-prompt-archive-section';
@@ -61,13 +61,13 @@ export const NemoPromptArchiveUI = {
                 </div>
             </div>
         `;
-        
+
         // Insert before the prompt list
         promptManagerContainer.insertBefore(archiveSection, promptManagerContainer.firstChild);
-        
+
         // Set up event listeners
         this.setupArchiveEventListeners();
-        
+
         // Populate with existing archives
         this.refreshArchiveList();
         this.updateArchiveStats();
@@ -78,7 +78,7 @@ export const NemoPromptArchiveUI = {
         document.getElementById('nemo-create-archive-btn').addEventListener('click', () => {
             this.showCreateArchiveDialog();
         });
-        
+
         // Import archive button
         document.getElementById('nemo-import-archive-btn').addEventListener('click', () => {
             this.showImportArchiveDialog();
@@ -88,9 +88,9 @@ export const NemoPromptArchiveUI = {
     showCreateArchiveDialog: function() {
         const name = prompt('Enter archive name:');
         if (!name || !name.trim()) return;
-        
+
         const description = prompt('Enter archive description (optional):') || '';
-        
+
         const archiveId = NemoPromptArchive.createArchive(name.trim(), description.trim());
         if (archiveId) {
             this.refreshArchiveList();
@@ -128,9 +128,9 @@ export const NemoPromptArchiveUI = {
     refreshArchiveList: function() {
         const listContainer = document.getElementById('nemo-archive-list');
         if (!listContainer) return;
-        
+
         const archives = NemoPromptArchive.getAllArchives();
-        
+
         if (archives.length === 0) {
             listContainer.innerHTML = `
                 <div style="text-align: center; padding: 20px; color: var(--nemo-text-muted); font-style: italic;">
@@ -139,9 +139,9 @@ export const NemoPromptArchiveUI = {
             `;
             return;
         }
-        
+
         listContainer.innerHTML = archives.map(archive => this.createArchiveItem(archive)).join('');
-        
+
         // Add event listeners for archive items
         this.setupArchiveItemListeners();
     },
@@ -149,11 +149,11 @@ export const NemoPromptArchiveUI = {
     createArchiveItem: function(archive) {
         const date = new Date(archive.timestamp).toLocaleString();
         const { totalPrompts, totalSystemPrompts } = archive.metadata;
-        
+
         // Create lists of individual prompts and system prompts
         const promptsList = this.createPromptsList(archive);
         const systemPromptsList = this.createSystemPromptsList(archive);
-        
+
         return `
             <div class="nemo-archive-item" data-archive-id="${archive.id}">
                 <div class="nemo-archive-header">
@@ -252,7 +252,7 @@ export const NemoPromptArchiveUI = {
                 const archiveItem = e.target.closest('.nemo-archive-item');
                 const contentsDiv = archiveItem.querySelector('.nemo-archive-contents');
                 const icon = btn.querySelector('i');
-                
+
                 if (contentsDiv.style.display === 'none') {
                     contentsDiv.style.display = 'block';
                     icon.className = 'fa-solid fa-chevron-up';
@@ -264,7 +264,7 @@ export const NemoPromptArchiveUI = {
                 }
             });
         });
-        
+
         // Restore archive
         document.querySelectorAll('.nemo-archive-restore').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -272,7 +272,7 @@ export const NemoPromptArchiveUI = {
                 this.confirmRestore(archiveId, false);
             });
         });
-        
+
         // Merge archive
         document.querySelectorAll('.nemo-archive-merge').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -280,7 +280,7 @@ export const NemoPromptArchiveUI = {
                 this.confirmRestore(archiveId, true);
             });
         });
-        
+
         // Export archive
         document.querySelectorAll('.nemo-archive-export').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -288,7 +288,7 @@ export const NemoPromptArchiveUI = {
                 NemoPromptArchive.exportArchive(archiveId);
             });
         });
-        
+
         // Delete archive
         document.querySelectorAll('.nemo-archive-delete').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -309,10 +309,10 @@ export const NemoPromptArchiveUI = {
             // Remove any existing listeners to avoid duplicates
             const newItem = item.cloneNode(true);
             item.parentNode.replaceChild(newItem, item);
-            
+
             // Add a visual indicator that these are interactive
             newItem.title = 'Right-click to add this prompt to current preset';
-            
+
             newItem.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -336,10 +336,10 @@ export const NemoPromptArchiveUI = {
             // Remove any existing listeners to avoid duplicates
             const newItem = item.cloneNode(true);
             item.parentNode.replaceChild(newItem, item);
-            
+
             // Add a visual indicator that these are interactive
             newItem.title = 'Right-click to add this system prompt to current preset';
-            
+
             newItem.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -362,19 +362,19 @@ export const NemoPromptArchiveUI = {
     confirmRestore: function(archiveId, mergeMode) {
         const archive = NemoPromptArchive.getArchive(archiveId);
         if (!archive) return;
-        
+
         const action = mergeMode ? 'merge with' : 'replace';
         const promptCount = archive.metadata.totalPrompts || 0;
         const systemPromptCount = archive.metadata.totalSystemPrompts || 0;
-        
+
         const message = `Are you sure you want to ${action} your current prompts with "${archive.name}"?\n\n` +
                        `This archive contains:\n• ${promptCount} prompts\n• ${systemPromptCount} system prompts\n\n` +
                        (mergeMode ? 'These will be added to your current setup.' : 'This will replace all your current prompts!');
-        
+
         if (confirm(message)) {
             // Show loading notification
             this.showNotification('Restoring archive...', 'info');
-            
+
             // Add a slight delay to show loading notification
             setTimeout(async () => {
                 const success = await NemoPromptArchive.restoreArchive(archiveId, {
@@ -382,7 +382,7 @@ export const NemoPromptArchiveUI = {
                     restoreSystemPrompts: true,
                     mergeMode: mergeMode
                 });
-                
+
                 if (success) {
                     this.showNotification(
                         `✅ Archive "${archive.name}" ${mergeMode ? 'merged' : 'restored'} successfully!\n\n` +
@@ -405,7 +405,7 @@ export const NemoPromptArchiveUI = {
     confirmDelete: function(archiveId) {
         const archive = NemoPromptArchive.getArchive(archiveId);
         if (!archive) return;
-        
+
         if (confirm(`Are you sure you want to delete the archive "${archive.name}"?\n\nThis action cannot be undone.`)) {
             if (NemoPromptArchive.deleteArchive(archiveId)) {
                 this.refreshArchiveList();
@@ -420,14 +420,14 @@ export const NemoPromptArchiveUI = {
     updateArchiveStats: function() {
         const statsContainer = document.getElementById('nemo-archive-stats-content');
         if (!statsContainer) return;
-        
+
         const stats = NemoPromptArchive.getArchiveStats();
-        
+
         if (stats.totalArchives === 0) {
             statsContainer.innerHTML = '📁 No archives created yet';
             return;
         }
-        
+
         statsContainer.innerHTML = `
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; text-align: center;">
                 <div><strong>${stats.totalArchives}</strong><br><small>Archives</small></div>
@@ -455,9 +455,9 @@ export const NemoPromptArchiveUI = {
             background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
         `;
         notification.textContent = message;
-        
+
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
             notification.remove();
         }, 3000);
@@ -466,7 +466,7 @@ export const NemoPromptArchiveUI = {
     showPromptContextMenu: function(event, archiveId, promptIdentifier, type) {
         // Remove any existing context menu
         this.removeContextMenu();
-        
+
         const menu = document.createElement('div');
         menu.className = 'nemo-context-menu';
         menu.style.cssText = `
@@ -481,7 +481,7 @@ export const NemoPromptArchiveUI = {
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             min-width: 180px;
         `;
-        
+
         const addToCurrentOption = document.createElement('div');
         addToCurrentOption.className = 'nemo-context-menu-item';
         addToCurrentOption.style.cssText = `
@@ -492,15 +492,15 @@ export const NemoPromptArchiveUI = {
             transition: background-color 0.2s;
         `;
         addToCurrentOption.innerHTML = `<i class="fa-solid fa-plus"></i> Add to Current Preset`;
-        
+
         addToCurrentOption.addEventListener('mouseover', () => {
             addToCurrentOption.style.backgroundColor = 'var(--nemo-primary-accent, #4CAF50)';
         });
-        
+
         addToCurrentOption.addEventListener('mouseout', () => {
             addToCurrentOption.style.backgroundColor = 'transparent';
         });
-        
+
         addToCurrentOption.addEventListener('click', () => {
             this.addSinglePromptToPreset(archiveId, promptIdentifier, type);
             this.removeContextMenu();
@@ -525,7 +525,7 @@ export const NemoPromptArchiveUI = {
     addSinglePromptToPreset: async function(archiveId, promptIdentifier, type) {
         let success = false;
         let promptName = promptIdentifier;
-        
+
         if (type === 'prompt') {
             success = NemoPromptArchive.addPromptToCurrentPreset(archiveId, promptIdentifier);
             // Get the actual prompt name for display
@@ -540,7 +540,7 @@ export const NemoPromptArchiveUI = {
             success = await NemoPromptArchive.addSystemPromptToCurrentPreset(archiveId, promptIdentifier);
             promptName = promptIdentifier; // For system prompts, identifier is the name
         }
-        
+
         if (success) {
             this.showNotification(
                 `✅ Successfully added "${promptName}" to current preset!\n\n` +

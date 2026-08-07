@@ -12,16 +12,16 @@ import { getPresetManager } from '../../../../../preset-manager.js';
 export const NemoPromptArchive = {
     initialized: false,
     archives: {},
-    
+
     initialize: function() {
         if (this.initialized) return;
-        
+
         // Load existing archives from extension settings
         this.loadArchives();
-        
+
         // Set up event listeners
         this.setupEventListeners();
-        
+
         this.initialized = true;
         console.log(`${LOG_PREFIX} Prompt Archive system initialized`);
     },
@@ -52,11 +52,11 @@ export const NemoPromptArchive = {
         try {
             const timestamp = new Date().toISOString();
             const archiveId = `${Date.now()}_${archiveName.replace(/[^a-zA-Z0-9]/g, '_')}`;
-            
+
             // Get current prompt data
             const promptData = this.getCurrentPrompts();
             const systemPromptData = this.getCurrentSystemPrompts();
-            
+
             const archive = {
                 id: archiveId,
                 name: archiveName,
@@ -71,10 +71,10 @@ export const NemoPromptArchive = {
                     version: '1.0'
                 }
             };
-            
+
             this.archives[archiveId] = archive;
             this.saveArchives();
-            
+
             console.log(`${LOG_PREFIX} Created archive: ${archiveName} with ${archive.metadata.totalPrompts} prompts and ${archive.metadata.totalSystemPrompts} system prompts`);
             return archiveId;
         } catch (error) {
@@ -121,9 +121,9 @@ export const NemoPromptArchive = {
         }
 
         try {
-            const { 
-                restorePrompts = true, 
-                restoreSystemPrompts = true, 
+            const {
+                restorePrompts = true,
+                restoreSystemPrompts = true,
                 mergeMode = false // If true, merge with existing; if false, replace
             } = options;
 
@@ -174,13 +174,13 @@ export const NemoPromptArchive = {
 
                     // Add prompt to the prompts array
                     promptManager.addPrompt(archivedPrompt, archivedPrompt.identifier);
-                    
+
                     // Now add it to the active character's prompt order so it appears in the UI and gets used
                     this.addPromptToActiveOrder(archivedPrompt);
-                    
+
                     successCount++;
                     console.log(`${LOG_PREFIX} Successfully restored prompt to arrays: ${archivedPrompt.name || archivedPrompt.identifier}`);
-                    
+
                 } catch (error) {
                     failCount++;
                     console.error(`${LOG_PREFIX} Error restoring individual prompt:`, archivedPrompt.identifier, error);
@@ -203,26 +203,26 @@ export const NemoPromptArchive = {
             // Trigger save and update UI
             saveSettingsDebounced();
             this.refreshPromptUI();
-            
+
             console.log(`${LOG_PREFIX} Prompt restoration completed: ${successCount} successful, ${failCount} failed`);
             return failCount === 0; // Return true if all succeeded
-            
+
         } catch (error) {
             console.error(`${LOG_PREFIX} Error in restorePrompts:`, error);
             return false;
         }
     },
-    
+
     addPromptToActiveOrder: function(prompt) {
         if (!promptManager || !promptManager.activeCharacter) {
             console.warn(`${LOG_PREFIX} No active character for prompt order`);
             return;
         }
-        
+
         try {
             // Get current prompt order for the active character
             const promptOrder = promptManager.getPromptOrderForCharacter(promptManager.activeCharacter);
-            
+
             // Check if prompt is already in the order
             const existingIndex = promptOrder.findIndex(entry => entry.identifier === prompt.identifier);
             if (existingIndex !== -1) {
@@ -240,33 +240,33 @@ export const NemoPromptArchive = {
                 });
                 console.log(`${LOG_PREFIX} Added prompt ${prompt.identifier} to active character prompt order`);
             }
-            
+
         } catch (error) {
             console.error(`${LOG_PREFIX} Error adding prompt to active order:`, error);
         }
     },
-    
+
     clearUserPromptOrder: function() {
         if (!promptManager || !promptManager.activeCharacter) {
             return;
         }
-        
+
         try {
             // Get current prompt order
             const promptOrder = promptManager.getPromptOrderForCharacter(promptManager.activeCharacter);
-            
+
             // Keep only system prompts and essential ones in the order
             const systemPromptIds = promptManager.serviceSettings.prompts
                 .filter(p => p.system_prompt || p.marker || p.role === 'system')
                 .map(p => p.identifier);
-            
+
             // Remove non-system prompts from order
             for (let i = promptOrder.length - 1; i >= 0; i--) {
                 if (!systemPromptIds.includes(promptOrder[i].identifier)) {
                     promptOrder.splice(i, 1);
                 }
             }
-            
+
             console.log(`${LOG_PREFIX} Cleared user prompts from prompt order, keeping system prompts`);
         } catch (error) {
             console.error(`${LOG_PREFIX} Error clearing user prompt order:`, error);
@@ -276,12 +276,12 @@ export const NemoPromptArchive = {
     clearUserPrompts: function() {
         // Clear user prompts but keep system prompts and essential ones
         if (!oai_settings || !oai_settings.prompts) return;
-        
+
         // Keep only system prompts and essential prompts
         oai_settings.prompts = oai_settings.prompts.filter(prompt => {
             return prompt.system_prompt || prompt.marker || prompt.role === 'system';
         });
-        
+
         console.log(`${LOG_PREFIX} Cleared user prompts, keeping system prompts`);
     },
 
@@ -289,7 +289,7 @@ export const NemoPromptArchive = {
         try {
             // Get the system prompt preset manager
             const syspromptManager = getPresetManager ? getPresetManager('sysprompt') : null;
-            
+
             if (!syspromptManager && !system_prompts) {
                 console.error(`${LOG_PREFIX} System prompt manager not available`);
                 return;
@@ -328,7 +328,7 @@ export const NemoPromptArchive = {
                 // Replace mode: clear existing and add archived ones
                 if (system_prompts) {
                     system_prompts.length = 0;
-                    
+
                     for (const archivedPrompt of systemPromptData) {
                         try {
                             if (syspromptManager && typeof syspromptManager.savePreset === 'function') {
@@ -350,10 +350,10 @@ export const NemoPromptArchive = {
             // Trigger save and update UI
             saveSettingsDebounced();
             this.refreshSystemPromptUI();
-            
+
             console.log(`${LOG_PREFIX} System prompt restoration completed: ${successCount} successful, ${failCount} failed`);
             return failCount === 0;
-            
+
         } catch (error) {
             console.error(`${LOG_PREFIX} Error in restoreSystemPrompts:`, error);
             return false;
@@ -365,7 +365,7 @@ export const NemoPromptArchive = {
         if (promptManager && typeof promptManager.render === 'function') {
             promptManager.render();
         }
-        
+
         // Trigger event to notify other parts of the system
         eventSource.emit(event_types.OAI_PRESET_CHANGED_AFTER);
     },
@@ -412,7 +412,7 @@ export const NemoPromptArchive = {
 
         const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = `${archive.name.replace(/[^a-zA-Z0-9]/g, '_')}_archive.json`;
@@ -428,21 +428,21 @@ export const NemoPromptArchive = {
     importArchive: function(fileContent) {
         try {
             const importData = JSON.parse(fileContent);
-            
+
             if (importData.type !== 'nemo_prompt_archive') {
                 throw new Error('Invalid archive format');
             }
 
             const archive = importData.archive;
             const newId = `imported_${Date.now()}_${archive.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
-            
+
             // Update archive with new ID and import timestamp
             archive.id = newId;
             archive.importedAt = new Date().toISOString();
-            
+
             this.archives[newId] = archive;
             this.saveArchives();
-            
+
             console.log(`${LOG_PREFIX} Imported archive: ${archive.name}`);
             return newId;
         } catch (error) {
@@ -502,7 +502,7 @@ export const NemoPromptArchive = {
 
             // Create a copy of the prompt with a new identifier if needed
             const newPrompt = { ...prompt };
-            
+
             // Generate new identifier if one with same ID exists
             if (promptManager.getPromptById(newPrompt.identifier)) {
                 newPrompt.identifier = `${newPrompt.identifier}_${Date.now()}`;
@@ -510,17 +510,17 @@ export const NemoPromptArchive = {
 
             // Add prompt to the prompts array
             promptManager.addPrompt(newPrompt, newPrompt.identifier);
-            
+
             // Add it to the active character's prompt order
             this.addPromptToActiveOrder(newPrompt);
-            
+
             // Trigger save and update UI
             saveSettingsDebounced();
             this.refreshPromptUI();
-            
+
             console.log(`${LOG_PREFIX} Successfully added prompt to current preset: ${newPrompt.name || newPrompt.identifier}`);
             return true;
-            
+
         } catch (error) {
             console.error(`${LOG_PREFIX} Error adding prompt to current preset:`, error);
             return false;
@@ -543,7 +543,7 @@ export const NemoPromptArchive = {
 
         try {
             const syspromptManager = getPresetManager ? getPresetManager('sysprompt') : null;
-            
+
             if (!syspromptManager && !system_prompts) {
                 console.error(`${LOG_PREFIX} System prompt manager not available`);
                 return false;
@@ -565,10 +565,10 @@ export const NemoPromptArchive = {
             // Trigger save and update UI
             saveSettingsDebounced();
             this.refreshSystemPromptUI();
-            
+
             console.log(`${LOG_PREFIX} Successfully added system prompt to current preset: ${systemPrompt.name}`);
             return true;
-            
+
         } catch (error) {
             console.error(`${LOG_PREFIX} Error adding system prompt to current preset:`, error);
             return false;
@@ -582,10 +582,10 @@ export const NemoPromptArchive = {
             totalArchives: archives.length,
             totalPrompts: archives.reduce((sum, arch) => sum + (arch.metadata.totalPrompts || 0), 0),
             totalSystemPrompts: archives.reduce((sum, arch) => sum + (arch.metadata.totalSystemPrompts || 0), 0),
-            oldestArchive: archives.length > 0 ? archives.reduce((oldest, arch) => 
+            oldestArchive: archives.length > 0 ? archives.reduce((oldest, arch) =>
                 new Date(arch.timestamp) < new Date(oldest.timestamp) ? arch : oldest
             ) : null,
-            newestArchive: archives.length > 0 ? archives.reduce((newest, arch) => 
+            newestArchive: archives.length > 0 ? archives.reduce((newest, arch) =>
                 new Date(arch.timestamp) > new Date(newest.timestamp) ? arch : newest
             ) : null
         };

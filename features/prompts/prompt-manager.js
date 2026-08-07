@@ -123,7 +123,7 @@ function applyTooltipToPrompt(item) {
     // Store data needed for extraction
     nameLink.dataset.nemoPromptId = identifier;
     nameLink.dataset.nemoPromptName = promptName;
-    
+
     // Add lightweight hover listener (one-time)
     if (!nameLink.dataset.nemoTooltipInitialized) {
         nameLink.dataset.nemoTooltipInitialized = 'true';
@@ -133,13 +133,13 @@ function applyTooltipToPrompt(item) {
 
 /**
  * Lazy load tooltip on hover
- * @param {Event} e 
+ * @param {Event} e
  */
 function handleTooltipHover(e) {
     const link = e.target;
     const identifier = link.dataset.nemoPromptId;
     const promptName = link.dataset.nemoPromptName;
-    
+
     // First, try to extract tooltip from prompt content
     let tooltipText = null;
     if (identifier) {
@@ -273,8 +273,8 @@ export const NemoPresetManager = {
                         <div class="flex-container alignItemsCenter">
                             <span data-i18n="Start Reply With">Start Reply With</span>
                         </div>
-                        <textarea id="nemo-start-reply-with" class="text_pole textarea_compact autoSetHeight" 
-                                  placeholder="Enter start reply text..." 
+                        <textarea id="nemo-start-reply-with" class="text_pole textarea_compact autoSetHeight"
+                                  placeholder="Enter start reply text..."
                                   style="font-family: Lexend, 'Noto Color Emoji', sans-serif;"></textarea>
                         <label class="checkbox_label" for="nemo-chat-show-reply-prefix-checkbox">
                             <input id="nemo-chat-show-reply-prefix-checkbox" type="checkbox">
@@ -373,7 +373,7 @@ export const NemoPresetManager = {
                     </div>
                 </div>
             </div>`;
-        
+
         // Insert after the Chat Completion Settings drawer
         chatCompletionDrawer.parentNode.insertBefore(reasoningSection, chatCompletionDrawer.nextSibling);
         this.setupReasoningSync();
@@ -392,7 +392,7 @@ export const NemoPresetManager = {
         // Find the best position to insert the Lorebook section
         const reasoningSection = document.getElementById('nemoReasoningSection');
         const chatCompletionDrawer = document.getElementById('nemo-drawer-openai_chat_settings');
-        
+
         let insertAfter = reasoningSection || chatCompletionDrawer;
         if (!insertAfter) {
             logger.debug('Lorebook section anchor not ready yet; deferring creation');
@@ -438,7 +438,7 @@ export const NemoPresetManager = {
                     </div>
                 </div>
             </div>`;
-        
+
         // Insert after the determined position
         insertAfter.parentNode.insertBefore(lorebookSection, insertAfter.nextSibling);
         this.setupLorebookEventListeners();
@@ -482,7 +482,7 @@ export const NemoPresetManager = {
         if (!lorebookSelect || !worldInfoSelect) return;
 
         lorebookSelect.innerHTML = '<option value="">Select a lorebook...</option>';
-        
+
         Array.from(worldInfoSelect.options).forEach(option => {
             if (option.value && !option.selected) {
                 const newOption = document.createElement('option');
@@ -564,7 +564,7 @@ export const NemoPresetManager = {
 
         // Debounce updates to prevent thrashing during bulk operations
         if (sectionElement._updateTimeout) clearTimeout(sectionElement._updateTimeout);
-        
+
         sectionElement._updateTimeout = setTimeout(() => {
             const content = sectionElement.querySelector('.nemo-section-content');
             if (!content) return;
@@ -596,7 +596,7 @@ export const NemoPresetManager = {
                     progressBar.classList.add('nemo-progress-partial');
                 }
             }
-            
+
             sectionElement._updateTimeout = null;
         }, 10);
     },
@@ -605,7 +605,7 @@ export const NemoPresetManager = {
     takeSnapshot: async function() {
         try {
             logger.info('Starting snapshot capture...');
-            
+
             const promptsContainer = document.querySelector(SELECTORS.promptsContainer);
             if (!promptsContainer) {
                 logger.error('Prompts container not found');
@@ -615,9 +615,9 @@ export const NemoPresetManager = {
 
             const activeIdentifiers = new Set();
             const enabledToggles = document.querySelectorAll(`${SELECTORS.promptsContainer} ${SELECTORS.toggleButton}.${SELECTORS.enabledToggleClass}`);
-            
+
             logger.debug(`Found ${enabledToggles.length} enabled toggles`);
-            
+
             enabledToggles.forEach(toggle => {
                 const promptLi = toggle.closest(SELECTORS.promptItemRow);
                 if (promptLi && promptLi.dataset.pmIdentifier) {
@@ -631,12 +631,12 @@ export const NemoPresetManager = {
 
             const currentApi = getContext().mainApi || 'openai';
             storage.saveSnapshot(currentApi, snapshotArray);
-            
+
             const applySnapshotBtn = document.getElementById('nemoApplySnapshotBtn');
             if (applySnapshotBtn) {
                 applySnapshotBtn.disabled = false;
             }
-            
+
             this.showStatusMessage(`Snapshot created with ${snapshotArray.length} active prompt(s).`, 'success');
             console.log(`${LOG_PREFIX} Snapshot saved successfully`);
         } catch (error) {
@@ -659,29 +659,29 @@ export const NemoPresetManager = {
 
             const snapshotIdentifiers = new Set(snapshotData);
             console.log(`${LOG_PREFIX} Applying snapshot with ${snapshotIdentifiers.size} prompts:`, Array.from(snapshotIdentifiers));
-            
+
             const allPromptItems = document.querySelectorAll(`${SELECTORS.promptsContainer} ${SELECTORS.promptItemRow}`);
             console.log(`${LOG_PREFIX} Found ${allPromptItems.length} prompt items in DOM`);
-            
+
             const togglesToClick = [];
             let matchedPrompts = 0;
-            
+
             allPromptItems.forEach(item => {
                 const identifier = item.dataset.pmIdentifier;
                 const toggleButton = item.querySelector(SELECTORS.toggleButton);
-                
+
                 if (!identifier || !toggleButton) {
                     console.warn(`${LOG_PREFIX} Item missing identifier or toggle button:`, item);
                     return;
                 }
-                
+
                 const isCurrentlyEnabled = toggleButton.classList.contains(SELECTORS.enabledToggleClass);
                 const shouldBeEnabled = snapshotIdentifiers.has(identifier);
-                
+
                 if (snapshotIdentifiers.has(identifier)) {
                     matchedPrompts++;
                 }
-                
+
                 if (isCurrentlyEnabled !== shouldBeEnabled) {
                     togglesToClick.push({
                         button: toggleButton,
@@ -696,13 +696,13 @@ export const NemoPresetManager = {
 
             if (togglesToClick.length > 0) {
                 this.showStatusMessage(`Applying snapshot... changing ${togglesToClick.length} prompts.`, 'info', 5000);
-                
+
                 for (const item of togglesToClick) {
                     console.log(`${LOG_PREFIX} Toggling ${item.identifier}`);
                     item.button.click();
                     await delay(50);
                 }
-                
+
                 await delay(100);
                 this.showStatusMessage(`Snapshot applied. ${snapshotIdentifiers.size} prompt(s) are now active.`, 'success');
                 console.log(`${LOG_PREFIX} Snapshot application complete`);
@@ -899,14 +899,14 @@ export const NemoPresetManager = {
         if (container) {
             // Check if UI elements exist, if not recreate them
             const searchContainer = document.getElementById('nemoPresetSearchContainer');
-            
+
             if (!searchContainer) {
                 console.log(`${LOG_PREFIX} Search UI missing, recreating...`);
                 this.createSearchAndStatusUI(container);
             }
 
             this.syncOptionalSections(container);
-            
+
             // Re-setup event listeners in case they were lost during preset changes
             setTimeout(() => {
                 this.setupEventListeners();
@@ -1030,13 +1030,13 @@ export const NemoPresetManager = {
     },
 
     // ** REFACTORED RENDER/ORGANIZATION LOGIC **
-    
+
     /**
      * Destroy existing Sortable instances to prevent duplicates and memory leaks
      */
     destroySortables: function() {
         if (!this.sortableInstances) return;
-        
+
         // Convert to array to avoid issues during iteration if delete is called
         Array.from(this.sortableInstances).forEach(instance => {
             try {
@@ -1047,20 +1047,20 @@ export const NemoPresetManager = {
                 console.warn(`${LOG_PREFIX} Error destroying Sortable instance:`, error);
             }
         });
-        
+
         this.sortableInstances.clear();
-        
+
         // Also cleanup summary protectors
         if (this.summaryProtectors) {
             this.summaryProtectors.forEach(observer => observer.disconnect());
             this.summaryProtectors = [];
         }
-        
+
         const container = document.querySelector(SELECTORS.promptsContainer);
         if (container) {
             delete container.sortable;
         }
-        
+
         console.log(`${LOG_PREFIX} All Sortable instances destroyed`);
     },
 
@@ -1091,7 +1091,7 @@ export const NemoPresetManager = {
 
                 // 1. Snapshot all current items in order (detached references)
                 let allCurrentItems = Array.from(promptsContainer.querySelectorAll('li.completion_prompt_manager_prompt'));
-                
+
                 // Track counts for next diff
                 this._lastItemCount = allCurrentItems.length;
                 this._lastSectionCount = promptsContainer.querySelectorAll('details.nemo-engine-section').length;
@@ -1140,18 +1140,18 @@ export const NemoPresetManager = {
                 promptsContainer.appendChild(fragment);
 
                 delete promptsContainer.dataset.nemoOrganizing;
-                
+
                 // Reveal the container after paint
                 promptsContainer.classList.remove('nemo-hidden-during-update');
-                
+
                 // Resume observer after DOM changes are committed
                 this.resumeListObserver();
-                
+
                 // 6. Initialize Drag and Drop (after paint) with a small delay
                 this.dragDropInitTimeout = setTimeout(() => {
                     this.initializeDragAndDrop(promptsContainer);
                     this.dragDropInitTimeout = null;
-                    
+
                     // Dispatch event to signal that organization is complete
                     // This allows category-tray.js to convert sections without watching the DOM
                     document.dispatchEvent(new CustomEvent('nemo-prompts-organized', {
@@ -1177,7 +1177,7 @@ export const NemoPresetManager = {
                 link.textContent = item.dataset.nemoOriginalText;
             }
         }
-        
+
         // Clean up metadata
         delete item.dataset.nemoDividerChecked;
         delete item.dataset.nemoIsDivider;
@@ -1244,7 +1244,7 @@ export const NemoPresetManager = {
                     contentDiv.className = 'nemo-section-content';
                     details.appendChild(contentDiv);
                 }
-                
+
                 // Ensure correct classes based on divider info
                 details.className = dividerInfo.isSubHeader ? 'nemo-engine-section nemo-sub-section' : 'nemo-engine-section';
                 // Update open state mapping just in case
@@ -1282,12 +1282,12 @@ export const NemoPresetManager = {
                 if (context && context.activeMainSection) {
                     const mainContent = context.activeMainSection.querySelector('.nemo-section-content');
                     mainContent.appendChild(details);
-                    
+
                     // Move Tray if exists (must be sibling of section)
                     if (details._nemoCategoryTray) {
                         mainContent.appendChild(details._nemoCategoryTray);
                     }
-                    
+
                     this.updateSectionCount(context.activeMainSection);
                     if (context) context.activeSubSection = details;
                     return details;
@@ -1295,14 +1295,14 @@ export const NemoPresetManager = {
             }
 
             container.appendChild(details);
-            
+
             // Move Tray if exists (must be sibling of section)
             if (details._nemoCategoryTray) {
                 container.appendChild(details._nemoCategoryTray);
             }
-            
+
             this.updateSectionCount(details);
-            
+
             if (context) {
                 if (dividerInfo.isSubHeader) {
                     context.activeSubSection = details;
@@ -1311,7 +1311,7 @@ export const NemoPresetManager = {
                     context.activeSubSection = null; // Reset sub-section when new main section starts
                 }
             }
-            
+
             return details;
         } else {
             // Check if there's a sub-section to add to first, then main section
@@ -1343,7 +1343,7 @@ export const NemoPresetManager = {
 
         // Hide all items and sections initially
         promptsContainer.querySelectorAll(`${SELECTORS.promptItemRow}, details.nemo-engine-section`).forEach(el => el.style.display = 'none');
-        
+
         if (searchTerm === '') {
             // Show all items when search is empty
             promptsContainer.querySelectorAll(`${SELECTORS.promptItemRow}, details.nemo-engine-section`).forEach(el => el.style.display = '');
@@ -1365,13 +1365,13 @@ export const NemoPresetManager = {
 
         promptsContainer.querySelectorAll(SELECTORS.promptItemRow).forEach(item => {
             let isMatch = false;
-            
+
             // Search in prompt name
             const name = item.querySelector(SELECTORS.promptNameLink)?.textContent.trim().toLowerCase() || '';
             if (name.includes(searchTerm)) {
                 isMatch = true;
             }
-            
+
             // Search in prompt content
             if (!isMatch) {
                 const identifier = item.dataset.pmIdentifier;
@@ -1385,11 +1385,11 @@ export const NemoPresetManager = {
                     }
                 }
             }
-            
+
             if (isMatch) {
                 matchingItems.add(item);
                 item.style.display = '';
-                
+
                 // Mark parent section as having matches
                 const parentSection = item.closest('details.nemo-engine-section');
                 if (parentSection) {
@@ -1402,7 +1402,7 @@ export const NemoPresetManager = {
         sectionsWithMatches.forEach(section => {
             section.style.display = '';
             section.open = true;
-            
+
             // Ensure the header (summary) is visible
             const summaryLi = section.querySelector('summary > li');
             if (summaryLi) {
@@ -1705,7 +1705,7 @@ export const NemoPresetManager = {
             slider.addEventListener('input', () => {
                 const value = parseFloat(slider.value);
                 counter.textContent = value.toFixed(2);
-                
+
                 if (originalInput) {
                     originalInput.value = value;
                     originalInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -2112,7 +2112,7 @@ export const NemoPresetManager = {
 
         // Initialize Drag and Drop using delegation or single instance per visible container
         // We defer creation of section-level sortables until mouseover to improve initial render time
-        
+
         // A single, powerful Sortable instance to manage everything at the top level
         const sortableInstance = new window.Sortable(container, {
             group: 'nemo-prompts',
@@ -2285,7 +2285,7 @@ export const NemoPresetManager = {
 
     initializeSectionSortables: function(container) {
         if (!container) return;
-        
+
         // Initialize Sortable for each section content area that doesn't have one
         container.querySelectorAll('.nemo-section-content').forEach(sectionContent => {
             if (sectionContent.sortable) return; // Skip if already initialized
@@ -2333,11 +2333,11 @@ export const NemoPresetManager = {
 
         const listObserver = new MutationObserver((mutations) => {
             if (container.dataset.nemoOrganizing === 'true') return;
-            
-            // NOTE: We don't disconnect here anymore to keep monitoring, 
+
+            // NOTE: We don't disconnect here anymore to keep monitoring,
             // but we MUST ensure we don't loop. organizePrompts handles the loop prevention.
             // However, to hide the FOUC, we want to act fast.
-            
+
             let needsReorg = false;
             let isClearing = false;
             let toggledItem = null;
@@ -2365,7 +2365,7 @@ export const NemoPresetManager = {
                              removedItemIdentifier = node.dataset.pmIdentifier;
                              removedItemParent = mutation.target.closest('details.nemo-engine-section');
                              removedItemSibling = mutation.nextSibling;
-                             
+
                              if (removedItemParent) {
                                  this.updateSectionCount(removedItemParent);
                              }
@@ -2378,7 +2378,7 @@ export const NemoPresetManager = {
                     }
                 }
             }
-            
+
             // SECOND PASS: Attempt Smart Toggle Recovery
             if (toggledItem && removedItemIdentifier && toggledItem.dataset.pmIdentifier === removedItemIdentifier) {
                 if (removedItemParent) {
@@ -2393,7 +2393,7 @@ export const NemoPresetManager = {
                          } else {
                              sectionContent.appendChild(toggledItem);
                          }
-                         
+
                          // Success! We handled it manually. Cancel full reorg.
                          needsReorg = false;
                          console.log(`${LOG_PREFIX} Smart Toggle handled successfully for ${removedItemIdentifier}`);
@@ -2407,9 +2407,9 @@ export const NemoPresetManager = {
                 if (isClearing || container.children.length > 5) {
                     container.classList.add('nemo-hidden-during-update');
                 }
-                
+
                 // Disconnect temporarily to prevent reacting to our own hiding class change if it triggers something
-                listObserver.disconnect(); 
+                listObserver.disconnect();
                 this.organizePrompts(true);
             }
         });
@@ -2519,7 +2519,7 @@ export const NemoPresetManager = {
             console.log(`${LOG_PREFIX} Context menu clicked:`, e.target);
             const action = e.target.closest('[data-action]')?.dataset.action;
             console.log(`${LOG_PREFIX} Context menu action:`, action);
-            
+
             if (action === 'move-to-header') {
                 console.log(`${LOG_PREFIX} Move to header action triggered`);
                 this.showHeaderSelectionDialog();
@@ -2545,19 +2545,19 @@ export const NemoPresetManager = {
 
     handleContextMenu: function(e) {
         console.log(`${LOG_PREFIX} Context menu triggered on:`, e.target);
-        
+
         // Only handle right-click on prompt items (not headers/dividers)
         const promptItem = e.target.closest('li.completion_prompt_manager_prompt');
         console.log(`${LOG_PREFIX} Found prompt item:`, promptItem);
-        
+
         if (!promptItem) {
             console.log(`${LOG_PREFIX} No prompt item found - ignoring right-click`);
             return;
         }
-        
+
         const dividerInfo = this.getDividerInfo(promptItem, true);
         console.log(`${LOG_PREFIX} Divider info:`, dividerInfo);
-        
+
         if (dividerInfo.isDivider) {
             console.log(`${LOG_PREFIX} Item is a divider - ignoring right-click`);
             return;
@@ -2605,7 +2605,7 @@ export const NemoPresetManager = {
         // Get all headers/sections - they might be in sections or flat list
         const container = document.querySelector(SELECTORS.promptsContainer);
         const headers = [];
-        
+
         // Look for headers in sections (details.nemo-engine-section summary)
         const sections = container.querySelectorAll('details.nemo-engine-section');
         sections.forEach(section => {
@@ -2618,9 +2618,9 @@ export const NemoPresetManager = {
                 });
             }
         });
-        
+
         // Also look for any flat headers that haven't been processed yet
-        const flatHeaders = Array.from(container.querySelectorAll('li.completion_prompt_manager_prompt')).filter(item => 
+        const flatHeaders = Array.from(container.querySelectorAll('li.completion_prompt_manager_prompt')).filter(item =>
             this.getDividerInfo(item, true).isDivider && !item.closest('details.nemo-engine-section')
         );
         flatHeaders.forEach(header => {
@@ -2640,10 +2640,10 @@ export const NemoPresetManager = {
         const dialog = document.createElement('div');
         dialog.id = 'nemo-header-selection-dialog';
         dialog.className = 'nemo-dialog-overlay';
-        
+
         const headersList = headers.map((headerData, index) => {
             let headerName = 'Unidentified Header';
-            
+
             // Try multiple ways to get the header name
             const dividerInfo = this.getDividerInfo(headerData.element, true);
             if (dividerInfo && dividerInfo.name) {
@@ -2654,17 +2654,17 @@ export const NemoPresetManager = {
                 if (nameSpan) {
                     const link = nameSpan.querySelector('a');
                     headerName = link ? link.textContent.trim() : nameSpan.textContent.trim();
-                    
+
                     // Clean up the header name (remove divider prefix if present)
                     if (DIVIDER_PREFIX_REGEX) {
                         headerName = headerName.replace(DIVIDER_PREFIX_REGEX, '').trim();
                     }
                 }
             }
-            
+
             const promptName = this.selectedPromptItem.querySelector('.completion_prompt_manager_prompt_name')?.textContent || 'Unknown Prompt';
             console.log(`${LOG_PREFIX} Header ${index}: name="${headerName}", isInSection=${headerData.isInSection}`);
-            
+
             return `
                 <div class="nemo-header-option" data-header-index="${index}">
                     <div class="nemo-header-name">${headerName}</div>
@@ -2698,7 +2698,7 @@ export const NemoPresetManager = {
         // Add event listeners (using arrow function to preserve 'this' context)
         const dialogClickHandler = (e) => {
             console.log(`${LOG_PREFIX} Dialog clicked:`, e.target);
-            
+
             const headerOption = e.target.closest('.nemo-header-option');
             const action = e.target.closest('[data-action]')?.dataset.action;
             const closeBtn = e.target.closest('.nemo-dialog-close');
@@ -2717,7 +2717,7 @@ export const NemoPresetManager = {
                 console.log(`${LOG_PREFIX} Selected header data:`, headers[headerIndex]);
                 console.log(`${LOG_PREFIX} About to call movePromptBelowHeader with:`, headers[headerIndex]);
                 console.log(`${LOG_PREFIX} 'this' context:`, this);
-                
+
                 this.movePromptBelowHeader(headers[headerIndex]);
                 dialog.remove();
             } else if (action === 'cancel' || closeBtn || e.target === dialog) {
@@ -2728,7 +2728,7 @@ export const NemoPresetManager = {
                 console.log(`${LOG_PREFIX} Click ignored - no matching handler`);
             }
         };
-        
+
         dialog.addEventListener('click', dialogClickHandler);
 
         // Focus management
@@ -2738,12 +2738,12 @@ export const NemoPresetManager = {
     movePromptBelowHeader: function(headerData) {
         console.log(`${LOG_PREFIX} movePromptBelowHeader called with:`, headerData);
         console.log(`${LOG_PREFIX} this.selectedPromptItem:`, this.selectedPromptItem);
-        
+
         if (!this.selectedPromptItem) {
             console.error(`${LOG_PREFIX} No selected prompt item`);
             return;
         }
-        
+
         if (!headerData) {
             console.error(`${LOG_PREFIX} No header data provided`);
             return;
@@ -2751,7 +2751,7 @@ export const NemoPresetManager = {
 
         const targetHeader = headerData.element;
         const targetSection = headerData.section;
-        
+
         console.log(`${LOG_PREFIX} Target header:`, targetHeader);
         console.log(`${LOG_PREFIX} Target section:`, targetSection);
 
@@ -2760,25 +2760,25 @@ export const NemoPresetManager = {
             this.showStatusMessage('Header not found.', 'error');
             return;
         }
-        
+
         try {
             // Get the current section the prompt is in (if any)
             const fromSection = this.selectedPromptItem.closest('details.nemo-engine-section');
 
         console.log(`${LOG_PREFIX} Moving prompt to header. Target section:`, targetSection);
         console.log(`${LOG_PREFIX} Selected prompt item:`, this.selectedPromptItem);
-        
+
         // Log current position before moving
         const originalParent = this.selectedPromptItem.parentNode;
         const originalNextSibling = this.selectedPromptItem.nextSibling;
         console.log(`${LOG_PREFIX} Original position - Parent:`, originalParent, 'Next sibling:', originalNextSibling);
-        
+
         if (targetSection) {
             // Insert as first item in the target section
             const firstPrompt = targetSection.querySelector('li.completion_prompt_manager_prompt:not(.nemo-header-item)');
-            
+
             console.log(`${LOG_PREFIX} First prompt in target section:`, firstPrompt);
-            
+
             if (firstPrompt) {
                 // Insert before the first existing prompt
                 firstPrompt.parentNode.insertBefore(this.selectedPromptItem, firstPrompt);
@@ -2791,13 +2791,13 @@ export const NemoPresetManager = {
         } else {
             // Insert directly after header in flat list
             const container = document.querySelector(SELECTORS.promptsContainer);
-            
+
             // Find the next sibling after the header
             let insertPosition = targetHeader.nextSibling;
             while (insertPosition && insertPosition.nodeType !== Node.ELEMENT_NODE) {
                 insertPosition = insertPosition.nextSibling;
             }
-            
+
             if (insertPosition) {
                 container.insertBefore(this.selectedPromptItem, insertPosition);
                 console.log(`${LOG_PREFIX} Inserted after header in flat list`);
@@ -2811,7 +2811,7 @@ export const NemoPresetManager = {
         const newParent = this.selectedPromptItem.parentNode;
         const newNextSibling = this.selectedPromptItem.nextSibling;
         console.log(`${LOG_PREFIX} New position - Parent:`, newParent, 'Next sibling:', newNextSibling);
-        
+
         // Verify the move actually happened
         if (newParent !== originalParent || newNextSibling !== originalNextSibling) {
             console.log(`${LOG_PREFIX} DOM move successful!`);
@@ -2825,7 +2825,7 @@ export const NemoPresetManager = {
 
         // Show success message
         const promptName = this.selectedPromptItem.querySelector('.completion_prompt_manager_prompt_name')?.textContent || 'Prompt';
-        
+
         // Get header name using the same logic as dialog
         let headerName = 'Header';
         const dividerInfo = this.getDividerInfo(targetHeader, true);
@@ -2841,17 +2841,17 @@ export const NemoPresetManager = {
                 }
             }
         }
-        
+
         console.log(`${LOG_PREFIX} Move completed: "${promptName}" -> "${headerName}"`);
         this.showStatusMessage(`Moved "${promptName}" below "${headerName}"`, 'success', 3000);
 
         // Trigger reorganization and save
         console.log(`${LOG_PREFIX} Triggering reorganization after move...`);
-        
+
         // Force reorganization to ensure proper structure
         setTimeout(() => {
             this.organizePrompts(true);
-            
+
             // Then trigger save
             const updateButton = document.getElementById('completion_prompt_manager_update_button');
             if (updateButton) {
@@ -2863,7 +2863,7 @@ export const NemoPresetManager = {
         }, 150);
 
         this.selectedPromptItem = null;
-        
+
         } catch (error) {
             console.error(`${LOG_PREFIX} Error in movePromptBelowHeader:`, error);
             this.showStatusMessage('Error moving prompt: ' + error.message, 'error');
@@ -2923,11 +2923,11 @@ export const NemoPresetManager = {
         const nameElement = promptElement.querySelector('.completion_prompt_manager_prompt_name a');
         const title = nameElement ? nameElement.textContent.trim() : 'Untitled Prompt';
         const identifier = promptElement.dataset.pmIdentifier || '';
-        
+
         // Get the actual prompt content from SillyTavern's prompt manager
         let content = '';
         let role = '';
-        
+
         try {
             // Try multiple ways to access prompt content from SillyTavern
             if (identifier) {
@@ -2945,7 +2945,7 @@ export const NemoPresetManager = {
                         });
                     }
                 }
-                
+
                 // Method 2: Try accessing from window/global scope
                 if (!content && window.promptManager) {
                     const promptData = window.promptManager.serviceSettings?.prompts?.find(p => p.identifier === identifier);
@@ -2960,7 +2960,7 @@ export const NemoPresetManager = {
                         });
                     }
                 }
-                
+
                 // Method 3: Try direct access to prompts array
                 if (!content && promptManager && promptManager.prompts) {
                     const promptData = promptManager.prompts.find(p => p.identifier === identifier);
@@ -2975,7 +2975,7 @@ export const NemoPresetManager = {
                         });
                     }
                 }
-                
+
                 // Method 4: Debug what's available in promptManager
                 if (!content) {
                     console.log(`${LOG_PREFIX} Debugging promptManager structure:`, {
@@ -2993,7 +2993,7 @@ export const NemoPresetManager = {
         } catch (error) {
             console.error(`${LOG_PREFIX} Error extracting prompt content:`, error);
         }
-        
+
         return {
             title: title,
             content: content,
@@ -3007,11 +3007,11 @@ export const NemoPresetManager = {
         if (!this.selectedPromptItem) return;
 
         const promptData = this.extractPromptData(this.selectedPromptItem);
-        
+
         const dialog = document.createElement('div');
         dialog.id = 'nemo-save-prompt-dialog';
         dialog.className = 'nemo-dialog-overlay';
-        
+
         dialog.innerHTML = `
             <div class="nemo-dialog">
                 <div class="nemo-dialog-header">
@@ -3023,12 +3023,12 @@ export const NemoPresetManager = {
                 <div class="nemo-dialog-content">
                     <div class="nemo-form-group">
                         <label for="nemo-save-prompt-title">Prompt Title:</label>
-                        <input type="text" id="nemo-save-prompt-title" value="${promptData.title}" 
+                        <input type="text" id="nemo-save-prompt-title" value="${promptData.title}"
                                placeholder="Enter a title for this prompt">
                     </div>
                     <div class="nemo-form-group">
                         <label for="nemo-save-prompt-tags">Tags (comma-separated):</label>
-                        <input type="text" id="nemo-save-prompt-tags" 
+                        <input type="text" id="nemo-save-prompt-tags"
                                placeholder="e.g. character, system, helper">
                     </div>
                     <div class="nemo-form-group">
@@ -3074,7 +3074,7 @@ export const NemoPresetManager = {
                 } else {
                     this.showStatusMessage('Failed to save prompt to library', 'error', 3000);
                 }
-                
+
                 dialog.remove();
             } else if (action === 'cancel' || closeBtn || e.target === dialog) {
                 dialog.remove();
@@ -3085,7 +3085,7 @@ export const NemoPresetManager = {
     },
 
     // === PROMPT NAVIGATOR ===
-    
+
     showPromptNavigator: async function() {
         try {
             const navigator = new PromptNavigator();
@@ -3100,15 +3100,15 @@ export const NemoPresetManager = {
 
     showArchiveNavigator: function() {
         const library = this.getPromptLibrary();
-        
+
         // Organize by folders
         const folders = this.organizePromptsByFolders(library);
         const folderNames = Object.keys(folders).sort();
-        
+
         const dialog = document.createElement('div');
         dialog.id = 'nemo-archive-navigator';
         dialog.className = 'nemo-dialog-overlay nemo-archive-overlay';
-        
+
         const toolbarHtml = `
             <div class="nemo-archive-toolbar">
                 <div class="nemo-archive-toolbar-left">
@@ -3138,10 +3138,10 @@ export const NemoPresetManager = {
                 </div>
             </div>
         `;
-        
+
         const sidebarHtml = this.buildFolderSidebar(folderNames, folders);
         const mainContentHtml = this.buildPromptGrid(library, 'all');
-        
+
         dialog.innerHTML = `
             <div class="nemo-archive-dialog">
                 <div class="nemo-archive-header">
@@ -3166,17 +3166,17 @@ export const NemoPresetManager = {
         `;
 
         document.body.appendChild(dialog);
-        
+
         // Add event listeners
         this.setupArchiveNavigatorEvents(dialog, library, folders);
-        
+
         // Focus search input
         dialog.querySelector('#nemo-archive-search').focus();
     },
 
     organizePromptsByFolders: function(library) {
         const folders = {};
-        
+
         library.forEach(prompt => {
             const folderName = prompt.folder || 'Default';
             if (!folders[folderName]) {
@@ -3184,7 +3184,7 @@ export const NemoPresetManager = {
             }
             folders[folderName].push(prompt);
         });
-        
+
         return folders;
     },
 
@@ -3193,7 +3193,7 @@ export const NemoPresetManager = {
             const prompts = folders[folderName];
             const favoriteCount = prompts.filter(p => p.isFavorite).length;
             const favoriteIcon = favoriteCount > 0 ? `<i class="fa-solid fa-star nemo-folder-star"></i>` : '';
-            
+
             return `
                 <div class="nemo-folder-item ${folderName === 'Default' ? 'active' : ''}" data-folder="${folderName}">
                     <div class="nemo-folder-content">
@@ -3238,7 +3238,7 @@ export const NemoPresetManager = {
 
     buildPromptGrid: function(prompts, folder, sortBy = 'newest', searchTerm = '', favoritesOnly = false) {
         let filteredPrompts = prompts;
-        
+
         // Filter by folder
         if (folder && folder !== 'all') {
             if (folder === 'favorites') {
@@ -3247,24 +3247,24 @@ export const NemoPresetManager = {
                 filteredPrompts = prompts.filter(p => (p.folder || 'Default') === folder);
             }
         }
-        
+
         // Filter by favorites
         if (favoritesOnly && folder !== 'favorites') {
             filteredPrompts = filteredPrompts.filter(p => p.isFavorite);
         }
-        
+
         // Filter by search
         if (searchTerm) {
-            filteredPrompts = filteredPrompts.filter(p => 
+            filteredPrompts = filteredPrompts.filter(p =>
                 p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (p.content && p.content.toLowerCase().includes(searchTerm.toLowerCase())) ||
                 (Array.isArray(p.tags) && p.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))
             );
         }
-        
+
         // Sort prompts
         this.sortPrompts(filteredPrompts, sortBy);
-        
+
         if (filteredPrompts.length === 0) {
             return `
                 <div class="nemo-empty-state">
@@ -3274,9 +3274,9 @@ export const NemoPresetManager = {
                 </div>
             `;
         }
-        
+
         const promptCards = filteredPrompts.map(prompt => this.buildPromptCard(prompt)).join('');
-        
+
         return `
             <div class="nemo-prompt-grid">
                 ${promptCards}
@@ -3388,7 +3388,7 @@ export const NemoPresetManager = {
                 // Update active folder
                 dialog.querySelectorAll('.nemo-folder-item').forEach(item => item.classList.remove('active'));
                 folderItem.classList.add('active');
-                
+
                 currentState.selectedFolder = folderItem.dataset.folder;
                 this.refreshArchiveMainContent(dialog, library, currentState);
             }
@@ -3398,7 +3398,7 @@ export const NemoPresetManager = {
         dialog.addEventListener('click', (e) => {
             const action = e.target.closest('[data-action]')?.dataset.action;
             const promptId = e.target.closest('[data-prompt-id]')?.dataset.promptId;
-            
+
             if (action && promptId) {
                 this.handlePromptAction(action, promptId, dialog, library, currentState);
             }
@@ -3454,7 +3454,7 @@ export const NemoPresetManager = {
     refreshArchiveMainContent: function(dialog, library, currentState) {
         const mainContainer = dialog.querySelector('.nemo-archive-main');
         const updatedLibrary = this.getPromptLibrary(); // Get fresh data
-        
+
         const newContent = this.buildPromptGrid(
             updatedLibrary,
             currentState.selectedFolder,
@@ -3462,7 +3462,7 @@ export const NemoPresetManager = {
             currentState.searchTerm,
             currentState.favoritesOnly
         );
-        
+
         mainContainer.innerHTML = newContent;
     },
 
@@ -3511,7 +3511,7 @@ export const NemoPresetManager = {
         try {
             const library = this.getPromptLibrary();
             const archivedPrompt = library.find(p => p.id === promptId);
-            
+
             if (!archivedPrompt) {
                 console.error(`${LOG_PREFIX} Archived prompt not found: ${promptId}`);
                 this.showStatusMessage('Error: Archived prompt not found', 'error');
@@ -3534,7 +3534,7 @@ export const NemoPresetManager = {
             // Method 1: Try using imported promptManager (same as other functions in this file)
             if (promptManager && promptManager.serviceSettings && promptManager.serviceSettings.prompts) {
                 console.log(`${LOG_PREFIX} Using imported promptManager.serviceSettings`);
-                
+
                 // Check if prompt already exists
                 const existingPrompt = promptManager.serviceSettings.prompts.find(p => p.identifier === newPrompt.identifier);
                 if (existingPrompt) {
@@ -3549,21 +3549,21 @@ export const NemoPresetManager = {
                 if (promptManager.serviceSettings.prompt_order) {
                     // Find active character's prompt order or default
                     let promptOrderEntry = null;
-                    
+
                     // Try to find current character's order
                     if (promptManager.activeCharacter && promptManager.activeCharacter.id) {
-                        promptOrderEntry = promptManager.serviceSettings.prompt_order.find(entry => 
+                        promptOrderEntry = promptManager.serviceSettings.prompt_order.find(entry =>
                             entry.character_id === promptManager.activeCharacter.id
                         );
                     }
-                    
+
                     // If no character-specific order found, use default/global
                     if (!promptOrderEntry) {
-                        promptOrderEntry = promptManager.serviceSettings.prompt_order.find(entry => 
+                        promptOrderEntry = promptManager.serviceSettings.prompt_order.find(entry =>
                             !entry.character_id || entry.character_id === 'default' || entry.character_id === null
                         );
                     }
-                    
+
                     // If still no order found, create a default one
                     if (!promptOrderEntry) {
                         promptOrderEntry = {
@@ -3572,7 +3572,7 @@ export const NemoPresetManager = {
                         };
                         promptManager.serviceSettings.prompt_order.push(promptOrderEntry);
                     }
-                    
+
                     // Add prompt to the top of the order
                     promptOrderEntry.order.unshift({
                         identifier: newPrompt.identifier,
@@ -3590,7 +3590,7 @@ export const NemoPresetManager = {
             // Method 2: Try using window.promptManager if available
             } else if (window.promptManager && typeof window.promptManager.addPrompt === 'function') {
                 console.log(`${LOG_PREFIX} Using window.promptManager.addPrompt`);
-                
+
                 // Check if prompt already exists
                 if (typeof window.promptManager.getPromptById === 'function') {
                     const existingPrompt = window.promptManager.getPromptById(newPrompt.identifier);
@@ -3622,7 +3622,7 @@ export const NemoPresetManager = {
             // Method 3: Try using direct oai_settings access as fallback
             } else if (window.oai_settings && window.oai_settings.prompts) {
                 console.log(`${LOG_PREFIX} Using direct oai_settings access`);
-                
+
                 // Check if prompt already exists
                 const existingPrompt = window.oai_settings.prompts.find(p => p.identifier === newPrompt.identifier);
                 if (existingPrompt) {
@@ -3636,10 +3636,10 @@ export const NemoPresetManager = {
                 // Try to add to prompt order if available
                 if (window.oai_settings.prompt_order) {
                     // Find the right prompt order entry (this is complex, so we'll add to the default one)
-                    const defaultOrderEntry = window.oai_settings.prompt_order.find(entry => 
+                    const defaultOrderEntry = window.oai_settings.prompt_order.find(entry =>
                         entry.character_id === null || entry.character_id === undefined || entry.character_id === 'default'
                     );
-                    
+
                     if (defaultOrderEntry && defaultOrderEntry.order) {
                         defaultOrderEntry.order.unshift({
                             identifier: newPrompt.identifier,
@@ -3678,7 +3678,7 @@ export const NemoPresetManager = {
 
             this.showStatusMessage(`✅ Added "${newPrompt.name}" to current preset!`, 'success', 3000);
             console.log(`${LOG_PREFIX} Successfully added prompt to current preset: ${newPrompt.name}`);
-            
+
         } catch (error) {
             console.error(`${LOG_PREFIX} Error adding prompt to current preset:`, error);
             this.showStatusMessage(`Error adding prompt: ${error.message}`, 'error');
@@ -3713,7 +3713,7 @@ export const NemoPresetManager = {
         const dialog = document.createElement('div');
         dialog.id = 'nemo-edit-prompt-dialog';
         dialog.className = 'nemo-dialog-overlay';
-        
+
         dialog.innerHTML = `
             <div class="nemo-dialog">
                 <div class="nemo-dialog-header">
@@ -3756,7 +3756,7 @@ export const NemoPresetManager = {
         // Event handlers
         dialog.querySelector('#nemo-edit-cancel').addEventListener('click', () => dialog.remove());
         dialog.querySelector('.nemo-dialog-close').addEventListener('click', () => dialog.remove());
-        
+
         dialog.addEventListener('click', (e) => {
             if (e.target === dialog) dialog.remove();
         });
@@ -3777,17 +3777,17 @@ export const NemoPresetManager = {
             try {
                 const updatedLibrary = this.getPromptLibrary();
                 const promptToUpdate = updatedLibrary.find(p => p.id === promptId);
-                
+
                 if (promptToUpdate) {
                     promptToUpdate.title = title;
                     promptToUpdate.content = content;
                     promptToUpdate.tags = tags;
                     promptToUpdate.folder = folder;
                     promptToUpdate.dateModified = new Date().toISOString();
-                    
+
                     this.savePromptLibrary(updatedLibrary);
                     this.showStatusMessage('Prompt updated successfully!', 'success');
-                    
+
                     dialog.remove();
                     if (callback) callback();
                 }
@@ -3810,7 +3810,7 @@ export const NemoPresetManager = {
         const dialog = document.createElement('div');
         dialog.id = 'nemo-move-prompt-dialog';
         dialog.className = 'nemo-dialog-overlay';
-        
+
         dialog.innerHTML = `
             <div class="nemo-dialog">
                 <div class="nemo-dialog-header">
@@ -3852,7 +3852,7 @@ export const NemoPresetManager = {
         // Event handlers
         dialog.querySelector('#nemo-move-cancel').addEventListener('click', () => dialog.remove());
         dialog.querySelector('.nemo-dialog-close').addEventListener('click', () => dialog.remove());
-        
+
         dialog.addEventListener('click', (e) => {
             if (e.target === dialog) dialog.remove();
         });
@@ -3867,20 +3867,20 @@ export const NemoPresetManager = {
         dialog.querySelector('#nemo-move-confirm').addEventListener('click', () => {
             const selectedFolder = dialog.querySelector('#nemo-move-folder-select').value;
             const newFolder = dialog.querySelector('#nemo-move-new-folder').value.trim();
-            
+
             const targetFolder = newFolder || selectedFolder || 'Default';
 
             try {
                 const updatedLibrary = this.getPromptLibrary();
                 const promptToMove = updatedLibrary.find(p => p.id === promptId);
-                
+
                 if (promptToMove) {
                     promptToMove.folder = targetFolder;
                     promptToMove.dateModified = new Date().toISOString();
-                    
+
                     this.savePromptLibrary(updatedLibrary);
                     this.showStatusMessage(`Prompt moved to "${targetFolder}" folder!`, 'success');
-                    
+
                     dialog.remove();
                     if (callback) callback();
                 }
@@ -3902,7 +3902,7 @@ export const NemoPresetManager = {
         const dialog = document.createElement('div');
         dialog.id = 'nemo-create-folder-dialog';
         dialog.className = 'nemo-dialog-overlay';
-        
+
         dialog.innerHTML = `
             <div class="nemo-dialog">
                 <div class="nemo-dialog-header">
@@ -3930,14 +3930,14 @@ export const NemoPresetManager = {
         // Event handlers
         dialog.querySelector('#nemo-folder-cancel').addEventListener('click', () => dialog.remove());
         dialog.querySelector('.nemo-dialog-close').addEventListener('click', () => dialog.remove());
-        
+
         dialog.addEventListener('click', (e) => {
             if (e.target === dialog) dialog.remove();
         });
 
         dialog.querySelector('#nemo-folder-create').addEventListener('click', () => {
             const folderName = dialog.querySelector('#nemo-new-folder-name').value.trim();
-            
+
             if (!folderName) {
                 alert('Please enter a folder name.');
                 return;
@@ -3946,7 +3946,7 @@ export const NemoPresetManager = {
             // Check if folder already exists
             const library = this.getPromptLibrary();
             const existingFolders = [...new Set(library.map(p => p.folder || 'Default'))];
-            
+
             if (existingFolders.includes(folderName)) {
                 alert('A folder with this name already exists.');
                 return;
@@ -3968,7 +3968,7 @@ export const NemoPresetManager = {
                 library.push(placeholderPrompt);
                 this.savePromptLibrary(library);
                 this.showStatusMessage(`Folder "${folderName}" created successfully!`, 'success');
-                
+
                 dialog.remove();
                 if (callback) callback();
             } catch (error) {
@@ -3989,7 +3989,7 @@ export const NemoPresetManager = {
         const dialog = document.createElement('div');
         dialog.id = 'nemo-import-prompts-dialog';
         dialog.className = 'nemo-dialog-overlay';
-        
+
         dialog.innerHTML = `
             <div class="nemo-dialog">
                 <div class="nemo-dialog-header">
@@ -4005,7 +4005,7 @@ export const NemoPresetManager = {
                     </div>
                     <div class="nemo-form-group">
                         <label>
-                            <input type="checkbox" id="nemo-import-merge" checked> 
+                            <input type="checkbox" id="nemo-import-merge" checked>
                             Merge with existing prompts (uncheck to replace all prompts)
                         </label>
                     </div>
@@ -4026,7 +4026,7 @@ export const NemoPresetManager = {
         // Event handlers
         dialog.querySelector('#nemo-import-cancel').addEventListener('click', () => dialog.remove());
         dialog.querySelector('.nemo-dialog-close').addEventListener('click', () => dialog.remove());
-        
+
         dialog.addEventListener('click', (e) => {
             if (e.target === dialog) dialog.remove();
         });
@@ -4040,23 +4040,23 @@ export const NemoPresetManager = {
         dialog.querySelector('#nemo-import-confirm').addEventListener('click', () => {
             const fileInput = dialog.querySelector('#nemo-import-file');
             const mergeMode = dialog.querySelector('#nemo-import-merge').checked;
-            
+
             if (!fileInput.files.length) return;
 
             const file = fileInput.files[0];
             const reader = new FileReader();
-            
+
             reader.onload = (e) => {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    
+
                     if (!Array.isArray(importedData)) {
                         throw new Error('Import file must contain an array of prompts.');
                     }
 
                     let currentLibrary = mergeMode ? this.getPromptLibrary() : [];
                     let importCount = 0;
-                    
+
                     importedData.forEach((importPrompt, index) => {
                         if (importPrompt.title && typeof importPrompt.title === 'string') {
                             const prompt = {
@@ -4081,7 +4081,7 @@ export const NemoPresetManager = {
 
                     this.savePromptLibrary(currentLibrary);
                     this.showStatusMessage(`Successfully imported ${importCount} prompts!`, 'success');
-                    
+
                     dialog.remove();
                     if (callback) callback();
                 } catch (error) {
@@ -4089,7 +4089,7 @@ export const NemoPresetManager = {
                     alert('Failed to import prompts. Please check the file format and try again.\n\nError: ' + error.message);
                 }
             };
-            
+
             reader.readAsText(file);
         });
     },
@@ -4097,7 +4097,7 @@ export const NemoPresetManager = {
     exportPromptLibrary: function() {
         try {
             const library = this.getPromptLibrary();
-            
+
             if (library.length === 0) {
                 alert('No prompts to export.');
                 return;
@@ -4117,7 +4117,7 @@ export const NemoPresetManager = {
             // Create and trigger download
             const dataBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(dataBlob);
-            
+
             const a = document.createElement('a');
             a.href = url;
             a.download = `nemo-prompts-export-${new Date().toISOString().slice(0, 10)}.json`;

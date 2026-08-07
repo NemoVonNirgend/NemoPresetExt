@@ -22,7 +22,7 @@ class DOMCache {
      */
     get(selector, context = document) {
         const key = this.getCacheKey(selector, context);
-        
+
         if (this.cache.has(key)) {
             const element = this.cache.get(key);
             // Verify element is still in DOM
@@ -41,7 +41,7 @@ class DOMCache {
             this.cache.set(key, element);
             logger.debug(`Cached element: ${selector}`);
         }
-        
+
         return element;
     }
 
@@ -53,7 +53,7 @@ class DOMCache {
      */
     getAll(selector, context = document) {
         const key = this.getCacheKey(selector + '_all', context);
-        
+
         if (this.cache.has(key)) {
             const elements = this.cache.get(key);
             // Verify elements are still in DOM
@@ -99,7 +99,7 @@ class DOMCache {
      */
     async waitFor(selector, timeout = 5000, interval = 100) {
         const startTime = Date.now();
-        
+
         while (Date.now() - startTime < timeout) {
             const element = this.get(selector);
             if (element) {
@@ -107,7 +107,7 @@ class DOMCache {
             }
             await new Promise(resolve => setTimeout(resolve, interval));
         }
-        
+
         logger.warn(`Element not found within timeout: ${selector}`);
         return null;
     }
@@ -133,7 +133,7 @@ class DOMCache {
      */
     batch(operation) {
         this.batchOperations.push(operation);
-        
+
         if (!this.rafId) {
             this.rafId = requestAnimationFrame(() => {
                 this.executeBatch();
@@ -151,7 +151,7 @@ class DOMCache {
         }
 
         logger.debug(`Executing ${this.batchOperations.length} batched DOM operations`);
-        
+
         // Execute all operations
         this.batchOperations.forEach(operation => {
             try {
@@ -208,7 +208,7 @@ class DOMCache {
 
         this.observers.set(selector, observer);
         logger.debug(`Started watching element: ${selector}`);
-        
+
         return observer;
     }
 
@@ -257,7 +257,7 @@ class DOMCache {
 
         // Clear batch operations
         this.batchOperations = [];
-        
+
         logger.debug('DOM cache destroyed');
     }
 }

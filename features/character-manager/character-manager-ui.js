@@ -164,7 +164,7 @@ export class CharacterManagerUI {
         items.sort((a, b) => {
             if (a.type === 'folder' && b.type !== 'folder') return -1;
             if (a.type !== 'folder' && b.type === 'folder') return 1;
-            
+
             switch (this.currentSort) {
                 case 'name-desc': return b.name.localeCompare(a.name);
                 case 'name-asc':
@@ -188,7 +188,7 @@ export class CharacterManagerUI {
                 fragment.appendChild(itemEl);
             });
         }
-        
+
         this.mainView.innerHTML = '';
         this.mainView.appendChild(fragment);
         this.renderFavoritesSidebar();
@@ -200,11 +200,11 @@ export class CharacterManagerUI {
 
     async loadSelectedCharacter() {
         if (!this.selectedCharacter) return;
-    
+
         try {
             const context = getContext();
             const characterIndex = context.characters.findIndex(c => c.avatar === this.selectedCharacter.avatar);
-    
+
             if (characterIndex !== -1) {
                 await selectCharacterById(characterIndex);
                 const closeButton = this.element.closest('.popup_outer, dialog.popup')?.querySelector('.popup-button-close');
@@ -246,12 +246,12 @@ export class CharacterManagerUI {
         } else {
             icon.innerHTML = `<i class="fa-solid ${type === 'folder' ? 'fa-folder' : 'fa-user'}"></i>`;
         }
-        
+
         const nameEl = document.createElement('div');
         nameEl.className = 'item-name';
         nameEl.textContent = data.name;
         nameEl.title = data.name;
-        
+
         itemEl.appendChild(icon);
         itemEl.appendChild(nameEl);
 
@@ -260,16 +260,16 @@ export class CharacterManagerUI {
             const favoriteBtn = document.createElement('button');
             favoriteBtn.className = 'menu_button nemo-favorite-btn';
             favoriteBtn.title = 'Toggle favorite';
-            
+
             const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_CHARACTERS_KEY) || '[]');
             const isFavorite = favorites.includes(data.avatar);
             favoriteBtn.innerHTML = `<i class="fa-solid fa-star ${isFavorite ? 'favorite-active' : ''}"></i>`;
-            
+
             favoriteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleCharacterFavorite(data.avatar);
             });
-            
+
             itemEl.appendChild(favoriteBtn);
         }
 
@@ -354,14 +354,14 @@ export class CharacterManagerUI {
     handleGridDoubleClick(e) {
         const item = e.target.closest('.grid-item');
         if (!item || item.dataset.type !== 'character') return;
-        
+
         // First select the character
         const id = item.dataset.id;
         this.mainView.querySelectorAll('.grid-item.selected').forEach(el => el.classList.remove('selected'));
         item.classList.add('selected');
         this.selectedCharacter = this.allCharacters.find(c => c.avatar === id);
         this.updateLoadButton();
-        
+
         // Then load it
         this.loadSelectedCharacter();
     }
@@ -386,7 +386,7 @@ export class CharacterManagerUI {
             const favoriteAction = isFavorite ? 'unfavorite' : 'favorite';
             const favoriteText = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
             const favoriteIcon = isFavorite ? 'fa-star-half-stroke' : 'fa-star';
-            
+
             itemsHTML = `<li data-action="${favoriteAction}"><i class="fa-solid ${favoriteIcon}"></i><span>${favoriteText}</span></li><li data-action="add_to_folder"><i class="fa-solid fa-folder-plus"></i><span>Move to Folder...</span></li>`;
         }
         menu.innerHTML = itemsHTML;
@@ -581,14 +581,14 @@ export class CharacterManagerUI {
             this.lastDropTarget.classList.remove('drag-over');
             const draggedId = e.dataTransfer.getData('text/plain');
             const folderId = this.lastDropTarget.dataset.id;
-            
+
             if (draggedId && folderId) {
                 this.moveItemToFolder(draggedId, folderId);
             }
         }
         const draggedItem = this.mainView.querySelector('.dragging-source');
         if(draggedItem) draggedItem.classList.remove('dragging-source');
-        
+
         this.lastDropTarget = null;
     }
 
@@ -627,15 +627,15 @@ export class CharacterManagerUI {
     toggleCharacterFavorite(avatar) {
         const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_CHARACTERS_KEY) || '[]');
         const index = favorites.indexOf(avatar);
-        
+
         if (index === -1) {
             favorites.push(avatar);
         } else {
             favorites.splice(index, 1);
         }
-        
+
         localStorage.setItem(NEMO_FAVORITE_CHARACTERS_KEY, JSON.stringify(favorites));
-        
+
         // Re-render to update the star icons and favorites sidebar
         this.render();
         this.renderFavoritesSidebar();
@@ -678,21 +678,21 @@ export class CharacterManagerUI {
                     this.selectedCharacter = character;
                     this.render();
                 });
-                
+
                 favoriteItem.addEventListener('dblclick', () => {
                     // Select and load this character
                     this.selectedCharacter = character;
                     this.updateLoadButton();
                     this.loadSelectedCharacter();
                 });
-                
+
                 // Add remove button event listener
                 const removeBtn = favoriteItem.querySelector('.favorite-remove-btn');
                 removeBtn.addEventListener('click', (e) => {
                     e.stopPropagation(); // Prevent triggering the item click
                     this.toggleCharacterFavorite(avatar);
                 });
-                
+
                 favoritesList.appendChild(favoriteItem);
             }
         });

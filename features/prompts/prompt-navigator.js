@@ -54,7 +54,7 @@ export class PromptNavigator {
         this.breadcrumbs = null;
         this.searchInput = null;
         this.searchClearBtn = null;
-        
+
         this.metadata = { folders: {}, prompts: {} };
         this.currentPath = [{ id: 'root', name: 'Home' }];
         this.allPrompts = [];
@@ -80,10 +80,10 @@ export class PromptNavigator {
     async init() {
         const response = await fetch(getExtensionPath('features/prompts/prompt-navigator.html'));
         const htmlContent = await response.text();
-        
+
         this.navigatorElement = document.createElement('div');
         this.navigatorElement.innerHTML = htmlContent;
-        
+
         // Cache DOM elements
         this.mainView = this.navigatorElement.querySelector('#prompt-navigator-grid-view');
         this.breadcrumbs = this.navigatorElement.querySelector('#prompt-navigator-breadcrumbs');
@@ -122,7 +122,7 @@ export class PromptNavigator {
         this.searchInput.value = '';
         this.bulkSelection.clear();
         this.render();
-        
+
         callGenericPopup(this.navigatorElement, POPUP_TYPE.DISPLAY, '', {
             wide: true,
             large: true,
@@ -155,7 +155,7 @@ export class PromptNavigator {
             const promptName = nameLink ? nameLink.textContent.trim() : '';
             const identifier = item.dataset.pmIdentifier || '';
             const role = item.dataset.pmRole || '';
-            
+
             if (promptName && identifier) {
                 prompts.push({
                     identifier: identifier,
@@ -230,7 +230,7 @@ export class PromptNavigator {
     renderGridView() {
         let metadataWasUpdated = false;
         const now = new Date().toISOString();
-        
+
         // Ensure all prompts have metadata entries
         this.allPrompts.forEach(p => {
             if (!this.metadata.prompts[p.identifier]) {
@@ -245,7 +245,7 @@ export class PromptNavigator {
         const searchTerm = this.searchInput.value.toLowerCase().trim();
 
         let items = [];
-        
+
         // Add folders to the items list
         Object.values(this.metadata.folders)
             .filter(folder => folder.parentId === currentFolderId)
@@ -257,7 +257,7 @@ export class PromptNavigator {
             const isUncategorized = !meta.folderId;
             const isInCurrentFolder = meta.folderId === currentFolderId;
             const isInRootAndCurrentIsRoot = isUncategorized && currentFolderId === 'root';
-            
+
             if (isInCurrentFolder || isInRootAndCurrentIsRoot) {
                 items.push({ type: 'prompt', data: p, id: p.identifier, name: p.name });
             }
@@ -279,7 +279,7 @@ export class PromptNavigator {
         items.sort((a, b) => {
             if (a.type === 'folder' && b.type !== 'folder') return -1;
             if (a.type !== 'folder' && b.type === 'folder') return 1;
-            
+
             switch (this.currentSort) {
                 case 'name-desc': return b.name.localeCompare(a.name);
                 case 'name-asc':
@@ -303,7 +303,7 @@ export class PromptNavigator {
                 fragment.appendChild(itemEl);
             });
         }
-        
+
         this.mainView.innerHTML = '';
         this.mainView.appendChild(fragment);
         this.renderFavoritesSidebar();
@@ -330,13 +330,13 @@ export class PromptNavigator {
         if (type === 'folder' && data.color) {
             icon.style.color = data.color;
         }
-        
+
         const nameEl = document.createElement('div');
         nameEl.className = 'item-name';
         nameEl.textContent = data.name;
         const lastMod = data.lastModified ? new Date(data.lastModified).toLocaleDateString() : 'N/A';
         nameEl.title = `${data.name}\nModified: ${lastMod}`;
-        
+
         itemEl.appendChild(icon);
         itemEl.appendChild(nameEl);
 
@@ -345,16 +345,16 @@ export class PromptNavigator {
             const favoriteBtn = document.createElement('button');
             favoriteBtn.className = 'menu_button nemo-favorite-btn';
             favoriteBtn.title = 'Toggle favorite';
-            
+
             const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_PROMPTS_KEY) || '[]');
             const isFavorite = favorites.includes(data.identifier);
             favoriteBtn.innerHTML = `<i class="fa-solid fa-star ${isFavorite ? 'favorite-active' : ''}"></i>`;
-            
+
             favoriteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.togglePromptFavorite(data.identifier);
             });
-            
+
             itemEl.appendChild(favoriteBtn);
         }
 
@@ -379,7 +379,7 @@ export class PromptNavigator {
 
     async loadSelectedPrompt() {
         if (!this.selectedPrompt.identifier) return;
-        
+
         // Find the prompt element and trigger its inspection
         const promptIdentifier = CSS.escape(this.selectedPrompt.identifier);
         const promptEl = document.querySelector(`li[data-pm-identifier="${promptIdentifier}"]`);
@@ -397,19 +397,19 @@ export class PromptNavigator {
     async createNewFolder() {
         const name = await callGenericPopup('New Folder Name:', POPUP_TYPE.INPUT, 'New Folder');
         if (!name) return;
-        
+
         const newId = generateUUID();
         const parentId = this.currentPath[this.currentPath.length - 1].id;
         const now = new Date().toISOString();
-        
-        this.metadata.folders[newId] = { 
-            id: newId, 
-            name, 
-            parentId, 
-            createdAt: now, 
-            lastModified: now 
+
+        this.metadata.folders[newId] = {
+            id: newId,
+            name,
+            parentId,
+            createdAt: now,
+            lastModified: now
         };
-        
+
         this.saveMetadata();
         this.render();
     }
@@ -417,15 +417,15 @@ export class PromptNavigator {
     togglePromptFavorite(identifier) {
         const favorites = JSON.parse(localStorage.getItem(NEMO_FAVORITE_PROMPTS_KEY) || '[]');
         const index = favorites.indexOf(identifier);
-        
+
         if (index === -1) {
             favorites.push(identifier);
         } else {
             favorites.splice(index, 1);
         }
-        
+
         localStorage.setItem(NEMO_FAVORITE_PROMPTS_KEY, JSON.stringify(favorites));
-        
+
         // Re-render to update the star icons and favorites sidebar
         this.render();
         this.renderFavoritesSidebar();
@@ -464,26 +464,26 @@ export class PromptNavigator {
                 removeButton.innerHTML = '<i class="fa-solid fa-times"></i>';
 
                 favoriteItem.append(icon, name, removeButton);
-                
+
                 favoriteItem.addEventListener('click', () => {
                     // Select this prompt
                     this.selectedPrompt = { identifier: prompt.identifier, name: prompt.name };
                     this.render();
                 });
-                
+
                 favoriteItem.addEventListener('dblclick', () => {
                     // Select and load this prompt
                     this.selectedPrompt = { identifier: prompt.identifier, name: prompt.name };
                     this.updateLoadButton();
                     this.loadSelectedPrompt();
                 });
-                
+
                 // Add remove button event listener
                 removeButton.addEventListener('click', (e) => {
                     e.stopPropagation(); // Prevent triggering the item click
                     this.togglePromptFavorite(identifier);
                 });
-                
+
                 favoritesList.appendChild(favoriteItem);
             }
         });
@@ -523,7 +523,7 @@ export class PromptNavigator {
     handleGridDoubleClick(e) {
         const item = e.target.closest('.grid-item');
         if (!item || item.dataset.type !== 'prompt') return;
-        
+
         // First select the prompt
         const id = item.dataset.id;
         this.mainView.querySelectorAll('.grid-item.selected').forEach(el => el.classList.remove('selected'));
@@ -531,7 +531,7 @@ export class PromptNavigator {
         const prompt = this.allPrompts.find(p => p.identifier === id);
         this.selectedPrompt = { identifier: id, name: prompt ? prompt.name : '' };
         this.updateLoadButton();
-        
+
         // Then load it
         this.loadSelectedPrompt();
     }
@@ -565,7 +565,7 @@ export class PromptNavigator {
             const favoriteAction = isFavorite ? 'unfavorite' : 'favorite';
             const favoriteText = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
             const favoriteIcon = isFavorite ? 'fa-star-half-stroke' : 'fa-star';
-            
+
             itemsHTML = `
                 <li data-action="${favoriteAction}" data-id="${id}">
                     <i class="fa-solid ${favoriteIcon}"></i><span>${favoriteText}</span>
@@ -581,7 +581,7 @@ export class PromptNavigator {
                 </li>
             `;
         }
-        
+
         menu.innerHTML = itemsHTML;
 
         // Find the popup container - ST uses .popup_outer or dialog.popup
@@ -678,10 +678,10 @@ export class PromptNavigator {
             toastr.info("No folders created yet. Create a folder first.");
             return;
         }
-        
+
         const targetName = await callGenericPopup(`Enter folder name to move to:\n(${folderNames})`, POPUP_TYPE.INPUT);
         const targetFolder = Object.values(this.metadata.folders).find(f => f.name.toLowerCase() === targetName?.toLowerCase());
-        
+
         if (targetFolder) {
             itemIds.forEach(id => {
                 if (this.metadata.folders[id]) {
@@ -705,12 +705,12 @@ export class PromptNavigator {
     }
 
     showSortMenu(e) {
-        e.stopPropagation(); 
+        e.stopPropagation();
         this.hideContextMenu();
         const options = { 'name-asc': 'Name (A-Z)', 'name-desc': 'Name (Z-A)' };
-        const menu = document.createElement('ul'); 
+        const menu = document.createElement('ul');
         menu.className = 'nemo-context-menu';
-        menu.innerHTML = Object.entries(options).map(([key, value]) => 
+        menu.innerHTML = Object.entries(options).map(([key, value]) =>
             `<li data-action="sort" data-value="${key}" class="${this.currentSort === key ? 'active' : ''}">${value}</li>`
         ).join('');
         this.showMiniMenu(e.currentTarget, menu);
@@ -722,12 +722,12 @@ export class PromptNavigator {
     }
 
     showFilterMenu(e) {
-        e.stopPropagation(); 
+        e.stopPropagation();
         this.hideContextMenu();
         const options = { 'all': 'All Items', 'favorites': '⭐ Favorites', 'uncategorized': 'Uncategorized' };
-        const menu = document.createElement('ul'); 
+        const menu = document.createElement('ul');
         menu.className = 'nemo-context-menu';
-        menu.innerHTML = Object.entries(options).map(([key, value]) => 
+        menu.innerHTML = Object.entries(options).map(([key, value]) =>
             `<li data-action="filter" data-value="${key}" class="${this.currentFilter === key ? 'active' : ''}">${value}</li>`
         ).join('');
         this.showMiniMenu(e.currentTarget, menu);
@@ -808,7 +808,7 @@ export class PromptNavigator {
         }
 
         const headers = [];
-        
+
         // Look for headers in sections (details.nemo-engine-section summary)
         const sections = container.querySelectorAll('details.nemo-engine-section');
         sections.forEach(section => {
@@ -825,7 +825,7 @@ export class PromptNavigator {
                 });
             }
         });
-        
+
         // Also look for any flat headers that haven't been processed yet
         const flatHeaders = Array.from(container.querySelectorAll('li.completion_prompt_manager_prompt')).filter(item => {
             // Check if this is a header/divider by looking for typical header patterns
@@ -834,7 +834,7 @@ export class PromptNavigator {
             const isHeader = name.match(/^[\=\⭐\━\-\+]{2,}/) || item.classList.contains('nemo-header-item');
             return isHeader && !item.closest('details.nemo-engine-section');
         });
-        
+
         flatHeaders.forEach(header => {
             const nameEl = header.querySelector('.completion_prompt_manager_prompt_name a');
             const headerName = nameEl ? nameEl.textContent.trim() : 'Unknown Header';
@@ -891,7 +891,7 @@ export class PromptNavigator {
             option.addEventListener('click', () => {
                 // Clear previous selections
                 headerOptions.forEach(opt => opt.style.backgroundColor = '');
-                
+
                 // Select current option
                 option.style.backgroundColor = 'var(--SmartThemeQuoteColor)';
                 selectedIndex = index;
@@ -925,12 +925,12 @@ export class PromptNavigator {
             if (!this.selectedPromptData) return;
 
             const { prompt, data } = this.selectedPromptData;
-            
+
             console.log(`${LOG_PREFIX} Moving prompt "${prompt.name}" to header "${selectedHeader.name}"`);
-            
+
             // Find the position after the selected header
             let targetPosition = selectedHeader.element;
-            
+
             if (selectedHeader.isInSection) {
                 // If it's in a section, we need to move within that section
                 const section = selectedHeader.section;
@@ -959,11 +959,11 @@ export class PromptNavigator {
             }
 
             toastr.success(`"${prompt.name}" moved to header "${selectedHeader.name}" successfully!`);
-            
+
             // Refresh the prompt list in the navigator
             this.allPrompts = await this.fetchPromptList();
             this.render();
-            
+
         } catch (error) {
             console.error(`${LOG_PREFIX} Error moving prompt to selected header:`, error);
             toastr.error('Error moving prompt to header');
@@ -1004,7 +1004,7 @@ export class PromptNavigator {
                 });
 
                 toastr.success(`Prompt "${title}" added to archive successfully!`);
-                
+
                 console.log(`${LOG_PREFIX} Added prompt to archive:`, archivedPrompt.id);
             } else {
                 toastr.error('Prompt manager not available');
@@ -1226,16 +1226,16 @@ export class PromptNavigator {
             } else {
                 // Fallback: try to find and populate header fields directly
                 const headerTextarea = document.querySelector('#rm_api_url, #api_url_text, textarea[placeholder*="header"], textarea[name*="header"], #CustomPromptHeader, textarea#main_prompt');
-                
+
                 if (headerTextarea) {
                     // Add to existing content or replace
                     const existingContent = headerTextarea.value.trim();
                     const separator = existingContent ? '\n\n' : '';
                     const newContent = existingContent + separator + `// ${promptName}\n${promptData.content || ''}`;
-                    
+
                     headerTextarea.value = newContent;
                     headerTextarea.dispatchEvent(new Event('input', { bubbles: true }));
-                    
+
                     toastr.success(`"${promptName}" added to header successfully!`);
                 } else {
                     toastr.warning('Could not find header field to populate. Make sure you are in the correct API settings.');

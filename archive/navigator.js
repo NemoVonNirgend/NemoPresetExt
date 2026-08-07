@@ -41,7 +41,7 @@ export class PresetNavigator {
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
     }
-    
+
     // **FIX:** This now only creates the inner content of the modal.
     // `callGenericPopup` will provide the outer frame, header, and close button.
     createNavigatorElement() {
@@ -212,7 +212,7 @@ export class PresetNavigator {
         this.bulkSelection.clear();
         this.lastSelectedItem = null;
     }
-    
+
     // **FIX:** Simplified and more reliable preset fetching logic.
     // It reads directly from the <select> element, which is the source of truth.
     async fetchPresetList() {
@@ -225,7 +225,7 @@ export class PresetNavigator {
             .map(opt => ({ name: opt.textContent, value: opt.value }))
             .filter(item => item.name && item.value && item.value !== '---' && !item.name.includes('===')); // Filter out separators and headers
     }
-    
+
     render() {
         this.renderBreadcrumbs();
         this.renderGridView();
@@ -425,16 +425,16 @@ export class PresetNavigator {
             const favoriteBtn = document.createElement('button');
             favoriteBtn.className = 'menu_button nemo-favorite-btn';
             favoriteBtn.title = 'Toggle favorite';
-            
+
             const favorites = storage.getFavoritePresets();
             const isFavorite = favorites.includes(data.name);
             favoriteBtn.innerHTML = `<i class="fa-solid fa-star ${isFavorite ? 'favorite-active' : ''}"></i>`;
-            
+
             favoriteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.togglePresetFavorite(data.name);
             });
-            
+
             itemEl.appendChild(favoriteBtn);
         }
 
@@ -527,7 +527,7 @@ export class PresetNavigator {
             this.lastDropTarget.classList.remove('drag-over');
             const draggedId = e.dataTransfer.getData('text/plain');
             const folderId = this.lastDropTarget.dataset.id;
-            
+
             if (draggedId && folderId) {
                 this.moveItemToFolder(draggedId, folderId);
             }
@@ -540,7 +540,7 @@ export class PresetNavigator {
         this.isDragging = false;
         this.lastDropTarget = null;
     }
-    
+
     async handleGridDoubleClick(e) {
         const item = e.target.closest('.grid-item.preset');
         if (!item) return;
@@ -617,7 +617,7 @@ export class PresetNavigator {
             const favoriteAction = isFavorite ? 'unfavorite' : 'favorite';
             const favoriteText = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
             const favoriteIcon = isFavorite ? 'fa-star-half-stroke' : 'fa-star';
-            
+
             itemsHTML = `<li data-action="${favoriteAction}"><i class="fa-solid ${favoriteIcon}"></i><span>${favoriteText}</span></li><li data-action="set_image"><i class="fa-solid fa-image"></i><span>Set Image</span></li><li data-action="add_to_folder"><i class="fa-solid fa-folder-plus"></i><span>Move to Folder...</span></li><li data-action="remove_from_folder"><i class="fa-solid fa-folder-minus"></i><span>Remove from Folder</span></li>`;
         }
         menu.innerHTML = itemsHTML;
@@ -649,7 +649,7 @@ export class PresetNavigator {
             this.hideContextMenu();
         }, { once: true });
     }
-    
+
     async runContextMenuAction(action, id) {
         switch (action) {
             case 'favorite': {
@@ -1086,10 +1086,10 @@ export class PresetNavigator {
 
     togglePresetFavorite(presetName) {
         const wasAdded = storage.toggleFavoritePreset(presetName);
-        
+
         // Trigger favorites update event
         eventSource.emit('nemo_favorites_updated');
-        
+
         // Re-render to update the star icons and favorites sidebar
         this.render();
         this.renderFavoritesSidebar();
@@ -1129,21 +1129,21 @@ export class PresetNavigator {
                     this.selectedPreset = { value: preset.value, name: preset.name };
                     this.render();
                 });
-                
+
                 favoriteItem.addEventListener('dblclick', () => {
                     // Select and load this preset
                     this.selectedPreset = { value: preset.value, name: preset.name };
                     this.updateLoadButton();
                     this.loadSelectedPreset();
                 });
-                
+
                 // Add remove button event listener
                 const removeBtn = favoriteItem.querySelector('.favorite-remove-btn');
                 removeBtn.addEventListener('click', (e) => {
                     e.stopPropagation(); // Prevent triggering the item click
                     this.togglePresetFavorite(preset.name);
                 });
-                
+
                 favoritesList.appendChild(favoriteItem);
             }
         });

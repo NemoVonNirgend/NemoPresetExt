@@ -425,7 +425,7 @@ export function initCategoryTray() {
         presetChangedHandler = () => {
             console.log('[NemoTray] Preset changed - clearing prompt cache and closing trays');
             sectionPromptIdsCache.clear();
-            
+
             // Close all open trays and reset section data
             document.querySelectorAll('.nemo-tray-open').forEach(section => {
                 if (section._nemoCategoryTray) {
@@ -437,14 +437,14 @@ export function initCategoryTray() {
                 // But clear the IDs so we know to rescan
                 section._nemoPromptIds = null;
             });
-            
+
             // Also reset any other sections that might have cached data attached
             document.querySelectorAll('details.nemo-engine-section').forEach(section => {
                 section._nemoPromptIds = null;
             });
 
             trayModeEnabled.clear();
-            
+
             // Top level container needs to be recreated on preset change
             if (topLevelPromptsContainer) {
                 topLevelPromptsContainer.remove();
