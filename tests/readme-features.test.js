@@ -15,7 +15,7 @@ test('README documents the merged prompt workstation defaults', () => {
         '`enablePresetNavigator`: `true`',
         '`enableCharacterNavigator`: `true`',
         '`enableReasoningCapture`: `true`',
-        '`promptUiMode`: `classicPlus`',
+        '`promptUiMode`: `classic`',
         '`enableDirectives`: `true`',
         '`enableDirectiveAutocomplete`: `true`',
         '`enableNemoEngineInstaller`: `true`',
