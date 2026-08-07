@@ -1,6 +1,7 @@
 import { saveSettings, saveSettingsDebounced } from '../../../../../script.js';
 import { extension_settings } from '../../../../extensions.js';
 import { NEMO_EXTENSION_NAME, ensureSettingsNamespace, getExtensionPath } from '../core/utils.js';
+import { applyPromptUiMode } from '../features/prompts/ui-mode.js';
 import { validateDividerPatterns } from '../core/divider-patterns.js';
 import logger from '../core/logger.js';
 import { NemoExtensionHub } from '../features/hub/hub-ui.js';
@@ -20,7 +21,7 @@ export const NemoSettingsUI = {
         host = document.createElement('div');
         host.id = 'nemo-preset-ext-settings-host';
         host.className = 'extension_container nemo-settings-host wide100p';
-        host.dataset.extensionName = 'NemoPresetExt Core';
+        host.dataset.extensionName = 'NemoPresetExt';
         container.appendChild(host);
         return host;
     },
@@ -52,6 +53,11 @@ export const NemoSettingsUI = {
         }
     },
 
+    _persist() {
+        saveSettingsDebounced();
+        void saveSettings();
+    },
+
     _bindCoreSettings() {
         const settings = extension_settings[NEMO_EXTENSION_NAME];
         const dividerInput = document.getElementById('nemoDividerRegexPattern');
@@ -77,6 +83,11 @@ export const NemoSettingsUI = {
         });
 
         for (const [id, key] of [
+            ['nemoEnablePromptManager', 'enablePromptManager'],
+            ['nemoEnablePresetNavigator', 'enablePresetNavigator'],
+            ['nemoEnableCharacterNavigator', 'enableCharacterNavigator'],
+            ['nemoEnableReasoningCapture', 'enableReasoningCapture'],
+            ['nemoEnableReasoningSection', 'enableReasoningSection'],
             ['nemoEnableDirectives', 'enableDirectives'],
             ['nemoEnableDirectiveAutocomplete', 'enableDirectiveAutocomplete'],
             ['nemoEnableNemoEngineInstaller', 'enableNemoEngineInstaller'],
@@ -86,20 +97,39 @@ export const NemoSettingsUI = {
             input.checked = settings[key] === true;
             input.addEventListener('change', () => {
                 settings[key] = input.checked;
-                saveSettingsDebounced();
-                void saveSettings();
+                this._persist();
             });
         }
+
+        const promptUiMode = document.getElementById('nemoPromptUiMode');
+        if (promptUiMode) {
+            promptUiMode.value = settings.promptUiMode;
+            promptUiMode.addEventListener('change', () => {
+                settings.promptUiMode = promptUiMode.value;
+                applyPromptUiMode(settings);
+                this._persist();
+            });
+        }
+
         const directivesToggle = document.getElementById('nemoEnableDirectives');
         const directiveAutocompleteToggle = document.getElementById('nemoEnableDirectiveAutocomplete');
-        const syncDirectiveDependency = () => {
-            if (!directivesToggle || !directiveAutocompleteToggle) return;
-            const directivesEnabled = directivesToggle.checked;
-            directiveAutocompleteToggle.disabled = !directivesEnabled;
-            directiveAutocompleteToggle.setAttribute('aria-disabled', String(!directivesEnabled));
+        const promptManagerToggle = document.getElementById('nemoEnablePromptManager');
+        const modeSelect = document.getElementById('nemoPromptUiMode');
+        const syncDependencies = () => {
+            if (directivesToggle && directiveAutocompleteToggle) {
+                const directivesEnabled = directivesToggle.checked;
+                directiveAutocompleteToggle.disabled = !directivesEnabled;
+                directiveAutocompleteToggle.setAttribute('aria-disabled', String(!directivesEnabled));
+            }
+            if (promptManagerToggle && modeSelect) {
+                const enabled = promptManagerToggle.checked;
+                modeSelect.disabled = !enabled;
+                modeSelect.setAttribute('aria-disabled', String(!enabled));
+            }
         };
-        directivesToggle?.addEventListener('change', syncDirectiveDependency);
-        syncDirectiveDependency();
+        directivesToggle?.addEventListener('change', syncDependencies);
+        promptManagerToggle?.addEventListener('change', syncDependencies);
+        syncDependencies();
     },
 
     async initialize() {

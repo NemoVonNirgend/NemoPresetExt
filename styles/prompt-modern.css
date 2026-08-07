@@ -1,0 +1,140 @@
+/* Current rich prompt presentation, intentionally isolated from NemoUIOverhaul. */
+
+body[data-nemo-prompt-skin='modern'] #completion_prompt_manager_list {
+    gap: 2px;
+    padding: 16px;
+}
+
+body[data-nemo-prompt-skin='modern'] .nemo-engine-section {
+    margin-bottom: 4px;
+}
+
+body[data-nemo-prompt-skin='modern'] .nemo-engine-section > summary {
+    min-height: 42px;
+    padding: 10px 14px 10px 26px;
+    border-left: 4px solid var(--nemo-prompt-accent);
+    border-radius: 8px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--nemo-prompt-accent) 16%, transparent), color-mix(in srgb, var(--nemo-prompt-accent) 5%, transparent));
+    box-shadow: 0 1px 3px var(--nemo-prompt-shadow);
+    font-size: 1.06rem;
+    font-weight: 650;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+body[data-nemo-prompt-skin='modern'] .nemo-engine-section > summary:hover {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--nemo-prompt-accent) 25%, transparent), color-mix(in srgb, var(--nemo-prompt-accent) 9%, transparent));
+    box-shadow: 0 4px 10px var(--nemo-prompt-shadow);
+    transform: translateX(3px);
+}
+
+body[data-nemo-prompt-skin='modern'] .nemo-engine-section[open] > summary {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+body[data-nemo-prompt-skin='modern'] .nemo-engine-section > summary::before {
+    left: 9px;
+}
+
+body[data-nemo-prompt-skin='modern'] .nemo-engine-section > summary > li.completion_prompt_manager_prompt,
+body[data-nemo-prompt-skin='modern'] li.completion_prompt_manager_prompt.nemo-section-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 6px !important;
+    background: transparent;
+    border: 0;
+}
+
+body[data-nemo-prompt-skin='modern'] li.completion_prompt_manager_prompt:not(.nemo-section-header) {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0 !important;
+    padding: 6px 8px !important;
+    border: 1px solid color-mix(in srgb, var(--nemo-prompt-border) 78%, transparent);
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--nemo-prompt-bg-secondary) 55%, transparent);
+    line-height: 1.25;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+body[data-nemo-prompt-skin='modern'] li.completion_prompt_manager_prompt:not(.nemo-section-header):hover {
+    background: color-mix(in srgb, var(--nemo-prompt-accent) 8%, var(--nemo-prompt-bg-secondary));
+    border-color: color-mix(in srgb, var(--nemo-prompt-accent) 40%, var(--nemo-prompt-border));
+    transform: translateX(3px);
+}
+
+body[data-nemo-prompt-skin='modern'] span.completion_prompt_manager_prompt_name {
+    flex-wrap: wrap;
+    margin-right: 6px;
+    padding-right: 4px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+body[data-nemo-prompt-skin='modern'] span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
+    display: inline;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+body[data-nemo-prompt-skin='modern'] .nemo-engine-section > .nemo-section-content {
+    gap: 2px;
+    margin-left: 5px;
+    padding: 8px 0 8px 15px;
+}
+
+body[data-nemo-prompt-skin='modern'] :is(.nemo-right-controls-wrapper, .prompt_manager_prompt_controls, .completion_prompt_manager_prompt_controls) button {
+    min-width: auto !important;
+    padding: 4px 7px !important;
+    font-size: 0.85rem !important;
+}
+
+body[data-nemo-prompt-skin='modern'] .view-mode-grid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 20px;
+}
+
+body[data-nemo-prompt-skin='modern'] .grid-item {
+    min-height: 180px;
+    padding: 12px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--nemo-prompt-bg-secondary) 82%, transparent);
+}
+
+body[data-nemo-prompt-skin='modern'] .grid-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px var(--nemo-prompt-shadow);
+}
+
+body[data-nemo-prompt-skin='modern'] .grid-item .item-icon {
+    min-height: 105px;
+    font-size: 3.2em;
+}
+
+body[data-nemo-prompt-skin='modern'] .grid-item .item-name {
+    min-height: 46px;
+    padding: 8px;
+    font-size: 0.92em;
+    border-radius: 7px;
+}
+
+body[data-nemo-prompt-skin='modern'] .nemo-category-tray {
+    padding: 12px;
+    border-color: color-mix(in srgb, var(--nemo-prompt-accent) 38%, var(--nemo-prompt-border));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--nemo-prompt-bg) 97%, black), color-mix(in srgb, var(--nemo-prompt-bg-secondary) 96%, black));
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.48);
+}
+
+body[data-nemo-prompt-skin='modern'] .nemo-tray-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+body[data-nemo-prompt-skin='modern'] .nemo-prompt-card {
+    border-width: 2px;
+    border-left-width: 4px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}

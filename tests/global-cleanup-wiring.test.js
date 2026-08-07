@@ -11,8 +11,17 @@ test('core initialization and teardown share one retry-safe lifecycle', () => {
     assert.match(content, /catch \(error\) \{[\s\S]*?cleanupExtension\(\)/);
 });
 
+test('core publishes merged prompt capabilities before asynchronous initialization', () => {
+    const publish = content.indexOf('publishPublicApi();');
+    const startup = content.indexOf("if (document.querySelector('#left-nav-panel'))");
+    assert.ok(publish >= 0);
+    assert.ok(startup > publish);
+    assert.match(content, /promptTools: true/);
+});
+
 test('core teardown owns every active runtime', () => {
     for (const cleanup of [
+        'cleanupPromptTools()',
         'cleanupDirectiveAutocomplete()',
         'cleanupMessageTriggerHooks()',
         'cleanupPromptDirectiveHooks()',

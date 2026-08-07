@@ -1,0 +1,220 @@
+/* Shared structural CSS for every Nemo prompt interface mode. */
+
+body[data-nemo-prompt-ui] {
+    --nemo-prompt-accent: var(--SmartThemeQuoteColor, #4a9eff);
+    --nemo-prompt-bg: var(--SmartThemeBlurTintColor, #1e1e2e);
+    --nemo-prompt-bg-secondary: var(--SmartThemeBotMesBlurTintColor, #262638);
+    --nemo-prompt-bg-tertiary: var(--SmartThemeUserMesBlurTintColor, #303044);
+    --nemo-prompt-text: var(--SmartThemeBodyColor, #f3f3f3);
+    --nemo-prompt-muted: var(--SmartThemeEmColor, #b9b9c8);
+    --nemo-prompt-border: var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.14));
+    --nemo-prompt-hover: var(--white20a, rgba(255, 255, 255, 0.08));
+    --nemo-prompt-shadow: var(--black30a, rgba(0, 0, 0, 0.3));
+    --nemo-prompt-success: #51cf66;
+    --nemo-prompt-warning: #ffd43b;
+    --nemo-prompt-danger: #ff6b6b;
+}
+
+body[data-nemo-prompt-ui] #nemoSearchAndStatusWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0 0 10px;
+    min-width: 0;
+}
+
+body[data-nemo-prompt-ui] #nemoPresetSearchContainer,
+body[data-nemo-prompt-ui] .nemo-preset-selector-wrapper,
+body[data-nemo-prompt-ui] .nemo-search-controls,
+body[data-nemo-prompt-ui] .nemo-right-controls-wrapper,
+body[data-nemo-prompt-ui] .prompt_manager_prompt_controls,
+body[data-nemo-prompt-ui] .completion_prompt_manager_prompt_controls {
+    display: flex;
+    align-items: center;
+}
+
+body[data-nemo-prompt-ui] #nemoPresetSearchContainer {
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+body[data-nemo-prompt-ui] #nemoPresetSearchInput {
+    flex: 1 1 240px;
+    min-width: 160px;
+}
+
+body[data-nemo-prompt-ui] .nemo-search-controls {
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+body[data-nemo-prompt-ui] .nemo-search-divider {
+    width: 1px;
+    height: 20px;
+    margin: 0 3px;
+    background: var(--nemo-prompt-border);
+}
+
+body[data-nemo-prompt-ui] .nemo-status-message {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin: 0;
+    padding: 0 8px;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 0.9em;
+    font-style: italic;
+    transition: opacity 0.2s ease, max-height 0.2s ease, padding 0.2s ease, margin 0.2s ease;
+}
+
+body[data-nemo-prompt-ui] .nemo-status-message.visible {
+    max-height: 60px;
+    opacity: 1;
+    margin-top: 4px;
+    padding: 7px 9px;
+}
+
+body[data-nemo-prompt-ui] .nemo-status-message.success {
+    color: var(--nemo-prompt-success);
+    background: color-mix(in srgb, var(--nemo-prompt-success) 12%, transparent);
+}
+
+body[data-nemo-prompt-ui] .nemo-status-message.info {
+    color: var(--nemo-prompt-accent);
+    background: color-mix(in srgb, var(--nemo-prompt-accent) 12%, transparent);
+}
+
+body[data-nemo-prompt-ui] .nemo-status-message.error {
+    color: var(--nemo-prompt-danger);
+    background: color-mix(in srgb, var(--nemo-prompt-danger) 12%, transparent);
+}
+
+body[data-nemo-prompt-ui] #completion_prompt_manager_list {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+body[data-nemo-prompt-ui] .nemo-engine-section {
+    min-width: 0;
+}
+
+body[data-nemo-prompt-ui] .nemo-engine-section > summary {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    cursor: pointer;
+    list-style: none;
+}
+
+body[data-nemo-prompt-ui] .nemo-engine-section > summary::-webkit-details-marker,
+body[data-nemo-prompt-ui] .nemo-engine-section > summary::marker {
+    display: none;
+}
+
+body[data-nemo-prompt-ui] .nemo-engine-section > summary::before {
+    content: '\25B6 ';
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    transform: translateY(-50%);
+    transform-origin: center;
+    color: var(--nemo-prompt-muted);
+    font-size: 0.72em;
+    pointer-events: none;
+    transition: transform 0.18s ease;
+}
+
+body[data-nemo-prompt-ui] .nemo-engine-section[open] > summary::before {
+    transform: translateY(-50%) rotate(90deg);
+}
+
+body[data-nemo-prompt-ui] .nemo-engine-section > summary > li.completion_prompt_manager_prompt,
+body[data-nemo-prompt-ui] li.completion_prompt_manager_prompt.nemo-section-header {
+    width: 100%;
+    min-width: 0;
+}
+
+body[data-nemo-prompt-ui] li.completion_prompt_manager_prompt {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+body[data-nemo-prompt-ui] span.completion_prompt_manager_prompt_name {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+body[data-nemo-prompt-ui] span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
+    min-width: 0;
+}
+
+body[data-nemo-prompt-ui] .nemo-right-controls-wrapper,
+body[data-nemo-prompt-ui] .prompt_manager_prompt_controls,
+body[data-nemo-prompt-ui] .completion_prompt_manager_prompt_controls {
+    flex: 0 0 auto;
+    gap: 5px;
+}
+
+body[data-nemo-prompt-ui] .nemo-enabled-count {
+    color: var(--nemo-prompt-accent);
+    font-size: 0.88em;
+    font-weight: 400;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+body[data-nemo-prompt-ui] .nemo-engine-section > .nemo-section-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-left: 1px solid var(--nemo-prompt-border);
+}
+
+body[data-nemo-prompt-ui] .nemo-section-progress {
+    position: relative;
+    display: inline-block;
+    width: 58px;
+    height: 6px;
+    margin-left: 7px;
+    overflow: hidden;
+    vertical-align: middle;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body[data-nemo-prompt-ui] .nemo-section-progress::after {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--progress-width, 0%);
+    border-radius: inherit;
+    background: var(--nemo-prompt-accent);
+    transition: width 0.25s ease;
+}
+
+body[data-nemo-prompt-ui] .nemo-section-progress.nemo-progress-full::after {
+    background: var(--nemo-prompt-success);
+}
+
+body[data-nemo-prompt-ui] .nemo-section-progress.nemo-progress-none::after {
+    width: 100%;
+    opacity: 0.2;
+    background: var(--nemo-prompt-muted);
+}
+
+body[data-nemo-prompt-features='legacy'] .nemo-section-progress,
+body[data-nemo-prompt-features='legacy'] #nemoViewModeBtn,
+body[data-nemo-prompt-features='legacy'] .nemo-tray-section > summary::after,
+body[data-nemo-prompt-features='legacy'] .nemo-category-tray,
+body[data-nemo-prompt-features='legacy'] .nemo-top-level-drop-zone {
+    display: none !important;
+}

@@ -1,0 +1,260 @@
+/* Preset and character navigators */
+body[data-nemo-prompt-ui] .nemo-preset-selector-wrapper {
+    gap: 5px;
+    width: 100%;
+}
+
+body[data-nemo-prompt-ui] .nemo-preset-selector-wrapper > select {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+body[data-nemo-prompt-ui] .nemo-favorites-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+body[data-nemo-prompt-ui] .nemo-favorite-preset-button {
+    padding: 3px 7px;
+    border: 1px solid var(--nemo-prompt-border);
+    border-radius: 999px;
+    background: var(--nemo-prompt-bg-secondary);
+    color: var(--nemo-prompt-text);
+    cursor: pointer;
+    font-size: 0.8em;
+}
+
+body[data-nemo-prompt-ui] :is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) {
+    display: flex;
+    flex-direction: column;
+    min-width: min(900px, 86vw);
+    min-height: min(650px, 72vh);
+    color: var(--nemo-prompt-text);
+}
+
+body[data-nemo-prompt-ui] :is(.navigator-body, .char-manager-body) {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+body[data-nemo-prompt-ui] :is(.navigator-sidebar, .char-manager-sidebar) {
+    flex: 0 0 210px;
+    overflow-y: auto;
+    padding: 10px;
+    border-right: 1px solid var(--nemo-prompt-border);
+    background: var(--nemo-prompt-bg-secondary);
+}
+
+body[data-nemo-prompt-ui] :is(.navigator-main-panel, .char-manager-main-panel) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    padding: 10px;
+    background: var(--nemo-prompt-bg);
+}
+
+body[data-nemo-prompt-ui] :is(#navigator-grid-header, #char-manager-grid-header, #prompt-navigator-grid-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-bottom: 9px;
+    margin-bottom: 9px;
+    border-bottom: 1px solid var(--nemo-prompt-border);
+}
+
+body[data-nemo-prompt-ui] :is(#navigator-grid-view, #char-manager-grid-view, #prompt-navigator-grid-view) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+body[data-nemo-prompt-ui] .view-mode-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    align-content: start;
+    gap: 12px;
+}
+
+body[data-nemo-prompt-ui] .grid-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 135px;
+    overflow: hidden;
+    border: 1px solid var(--nemo-prompt-border);
+    border-radius: 8px;
+    background: var(--nemo-prompt-bg-secondary);
+    color: var(--nemo-prompt-text);
+    cursor: pointer;
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+body[data-nemo-prompt-ui] .grid-item:hover {
+    transform: translateY(-2px);
+    border-color: var(--nemo-prompt-accent);
+    box-shadow: 0 5px 15px var(--nemo-prompt-shadow);
+}
+
+body[data-nemo-prompt-ui] .grid-item.selected,
+body[data-nemo-prompt-ui] .grid-item.bulk-selected {
+    outline: 2px solid var(--nemo-prompt-accent);
+    outline-offset: -2px;
+}
+
+body[data-nemo-prompt-ui] .grid-item .item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-height: 78px;
+    color: var(--nemo-prompt-accent);
+    font-size: 2.7em;
+    background-position: center;
+    background-size: cover;
+}
+
+body[data-nemo-prompt-ui] .grid-item .item-name {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    text-align: center;
+    overflow-wrap: anywhere;
+    font-size: 0.85em;
+}
+
+body[data-nemo-prompt-ui] .view-mode-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+body[data-nemo-prompt-ui] .list-item {
+    min-height: 36px;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 8px;
+}
+
+body[data-nemo-prompt-ui] .list-item .item-icon {
+    flex: 0 0 26px;
+    min-height: 0;
+    font-size: 1.1em;
+}
+
+body[data-nemo-prompt-ui] .list-item .item-name {
+    justify-content: flex-start;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 8px;
+    background: none;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body[data-nemo-prompt-ui] .nemo-item-menu-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.48);
+    color: var(--nemo-prompt-text);
+    opacity: 0;
+    cursor: pointer;
+}
+
+body[data-nemo-prompt-ui] :is(.grid-item, .list-item):hover .nemo-item-menu-btn,
+body[data-nemo-prompt-ui] :is(.grid-item, .list-item):focus-within .nemo-item-menu-btn {
+    opacity: 1;
+}
+
+body[data-nemo-prompt-ui] .list-item .nemo-item-menu-btn {
+    position: static;
+    flex: 0 0 28px;
+    margin-left: auto;
+}
+
+body[data-nemo-prompt-ui] .modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 10px;
+    margin-top: 10px;
+    border-top: 1px solid var(--nemo-prompt-border);
+}
+
+body[data-nemo-prompt-ui] .navigator-favorites-list,
+body[data-nemo-prompt-ui] .navigator-favorite-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+body[data-nemo-prompt-ui] .navigator-favorite-item {
+    position: relative;
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 7px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+body[data-nemo-prompt-ui] .navigator-favorite-item:hover {
+    background: var(--nemo-prompt-hover);
+}
+
+body[data-nemo-prompt-ui] .favorite-item-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body[data-nemo-prompt-ui] .nemo-color-picker-popup {
+    display: grid;
+    gap: 10px;
+}
+
+body[data-nemo-prompt-ui] .nemo-color-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 9px;
+}
+
+body[data-nemo-prompt-ui] .nemo-color-swatch {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 2px solid var(--nemo-prompt-border);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+body[data-nemo-prompt-ui] .nemo-color-swatch.selected {
+    outline: 2px solid var(--nemo-prompt-accent);
+    outline-offset: 2px;
+}

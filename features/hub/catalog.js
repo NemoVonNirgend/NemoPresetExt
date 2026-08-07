@@ -1,19 +1,9 @@
 export const NEMO_EXTENSION_CATALOG = Object.freeze([
     Object.freeze({
-        id: 'NemoPromptTools',
-        name: 'Nemo Prompt Tools',
-        repository: 'https://github.com/NemoVonNirgend/NemoPromptTools',
-        description: 'Preset and character navigation, prompt browsers, and improved reasoning workflow tools.',
-        category: 'Prompt Tools',
-        icon: 'fa-solid fa-list-check',
-        recommended: true,
-        requiresReload: true,
-    }),
-    Object.freeze({
         id: 'NemoUIOverhaul',
         name: 'Nemo UI Overhaul',
         repository: 'https://github.com/NemoVonNirgend/NemoUIOverhaul',
-        description: 'Optional backgrounds, settings, connection, lorebook, navigation, mobile, and model-selection UI improvements.',
+        description: 'Optional backgrounds, settings, connection, lorebook, mobile, and model-selection UI improvements.',
         category: 'UI & Themes',
         icon: 'fa-solid fa-wand-magic-sparkles',
         recommended: false,

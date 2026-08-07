@@ -1,0 +1,122 @@
+name: Prompt workstation integration
+
+on:
+  push:
+    branches:
+      - integrate-prompt-tools-v6
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: JavaScript syntax
+        run: |
+          find . -type f -name '*.js' -not -path './node_modules/*' -print0 \
+            | xargs -0 -n1 node --check
+
+      - name: Node contract tests
+        run: node --test tests/*.test.js
+
+      - name: Relative import audit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path.cwd().resolve()
+          patterns = [
+              re.compile(r"(?:import|export)\s+(?:[^'\"]*?\s+from\s+)?['\"](\.[^'\"]+)['\"]"),
+              re.compile(r"import\(\s*['\"](\.[^'\"]+)['\"]\s*\)"),
+          ]
+          missing = []
+          for source in root.rglob('*.js'):
+              if '.git' in source.parts:
+                  continue
+              text = source.read_text(encoding='utf-8')
+              imports = {match.group(1) for pattern in patterns for match in pattern.finditer(text)}
+              for specifier in imports:
+                  candidate = (source.parent / specifier).resolve()
+                  try:
+                      candidate.relative_to(root)
+                  except ValueError:
+                      continue  # SillyTavern host import outside the extension root.
+                  choices = [candidate]
+                  if not candidate.suffix:
+                      choices.extend([candidate.with_suffix('.js'), candidate / 'index.js'])
+                  if not any(choice.exists() for choice in choices):
+                      missing.append(f'{source.relative_to(root)} -> {specifier}')
+          if missing:
+              raise SystemExit('Missing relative imports:\n' + '\n'.join(sorted(missing)))
+          print('Relative import audit passed.')
+          PY
+
+      - name: Stylesheet and encoding validation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          targets = [Path('styles.css'), *Path('styles').glob('*.css')]
+          forbidden = ('Ã¢', 'Ã°', 'Ãƒ', 'â€', 'ðŸ', '\u0081', '\u008f')
+
+          for path in targets:
+              text = path.read_text(encoding='utf-8')
+              found = [marker for marker in forbidden if marker in text]
+              if found:
+                  raise SystemExit(f'{path}: mojibake markers remain: {found}')
+
+              depth = 0
+              quote = None
+              escaped = False
+              in_comment = False
+              index = 0
+              while index < len(text):
+                  char = text[index]
+                  next_char = text[index + 1] if index + 1 < len(text) else ''
+                  if in_comment:
+                      if char == '*' and next_char == '/':
+                          in_comment = False
+                          index += 2
+                          continue
+                      index += 1
+                      continue
+                  if quote:
+                      if escaped:
+                          escaped = False
+                      elif char == '\\':
+                          escaped = True
+                      elif char == quote:
+                          quote = None
+                      index += 1
+                      continue
+                  if char == '/' and next_char == '*':
+                      in_comment = True
+                      index += 2
+                      continue
+                  if char in ("'", '"'):
+                      quote = char
+                  elif char == '{':
+                      depth += 1
+                  elif char == '}':
+                      depth -= 1
+                      if depth < 0:
+                          raise SystemExit(f'{path}: unmatched closing brace')
+                  index += 1
+              if in_comment or quote or depth:
+                  raise SystemExit(f'{path}: unbalanced CSS (comment={in_comment}, quote={quote}, depth={depth})')
+              print(f'{path}: valid')
+          PY
+
+      - name: Whitespace validation
+        run: git diff --check origin/main...HEAD

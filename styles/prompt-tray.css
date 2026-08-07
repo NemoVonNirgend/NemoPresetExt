@@ -1,0 +1,176 @@
+/* Category tray */
+body[data-nemo-prompt-ui] .nemo-tray-hidden-prompt,
+body[data-nemo-prompt-ui] .nemo-tray-section > .nemo-section-content.nemo-tray-hidden-content {
+    display: none !important;
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-section > summary::after {
+    content: '\1F4C1 ';
+    margin-left: 7px;
+    opacity: 0.65;
+    font-size: 0.8em;
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-section.nemo-tray-open > summary::after {
+    content: '\1F4C2 ';
+}
+
+body[data-nemo-prompt-ui] .nemo-category-tray {
+    position: relative;
+    z-index: 20;
+    min-width: 0;
+    margin: 7px 0 9px 18px;
+    padding: 10px;
+    overflow: visible;
+    border: 1px solid var(--nemo-prompt-border);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--nemo-prompt-bg) 96%, transparent);
+    box-shadow: 0 8px 26px var(--nemo-prompt-shadow);
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-header,
+body[data-nemo-prompt-ui] .nemo-tray-header-controls,
+body[data-nemo-prompt-ui] .nemo-tray-footer,
+body[data-nemo-prompt-ui] .nemo-prompt-card,
+body[data-nemo-prompt-ui] .nemo-prompt-card-content,
+body[data-nemo-prompt-ui] .nemo-prompt-card-meta,
+body[data-nemo-prompt-ui] .nemo-prompt-card-actions {
+    display: flex;
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-header {
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 9px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--nemo-prompt-border);
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-title {
+    min-width: 0;
+    color: var(--nemo-prompt-text);
+    font-weight: 700;
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-header-controls,
+body[data-nemo-prompt-ui] .nemo-prompt-card-actions {
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-close,
+body[data-nemo-prompt-ui] .nemo-tray-toggle-all,
+body[data-nemo-prompt-ui] .nemo-tray-compact-toggle,
+body[data-nemo-prompt-ui] .nemo-prompt-card-action {
+    border: 1px solid var(--nemo-prompt-border);
+    border-radius: 5px;
+    background: var(--nemo-prompt-bg-secondary);
+    color: var(--nemo-prompt-text);
+    cursor: pointer;
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-close:hover,
+body[data-nemo-prompt-ui] .nemo-tray-toggle-all:hover,
+body[data-nemo-prompt-ui] .nemo-tray-compact-toggle:hover,
+body[data-nemo-prompt-ui] .nemo-prompt-card-action:hover {
+    border-color: var(--nemo-prompt-accent);
+    color: var(--nemo-prompt-accent);
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    min-height: 48px;
+    max-height: min(430px, 55vh);
+    padding-right: 3px;
+    overflow-y: auto;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card {
+    align-items: stretch;
+    min-width: 0;
+    gap: 7px;
+    padding: 8px 9px;
+    overflow: hidden;
+    border: 1px solid var(--nemo-prompt-border);
+    border-left: 3px solid color-mix(in srgb, var(--nemo-prompt-muted) 55%, transparent);
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--nemo-prompt-bg-secondary) 75%, transparent);
+    cursor: pointer;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card:hover {
+    border-color: color-mix(in srgb, var(--nemo-prompt-accent) 60%, var(--nemo-prompt-border));
+    border-left-color: var(--nemo-prompt-accent);
+    background: color-mix(in srgb, var(--nemo-prompt-accent) 10%, var(--nemo-prompt-bg-secondary));
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card-enabled {
+    border-left-color: var(--nemo-prompt-success);
+    background: color-mix(in srgb, var(--nemo-prompt-success) 9%, var(--nemo-prompt-bg-secondary));
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 20px;
+    color: var(--nemo-prompt-muted);
+    cursor: grab;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card-name,
+body[data-nemo-prompt-ui] .nemo-prompt-card-title {
+    overflow: hidden;
+    color: var(--nemo-prompt-text);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card-description,
+body[data-nemo-prompt-ui] .nemo-prompt-card-meta,
+body[data-nemo-prompt-ui] .nemo-tray-footer {
+    color: var(--nemo-prompt-muted);
+    font-size: 0.82em;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card-meta,
+body[data-nemo-prompt-ui] .nemo-tray-footer {
+    align-items: center;
+    justify-content: space-between;
+    gap: 7px;
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-footer {
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid var(--nemo-prompt-border);
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-subsection-divider {
+    grid-column: 1 / -1;
+    padding: 5px 7px;
+    border-left: 2px solid var(--nemo-prompt-accent);
+    color: var(--nemo-prompt-muted);
+    font-size: 0.85em;
+}
+
+body[data-nemo-prompt-ui] .nemo-top-level-drop-zone {
+    margin: 7px 0;
+    padding: 10px;
+    border: 2px dashed color-mix(in srgb, var(--nemo-prompt-accent) 45%, transparent);
+    border-radius: 7px;
+    color: var(--nemo-prompt-accent);
+    text-align: center;
+}

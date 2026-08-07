@@ -1,0 +1,95 @@
+/* Context menus and dialogs appended directly to body */
+body[data-nemo-prompt-ui] .nemo-context-menu {
+    position: fixed;
+    z-index: 10020;
+    display: none;
+    min-width: 170px;
+    margin: 0;
+    padding: 5px 0;
+    border: 1px solid var(--nemo-prompt-border);
+    border-radius: 7px;
+    background: var(--nemo-prompt-bg);
+    color: var(--nemo-prompt-text);
+    box-shadow: 0 8px 28px var(--nemo-prompt-shadow);
+    list-style: none;
+}
+
+body[data-nemo-prompt-ui] .nemo-context-menu-item,
+body[data-nemo-prompt-ui] .nemo-context-menu li {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+body[data-nemo-prompt-ui] .nemo-context-menu-item:hover,
+body[data-nemo-prompt-ui] .nemo-context-menu li:hover {
+    background: var(--nemo-prompt-hover);
+    color: var(--nemo-prompt-accent);
+}
+
+body[data-nemo-prompt-ui] .nemo-context-menu-separator {
+    height: 1px;
+    margin: 5px 0;
+    background: var(--nemo-prompt-border);
+}
+
+body[data-nemo-prompt-ui] .nemo-dialog-overlay,
+body[data-nemo-prompt-ui] .nemo-archive-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10010;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(0, 0, 0, 0.62);
+}
+
+body[data-nemo-prompt-ui] .nemo-dialog,
+body[data-nemo-prompt-ui] .nemo-archive-dialog {
+    display: flex;
+    flex-direction: column;
+    width: min(1180px, 94vw);
+    max-height: 92vh;
+    overflow: hidden;
+    border: 1px solid var(--nemo-prompt-border);
+    border-radius: 10px;
+    background: var(--nemo-prompt-bg);
+    color: var(--nemo-prompt-text);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+}
+
+body[data-nemo-prompt-ui] .nemo-dialog-header,
+body[data-nemo-prompt-ui] .nemo-archive-header,
+body[data-nemo-prompt-ui] .nemo-dialog-actions,
+body[data-nemo-prompt-ui] .nemo-archive-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-color: var(--nemo-prompt-border);
+    background: var(--nemo-prompt-bg-secondary);
+}
+
+body[data-nemo-prompt-ui] .nemo-dialog-header,
+body[data-nemo-prompt-ui] .nemo-archive-header,
+body[data-nemo-prompt-ui] .nemo-archive-toolbar {
+    justify-content: space-between;
+    border-bottom: 1px solid var(--nemo-prompt-border);
+}
+
+body[data-nemo-prompt-ui] .nemo-dialog-actions {
+    justify-content: flex-end;
+    border-top: 1px solid var(--nemo-prompt-border);
+}
+
+body[data-nemo-prompt-ui] .nemo-dialog-content,
+body[data-nemo-prompt-ui] .nemo-archive-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px;
+}
