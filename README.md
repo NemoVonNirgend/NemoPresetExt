@@ -31,7 +31,7 @@ NemoPresetExt exposes three prompt interface modes:
 | **Modern** | Current card-based presentation with larger surfaces and wrapped labels | Full feature set |
 | **Classic+** | Compact classic presentation | Full feature set |
 
-New installations default to **Classic+**. Existing standalone NemoPromptTools users migrate to **Modern** so their current presentation is preserved.
+New installations default to **Classic 3.4**. Existing standalone NemoPromptTools users migrate to **Modern** so their current presentation is preserved.
 
 ## New-install defaults
 
@@ -39,7 +39,7 @@ New installations default to **Classic+**. Existing standalone NemoPromptTools u
 - `enablePresetNavigator`: `true`
 - `enableCharacterNavigator`: `true`
 - `enableReasoningCapture`: `true`
-- `promptUiMode`: `classicPlus`
+- `promptUiMode`: `classic`
 - `enableDirectives`: `true`
 - `enableDirectiveAutocomplete`: `true`
 - `enableNemoEngineInstaller`: `true`
