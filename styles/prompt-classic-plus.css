@@ -1,0 +1,29 @@
+/* Compact treatments for modern widgets when the Classic+ combination is active. */
+
+body[data-nemo-prompt-ui='classicPlus'] .nemo-section-progress {
+    width: 42px;
+    height: 4px;
+    margin-left: 5px;
+    opacity: 0.82;
+}
+
+body[data-nemo-prompt-ui='classicPlus'] .nemo-tray-section > summary::after {
+    margin-left: 5px;
+    font-size: 0.72em;
+}
+
+body[data-nemo-prompt-ui='classicPlus'] .nemo-tray-header {
+    margin-bottom: 7px;
+    padding-bottom: 6px;
+}
+
+body[data-nemo-prompt-ui='classicPlus'] .nemo-tray-title {
+    font-size: 0.92em;
+}
+
+body[data-nemo-prompt-ui='classicPlus'] .nemo-prompt-card-description {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}

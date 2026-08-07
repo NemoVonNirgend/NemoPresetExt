@@ -1,0 +1,144 @@
+/* Responsive safety shared by all three prompt modes. */
+
+@media (max-width: 900px) {
+    body[data-nemo-prompt-ui] :is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) {
+        min-width: min(94vw, 760px);
+    }
+
+    body[data-nemo-prompt-ui] :is(.navigator-sidebar, .char-manager-sidebar) {
+        flex-basis: 170px;
+    }
+
+    body[data-nemo-prompt-skin='modern'] .view-mode-grid {
+        grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+        gap: 12px;
+    }
+}
+
+@media (max-width: 720px) {
+    body[data-nemo-prompt-ui] #nemoPresetSearchContainer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    body[data-nemo-prompt-ui] #nemoPresetSearchInput {
+        flex-basis: auto;
+        width: 100%;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-search-controls {
+        justify-content: center;
+    }
+
+    body[data-nemo-prompt-ui] li.completion_prompt_manager_prompt,
+    body[data-nemo-prompt-skin='classic'] .nemo-engine-section > summary > li.completion_prompt_manager_prompt {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    body[data-nemo-prompt-ui] span.completion_prompt_manager_prompt_name,
+    body[data-nemo-prompt-ui] span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-right-controls-wrapper {
+        margin-left: auto;
+    }
+
+    body[data-nemo-prompt-ui] :is(.navigator-body, .char-manager-body) {
+        flex-direction: column;
+    }
+
+    body[data-nemo-prompt-ui] :is(.navigator-sidebar, .char-manager-sidebar) {
+        flex: 0 0 auto;
+        max-height: 170px;
+        border-right: 0;
+        border-bottom: 1px solid var(--nemo-prompt-border);
+    }
+
+    body[data-nemo-prompt-ui] .view-mode-grid,
+    body[data-nemo-prompt-skin='classic'] .view-mode-grid,
+    body[data-nemo-prompt-skin='modern'] .view-mode-grid {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 8px;
+    }
+
+    body[data-nemo-prompt-ui] .grid-item,
+    body[data-nemo-prompt-skin='modern'] .grid-item {
+        min-height: 125px;
+        padding: 0;
+    }
+
+    body[data-nemo-prompt-ui] .grid-item .item-icon,
+    body[data-nemo-prompt-skin='modern'] .grid-item .item-icon {
+        min-height: 70px;
+        font-size: 2.35em;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-tray-grid {
+        grid-template-columns: 1fr;
+        max-height: 52vh;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-category-tray {
+        margin-left: 5px;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-dialog-overlay,
+    body[data-nemo-prompt-ui] .nemo-archive-overlay {
+        padding: 6px;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-dialog,
+    body[data-nemo-prompt-ui] .nemo-archive-dialog {
+        width: 100%;
+        max-height: 96vh;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-archive-body {
+        flex-direction: column;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-archive-sidebar {
+        flex-basis: auto;
+        max-height: 190px;
+        border-right: 0;
+        border-bottom: 1px solid var(--nemo-prompt-border);
+    }
+
+    body[data-nemo-prompt-ui] .nemo-folder-list {
+        flex-direction: row;
+        overflow-x: auto;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-folder-item {
+        flex: 0 0 auto;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-prompt-grid {
+        grid-template-columns: 1fr;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-toast {
+        right: 10px;
+        bottom: 10px;
+        left: 10px;
+        min-width: 0;
+        max-width: none;
+    }
+}
+
+@media (pointer: coarse) {
+    body[data-nemo-prompt-ui] .nemo-item-menu-btn {
+        width: 40px;
+        height: 40px;
+        opacity: 1;
+    }
+
+    body[data-nemo-prompt-ui] :is(.nemo-search-controls, .nemo-right-controls-wrapper) button {
+        min-width: 40px;
+        min-height: 40px;
+    }
+}

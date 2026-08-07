@@ -1,0 +1,175 @@
+/* Faithful compact presentation derived from NemoPresetExt 3.4. */
+
+body[data-nemo-prompt-skin='classic'] #completion_prompt_manager_list {
+    gap: 0;
+    padding: 0;
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-engine-section {
+    margin: 0;
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-engine-section > summary {
+    min-height: 28px;
+    padding: 1px 0 1px 16px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-engine-section > summary:hover {
+    background: var(--nemo-prompt-hover);
+    transform: none;
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-engine-section > summary::before {
+    left: 1px;
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-engine-section > summary > li.completion_prompt_manager_prompt,
+body[data-nemo-prompt-skin='classic'] li.completion_prompt_manager_prompt.nemo-section-header {
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 0;
+    padding: 2px 4px !important;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    line-height: 1.2;
+}
+
+body[data-nemo-prompt-skin='classic'] li.completion_prompt_manager_prompt:not(.nemo-section-header) {
+    min-height: 28px;
+    padding: 2px 4px !important;
+    margin: 0 !important;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    line-height: 1.2;
+}
+
+body[data-nemo-prompt-skin='classic'] li.completion_prompt_manager_prompt:hover {
+    background: var(--nemo-prompt-hover);
+    transform: none;
+}
+
+body[data-nemo-prompt-skin='classic'] span.completion_prompt_manager_prompt_name {
+    flex-wrap: nowrap;
+    margin-right: 9px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+body[data-nemo-prompt-skin='classic'] span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-engine-section > .nemo-section-content {
+    gap: 0;
+    margin-left: 10px;
+    padding-left: 25px;
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-right-controls-wrapper,
+body[data-nemo-prompt-skin='classic'] .prompt_manager_prompt_controls,
+body[data-nemo-prompt-skin='classic'] .completion_prompt_manager_prompt_controls {
+    gap: 6px;
+}
+
+body[data-nemo-prompt-skin='classic'] :is(.nemo-right-controls-wrapper, .prompt_manager_prompt_controls, .completion_prompt_manager_prompt_controls) button {
+    min-width: auto !important;
+    padding: 2px 5px !important;
+    font-size: 0.88em !important;
+    line-height: 1 !important;
+}
+
+body[data-nemo-prompt-skin='classic'] #nemoSearchAndStatusWrapper {
+    margin-bottom: 8px;
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-search-controls .menu_button {
+    min-width: auto;
+    padding: 5px 8px;
+    font-size: 0.9em;
+}
+
+body[data-nemo-prompt-skin='classic'] .view-mode-grid {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 10px;
+}
+
+body[data-nemo-prompt-skin='classic'] .grid-item {
+    min-height: 135px;
+    border-radius: 7px;
+    background: var(--nemo-prompt-bg-secondary);
+}
+
+body[data-nemo-prompt-skin='classic'] .grid-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px var(--nemo-prompt-shadow);
+}
+
+body[data-nemo-prompt-skin='classic'] .grid-item .item-icon {
+    min-height: 78px;
+    font-size: 2.7em;
+}
+
+body[data-nemo-prompt-skin='classic'] .grid-item .item-name {
+    min-height: 36px;
+    padding: 5px;
+    font-size: 0.82em;
+}
+
+body[data-nemo-prompt-skin='classic'] :is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) {
+    min-width: min(980px, 88vw);
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-category-tray {
+    margin-left: 16px;
+    padding: 8px;
+    border-radius: 6px;
+    background: var(--nemo-prompt-bg-secondary);
+    box-shadow: 0 4px 12px var(--nemo-prompt-shadow);
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-tray-grid {
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 6px;
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-prompt-card {
+    padding: 6px 7px;
+    border-radius: 5px;
+    background: var(--nemo-prompt-bg);
+}
+
+body[data-nemo-prompt-skin='classic'] .nemo-prompt-card:hover {
+    background: var(--nemo-prompt-hover);
+}
+
+body[data-nemo-prompt-ui='classic'] .nemo-engine-section > summary::after,
+body[data-nemo-prompt-ui='classic'] .nemo-section-progress,
+body[data-nemo-prompt-ui='classic'] .nemo-tray-section > summary::after {
+    display: none !important;
+}
+
+@media (min-width: 1400px) {
+    body[data-nemo-prompt-skin='classic'] .view-mode-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 9px;
+    }
+}
+
+@media (min-width: 1800px) {
+    body[data-nemo-prompt-skin='classic'] .view-mode-grid {
+        grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+        gap: 8px;
+    }
+}

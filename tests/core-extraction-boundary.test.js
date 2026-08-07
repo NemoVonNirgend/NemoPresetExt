@@ -5,8 +5,9 @@ import test from 'node:test';
 const content = readFileSync(new URL('../content.js', import.meta.url), 'utf8');
 const catalog = readFileSync(new URL('../features/hub/catalog.js', import.meta.url), 'utf8');
 
-test('core entry point owns only directives, dividers, settings, hub, and NemoEngine', () => {
+test('core entry point owns prompt tools, directives, dividers, settings, hub, and NemoEngine', () => {
     for (const required of [
+        'initializePromptTools()',
         'initDirectiveUI()',
         'initPromptDirectiveHooks()',
         'initMessageTriggerHooks()',
@@ -16,13 +17,11 @@ test('core entry point owns only directives, dividers, settings, hub, and NemoEn
     ]) {
         assert.match(content, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     }
+    assert.match(content, /promptTools: true/);
 });
 
-test('core entry point does not initialize extracted optional runtimes', () => {
+test('core entry point still excludes non-prompt optional runtimes', () => {
     for (const forbidden of [
-        'NemoCharacterManager',
-        'PresetNavigator',
-        'applyNemoNetReasoning',
         'PollinationsInterceptor',
         'EmojiPicker',
         'NemoWorldInfoUI',
@@ -35,9 +34,9 @@ test('core entry point does not initialize extracted optional runtimes', () => {
     }
 });
 
-test('Nemo Hub publishes every extracted extension repository', () => {
-    for (const id of ['NemoPromptTools', 'NemoUIOverhaul', 'NemoEmojiPicker', 'NemoImageGeneration']) {
+test('Nemo Hub no longer offers PromptTools as a separate install', () => {
+    assert.doesNotMatch(catalog, /id: 'NemoPromptTools'/);
+    for (const id of ['NemoUIOverhaul', 'NemoEmojiPicker', 'NemoImageGeneration']) {
         assert.match(catalog, new RegExp(`id: '${id}'`));
-        assert.match(catalog, new RegExp(`https://github\\.com/NemoVonNirgend/${id}`));
     }
 });

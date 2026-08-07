@@ -13,10 +13,20 @@ import {
 } from './features/directives/prompt-directive-hooks.js';
 import { cleanupDirectiveAutocomplete, initDirectiveAutocomplete } from './features/directives/directive-autocomplete-ui.js';
 import { cleanupNemoEngineInstaller, initNemoEngineInstaller } from './features/preset-installer/runtime.js';
+import { cleanupPromptTools, initializePromptTools } from './features/prompt-tools/runtime.js';
 
 let initialized = false;
 let cleanupInProgress = false;
 const cleanupCallbacks = [];
+
+const CAPABILITIES = Object.freeze({
+    promptTools: true,
+    promptUiModes: Object.freeze(['classic', 'modern', 'classicPlus']),
+    directives: true,
+    customDividers: true,
+    nemoEngineInstaller: true,
+    hub: true,
+});
 
 function featureEnabled(key) {
     return isFeatureEnabled(extension_settings[NEMO_EXTENSION_NAME], key);
@@ -24,6 +34,22 @@ function featureEnabled(key) {
 
 function getDividerPatterns() {
     return getCustomDividerPatterns();
+}
+
+function publishPublicApi() {
+    const api = Object.freeze({
+        capabilities: CAPABILITIES,
+        cleanup: cleanupExtension,
+        getDividerPatterns,
+        refreshDividerPatterns: validateDividerPatterns,
+        getPromptTools: () => window.NemoPromptTools ?? null,
+    });
+    window.NemoPresetExt = api;
+    window.NemoPresetExtCleanup = cleanupExtension;
+    window.dispatchEvent(new CustomEvent('nemo:preset-ext-capabilities', {
+        detail: CAPABILITIES,
+    }));
+    return api;
 }
 
 export function cleanupExtension() {
@@ -37,6 +63,7 @@ export function cleanupExtension() {
                 logger.error('Core cleanup callback failed', error);
             }
         }
+        cleanupPromptTools();
         cleanupDirectiveAutocomplete();
         cleanupMessageTriggerHooks();
         cleanupPromptDirectiveHooks();
@@ -45,6 +72,8 @@ export function cleanupExtension() {
         clearDirectiveCache();
         NemoSettingsUI.destroy();
     } finally {
+        if (window.NemoPresetExt?.capabilities === CAPABILITIES) delete window.NemoPresetExt;
+        if (window.NemoPresetExtCleanup === cleanupExtension) delete window.NemoPresetExtCleanup;
         initialized = false;
         cleanupInProgress = false;
     }
@@ -60,6 +89,8 @@ export async function initializeExtension() {
         validateDividerPatterns();
         await NemoSettingsUI.initialize();
 
+        await initializePromptTools();
+
         if (featureEnabled('enableDirectives')) {
             initDirectiveUI();
             initPromptDirectiveHooks();
@@ -71,18 +102,15 @@ export async function initializeExtension() {
 
         if (featureEnabled('enableNemoEngineInstaller')) initNemoEngineInstaller();
 
-        window.NemoPresetExt = Object.freeze({
-            cleanup: cleanupExtension,
-            getDividerPatterns,
-            refreshDividerPatterns: validateDividerPatterns,
-        });
-        window.NemoPresetExtCleanup = cleanupExtension;
-        logger.info('Initialized core directives, dividers, hub, and NemoEngine installer');
+        publishPublicApi();
+        logger.info('Initialized prompt workstation, directives, dividers, hub, and NemoEngine installer');
     } catch (error) {
         logger.error('Core initialization failed', error);
         cleanupExtension();
     }
 }
+
+publishPublicApi();
 
 if (document.querySelector('#left-nav-panel')) {
     void initializeExtension();

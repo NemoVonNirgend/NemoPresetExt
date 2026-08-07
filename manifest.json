@@ -1,8 +1,8 @@
 {
   "display_name": "NemoPresetExt",
   "author": "@NemoVonNirgend",
-  "version": "5.2.0",
-  "description": "Core prompt directives, custom dividers, NemoEngine setup, and the Nemo Hub extension catalog.",
+  "version": "6.0.0",
+  "description": "Complete prompt workstation with three interface modes, directives, navigation, reasoning capture, NemoEngine setup, and Nemo Hub.",
   "requires": [],
   "optional": [],
   "js": "content.js",

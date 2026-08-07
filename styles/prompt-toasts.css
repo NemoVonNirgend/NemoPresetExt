@@ -1,0 +1,45 @@
+/* Toasts created by prompt navigation and archive operations. */
+body[data-nemo-prompt-ui] .nemo-toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 15020;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 260px;
+    max-width: min(480px, calc(100vw - 32px));
+    padding: 12px 14px;
+    border: 1px solid var(--nemo-prompt-border);
+    border-left: 4px solid var(--nemo-prompt-accent);
+    border-radius: 8px;
+    background: var(--nemo-prompt-bg);
+    color: var(--nemo-prompt-text);
+    box-shadow: 0 10px 34px var(--nemo-prompt-shadow);
+    opacity: 0;
+    transform: translateX(28px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+body[data-nemo-prompt-ui] .nemo-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+body[data-nemo-prompt-ui] .nemo-toast.hide {
+    opacity: 0;
+    transform: translateX(28px);
+}
+
+body[data-nemo-prompt-ui] .nemo-toast.success { border-left-color: var(--nemo-prompt-success); }
+body[data-nemo-prompt-ui] .nemo-toast.warning { border-left-color: var(--nemo-prompt-warning); }
+body[data-nemo-prompt-ui] .nemo-toast.error { border-left-color: var(--nemo-prompt-danger); }
+body[data-nemo-prompt-ui] .nemo-toast-content { flex: 1 1 auto; min-width: 0; }
+body[data-nemo-prompt-ui] .nemo-toast-close {
+    flex: 0 0 auto;
+    padding: 3px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}

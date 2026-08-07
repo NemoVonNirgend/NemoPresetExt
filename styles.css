@@ -1,4 +1,15 @@
-/* NemoPresetExt core: directives, dividers, NemoEngine, and Nemo Hub. */
+@import url('./styles/prompt-structure.css');
+@import url('./styles/prompt-tray.css');
+@import url('./styles/prompt-dialogs.css');
+@import url('./styles/prompt-navigator.css');
+@import url('./styles/prompt-archive.css');
+@import url('./styles/prompt-toasts.css');
+@import url('./styles/prompt-classic.css');
+@import url('./styles/prompt-modern.css');
+@import url('./styles/prompt-classic-plus.css');
+@import url('./styles/prompt-responsive.css');
+
+/* NemoPresetExt: prompt workstation, directives, dividers, NemoEngine, and Nemo Hub. */
 .nemo-settings-host,
 .nemo-preset-ext-settings {
     min-width: 0;
@@ -23,6 +34,14 @@
 .nemo-settings-section h4,
 .nemo-settings-section p {
     margin: 0;
+}
+
+.nemo-mode-explanations {
+    display: grid;
+    gap: 4px;
+    padding: 8px 10px;
+    border-left: 3px solid var(--SmartThemeQuoteColor);
+    background: color-mix(in srgb, var(--SmartThemeQuoteColor) 7%, transparent);
 }
 
 #nemoRegexStatus[data-state="success"] { color: var(--active, #51cf66); }

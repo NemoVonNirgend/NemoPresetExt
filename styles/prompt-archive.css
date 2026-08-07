@@ -1,0 +1,270 @@
+/* Prompt archive and reusable prompt dialogs */
+body[data-nemo-prompt-ui] .nemo-archive-body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+body[data-nemo-prompt-ui] .nemo-archive-sidebar {
+    flex: 0 0 240px;
+    min-width: 0;
+    overflow-y: auto;
+    padding: 12px 0;
+    border-right: 1px solid var(--nemo-prompt-border);
+    background: var(--nemo-prompt-bg-secondary);
+}
+
+body[data-nemo-prompt-ui] .nemo-archive-toolbar {
+    flex-wrap: wrap;
+}
+
+body[data-nemo-prompt-ui] :is(.nemo-archive-toolbar-left, .nemo-archive-toolbar-center, .nemo-archive-toolbar-right) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+body[data-nemo-prompt-ui] .nemo-archive-toolbar-center {
+    flex: 1 1 240px;
+    justify-content: center;
+}
+
+body[data-nemo-prompt-ui] .nemo-archive-search {
+    width: min(100%, 340px);
+}
+
+body[data-nemo-prompt-ui] .nemo-folder-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 12px;
+}
+
+body[data-nemo-prompt-ui] .nemo-folder-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+body[data-nemo-prompt-ui] .nemo-folder-item:hover {
+    background: var(--nemo-prompt-hover);
+}
+
+body[data-nemo-prompt-ui] .nemo-folder-item.active {
+    background: var(--nemo-prompt-accent);
+    color: white;
+}
+
+body[data-nemo-prompt-ui] .nemo-folder-content {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 7px;
+}
+
+body[data-nemo-prompt-ui] .nemo-folder-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body[data-nemo-prompt-ui] .nemo-folder-count {
+    flex: 0 0 auto;
+    min-width: 18px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    text-align: center;
+    font-size: 0.78em;
+}
+
+body[data-nemo-prompt-ui] .nemo-folder-actions {
+    display: none;
+    align-items: center;
+    gap: 3px;
+}
+
+body[data-nemo-prompt-ui] .nemo-folder-item:hover .nemo-folder-actions,
+body[data-nemo-prompt-ui] .nemo-folder-item:focus-within .nemo-folder-actions {
+    display: flex;
+}
+
+body[data-nemo-prompt-ui] .nemo-folder-action {
+    padding: 3px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+body[data-nemo-prompt-ui] .nemo-folder-divider {
+    height: 1px;
+    margin: 8px 0;
+    background: var(--nemo-prompt-border);
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    align-content: start;
+    gap: 12px;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-grid .nemo-prompt-card {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border-left-width: 1px;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-grid .nemo-prompt-card-header,
+body[data-nemo-prompt-ui] .nemo-prompt-grid .nemo-prompt-card-actions,
+body[data-nemo-prompt-ui] .nemo-prompt-tags,
+body[data-nemo-prompt-ui] .nemo-prompt-card-meta {
+    display: flex;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-grid .nemo-prompt-card-header {
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-grid .nemo-prompt-card-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 650;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-grid .nemo-prompt-card-actions,
+body[data-nemo-prompt-ui] .nemo-prompt-tags {
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-action {
+    padding: 5px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--nemo-prompt-muted);
+    cursor: pointer;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-action:hover {
+    background: var(--nemo-prompt-hover);
+    color: var(--nemo-prompt-accent);
+}
+
+body[data-nemo-prompt-ui] .nemo-tag {
+    padding: 2px 6px;
+    border: 1px solid var(--nemo-prompt-border);
+    border-radius: 999px;
+    background: var(--nemo-prompt-bg-tertiary);
+    font-size: 0.78em;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card-preview {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--nemo-prompt-muted);
+    font-size: 0.86em;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-grid .nemo-prompt-card-meta {
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 7px;
+    border-top: 1px solid var(--nemo-prompt-border);
+    color: var(--nemo-prompt-muted);
+    font-size: 0.76em;
+}
+
+body[data-nemo-prompt-ui] .nemo-empty-state {
+    padding: 42px 18px;
+    color: var(--nemo-prompt-muted);
+    text-align: center;
+}
+
+body[data-nemo-prompt-ui] .nemo-form-group {
+    margin-bottom: 13px;
+}
+
+body[data-nemo-prompt-ui] .nemo-form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--nemo-prompt-text);
+    font-weight: 600;
+}
+
+body[data-nemo-prompt-ui] .nemo-dialog-note {
+    margin-top: 9px;
+    padding: 9px 11px;
+    border: 1px solid var(--nemo-prompt-border);
+    border-radius: 5px;
+    background: var(--nemo-prompt-bg-secondary);
+    color: var(--nemo-prompt-muted);
+    font-size: 0.86em;
+}
+
+body[data-nemo-prompt-ui] :is(.nemo-btn-small, .nemo-btn-primary, .nemo-btn-secondary) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid var(--nemo-prompt-border);
+    border-radius: 5px;
+    background: var(--nemo-prompt-bg-secondary);
+    color: var(--nemo-prompt-text);
+    cursor: pointer;
+}
+
+body[data-nemo-prompt-ui] .nemo-btn-primary {
+    border-color: var(--nemo-prompt-accent);
+    background: var(--nemo-prompt-accent);
+    color: white;
+}
+
+body[data-nemo-prompt-ui] :is(.nemo-context-menu-header, .nemo-context-submenu) {
+    color: var(--nemo-prompt-text);
+}
+
+body[data-nemo-prompt-ui] .nemo-context-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--nemo-prompt-border);
+    color: var(--nemo-prompt-muted);
+    font-size: 0.82em;
+    font-weight: 700;
+}
+
+body[data-nemo-prompt-ui] .nemo-context-submenu {
+    position: absolute;
+    top: -5px;
+    left: 100%;
+    display: none;
+    min-width: 160px;
+    padding: 5px 0;
+    border: 1px solid var(--nemo-prompt-border);
+    border-radius: 6px;
+    background: var(--nemo-prompt-bg);
+    box-shadow: 0 8px 24px var(--nemo-prompt-shadow);
+}
+
+body[data-nemo-prompt-ui] .nemo-context-menu-item:hover > .nemo-context-submenu {
+    display: block;
+}

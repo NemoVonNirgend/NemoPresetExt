@@ -9,17 +9,24 @@ test('README version follows the extension manifest', () => {
     assert.ok(README.includes(`**Version:** ${MANIFEST.version}`));
 });
 
-test('README documents every active core feature default', () => {
+test('README documents the merged prompt workstation defaults', () => {
     for (const row of [
+        '`enablePromptManager`: `true`',
+        '`enablePresetNavigator`: `true`',
+        '`enableCharacterNavigator`: `true`',
+        '`enableReasoningCapture`: `true`',
+        '`promptUiMode`: `classicPlus`',
         '`enableDirectives`: `true`',
         '`enableDirectiveAutocomplete`: `true`',
         '`enableNemoEngineInstaller`: `true`',
     ]) assert.ok(README.includes(row), `Missing core default ${row}`);
 });
 
-test('README documents the extracted extension migration', () => {
-    for (const extension of ['NemoPromptTools', 'NemoUIOverhaul', 'NemoEmojiPicker', 'NemoImageGeneration']) {
+test('README documents PromptTools reintegration and retained optional boundaries', () => {
+    assert.ok(README.includes('Version 6 merges NemoPromptTools back into NemoPresetExt'));
+    assert.ok(README.includes('extension_settings.NemoPromptTools'));
+    for (const extension of ['NemoUIOverhaul', 'NemoEmojiPicker', 'NemoImageGeneration']) {
         assert.ok(README.includes(`NemoVonNirgend/${extension}`));
     }
-    assert.ok(README.includes('Legacy keys already stored in `extension_settings.NemoPresetExt` remain untouched'));
+    assert.ok(!README.includes('| [Nemo Prompt Tools]('));
 });

@@ -1,17 +1,55 @@
 <div id="nemo-preset-ext-settings" class="nemo-preset-ext-settings">
     <div class="inline-drawer">
         <div class="inline-drawer-toggle inline-drawer-header">
-            <b>NemoPresetExt Core</b>
+            <b>NemoPresetExt</b>
             <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
         </div>
         <div class="inline-drawer-content">
-            <p class="notes">Prompt directives such as {{// ... }}, custom dividers, NemoEngine setup, and Nemo Hub.</p>
+            <p class="notes">The complete Nemo prompt workstation: prompt organization, navigation, reasoning capture, directives, custom dividers, NemoEngine setup, and Nemo Hub.</p>
+
+            <div class="nemo-settings-section nemo-prompt-workstation-settings">
+                <h4>Prompt workstation</h4>
+                <label class="checkbox_label" for="nemoEnablePromptManager">
+                    <input id="nemoEnablePromptManager" type="checkbox">
+                    <span>Enable prompt dropdowns, search, sections, archives, snapshots, and prompt tools</span>
+                </label>
+
+                <label for="nemoPromptUiMode">Prompt interface mode</label>
+                <select id="nemoPromptUiMode" class="text_pole">
+                    <option value="classic">Classic 3.4</option>
+                    <option value="modern">Modern</option>
+                    <option value="classicPlus">Classic+</option>
+                </select>
+                <div class="nemo-mode-explanations notes">
+                    <span><strong>Classic 3.4:</strong> compact legacy presentation and legacy feature profile.</span>
+                    <span><strong>Modern:</strong> current card-based presentation with the complete feature set.</span>
+                    <span><strong>Classic+:</strong> compact classic presentation with the complete modern feature set.</span>
+                </div>
+
+                <label class="checkbox_label" for="nemoEnablePresetNavigator">
+                    <input id="nemoEnablePresetNavigator" type="checkbox">
+                    <span>Enable preset navigator</span>
+                </label>
+                <label class="checkbox_label" for="nemoEnableCharacterNavigator">
+                    <input id="nemoEnableCharacterNavigator" type="checkbox">
+                    <span>Enable character navigator</span>
+                </label>
+                <label class="checkbox_label" for="nemoEnableReasoningCapture">
+                    <input id="nemoEnableReasoningCapture" type="checkbox">
+                    <span>Enable improved reasoning capture</span>
+                </label>
+                <label class="checkbox_label" for="nemoEnableReasoningSection">
+                    <input id="nemoEnableReasoningSection" type="checkbox">
+                    <span>Show prompt-side reasoning controls</span>
+                </label>
+                <small class="notes">Feature switches apply after reloading SillyTavern. Interface mode changes apply immediately.</small>
+            </div>
 
             <div class="nemo-settings-section">
                 <h4>Custom dividers</h4>
                 <label for="nemoDividerRegexPattern">Additional divider patterns</label>
                 <input id="nemoDividerRegexPattern" class="text_pole" type="text" placeholder="pattern-one, pattern-two">
-                <small class="notes">Comma-separated regular expressions used by Nemo Prompt Tools to recognize prompt-section dividers.</small>
+                <small class="notes">Comma-separated regular expressions used to recognize prompt-section dividers.</small>
                 <div class="flex-container alignitemscenter">
                     <button id="nemoSaveRegexSettings" class="menu_button" type="button">Save divider patterns</button>
                     <span id="nemoRegexStatus" class="notes" aria-live="polite"></span>
