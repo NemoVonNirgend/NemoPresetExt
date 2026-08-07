@@ -84,6 +84,7 @@ Version 6 merges NemoPromptTools back into NemoPresetExt.
 - The standalone namespace is preserved so downgrades remain reversible.
 - Existing standalone users receive the Modern interface mode by default.
 - Existing localStorage prompt metadata is migrated into extension settings by the established storage migration.
+- The migration does not delete existing browser-stored data; source namespaces and localStorage records remain available for downgrade recovery.
 - Legacy global APIs remain available through `window.NemoPromptTools`, `window.NemoPresetManager`, and `window.NemoPromptManager`.
 
 ## Troubleshooting

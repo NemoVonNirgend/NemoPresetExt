@@ -117,9 +117,9 @@ export const NemoSettingsUI = {
         const modeSelect = document.getElementById('nemoPromptUiMode');
         const syncDependencies = () => {
             if (directivesToggle && directiveAutocompleteToggle) {
-                const enabled = directivesToggle.checked;
-                directiveAutocompleteToggle.disabled = !enabled;
-                directiveAutocompleteToggle.setAttribute('aria-disabled', String(!enabled));
+                const directivesEnabled = directivesToggle.checked;
+                directiveAutocompleteToggle.disabled = !directivesEnabled;
+                directiveAutocompleteToggle.setAttribute('aria-disabled', String(!directivesEnabled));
             }
             if (promptManagerToggle && modeSelect) {
                 const enabled = promptManagerToggle.checked;
