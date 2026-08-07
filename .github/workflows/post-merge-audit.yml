@@ -1,0 +1,73 @@
+name: Post-merge regression audit
+
+on:
+  push:
+    branches:
+      - audit/post-merge-2026-08-07
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out NemoPresetExt audit branch
+        uses: actions/checkout@v4
+        with:
+          path: repos/NemoPresetExt
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out NemoUIOverhaul main release
+        uses: actions/checkout@v4
+        with:
+          repository: NemoVonNirgend/NemoUIOverhaul
+          ref: a7e3e405d6e32800adac29ae39b327949f0b5638
+          path: repos/NemoUIOverhaul
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out NemoPromptTools main bridge
+        uses: actions/checkout@v4
+        with:
+          repository: NemoVonNirgend/NemoPromptTools
+          ref: 614762ee7bc62d0fcfc6da8255b8f9e81af03a2a
+          path: repos/NemoPromptTools
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install audit parsers
+        run: python -m pip install --disable-pip-version-check tinycss2==1.4.0 PyYAML==6.0.2
+
+      - name: Audit all three repositories
+        id: audit
+        continue-on-error: true
+        run: |
+          python repos/NemoPresetExt/scripts/post_merge_audit.py \
+            --workspace "$GITHUB_WORKSPACE/repos" \
+            --output "$GITHUB_WORKSPACE/post-merge-audit-report.json"
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nemo-post-merge-audit
+          path: |
+            post-merge-audit-report.json
+            post-merge-audit-report.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Enforce audit result
+        if: steps.audit.outcome == 'failure'
+        run: exit 1
