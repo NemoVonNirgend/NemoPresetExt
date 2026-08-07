@@ -20,7 +20,7 @@ export const FEATURE_DEFAULTS = Object.freeze({
 
 const NON_FEATURE_DEFAULTS = Object.freeze({
     dividerRegexPattern: '',
-    promptUiMode: PROMPT_UI_MODES.CLASSIC_PLUS,
+    promptUiMode: PROMPT_UI_MODES.CLASSIC,
     dropdownStyle: 'tray',
     dropdownTheme: 'st',
 });
@@ -55,7 +55,7 @@ export const PROMPT_TOOLS_DATA_KEYS = Object.freeze([
 export function normalizePromptUiMode(value) {
     return Object.values(PROMPT_UI_MODES).includes(value)
         ? value
-        : PROMPT_UI_MODES.CLASSIC_PLUS;
+        : PROMPT_UI_MODES.CLASSIC;
 }
 
 /**
