@@ -18,6 +18,6 @@ test('the three public modes resolve to two skins and two feature profiles', () 
     assert.equal(usesFullPromptFeatures('modern'), true);
 });
 
-test('unknown modes fall back to Classic+', () => {
-    assert.equal(resolvePromptUiMode('future-mode').mode, 'classicPlus');
+test('unknown modes fall back to Classic 3.4', () => {
+    assert.equal(resolvePromptUiMode('future-mode').mode, 'classic');
 });
