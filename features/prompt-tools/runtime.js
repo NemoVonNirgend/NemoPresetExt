@@ -6,6 +6,12 @@ import { NemoCharacterManager } from '../character-manager/character-manager.js'
 import { initPresetNavigatorForApi } from '../../archive/navigator.js';
 import { loadAndSetDividerRegex, NemoPresetManager } from '../prompts/prompt-manager.js';
 import { cleanupCategoryTray, initCategoryTray } from '../prompts/category-tray.js';
+import {
+    cleanupPromptCompatibility,
+    getPromptCompatibilityState,
+    initializePromptCompatibility,
+    reconcilePromptCompatibility,
+} from '../prompts/compat/prompt-compatibility.js';
 import { applyNemoNetReasoning, cleanupNemoNetReasoning } from '../../reasoning/nemonet-reasoning-config.js';
 import {
     applyPromptUiMode,
@@ -114,6 +120,8 @@ async function reconcileRuntime() {
         }
     }
 
+    reconcilePromptCompatibility({ manager: NemoPresetManager });
+
     if (featureEnabled('enablePresetNavigator')) {
         SUPPORTED_APIS.forEach(initPresetNavigatorForApi);
     }
@@ -136,6 +144,7 @@ export async function initializePromptTools() {
     initializeStorage();
     migrateFromLocalStorage();
     applyPromptUiMode(getSettings());
+    initializePromptCompatibility({ manager: NemoPresetManager });
 
     if (featureEnabled('enablePromptManager')) {
         await loadAndSetDividerRegex();
@@ -161,6 +170,7 @@ export async function initializePromptTools() {
         NemoPresetManager,
         initPresetNavigatorForApi,
         getSettings,
+        getCompatibilityState: getPromptCompatibilityState,
         applyPromptUiMode: mode => {
             getSettings().promptUiMode = mode;
             return applyPromptUiMode(getSettings());
@@ -195,6 +205,7 @@ export function cleanupPromptTools() {
         runtimeState.characterNavigatorInitialized = false;
     }
 
+    cleanupPromptCompatibility();
     try {
         NemoPresetManager.destroy?.();
     } catch (error) {

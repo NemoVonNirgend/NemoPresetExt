@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const settings = readFileSync(new URL('../settings.html', import.meta.url), 'utf8');
+const settingsUi = readFileSync(new URL('../ui/settings-ui.js', import.meta.url), 'utf8');
 
 test('prompt workstation settings are presented before dividers and directives', () => {
     const promptMode = settings.indexOf('id="nemoPromptUiMode"');
@@ -21,6 +22,7 @@ test('settings expose every merged prompt gate and all three interface modes', (
         'nemoEnableCharacterNavigator',
         'nemoEnableReasoningCapture',
         'nemoEnableReasoningSection',
+        'nemoEnableLorebookManagement',
         'nemoDividerRegexPattern',
         'nemoEnableDirectives',
         'nemoEnableDirectiveAutocomplete',
@@ -32,6 +34,13 @@ test('settings expose every merged prompt gate and all three interface modes', (
     for (const mode of ['classic', 'modern', 'classicPlus']) {
         assert.match(settings, new RegExp(`value="${mode}"`));
     }
+});
+
+test('lorebook visibility is wired to the existing setting without changing active books', () => {
+    assert.match(settings, /Hiding lorebook management only removes its controls/);
+    assert.match(settingsUi, /\['nemoEnableLorebookManagement', 'enableLorebookManagement'\]/);
+    assert.match(settingsUi, /manager\?\.syncOptionalSections\?\.\(promptList\)/);
+    assert.doesNotMatch(settingsUi, /world_info[^\n]*(?:value|selected|dispatchEvent|trigger)/);
 });
 
 test('settings continue to exclude broader UI and composer features', () => {

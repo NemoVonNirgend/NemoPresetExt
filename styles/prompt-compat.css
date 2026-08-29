@@ -1,0 +1,78 @@
+/* Optional compatibility adapters for dynamic prompt hosts and third-party themes. */
+
+body[data-nemo-reasoning-owner='native'] #nemoReasoningSection {
+    display: none !important;
+}
+
+body[data-nemo-reasoning-owner='nemo'] [data-nemo-native-reasoning-group='true'] {
+    display: none !important;
+}
+
+body[data-nemo-prompt-host] #nemoSearchAndStatusWrapper,
+body[data-nemo-prompt-host] #nemoLorebookSection,
+body[data-nemo-prompt-host] #nemoReasoningSection,
+body[data-nemo-prompt-host] .nemo-preset-selector-wrapper {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+}
+
+body[data-nemo-prompt-host] .nemo-preset-selector-wrapper {
+    flex-wrap: wrap;
+    row-gap: 4px;
+    padding-block: 2px;
+}
+
+body[data-nemo-prompt-host] .nemo-preset-selector-wrapper > *,
+body[data-nemo-prompt-host] #nemoReasoningSection .flex-container > * {
+    min-width: 0;
+}
+
+body[data-nemo-prompt-host] .nemo-preset-selector-wrapper select,
+body[data-nemo-prompt-host] #nemoReasoningSection select,
+body[data-nemo-prompt-host] #nemoReasoningSection textarea,
+body[data-nemo-prompt-host] #nemoLorebookSection select {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-height: 2.25em;
+    line-height: normal;
+}
+
+body[data-nemo-prompt-host='chat-tabs'] #completion_prompt_manager {
+    min-width: 0;
+}
+
+body[data-nemo-prompt-host='chat-tabs'] #nemoSearchAndStatusWrapper {
+    position: relative;
+    z-index: 1;
+    margin-top: max(4px, 0.35em);
+    scroll-margin-top: calc(var(--nemo-external-tab-height, 0px) + 8px);
+}
+
+body[data-nemo-prompt-host='chat-tabs'] #openai-tab-content-prompts > #nemoLorebookSection {
+    margin-block: 8px;
+}
+
+body[data-nemo-moonlit='true'] #nemoSearchAndStatusWrapper :is(h3, h4, label, span),
+body[data-nemo-moonlit='true'] #nemoLorebookSection :is(h3, h4, label, span),
+body[data-nemo-moonlit='true'] .nemo-preset-selector-wrapper :is(h3, h4, label, span) {
+    max-width: 100%;
+    line-height: 1.35;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+@media (max-width: 1000px) {
+    body[data-nemo-prompt-host] #nemoReasoningSection .oneline-dropdown,
+    body[data-nemo-prompt-host] #nemoLorebookSection .flex-container {
+        flex-wrap: wrap;
+    }
+
+    body[data-nemo-prompt-host] #nemoReasoningSection .oneline-dropdown > *,
+    body[data-nemo-prompt-host] #nemoLorebookSection .flex-container > * {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
