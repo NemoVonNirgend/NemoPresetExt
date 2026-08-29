@@ -4,6 +4,7 @@ const CHAT_TABS_SELECTORS = Object.freeze({
     parametersHost: '#openai-tab-content-parameters',
     promptManager: '#completion_prompt_manager',
     promptList: '#completion_prompt_manager_list',
+    nemoReasoningSection: '#nemoReasoningSection',
 });
 
 const MOONLIT_SELECTORS = Object.freeze([
@@ -43,6 +44,7 @@ export function detectPromptCapabilities({
     const tabButtons = query(root, CHAT_TABS_SELECTORS.buttons);
     const promptsHost = query(root, CHAT_TABS_SELECTORS.promptsHost);
     const parametersHost = query(root, CHAT_TABS_SELECTORS.parametersHost);
+    const nemoReasoningSection = query(root, CHAT_TABS_SELECTORS.nemoReasoningSection);
     const extensionSettings = readExtensionSettings(globalObject);
 
     const chatTabsPresent = Boolean(
@@ -71,8 +73,11 @@ export function detectPromptCapabilities({
         tabButtons,
         promptsHost,
         parametersHost,
+        nemoReasoningSection,
         hostMode: chatTabsActive ? PROMPT_HOST_MODES.CHAT_TABS : PROMPT_HOST_MODES.NATIVE,
-        reasoningOwner: chatTabsActive ? REASONING_OWNERS.NATIVE : REASONING_OWNERS.NEMO,
+        reasoningOwner: chatTabsActive || !nemoReasoningSection
+            ? REASONING_OWNERS.NATIVE
+            : REASONING_OWNERS.NEMO,
     });
 }
 
