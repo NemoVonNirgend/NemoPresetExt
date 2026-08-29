@@ -58,6 +58,12 @@ export const NemoSettingsUI = {
         void saveSettings();
     },
 
+    _syncOptionalPromptSections() {
+        const promptList = document.querySelector('#completion_prompt_manager_list');
+        const manager = window.NemoPromptManager ?? window.NemoPresetManager;
+        manager?.syncOptionalSections?.(promptList);
+    },
+
     _bindCoreSettings() {
         const settings = extension_settings[NEMO_EXTENSION_NAME];
         const dividerInput = document.getElementById('nemoDividerRegexPattern');
@@ -88,6 +94,7 @@ export const NemoSettingsUI = {
             ['nemoEnableCharacterNavigator', 'enableCharacterNavigator'],
             ['nemoEnableReasoningCapture', 'enableReasoningCapture'],
             ['nemoEnableReasoningSection', 'enableReasoningSection'],
+            ['nemoEnableLorebookManagement', 'enableLorebookManagement'],
             ['nemoEnableDirectives', 'enableDirectives'],
             ['nemoEnableDirectiveAutocomplete', 'enableDirectiveAutocomplete'],
             ['nemoEnableNemoEngineInstaller', 'enableNemoEngineInstaller'],
@@ -98,6 +105,9 @@ export const NemoSettingsUI = {
             input.addEventListener('change', () => {
                 settings[key] = input.checked;
                 this._persist();
+                if (key === 'enableReasoningSection' || key === 'enableLorebookManagement') {
+                    this._syncOptionalPromptSections();
+                }
             });
         }
 
