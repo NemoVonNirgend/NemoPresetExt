@@ -1,4 +1,5 @@
 @import url('./styles/prompt-structure.css');
+@import url('./styles/prompt-compat.css');
 @import url('./styles/prompt-tray.css');
 @import url('./styles/prompt-dialogs.css');
 @import url('./styles/prompt-navigator.css');
