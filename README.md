@@ -39,10 +39,38 @@ New installations default to **Classic 3.4**. Existing standalone NemoPromptTool
 - `enablePresetNavigator`: `true`
 - `enableCharacterNavigator`: `true`
 - `enableReasoningCapture`: `true`
+- `enableReasoningSection`: `true`
+- `enableLorebookManagement`: `false`
 - `promptUiMode`: `classic`
 - `enableDirectives`: `true`
 - `enableDirectiveAutocomplete`: `true`
 - `enableNemoEngineInstaller`: `true`
+
+## Optional compatibility adapters
+
+NemoPresetExt remains fully standalone. Its manifest does not require [Chat Completion Tabs](https://github.com/RivelleDays/SillyTavern-ChatCompletionTabs), [Moonlit Echoes Theme](https://github.com/RivelleDays/SillyTavern-MoonlitEchoesTheme), or any code from either project.
+
+At runtime, NemoPresetExt detects the interface capabilities that are actually active and adapts without calling private third-party APIs:
+
+| Active interface | NemoPresetExt behavior |
+| --- | --- |
+| Neither Rivelle extension | Nemo renders its complete standalone prompt interface and prompt-side reasoning controls. |
+| Chat Completion Tabs | Rivelle's **Prompts** tab hosts Nemo's prompt tools and optional lorebook controls. Native SillyTavern reasoning controls remain authoritative in **Parameters**, preventing duplicate visible selectors. |
+| Moonlit Echoes Theme | Nemo keeps its standalone ownership while applying narrowly scoped wrapping, height, and overflow guards to its own prompt controls. |
+| Both extensions | Chat Completion Tabs owns the tab layout, Moonlit Echoes owns the visual theme, and Nemo contributes only its prompt workstation surfaces. |
+| An extension is disabled or removed | Nemo automatically returns to the capabilities currently available, including its standalone fallback. |
+
+The compatibility layer treats SillyTavern's native reasoning values as canonical and rebinds when the host or a third-party extension replaces a control node. It does not store a competing reasoning-effort value.
+
+The prompt-side lorebook section is optional under **NemoPresetExt → Prompt workstation → Show lorebook management in the prompt panel**. Hiding it removes only Nemo's controls and does not activate, deactivate, or clear any lorebook.
+
+For diagnostics, open the browser console and run:
+
+```js
+window.NemoPromptTools?.getCompatibilityState?.()
+```
+
+The result reports the detected prompt host, visible reasoning owner, Chat Completion Tabs state, and Moonlit Echoes state.
 
 ## Optional extensions
 
@@ -90,7 +118,9 @@ Version 6 merges NemoPromptTools back into NemoPresetExt.
 ## Troubleshooting
 
 - Confirm the installed folder is named `NemoPresetExt` exactly.
-- Reload after changing prompt feature switches.
+- Reload after changing prompt feature switches. Reasoning-section and lorebook-section visibility changes apply immediately.
 - Interface mode changes apply immediately.
+- With Chat Completion Tabs active, look for Nemo prompt tools under **Prompts** and the authoritative reasoning controls under **Parameters**.
+- Run `window.NemoPromptTools?.getCompatibilityState?.()` in the browser console to inspect the current adapter state.
 - During the migration window, update the standalone NemoPromptTools extension so it can detect the merged runtime and safely stand down.
 - Use a current SillyTavern build containing `scripts/autocomplete/AutoComplete.js`.

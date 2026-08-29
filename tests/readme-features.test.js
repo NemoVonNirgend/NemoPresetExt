@@ -15,11 +15,24 @@ test('README documents the merged prompt workstation defaults', () => {
         '`enablePresetNavigator`: `true`',
         '`enableCharacterNavigator`: `true`',
         '`enableReasoningCapture`: `true`',
+        '`enableReasoningSection`: `true`',
+        '`enableLorebookManagement`: `false`',
         '`promptUiMode`: `classic`',
         '`enableDirectives`: `true`',
         '`enableDirectiveAutocomplete`: `true`',
         '`enableNemoEngineInstaller`: `true`',
     ]) assert.ok(README.includes(row), `Missing core default ${row}`);
+});
+
+test('README documents dependency-free Rivelle compatibility and diagnostics', () => {
+    for (const expected of [
+        'RivelleDays/SillyTavern-ChatCompletionTabs',
+        'RivelleDays/SillyTavern-MoonlitEchoesTheme',
+        'NemoPresetExt remains fully standalone',
+        'Native SillyTavern reasoning controls remain authoritative',
+        'Hiding it removes only Nemo\'s controls',
+        'window.NemoPromptTools?.getCompatibilityState?.()',
+    ]) assert.ok(README.includes(expected), `Missing compatibility documentation: ${expected}`);
 });
 
 test('README documents PromptTools reintegration and retained optional boundaries', () => {
