@@ -2,7 +2,7 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.0
+**Version:** 6.0.1
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
@@ -99,6 +99,12 @@ Add comma-separated regular expressions under **Custom dividers** and save. The 
 ## NemoEngine
 
 The installer adds or updates the bundled Nemo Engine Chat Completion preset without changing SillyTavern source. Its setup report validates bundled and installed prompt slots. Provider credentials remain owned by SillyTavern.
+
+### Large-preset recipe runtime
+
+Version 6.0.1 adds Stage 1 of the large-preset performance work. After updating and reloading the extension, import the portable Nemo Full JSON through the **Chat Completion preset import** button. Supported writing-recipe banks are verified and saved to separate files in the authenticated SillyTavern user's files directory before the compact preset is saved or selected. Runtime preparation loads only the selected recipe shard and retains at most two selected recipe setter strings. Normal export reconstructs the portable preset.
+
+Existing raw Full installations need a one-time reimport. Back up the ST user files directory along with presets, and export portable before disabling the extension or transferring a preset to another installation. Ordinary disabled-prompt cold storage, Vex externalization, and DOM virtualization are later stages, not part of this release. See [Recipe runtime usage, safety and validation](docs/RECIPE_RUNTIME.md).
 
 ## Nemo Hub
 
