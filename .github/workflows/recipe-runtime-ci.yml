@@ -1,0 +1,49 @@
+name: Nemo recipe runtime acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'features/preset-runtime/**'
+      - 'tests/recipe-*'
+      - 'content.js'
+      - 'manifest.json'
+      - '.github/workflows/recipe-runtime-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'features/preset-runtime/**'
+      - 'tests/recipe-*'
+      - 'content.js'
+      - 'manifest.json'
+      - '.github/workflows/recipe-runtime-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  recipe-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Source snapshot
+        run: |
+          mkdir -p "$RUNNER_TEMP/nemo-review"
+          git archive --format=zip HEAD -o "$RUNNER_TEMP/nemo-review/NemoPresetExt-source.zip"
+          git rev-parse HEAD > "$RUNNER_TEMP/nemo-review/commit.txt"
+      - name: Recipe contracts
+        run: |
+          set -o pipefail
+          node --test tests/recipe-*.test.js | tee "$RUNNER_TEMP/nemo-review/node-tests.txt"
+      - name: Review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nemo-recipe-review
+          path: ${{ runner.temp }}/nemo-review/
+          retention-days: 7
