@@ -23,7 +23,7 @@ permissions:
 jobs:
   recipe-runtime:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,6 +40,26 @@ jobs:
         run: |
           set -o pipefail
           node --test tests/recipe-*.test.js | tee "$RUNNER_TEMP/nemo-review/node-tests.txt"
+      - name: Install browser harness
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Synthetic full-size corpus
+        run: node tests/recipe-stress-fixture.js "$RUNNER_TEMP/Nemo-QA-Full.json"
+      - name: Browser worker and import-export acceptance
+        run: python tests/recipe-browser-smoke.py --preset "$RUNNER_TEMP/Nemo-QA-Full.json" --report "$RUNNER_TEMP/nemo-review/browser.json"
+      - uses: actions/checkout@v4
+        with:
+          repository: SillyTavern/SillyTavern
+          ref: 06bde939fb1e9c4c8d8641d810f0a916b5bce127
+          path: native-host
+          persist-credentials: false
+      - name: Prepare disposable native host
+        run: |
+          touch native-host/.nemo-ci-host
+          npm ci --prefix native-host --no-audit --no-fund
+      - name: Native SillyTavern acceptance
+        run: python tests/recipe-native-smoke.py --st native-host --preset "$RUNNER_TEMP/Nemo-QA-Full.json" --report "$RUNNER_TEMP/nemo-review/native.json"
       - name: Review evidence
         if: always()
         uses: actions/upload-artifact@v4

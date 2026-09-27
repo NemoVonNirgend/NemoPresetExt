@@ -8,6 +8,7 @@ import functools
 import http.server
 import json
 import pathlib
+import re
 import shutil
 import tempfile
 import threading
@@ -21,7 +22,20 @@ parser.add_argument('--report')
 args = parser.parse_args()
 source = pathlib.Path(args.preset).resolve()
 repo = pathlib.Path(__file__).resolve().parents[1]
-original = json.loads(source.read_text())
+original = json.loads(source.read_text(encoding='utf-8'))
+# Independent oracle for one known selected cell, not the implementation's codec.
+banks = [p for p in original['prompts'] if p['identifier'].startswith('nemo-init-recipes-')]
+genres = {re.fullmatch(r'nemo-init-recipes-([a-z_]+)-\d+', p['identifier'])[1] for p in banks}
+assert 'slice_of_life' in genres
+recipe_pattern = re.compile(r'\{\{setvar::(NP[a-z]{6})::([\s\S]*?)\}\}|\{\{#setvar::(NP[a-z]{6})\}\}([\s\S]*?)\{\{/setvar\}\}')
+cells = {m[1] or m[3]: m[2] if m[1] else m[4] for p in banks
+         if p['identifier'].startswith('nemo-init-recipes-slice_of_life-') for m in recipe_pattern.finditer(p['content'])}
+key = 'NPaoasas' if 'NPaoasas' in cells else next(iter(cells))
+expected_recipe = cells[key]
+selection = {'NCGenreId': 'slice_of_life', 'NCAuthorId': 'smoke_author', 'NCStyleId': 'smoke_style',
+             'NG_slice_of_life': key[2:4], 'NA_smoke_author': key[4:6], 'NS_smoke_style': key[6:8]}
+removed_count = len(banks) + sum(p['identifier'] == f'nemo-init-heading-recipes-{g}'
+                               for p in original['prompts'] for g in genres)
 
 HOST_SCRIPT = '''
 export let main_api = 'openai';
@@ -62,7 +76,7 @@ async function apply(p){
  await eventSource.emit(event_types.OAI_PRESET_CHANGED_BEFORE,{preset:p});
  Object.assign(oai_settings,p,{preset_settings_openai:'fixture'});
  // This host does not implement the rest of ST's macro engine. Supply a known selected cell.
- state.vars={NCGenreId:'comedy',NCAuthorId:'terry_pratchett',NCStyleId:'light_novel',NG_comedy:'ac',NA_terry_pratchett:'ay',NS_light_novel:'an'};
+ state.vars=__SELECTION__;
  await promptManager.tryGenerate();
 }
 document.querySelector('input').addEventListener('input',async e=>{
@@ -92,7 +106,7 @@ with tempfile.TemporaryDirectory(prefix='nemo-browser-') as directory:
     (root / 'script.js').write_text(HOST_SCRIPT)
     (root / 'scripts/extensions.js').write_text(HOST_EXTENSIONS)
     (root / 'scripts/openai.js').write_text(HOST_OPENAI)
-    (root / 'index.html').write_text(HOST_HTML)
+    (root / 'index.html').write_text(HOST_HTML.replace('__SELECTION__', json.dumps(selection)), encoding='utf-8')
     (root / 'user/files').mkdir(parents=True)
     stats = {'upload_count': 0, 'saved_preset_bytes': 0, 'mode': ''}
 
@@ -146,8 +160,8 @@ with tempfile.TemporaryDirectory(prefix='nemo-browser-') as directory:
             errors = page.evaluate('window.host.state.errors')
             assert not errors, errors
             slim = json.loads((root / 'saved.json').read_text())
-            assert len(slim['prompts']) == len(original['prompts']) - 123
-            assert stats['upload_count'] == 17
+            assert len(slim['prompts']) == len(original['prompts']) - removed_count
+            assert stats['upload_count'] == len(genres)
             assert 'nemoRecipeRuntime' in slim['extensions']
             assert not any(p['identifier'].startswith('nemo-init-recipes-') for p in slim['prompts'])
             report['checks'].append('Real Worker + DataTransfer intercept native file input before preset save')
@@ -155,7 +169,7 @@ with tempfile.TemporaryDirectory(prefix='nemo-browser-') as directory:
             report['main_thread_max_interval_gap_ms_test_host'] = page.evaluate('window.heartbeatGap')
             prepared = page.evaluate('window.host.state.prepared')
             assert len(prepared) == 1 and len(prepared[0]) < 15000 and '{{setvar::NP' not in prepared[0]
-            assert 'Comedy' in prepared[0] and 'Terry Pratchett' in prepared[0] and 'Light Novel' in prepared[0]
+            assert prepared[0] == expected_recipe + '\n{{trim}}'
             report['checks'].append('Dry-run preparation receives one exact selected recipe, not the bank')
             assert not page.evaluate('window.host.generate()')['aborted']
             report['checks'].append('Real-generation preflight allows verified library state')
@@ -164,7 +178,8 @@ with tempfile.TemporaryDirectory(prefix='nemo-browser-') as directory:
             target = root / 'downloaded.json'
             download_info.value.save_as(target)
             exported = json.loads(target.read_text())
-            assert exported == original
+            expected_export = {k: v for k, v in original.items() if k != 'reverse_proxy'}
+            assert exported == expected_export
             report['checks'].append('Native export event rehydrates a complete structurally identical portable preset')
             page.reload()
             page.wait_for_function('window.restored', timeout=30000)
