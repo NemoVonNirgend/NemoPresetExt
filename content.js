@@ -14,6 +14,7 @@ import {
 import { cleanupDirectiveAutocomplete, initDirectiveAutocomplete } from './features/directives/directive-autocomplete-ui.js';
 import { cleanupNemoEngineInstaller, initNemoEngineInstaller } from './features/preset-installer/runtime.js';
 import { cleanupPromptTools, initializePromptTools } from './features/prompt-tools/runtime.js';
+import { initializeRecipeRuntime } from './features/preset-runtime/runtime.js';
 
 let initialized = false;
 let cleanupInProgress = false;
@@ -26,6 +27,7 @@ const CAPABILITIES = Object.freeze({
     customDividers: true,
     nemoEngineInstaller: true,
     hub: true,
+    recipeOffload: true,
 });
 
 function featureEnabled(key) {
@@ -86,6 +88,7 @@ export async function initializeExtension() {
 
     try {
         ensureSettingsNamespace();
+        cleanupCallbacks.push(initializeRecipeRuntime());
         validateDividerPatterns();
         await NemoSettingsUI.initialize();
 
