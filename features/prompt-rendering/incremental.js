@@ -260,9 +260,13 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     });
 
     wrap(nemo, 'organizePrompts', original => function (force = false, ...args) {
-        if (!active() || busy()) return original.call(this, force, ...args);
+        if (busy()) return original.call(this, force, ...args);
         stats.organizationRequests++;
-        if (!force && stableOrganization()) { stats.organizationsSkipped++; return Promise.resolve(); }
+        if (active() && !force && stableOrganization()) { stats.organizationsSkipped++; return Promise.resolve(); }
+        if (!active()) {
+            return Promise.resolve(residency?.beforeOrganization?.())
+                .then(() => original.call(this, force, ...args)).catch(notify);
+        }
         pendingForce ||= Boolean(force);
         if (organizationFrame !== null) return Promise.resolve();
         organizationFrame = requestFrame(() => {
@@ -271,7 +275,8 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
             if (disposed) return;
             if (!forced && stableOrganization()) { stats.organizationsSkipped++; return; }
             stats.organizationRuns++;
-            Promise.resolve(original.call(nemo, forced, ...args)).catch(notify);
+            Promise.resolve(residency?.beforeOrganization?.())
+                .then(() => original.call(nemo, forced, ...args)).catch(notify);
         });
         return Promise.resolve();
     });
@@ -299,6 +304,13 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     return {
         reset, redraw, renderRows,
         setResidency(next) { residency = next || null; previous = null; organization = null; },
+        syncResidency() {
+            const current = state(), currentList = pm.listElement;
+            if (!current || !currentList || !complete(currentList, current)) return false;
+            previous = remember(current, currentList);
+            rememberOrganization();
+            return true;
+        },
         getStats: () => ({ stage: residency ? '5B.3/5' : '5A/5', supported, active: active(), mode: modeKey(),
             ...stats, optionalObserverScope: optionalRoot?.id || 'native',
             residentRows: pm.listElement ? rowsOf(pm.listElement).length : 0,
