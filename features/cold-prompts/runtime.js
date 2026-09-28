@@ -89,7 +89,7 @@ export function initializeColdPrompts() {
         };
         NemoPresetManager.extractPromptData = extractWrapper;
     }
-    api = Object.freeze({ stage: '3/5', getStats: owner.getStats, readBody: owner.readBody, ready: owner.ready });
+    api = Object.freeze({ stage: '3/5', getStats: owner.getStats, readBody: owner.readBody, ready: owner.ready, withBody: owner.withBody });
     globalThis.NemoColdPrompts = api;
     recipePreflight = globalThis.nemoRecipeRuntimePreflight;
     const previous = recipePreflight;

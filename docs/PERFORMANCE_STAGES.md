@@ -1,6 +1,6 @@
 # Large-preset performance: five-stage tracker
 
-Track implementation as **stage/5**, not as equal effort or measured speedup. Automated tests and native browser validation are separate statuses. Stage 4 was split into A/B. Stage 5A is merged; the remaining 5B is now split into three smaller deliveries. The overall plan still has five stages.
+Track implementation as **stage/5**, not as equal effort or measured speedup. Automated tests and native browser validation are separate statuses. Stage 4 was split into A/B. Stage 5A is merged. Stage 5B.1 is merged, and Stage 5B.2 is split into two smaller consumer deliveries before the final 5B.3 virtualization step. The overall plan still has five stages.
 
 | Stage | Scope | Implementation | Native ST browser validation |
 | --- | --- | --- | --- |
@@ -11,10 +11,11 @@ Track implementation as **stage/5**, not as equal effort or measured speedup. Au
 | **4B/5 (2/2)** | Selected Vex loading, native preparation and import/export composition | Shipped in 6.0.4, PR #25 | Pending |
 | **5A/5** | Incremental native row/frame rendering, coalesced organization and scoped observer | Shipped in 6.0.5, PR #26 | Injected Chromium harness passed; live ST pending |
 | **5B.1/5 (1/3)** | Metadata-only ordered/section state; DOM-independent snapshot capture | Implemented; no row removal | Live ST pending |
-| **5B.2/5 (2/3)** | State-based snapshot application, bulk controls, tray/navigation and movement consumers | Next | Not started |
-| **5B.3/5 (3/3)** | Closed-section row removal/recreation, lazy drag/drop and full lifecycle integration | Not started | Not started |
+| **5B.2A/5** | State-based snapshot application/restoration, section counts and section master toggles | Implemented; no row removal | Live ST pending |
+| **5B.2B/5** | State-based tray/navigation membership and movement/reordering consumers | Next | Not started |
+| **5B.3/5** | Closed-section row removal/recreation, lazy drag/drop and full lifecycle integration | Not started | Not started |
 
-Progress: **4/5 complete, plus 5A and the first of three 5B pieces**. Next: **5B.2/5**, not a completed 5/5 release. Closing a section still does not unload its DOM rows. Both 5A and 5B.1 require update/reload only, not preset reimport. The manifest remains 6.0.5 during this small continuation. To activate earlier source-compaction stages, export the current configuration portable before reimporting after update/reload. Native ST validation remains pending independently of implementation progress.
+Progress: **4/5 complete, plus 5A, 5B.1 and 5B.2A**. Next: **5B.2B/5**, then 5B.3. This is not a completed 5/5 release. Closing a section still does not unload its DOM rows. Stages 5A through 5B.2A require update/reload only, not preset reimport. The manifest remains 6.0.5 during this small continuation. To activate earlier source-compaction stages, export the current configuration portable before reimporting after update/reload. Native ST validation remains pending independently of implementation progress.
 
 ## Stage 2/5 boundaries
 
@@ -38,7 +39,9 @@ This is the split implementation replacing the older unmerged whole-stage PR #23
 
 **5B.1** supplies a metadata-only ordered-state/section model and changes snapshot capture to read native selection state instead of scanning rendered toggle buttons. It keeps the existing identifier-array snapshot format, native toggle permissions and other-API fallback, accepts empty snapshots, and protects stale save notifications and teardown. Applying snapshots, section counters, tray operations and all mutating controls remain unchanged. The model's section helpers and reconciliation plans do not apply changes. See [5B.1 implementation boundaries and tests](PROMPT_STATE.md).
 
-**5B.2** must adapt snapshot application/restoration, bulk changes, tray membership, navigation and movement to operate on canonical state. Preserve permission/dependency checks, cold-prompt loading, full order and race handling. Only after these consumers are safe may **5B.3** remove/recreate closed-section rows and integrate incremental rendering, lazy section drag/drop, observer cleanup and search. Do not merge partial-DOM changes ahead of those consumer guarantees.
+**5B.2A** moves snapshot application/restoration, section direct/aggregate counts and section master toggles onto canonical ordered state. It preserves native toggle permissions, Stage 3 hydration before enabling, directive validation/automatic resolution, native save boundaries, rollback and stale-preset guards. It works when a section shell has no materialized child prompt rows. See [5B.2A implementation boundaries and tests](PROMPT_ACTIONS.md).
+
+**5B.2B** must finish the consumer migration by moving tray membership, tray bulk operations, Prompt Navigator discovery and prompt movement/reordering off DOM position. Preserve the full native prompt order and existing interaction semantics. Only after those consumers are safe may **5B.3** remove/recreate closed-section rows and integrate incremental rendering, lazy section drag/drop, observer cleanup and search. Do not merge partial-DOM row removal ahead of those guarantees.
 
 ## Validation and diagnostics
 
@@ -58,12 +61,15 @@ Stage 5A adds 25 Node unit/wiring tests and a Node wrapper for 24 real Chromium 
 
 Stage 5B.1 adds 38 unit/injected-runtime tests plus three repository-contract tests using the actual legacy divider/snapshot methods. The synthetic 764-row model remains complete with zero source-body reads, including 100 repeated snapshot passes. Those tests do not exercise live ST or row virtualization.
 
+Stage 5B.2A adds 11 focused state-action cases plus runtime integration coverage. The repository-wide implementation snapshot passes 345 tests with zero failures or skips. The key virtualization-boundary case toggles a section whose ordinary child prompt rows are absent, while counts and mutations still come from canonical native state. Live ST validation remains separate.
+
 ```js
 window.NemoPromptPerformance?.getStats()
 window.NemoColdPrompts?.getStats()
 window.NemoVexRuntime?.getStats()
 window.NemoPromptRendering?.getStats()
 window.NemoPromptRendering?.getStats().snapshots
+window.NemoPromptRendering?.getStats().actions
 ```
 
 Native checks remain required in Classic 3.4, Modern and Classic+: search/edit/toggle, preset changes, normal/swipe generation, family singles/masters/councils, independent Vexes, portable/partial export, missing-source recovery, snapshots and drag/drop. Record browser timings separately. A passing Chromium harness does not replace those full-client checks.
