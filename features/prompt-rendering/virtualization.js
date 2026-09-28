@@ -172,6 +172,7 @@ export function installSectionVirtualization({
         if (!sections.length) { syncResident(); return; }
         for (const section of sections) await reconcileSection(section, current, forceAll);
         syncResident();
+        renderer.syncResidency?.();
         stats.passes++;
     }
     function queueReconcile(options = {}) {
