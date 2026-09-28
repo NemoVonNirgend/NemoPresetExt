@@ -1,9 +1,10 @@
 import { eventSource, event_types, saveSettingsDebounced } from '../../../../../../script.js';
-import { extension_settings } from '../../../../../extensions.js';
+import { extension_settings, getContext } from '../../../../../extensions.js';
 import { promptManager } from '../../../../../openai.js';
 import { NemoPresetManager } from '../prompts/prompt-manager.js';
 import storage from '../../core/storage-migration.js';
 import { installIncrementalRendering } from './incremental.js';
+import { installStateSnapshots } from './state-snapshots.js';
 
 let state = null;
 const KEY = 'enableIncrementalPromptRendering';
@@ -11,6 +12,9 @@ export function initializePromptRendering() {
     if (state) return;
     const current = { controller: null, pm: null, retry: null, attempts: 0, listeners: [], api: null, uiOriginal: null, uiWrapper: null };
     state = current;
+    current.snapshots = installStateSnapshots({ manager: NemoPresetManager, getManager: () => promptManager,
+        getApi: () => getContext()?.mainApi, storage,
+        report: error => console.warn('[Nemo prompt state]', error) });
     const enabled = () => extension_settings.NemoPresetExt?.enablePromptManager !== false
         && extension_settings.NemoPresetExt?.[KEY] !== false;
     const notify = error => console.warn('[Nemo incremental rendering] Using native rendering:', error);
@@ -68,7 +72,9 @@ export function initializePromptRendering() {
         if (!current.pm && state === current && current.attempts++ < 100) current.retry = setTimeout(retry, 100);
     }
     retry();
-    current.api = Object.freeze({ stage: '5A/5', getStats: () => current.controller?.getStats() || { attached: false },
+    current.api = Object.freeze({ stage: '5B.1/5', getStats: () => ({
+        ...(current.controller?.getStats() || { attached: false }), snapshots: current.snapshots.getStats(),
+    }),
         refresh: () => { current.controller?.reset(); current.controller?.redraw(); } });
     globalThis.NemoPromptRendering = current.api;
 }
@@ -77,6 +83,7 @@ export function cleanupPromptRendering() {
     const current = state; state = null;
     clearTimeout(current.retry);
     for (const [event, fn] of current.listeners) eventSource.removeListener(event, fn);
+    current.snapshots?.dispose();
     current.controller?.dispose();
     if (NemoPresetManager.createSearchAndStatusUI === current.uiWrapper) NemoPresetManager.createSearchAndStatusUI = current.uiOriginal;
     document.querySelectorAll('[data-nemo-incremental-control]').forEach(node => node.remove());

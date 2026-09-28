@@ -1,6 +1,6 @@
 # Large-preset performance: five-stage tracker
 
-Track implementation as **stage/5**, not as equal effort or measured speedup. Automated tests and native browser validation are separate statuses. Stages 4 and 5 are split into two independently testable deliveries; the overall plan still has five stages.
+Track implementation as **stage/5**, not as equal effort or measured speedup. Automated tests and native browser validation are separate statuses. Stage 4 was split into A/B. Stage 5A is merged; the remaining 5B is now split into three smaller deliveries. The overall plan still has five stages.
 
 | Stage | Scope | Implementation | Native ST browser validation |
 | --- | --- | --- | --- |
@@ -9,10 +9,12 @@ Track implementation as **stage/5**, not as equal effort or measured speedup. Au
 | **3/5** | Durable disabled-prompt bodies, hydration before enable/edit, preserved edits and exports | Shipped in 6.0.3, PR #22 | Pending |
 | **4A/5 (1/2)** | Inert Vex source parser, verified storage, exact retrieval/restoration | Merged in PR #24 | Covered by 4B adapter; native testing pending |
 | **4B/5 (2/2)** | Selected Vex loading, native preparation and import/export composition | Shipped in 6.0.4, PR #25 | Pending |
-| **5A/5 (1/2)** | Incremental native row/frame rendering, coalesced organization and scoped observer | Implemented in 6.0.5; real Chromium harness passes | Live ST pending |
-| **5B/5 (2/2)** | Closed-section row virtualization; adapt snapshots, trays, movement, bulk controls and lazy section drag/drop | Next | Not started |
+| **5A/5** | Incremental native row/frame rendering, coalesced organization and scoped observer | Shipped in 6.0.5, PR #26 | Injected Chromium harness passed; live ST pending |
+| **5B.1/5 (1/3)** | Metadata-only ordered/section state; DOM-independent snapshot capture | Implemented; no row removal | Live ST pending |
+| **5B.2/5 (2/3)** | State-based snapshot application, bulk controls, tray/navigation and movement consumers | Next | Not started |
+| **5B.3/5 (3/3)** | Closed-section row removal/recreation, lazy drag/drop and full lifecycle integration | Not started | Not started |
 
-Progress: **4/5 complete plus the first half of Stage 5**. Next: **5B/5**, not a completed 5/5 release. Closing a section still does not unload its DOM rows. Stage 5A requires update/reload only, not preset reimport. To activate earlier source-compaction stages, export the current configuration portable before reimporting after update/reload. Native ST validation remains pending independently of implementation progress.
+Progress: **4/5 complete, plus 5A and the first of three 5B pieces**. Next: **5B.2/5**, not a completed 5/5 release. Closing a section still does not unload its DOM rows. Both 5A and 5B.1 require update/reload only, not preset reimport. The manifest remains 6.0.5 during this small continuation. To activate earlier source-compaction stages, export the current configuration portable before reimporting after update/reload. Native ST validation remains pending independently of implementation progress.
 
 ## Stage 2/5 boundaries
 
@@ -30,11 +32,13 @@ Stage 4B connects that same layer to the client. Supported reset/resolver/assemb
 
 This is the split implementation replacing the older unmerged whole-stage PR #23, not a wholesale merge of that attempt. Literal data edits remain exact; unknown control-program edits are refused by the optimized adapter. Lite/Tavo have no matching Vex library. See [runtime usage, backup requirements and validation](VEX_RUNTIME.md).
 
-## Stage 5A/5 and 5B/5
+## Stage 5A/5 and the three 5B deliveries
 
-The current DOM code uses all prompt rows for snapshots, master toggles, tray membership, navigation and drag/drop ordering. Removing rows without adapting those consumers could lose state or truncate prompt order. **5A** therefore reduces repeated rendering first while leaving the complete row list intact. It reuses unchanged native frames and rows, generates only changed rows with the original native renderer, scopes the optional observer to the sidebar, coalesces organization calls, and avoids replacing an active drag. A checkbox allows immediate native fallback. Tray and unsupported layouts remain native.
+**5A** reduces repeated rendering while leaving the complete row list intact. It reuses unchanged native frames and rows, generates changed rows with the original native renderer, scopes the optional observer to the sidebar, coalesces organization calls, and avoids replacing an active drag. A checkbox allows native fallback. Tray and unsupported layouts remain native. See [5A rendering behavior and tests](PROMPT_RENDERING.md).
 
-**5B** will implement actual closed-section row removal and restore-on-open, together with state-based snapshot/bulk/movement logic and lazy section drag/drop. This remains unfinished. See [5A behavior, boundaries, diagnostics and browser tests](PROMPT_RENDERING.md).
+**5B.1** supplies a metadata-only ordered-state/section model and changes snapshot capture to read native selection state instead of scanning rendered toggle buttons. It keeps the existing identifier-array snapshot format, native toggle permissions and other-API fallback, accepts empty snapshots, and protects stale save notifications and teardown. Applying snapshots, section counters, tray operations and all mutating controls remain unchanged. The model's section helpers and reconciliation plans do not apply changes. See [5B.1 implementation boundaries and tests](PROMPT_STATE.md).
+
+**5B.2** must adapt snapshot application/restoration, bulk changes, tray membership, navigation and movement to operate on canonical state. Preserve permission/dependency checks, cold-prompt loading, full order and race handling. Only after these consumers are safe may **5B.3** remove/recreate closed-section rows and integrate incremental rendering, lazy section drag/drop, observer cleanup and search. Do not merge partial-DOM changes ahead of those consumer guarantees.
 
 ## Validation and diagnostics
 
@@ -45,17 +49,21 @@ node scripts/validate-cold-preset.mjs /path/to/Nemo_Engine_v12_Full.json
 node scripts/validate-vex-storage.mjs /path/to/Nemo_Engine_v12_Full.json
 node scripts/validate-vex-runtime.mjs /path/to/Nemo_Engine_v12_Full.json --exhaustive
 node scripts/validate-prompt-rendering.mjs
+node --test tests/prompt-state*.test.js
 ```
 
 Stage 4B's recorded Full verifier passed 38,988 restricted-program parity cases: all 38,400 family configurations, all 164 family masks, 128 independent combinations alone and with a council, reversed selection order and ambient state. Both saved profiles retain exact selected setters, with exact portable JSON round trip and fresh filesystem-backed restoration. This is not native macro-engine execution. User preset prose is neither printed nor committed.
 
 Stage 5A adds 25 Node unit/wiring tests and a Node wrapper for 24 real Chromium boundary cases. The synthetic 764-row harness checks zero row creation across 25 unchanged redraws and one row for one toggle, retaining every ordered row. The browser host is injected and native-shaped, not a running ST installation; no end-to-end latency or memory claim is made.
 
+Stage 5B.1 adds 38 unit/injected-runtime tests plus three repository-contract tests using the actual legacy divider/snapshot methods. The synthetic 764-row model remains complete with zero source-body reads, including 100 repeated snapshot passes. Those tests do not exercise live ST or row virtualization.
+
 ```js
 window.NemoPromptPerformance?.getStats()
 window.NemoColdPrompts?.getStats()
 window.NemoVexRuntime?.getStats()
 window.NemoPromptRendering?.getStats()
+window.NemoPromptRendering?.getStats().snapshots
 ```
 
 Native checks remain required in Classic 3.4, Modern and Classic+: search/edit/toggle, preset changes, normal/swipe generation, family singles/masters/councils, independent Vexes, portable/partial export, missing-source recovery, snapshots and drag/drop. Record browser timings separately. A passing Chromium harness does not replace those full-client checks.
