@@ -5,9 +5,9 @@ const NAME = '.completion_prompt_manager_prompt_name';
 const SECTION = 'details.nemo-engine-section';
 
 function rowsOf(list) { return [...list.querySelectorAll(ROW)]; }
-function completeRows(list, state) {
+function completeRows(list, state, expected = state.rows) {
     const rows = rowsOf(list);
-    return rows.length === state.rows.length && rows.every((row, i) => row.dataset.pmIdentifier === state.rows[i].id) ? rows : null;
+    return rows.length === expected.length && rows.every((row, i) => row.dataset.pmIdentifier === expected[i].id) ? rows : null;
 }
 function layoutOf(list) {
     return JSON.stringify(rowsOf(list).map(row => [row.dataset.pmIdentifier,
@@ -63,6 +63,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     let disposed = false, previous = null, frame = null, sequence = 0, toggleDepth = 0;
     let organization = null, organizationFrame = null, pendingForce = false, incrementalList = null;
     let retryFrame = null, optionalObserver = null, optionalRoot = null, deferredDrag = false;
+    let residency = null;
     const cleanups = [], originals = [];
     const stats = { fullLists: 0, incrementalLists: 0, unchangedLists: 0, generatedRows: 0,
         reusedRows: 0, replacedRows: 0, reusedFrames: 0, stalePaints: 0,
@@ -74,6 +75,36 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         && pm.configuration?.prefix === 'completion_' && toggleDepth === 0;
     const busy = () => Boolean(pm.listElement?.querySelector('.sortable-chosen, .sortable-drag, .ui-sortable-helper'));
     function state() { try { return renderState(pm); } catch { return null; } }
+    function expectedRows(current) {
+        if (!current) return [];
+        let ids = null;
+        try { ids = residency?.expectedIds?.(current) ?? null; } catch (error) { notify(error); }
+        if (!ids) return current.rows;
+        const wanted = ids instanceof Set ? ids : new Set(ids);
+        return current.rows.filter(row => wanted.has(row.id));
+    }
+    function complete(list, current) { return completeRows(list, current, expectedRows(current)); }
+    async function renderRows(ids) {
+        const current = state();
+        if (!supported || !current || !Array.isArray(ids)) return null;
+        const wantedIds = [...new Set(ids)].filter(id => current.byId.has(id) && current.entries.has(id));
+        const wanted = new Set(wantedIds);
+        const ordered = current.rows.filter(row => wanted.has(row.id));
+        if (ordered.length !== wantedIds.length) return null;
+        const scratch = doc.createElement('ul'), facade = Object.create(pm);
+        Object.defineProperties(facade, {
+            listElement: { value: scratch, writable: true },
+            getPromptsForCharacter: { value: () => ordered.map(row => current.byId.get(row.id)) },
+            getPromptOrderEntry: { value: (_character, id) => current.entries.get(id) || null },
+        });
+        await originalRows.apply(facade);
+        const rows = rowsOf(scratch);
+        return rows.length === ordered.length && rows.every((row, i) => row.dataset.pmIdentifier === ordered[i].id)
+            ? rows : null;
+    }
+    async function afterNativePaint() {
+        try { await residency?.afterNativePaint?.(); } catch (error) { notify(error); }
+    }
     function reset() { sequence++; previous = null; frame = null; organization = null; incrementalList = null; }
     function redraw() {
         if (disposed || retryFrame !== null) return;
@@ -87,7 +118,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     }
     function rememberOrganization() {
         const list = pm.listElement, current = state();
-        if (!active() || !list || !current || !completeRows(list, current)) { organization = null; return; }
+        if (!active() || !list || !current || !complete(list, current)) { organization = null; return; }
         organization = { list, owner: current.owner, mode: modeKey(), layout: layoutOf(list) };
     }
     function stableOrganization() {
@@ -141,20 +172,24 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
             previous = null; organization = null;
             stats.fullLists++;
             const result = await original.apply(pm, args);
+            await afterNativePaint();
             const after = state();
             if (!disposed && ticket === sequence && current && sameRevision(current, after)
-                && pm.listElement && completeRows(pm.listElement, current)) {
+                && pm.listElement && complete(pm.listElement, current)) {
                 previous = remember(current, pm.listElement);
-                stats.generatedRows += current.rows.length;
+                stats.generatedRows += expectedRows(current).length;
             }
             return result;
         }
         if (!active() || busy() || !current || current.rows.length < minRows
             || !list || !this.containerElement?.contains(list) || previous?.list !== list) return full();
-        const changes = changedRows(previous, current), oldRows = completeRows(list, current);
-        if (!changes || !oldRows) return full();
+        const allChanges = changedRows(previous, current), expected = expectedRows(current);
+        const liveIds = new Set(expected.map(row => row.id));
+        const changes = allChanges?.filter(row => liveIds.has(row.id));
+        const oldRows = complete(list, current);
+        if (!allChanges || !oldRows) return full();
         if (!changes.length) {
-            stats.unchangedLists++; stats.reusedRows += current.rows.length;
+            stats.unchangedLists++; stats.reusedRows += expected.length;
             previous = remember(current, list); incrementalList = list;
             return;
         }
@@ -171,7 +206,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
             await original.apply(facade, args);
             const after = state(), actualRows = rowsOf(list);
             if (disposed || ticket !== sequence || this.listElement !== list || busy()
-                || !sameRevision(current, after) || !completeRows(list, current)
+                || !sameRevision(current, after) || !complete(list, current)
                 || oldRows.some((row, i) => row !== actualRows[i])) {
                 stats.stalePaints++; redraw(); return;
             }
@@ -193,7 +228,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
             for (const section of affected) nemo.updateSectionCount?.(section);
             previous = remember(current, list); incrementalList = list;
             stats.incrementalLists++; stats.generatedRows += changes.length;
-            stats.replacedRows += changes.length; stats.reusedRows += current.rows.length - changes.length;
+            stats.replacedRows += changes.length; stats.reusedRows += expected.length - changes.length;
             if (organization?.list === list) rememberOrganization();
             // Existing search owns query interpretation and worker results.
             if (doc.getElementById('nemoPresetSearchInput')?.value?.trim()) nemo.handlePresetSearch?.();
@@ -262,10 +297,12 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     if (enabled() && nemo.observers?.listObserverContainer) scopeOptionalObserver(nemo.observers.listObserverContainer);
 
     return {
-        reset, redraw,
-        getStats: () => ({ stage: '5A/5', supported, active: active(), mode: modeKey(),
+        reset, redraw, renderRows,
+        setResidency(next) { residency = next || null; previous = null; organization = null; },
+        getStats: () => ({ stage: residency ? '5B.3/5' : '5A/5', supported, active: active(), mode: modeKey(),
             ...stats, optionalObserverScope: optionalRoot?.id || 'native',
-            residentRows: pm.listElement ? rowsOf(pm.listElement).length : 0, virtualized: false }),
+            residentRows: pm.listElement ? rowsOf(pm.listElement).length : 0,
+            virtualized: Boolean(residency?.isVirtualized?.()) }),
         dispose() {
             if (disposed) return;
             disposed = true; reset();
@@ -275,7 +312,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
             optionalObserver?.disconnect();
             if (nemo.observers?.optionalSectionObserver === optionalObserver) delete nemo.observers.optionalSectionObserver;
             for (const { owner, name, original, replacement } of originals.reverse()) if (owner[name] === replacement) owner[name] = original;
-            previous = null; frame = null; organization = null; optionalRoot = null;
+            previous = null; frame = null; organization = null; optionalRoot = null; residency = null;
         },
     };
 }
