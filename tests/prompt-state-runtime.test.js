@@ -48,8 +48,9 @@ test('real rendering runtime installs read and mutation adapters once and tears 
     h.api.initializePromptRendering(); assert.equal(h.nemo.takeSnapshot, snapshotWrapper); assert.equal(h.nemo.applySnapshot, actionWrapper);
     await h.nemo.takeSnapshot(); assert.deepEqual(h.captured, ['hidden']);
     await h.nemo.applySnapshot(); assert.equal(h.saves, 0);
-    assert.equal(h.context.NemoPromptRendering.stage, '5B.2A/5');
+    assert.equal(h.context.NemoPromptRendering.stage, '5B.2B/5');
     assert.equal(h.context.NemoPromptRendering.getStats().snapshots.captures, 1);
+    assert.equal(typeof h.context.NemoPromptRendering.applyChanges, 'function');
     assert.equal(h.context.NemoPromptRendering.getStats().actions.stage, '5B.2A/5');
     assert.notEqual(h.nemo.applySnapshot, h.apply); assert.notEqual(h.nemo.getAggregatedCounts, h.counts);
     h.api.cleanupPromptRendering(); h.api.cleanupPromptRendering();
