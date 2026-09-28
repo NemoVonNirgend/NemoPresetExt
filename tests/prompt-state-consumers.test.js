@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    TOP_LEVEL_SECTION_ID, headerRows, navigatorRows, readConsumerState, reorderSectionMembers,
-    sectionRecords, topLevelRecords, movePromptBelowHeader, movePromptToSectionIndex, movePromptToTopLevel,
+    TOP_LEVEL_SECTION_ID, headerRows, navigatorRows, readConsumerState, reorderDirectSectionMembers, reorderSectionMembers,
+    sectionRecords, topLevelRecords, movePromptBelowHeader, movePromptToDirectSectionIndex, movePromptToSectionIndex, movePromptToTopLevel,
 } from '../features/prompt-rendering/state-consumers.js';
 
 const classify = name => {
@@ -65,6 +65,21 @@ test('move to section index works when no child rows are materialized', async ()
     const h = harness(); await movePromptToSectionIndex(h.pm, h.manager, 'p6', 'p1', 1);
     assert.deepEqual(h.order.map(e => e.identifier), ['p0', 'p1', 'p2', 'p6', 'p3', 'p4', 'p5']);
     assert.equal(h.saves, 1);
+});
+test('direct accordion move inserts before a nested subheader without needing child state from DOM', async () => {
+    const h = harness(); await movePromptToDirectSectionIndex(h.pm, h.manager, 'p6', 'p1', 1);
+    assert.deepEqual(h.order.map(e => e.identifier), ['p0', 'p1', 'p2', 'p6', 'p3', 'p4', 'p5']);
+});
+test('direct accordion reorder leaves nested sub-section membership untouched', async () => {
+    const h = harness(['Root', '=== Main ===', 'A', 'D', '< Sub >', 'B', '=== Next ===', 'C']);
+    await reorderDirectSectionMembers(h.pm, h.manager, 'p1', ['p3', 'p2']);
+    assert.deepEqual(h.order.map(e => e.identifier), ['p0', 'p1', 'p3', 'p2', 'p4', 'p5', 'p6', 'p7']);
+    assert.deepEqual(sectionRecords(h.pm, h.manager, 'p1'), [
+        { identifier: 'p3', name: 'D' },
+        { identifier: 'p2', name: 'A' },
+        { identifier: 'p4', name: 'Sub', isSubSectionHeader: true },
+        { identifier: 'p5', name: 'B' },
+    ]);
 });
 test('move to top level places the prompt before the first divider', async () => {
     const h = harness(); await movePromptToTopLevel(h.pm, h.manager, 'p6');
