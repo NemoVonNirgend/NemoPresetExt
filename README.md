@@ -2,7 +2,7 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.1
+**Version:** 6.0.2
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
@@ -102,9 +102,17 @@ The installer adds or updates the bundled Nemo Engine Chat Completion preset wit
 
 ### Large-preset recipe runtime
 
-Version 6.0.1 adds Stage 1 of the large-preset performance work. After updating and reloading the extension, import the portable Nemo Full JSON through the **Chat Completion preset import** button. Supported writing-recipe banks are verified and saved to separate files in the authenticated SillyTavern user's files directory before the compact preset is saved or selected. Runtime preparation loads only the selected recipe shard and retains at most two selected recipe setter strings. Normal export reconstructs the portable preset.
+Version 6.0.1 adds Stage **1/5** of the large-preset performance work. After updating and reloading the extension, import the portable Nemo Full JSON through the **Chat Completion preset import** button. Supported writing-recipe banks are verified and saved to separate files in the authenticated SillyTavern user's files directory before the compact preset is saved or selected. Runtime preparation loads only the selected recipe shard and retains at most two selected recipe setter strings. Normal export reconstructs the portable preset.
 
-Existing raw Full installations need a one-time reimport. Back up the ST user files directory along with presets, and export portable before disabling the extension or transferring a preset to another installation. Ordinary disabled-prompt cold storage, Vex externalization, and DOM virtualization are later stages, not part of this release. See [Recipe runtime usage, safety and validation](docs/RECIPE_RUNTIME.md).
+Existing raw Full installations need a one-time reimport. Back up the ST user files directory along with presets, and export portable before disabling the extension or transferring a preset to another installation. Ordinary disabled-prompt cold storage, Vex externalization, and DOM virtualization are later stages. See [Recipe runtime usage, safety and validation](docs/RECIPE_RUNTIME.md).
+
+### Metadata and search: Stage 2/5
+
+Version 6.0.2 adds a shared, revision-aware metadata index and worker-based prompt-text search. The active preset search defaults to names, categories, tags, groups, badges and tooltips; check **Search prompt text** to search full bodies in a separate Worker. Text search has a bounded index, stale-result protection, chunked uploads and idle eviction. Browser/worker errors are shown explicitly rather than falling back to a blocking whole-preset scan.
+
+Small simple comment fields have a generation-only fast path. Complex macros remain with ST; stored source and portable exports are not rewritten. Metadata declared later in a prompt is preserved, not truncated to a header limit.
+
+Update and reload to receive Stage 2; it does not require another preset import. See the [five-stage progress and validation tracker](docs/PERFORMANCE_STAGES.md). Diagnostics: `window.NemoPromptPerformance?.getStats()`. Disabled prompt bodies and closed-section DOM are not unloaded yet; those are Stages **3/5** and **5/5** respectively.
 
 ## Nemo Hub
 
