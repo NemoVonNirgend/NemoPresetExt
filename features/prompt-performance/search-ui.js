@@ -70,12 +70,16 @@ export function installSearchUI({ manager, root = document, getRows, getSources,
             status('');
             // Restore persisted section state first, then reconcile normal residency.
             const result = originalSearch.call(manager);
-            await globalThis.NemoPromptRendering?.clearSearchMaterialization?.();
+            const clearVirtual = globalThis.NemoPromptRendering?.clearSearchMaterialization;
+            if (typeof clearVirtual === 'function') await clearVirtual();
             return result;
         }
         const matches = metadataMatches(getRows(), query);
-        await globalThis.NemoPromptRendering?.materializeSearch?.(matches);
-        if (!active || request !== current || root.querySelector('#completion_prompt_manager_list') !== container) return;
+        const materialize = globalThis.NemoPromptRendering?.materializeSearch;
+        if (typeof materialize === 'function') {
+            await materialize(matches);
+            if (!active || request !== current || root.querySelector('#completion_prompt_manager_list') !== container) return;
+        }
         applySearchMatches(container, matches);
         if (!root.getElementById('nemoSearchBodies')?.checked) {
             bodySearch.dispose();
