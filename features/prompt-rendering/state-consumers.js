@@ -167,11 +167,12 @@ export async function movePromptToSectionIndex(pm, manager, identifier, sectionI
     const members = section.memberIds.filter(id => id !== identifier);
     const bounded = Math.max(0, Math.min(Number.isInteger(newIndex) ? newIndex : 0, members.length));
     let insertIndex;
-    if (members.length && bounded < members.length) {
-        insertIndex = ticket.order.findIndex(item => item?.identifier === members[bounded]);
+    if (members.length && bounded === 0) {
+        insertIndex = ticket.order.findIndex(item => item?.identifier === members[0]);
     } else if (members.length) {
-        const lastIndex = ticket.order.findIndex(item => item?.identifier === members[members.length - 1]);
-        insertIndex = lastIndex < 0 ? -1 : lastIndex + 1;
+        const previousId = members[Math.min(bounded, members.length) - 1];
+        const previousIndex = ticket.order.findIndex(item => item?.identifier === previousId);
+        insertIndex = previousIndex < 0 ? -1 : previousIndex + 1;
     } else {
         const headerIndex = ticket.order.findIndex(item => item?.identifier === sectionId);
         insertIndex = headerIndex < 0 ? -1 : headerIndex + 1;
