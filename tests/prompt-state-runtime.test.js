@@ -32,7 +32,10 @@ function setup() {
         getAllPromptsWithState: () => [], parsePromptDirectives: () => ({}), validatePromptActivation: () => [], showConflictToast() {},
         storage: { getDropdownStyle: () => 'accordion', saveSnapshot(api, ids) { assert.equal(api, 'openai'); captured = ids; },
             savePromptStates(ids) { captured = ids; }, getSnapshot: () => captured ?? ['hidden'], getPromptStates: () => ['hidden'] },
-        installIncrementalRendering: () => ({ dispose() { renderDisposals++; }, getStats: () => ({ virtualized: false }), reset() {}, redraw() {} }),
+        installIncrementalRendering: () => ({ dispose() { renderDisposals++; }, getStats: () => ({ virtualized: false }), reset() {}, redraw() {},
+            renderRows: async () => [], setResidency() {}, syncResidency() {} }),
+        installSectionVirtualization: () => ({ refresh() {}, materializeSearch() {}, clearSearch() {},
+            getStats: () => ({ stage: '5B.3/5', active: true, virtualized: true }), async dispose() {} }),
         installStateSnapshots, installStateActions, getContext: () => ({ mainApi: 'openai' }), saveSettingsDebounced() {},
         console, setTimeout, clearTimeout,
         document: { getElementById: () => null, querySelectorAll: () => [] },
@@ -48,12 +51,12 @@ test('real rendering runtime installs read and mutation adapters once and tears 
     h.api.initializePromptRendering(); assert.equal(h.nemo.takeSnapshot, snapshotWrapper); assert.equal(h.nemo.applySnapshot, actionWrapper);
     await h.nemo.takeSnapshot(); assert.deepEqual(h.captured, ['hidden']);
     await h.nemo.applySnapshot(); assert.equal(h.saves, 0);
-    assert.equal(h.context.NemoPromptRendering.stage, '5B.2B/5');
+    assert.equal(h.context.NemoPromptRendering.stage, '5B.3/5');
     assert.equal(h.context.NemoPromptRendering.getStats().snapshots.captures, 1);
     assert.equal(typeof h.context.NemoPromptRendering.applyChanges, 'function');
     assert.equal(h.context.NemoPromptRendering.getStats().actions.stage, '5B.2A/5');
     assert.notEqual(h.nemo.applySnapshot, h.apply); assert.notEqual(h.nemo.getAggregatedCounts, h.counts);
-    h.api.cleanupPromptRendering(); h.api.cleanupPromptRendering();
+    await h.api.cleanupPromptRendering(); await h.api.cleanupPromptRendering();
     assert.equal(h.nemo.takeSnapshot, h.take); assert.equal(h.nemo.applySnapshot, h.apply); assert.equal(h.nemo.getAggregatedCounts, h.counts);
     assert.equal(h.renderDisposals, 1);
     assert.equal([...h.listeners.values()].reduce((n, set) => n + set.size, 0), 0);
@@ -67,5 +70,5 @@ test('rendering opt-out leaves state snapshots and actions installed without tou
     assert.notEqual(h.nemo.applySnapshot, h.apply);
     assert.equal(h.context.promptManager.preparePrompt, undefined);
     assert.equal(h.context.promptManager.getPromptCollection, undefined);
-    h.api.cleanupPromptRendering();
+    await h.api.cleanupPromptRendering();
 });
