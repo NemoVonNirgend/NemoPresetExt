@@ -183,6 +183,49 @@ export async function movePromptToSectionIndex(pm, manager, identifier, sectionI
     return insertIndex;
 }
 
+export async function movePromptToDirectSectionIndex(pm, manager, identifier, sectionId, newIndex = 0, options = {}) {
+    const state = readConsumerState(pm, manager);
+    const section = state.index.getSection(sectionId);
+    if (!section) throw fail(`section metadata is unavailable: ${sectionId}`);
+    const ticket = captureTicket(pm);
+    const entry = removeEntry(ticket.order, identifier);
+    const members = section.directIds.filter(id => id !== identifier);
+    const bounded = Math.max(0, Math.min(Number.isInteger(newIndex) ? newIndex : 0, members.length));
+    let insertIndex;
+    if (members.length && bounded === 0) {
+        insertIndex = ticket.order.findIndex(item => item?.identifier === members[0]);
+    } else if (members.length) {
+        const previousId = members[Math.min(bounded, members.length) - 1];
+        const previousIndex = ticket.order.findIndex(item => item?.identifier === previousId);
+        insertIndex = previousIndex < 0 ? -1 : previousIndex + 1;
+    } else {
+        const headerIndex = ticket.order.findIndex(item => item?.identifier === sectionId);
+        insertIndex = headerIndex < 0 ? -1 : headerIndex + 1;
+    }
+    if (insertIndex < 0) { restore(ticket); throw fail('destination position is unavailable.'); }
+    ticket.order.splice(insertIndex, 0, entry);
+    await saveTicket(ticket, options);
+    return insertIndex;
+}
+
+export async function reorderDirectSectionMembers(pm, manager, sectionId, orderedIds, options = {}) {
+    if (!Array.isArray(orderedIds) || orderedIds.some(id => typeof id !== 'string' || !id)) throw fail('invalid reordered identifiers.');
+    const state = readConsumerState(pm, manager);
+    const section = state.index.getSection(sectionId);
+    if (!section) throw fail(`section metadata is unavailable: ${sectionId}`);
+    const expected = section.directIds;
+    if (orderedIds.length !== expected.length || new Set(orderedIds).size !== orderedIds.length
+        || orderedIds.some(id => !expected.includes(id))) throw fail('reordered identifiers do not match direct section membership.');
+    const ticket = captureTicket(pm);
+    const positions = expected.map(id => ticket.order.findIndex(entry => entry?.identifier === id));
+    if (positions.some(index => index < 0)) throw fail('direct section member is missing from native order.');
+    const entries = new Map(expected.map(id => [id, ticket.order.find(entry => entry?.identifier === id)]));
+    const sortedPositions = positions.slice().sort((a, b) => a - b);
+    orderedIds.forEach((id, index) => { ticket.order[sortedPositions[index]] = entries.get(id); });
+    await saveTicket(ticket, options);
+    return sortedPositions;
+}
+
 export async function reorderSectionMembers(pm, manager, sectionId, orderedIds, options = {}) {
     if (!Array.isArray(orderedIds) || orderedIds.some(id => typeof id !== 'string' || !id)) throw fail('invalid reordered identifiers.');
     const state = readConsumerState(pm, manager);
