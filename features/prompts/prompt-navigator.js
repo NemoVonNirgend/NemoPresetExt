@@ -3,6 +3,7 @@ import { LOG_PREFIX, generateUUID, debounce, NEMO_FAVORITE_PRESETS_KEY, getExten
 import { eventSource, event_types, saveSettingsDebounced } from '../../../../../../script.js';
 import { promptManager } from '../../../../../openai.js';
 import storage from '../../core/storage-migration.js';
+import { headerRows, navigatorRows, movePromptBelowHeader as movePromptBelowHeaderState } from '../prompt-rendering/state-consumers.js';
 
 // New storage keys for prompt navigator
 const NEMO_PROMPT_METADATA_KEY = 'nemoPromptNavigatorMetadata';
@@ -140,33 +141,17 @@ export class PromptNavigator {
     }
 
     async fetchPromptList() {
-        // Get prompts from the completion prompt manager
-        const promptsContainer = document.querySelector('#completion_prompt_manager_list');
-        if (!promptsContainer) {
-            console.error(`${LOG_PREFIX} Could not find completion prompt manager`);
+        try {
+            if (!promptManager?.activeCharacter) return [];
+            return navigatorRows(promptManager).map(row => ({
+                identifier: row.identifier,
+                name: row.name,
+                role: row.role,
+            }));
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Could not read canonical completion prompt state:`, error);
             return [];
         }
-
-        const promptItems = promptsContainer.querySelectorAll('li.completion_prompt_manager_prompt');
-        const prompts = [];
-
-        promptItems.forEach(item => {
-            const nameLink = item.querySelector('span.completion_prompt_manager_prompt_name a');
-            const promptName = nameLink ? nameLink.textContent.trim() : '';
-            const identifier = item.dataset.pmIdentifier || '';
-            const role = item.dataset.pmRole || '';
-
-            if (promptName && identifier) {
-                prompts.push({
-                    identifier: identifier,
-                    name: promptName,
-                    role: role,
-                    element: item
-                });
-            }
-        });
-
-        return prompts;
     }
 
     loadMetadata() {
@@ -800,52 +785,18 @@ export class PromptNavigator {
     showHeaderSelectionDialog() {
         if (!this.selectedPromptData) return;
 
-        // Get all headers/sections from the completion prompt manager
-        const container = document.querySelector('#completion_prompt_manager_list');
-        if (!container) {
-            toastr.error('Completion prompt manager not found');
-            return;
+        // Header discovery comes from canonical native order, not rendered rows.
+        let headers = [];
+        try {
+            const manager = globalThis.NemoPresetManager || globalThis.NemoPromptManager;
+            headers = headerRows(promptManager, manager).map(header => ({
+                identifier: header.identifier,
+                name: header.name,
+                isInSection: true,
+            }));
+        } catch (error) {
+            console.error(`${LOG_PREFIX} Error reading prompt headers:`, error);
         }
-
-        const headers = [];
-
-        // Look for headers in sections (details.nemo-engine-section summary)
-        const sections = container.querySelectorAll('details.nemo-engine-section');
-        sections.forEach(section => {
-            const headerItem = section.querySelector('summary li.completion_prompt_manager_prompt.nemo-header-item');
-            if (headerItem) {
-                const nameEl = headerItem.querySelector('.completion_prompt_manager_prompt_name a');
-                const headerName = nameEl ? nameEl.textContent.trim() : 'Unknown Header';
-                headers.push({
-                    element: headerItem,
-                    section: section,
-                    name: headerName,
-                    identifier: headerItem.dataset.pmIdentifier,
-                    isInSection: true
-                });
-            }
-        });
-
-        // Also look for any flat headers that haven't been processed yet
-        const flatHeaders = Array.from(container.querySelectorAll('li.completion_prompt_manager_prompt')).filter(item => {
-            // Check if this is a header/divider by looking for typical header patterns
-            const nameEl = item.querySelector('.completion_prompt_manager_prompt_name a');
-            const name = nameEl ? nameEl.textContent.trim() : '';
-            const isHeader = name.match(/^[\=\⭐\━\-\+]{2,}/) || item.classList.contains('nemo-header-item');
-            return isHeader && !item.closest('details.nemo-engine-section');
-        });
-
-        flatHeaders.forEach(header => {
-            const nameEl = header.querySelector('.completion_prompt_manager_prompt_name a');
-            const headerName = nameEl ? nameEl.textContent.trim() : 'Unknown Header';
-            headers.push({
-                element: header,
-                section: null,
-                name: headerName,
-                identifier: header.dataset.pmIdentifier,
-                isInSection: false
-            });
-        });
 
         if (headers.length === 0) {
             toastr.info('No headers found in the prompt manager. Headers are prompts that start with divider patterns like ===, ⭐─, or ━━.');
@@ -923,52 +874,25 @@ export class PromptNavigator {
     async movePromptToSelectedHeader(selectedHeader) {
         try {
             if (!this.selectedPromptData) return;
-
             const { prompt, data } = this.selectedPromptData;
+            if (!selectedHeader?.identifier) throw new Error('Selected header has no stable identifier.');
 
             console.log(`${LOG_PREFIX} Moving prompt "${prompt.name}" to header "${selectedHeader.name}"`);
-
-            // Find the position after the selected header
-            let targetPosition = selectedHeader.element;
-
-            if (selectedHeader.isInSection) {
-                // If it's in a section, we need to move within that section
-                const section = selectedHeader.section;
-                const sectionContent = section.querySelector('summary').nextElementSibling;
-                if (sectionContent) {
-                    targetPosition = sectionContent.firstElementChild || selectedHeader.element;
-                }
-            }
-
-            const promptIdentifier = CSS.escape(data.identifier);
-            const sourceElement = document.querySelector(`li[data-pm-identifier="${promptIdentifier}"]`);
-
-            // Use the preset manager's existing move-and-save path when available.
-            if (window.NemoPresetManager?.movePromptBelowHeader && sourceElement) {
-                window.NemoPresetManager.selectedPromptItem = sourceElement;
-                window.NemoPresetManager.movePromptBelowHeader(selectedHeader);
-            } else {
-                // Fallback: try to manipulate the DOM directly
-                if (sourceElement && targetPosition) {
-                    // Insert after the header
-                    targetPosition.parentNode.insertBefore(sourceElement, targetPosition.nextSibling);
-                } else {
-                    toastr.warning('Imported prompt was added, but could not be moved to the selected header.');
-                    return;
-                }
-            }
+            await movePromptBelowHeaderState(
+                promptManager,
+                data.identifier,
+                selectedHeader.identifier,
+                { render: true },
+            );
 
             toastr.success(`"${prompt.name}" moved to header "${selectedHeader.name}" successfully!`);
-
-            // Refresh the prompt list in the navigator
             this.allPrompts = await this.fetchPromptList();
             this.render();
-
         } catch (error) {
             console.error(`${LOG_PREFIX} Error moving prompt to selected header:`, error);
             toastr.error('Error moving prompt to header');
         } finally {
-            this.selectedPromptData = null; // Clean up
+            this.selectedPromptData = null;
         }
     }
 
