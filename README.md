@@ -2,7 +2,7 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.5
+**Version:** 6.0.6
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
@@ -130,13 +130,15 @@ Only one prepared route, its required setter strings and a small scalar/offset c
 
 Update/reload, export your current configuration portable, then reimport Full through the Chat Completion preset importer. Lite and Tavo have no matching Vex library and are unchanged by this stage. This completes implementation through **4/5**, not browser validation: native macro-engine checks and end-to-end timings remain pending. Diagnostics: `window.NemoVexRuntime?.getStats()`. See [Stage 4B runtime scope, usage and validation](docs/VEX_RUNTIME.md).
 
-### Incremental rendering: Stage 5A/5 (1/2)
+### Prompt rendering and virtualization: Stage 5/5
 
-Version 6.0.5 reuses unchanged native Prompt Manager frames and rows in supported accordion/flat layouts with at least 64 rows. Only changed visual rows are regenerated using ST's own renderer and handlers. It preserves section containers, header counters and footer selection, coalesces redundant organization work, scopes the optional drawer observer to the sidebar, and avoids reinitializing drag controls during an active drag. Source bodies and generation/tokenization behavior are not changed.
+Version 6.0.5 added incremental native Prompt Manager rendering: unchanged frames and rows are reused, while changed visual rows are regenerated through SillyTavern's own renderer and handlers. Version **6.0.6** completes Stage 5 by virtualizing ordinary prompt rows inside closed sections. Section headers remain resident; opening a section regenerates only its direct rows through the native renderer, and closing it releases those row nodes instead of retaining detached DOM.
 
-**Incremental prompt rendering** is enabled by default and can be unchecked beside the preset search controls. Tray mode, unsupported native row renderers and structural/layout changes use the original native path. Update and reload; no additional preset reimport is needed for 5A. Diagnostics: `window.NemoPromptRendering?.getStats()`.
+Snapshots, section controls, tray membership, Prompt Navigator discovery, prompt toggles and movement/reordering now use canonical native prompt state rather than assuming every prompt has a live row. Accordion drag/drop is initialized only for materialized sections. Search temporarily materializes matching rows and clearing search restores normal open/closed residency. Disabling **Optimized prompt rendering** restores the complete native row list.
 
-All prompt rows remain in the DOM in this half. **5B/5 (2/2)** will implement closed-section row virtualization and adapt snapshots, bulk controls, trays and movement to work without every row present. Progress is **4/5 complete plus the first half of Stage 5**. The real Chromium test harness uses an injected native-shaped host, not a running ST client; full-client timing remains unmeasured. See [rendering boundaries and validation](docs/PROMPT_RENDERING.md).
+The optimization applies to supported Chat Completion Prompt Managers with at least 64 ordered rows. Unsupported native row contracts or explicit opt-out keep the native rendering path. Source bodies, generation, macros and tokenization behavior are not rewritten by Stage 5.
+
+Update and reload; no additional preset reimport is needed for Stage 5. Diagnostics: `window.NemoPromptRendering?.getStats()`. The repository suite passes 362/362 tests and the injected Chromium boundary harness passes 28 cases, including closed-row eviction, native materialization, partial-residency redraws and cleanup restoration. This completes the **5/5 implementation plan**; live SillyTavern validation and end-to-end timing/memory measurement remain separate pending validation work. See [rendering details](docs/PROMPT_RENDERING.md), [virtualization details](docs/PROMPT_VIRTUALIZATION.md), and the [five-stage tracker](docs/PERFORMANCE_STAGES.md).
 
 ## Nemo Hub
 
