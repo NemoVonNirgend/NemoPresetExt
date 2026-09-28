@@ -1,4 +1,5 @@
 import { initializeRecipeRuntime, cleanupRecipeRuntime } from './features/recipe-runtime/runtime.js';
+import { initializePromptPerformance, cleanupPromptPerformance } from './features/prompt-performance/runtime.js';
 import { extension_settings } from '../../../extensions.js';
 import { ensureSettingsNamespace, isFeatureEnabled, waitForElement, NEMO_EXTENSION_NAME } from './core/utils.js';
 import logger from './core/logger.js';
@@ -64,6 +65,7 @@ export function cleanupExtension() {
                 logger.error('Core cleanup callback failed', error);
             }
         }
+        cleanupPromptPerformance();
         cleanupRecipeRuntime();
         cleanupPromptTools();
         cleanupDirectiveAutocomplete();
@@ -90,6 +92,7 @@ export async function initializeExtension() {
         ensureSettingsNamespace();
         validateDividerPatterns();
         initializeRecipeRuntime();
+        initializePromptPerformance();
         await NemoSettingsUI.initialize();
 
         await initializePromptTools();
