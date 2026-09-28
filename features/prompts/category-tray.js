@@ -1051,83 +1051,24 @@ async function movePromptToSectionTop(identifier, promptData, fromSection, toSec
     }
 
     try {
-        const activeCharacter = promptManager.activeCharacter;
-        const promptOrder = promptManager.getPromptOrderForCharacter(activeCharacter);
+        const manager = getStateManager();
+        if (!manager) throw new Error('Prompt state manager is unavailable');
+        await movePromptToSectionIndexState(promptManager, manager, identifier, getSectionKey(toSection), 0);
 
-        if (!promptOrder || !Array.isArray(promptOrder)) {
-            console.warn('[NemoTray] Cannot move prompt: invalid prompt order');
-            return;
-        }
-
-        // Find and remove the prompt from its current position
-        const currentIdx = promptOrder.findIndex(entry => entry.identifier === identifier);
-        if (currentIdx === -1) {
-            console.warn('[NemoTray] Cannot find prompt in order:', identifier);
-            return;
-        }
-
-        const entry = promptOrder[currentIdx];
-        promptOrder.splice(currentIdx, 1);
-
-        // Find where to insert at the top of the target section
-        // Get the first prompt in the target section
-        const toSectionPrompts = toSection._nemoPromptIds || [];
-        let insertIdx = promptOrder.length; // Default to end if section is empty
-
-        if (toSectionPrompts.length > 0) {
-            // Insert before the first prompt in the section
-            const firstPromptId = toSectionPrompts[0]?.identifier;
-            if (firstPromptId) {
-                const firstIdx = promptOrder.findIndex(e => e.identifier === firstPromptId);
-                if (firstIdx !== -1) {
-                    insertIdx = firstIdx;
-                }
-            }
-        }
-
-        // Insert at the calculated position
-        promptOrder.splice(insertIdx, 0, entry);
-
-        // Save changes
-        promptManager.saveServiceSettings();
-
-        // Update cached prompt IDs for source section
-        if (fromSection._nemoPromptIds) {
-            fromSection._nemoPromptIds = fromSection._nemoPromptIds.filter(p => p.identifier !== identifier);
-            sectionPromptIdsCache.set(getSectionKey(fromSection), fromSection._nemoPromptIds);
-        }
-
-        // Update cached prompt IDs for destination section - add at top
-        if (toSection._nemoPromptIds) {
-            toSection._nemoPromptIds.unshift({ identifier: promptData.identifier, name: promptData.name });
-        } else {
-            toSection._nemoPromptIds = [{ identifier: promptData.identifier, name: promptData.name }];
-        }
-        sectionPromptIdsCache.set(getSectionKey(toSection), toSection._nemoPromptIds);
-
-        // Update progress bars
+        syncCanonicalSectionCache(fromSection);
+        syncCanonicalSectionCache(toSection);
         updateSectionProgressFromStoredIds(fromSection);
         updateSectionProgressFromStoredIds(toSection);
 
-        // If source tray is open, remove the card from it
         if (fromTray) {
             const card = Array.from(fromTray.querySelectorAll('.nemo-prompt-card'))
                 .find(element => element.dataset.identifier === identifier);
             if (card) card.remove();
-
-            // Update source tray's prompts array and footer
-            const fromPrompts = fromTray._nemoPrompts;
-            if (fromPrompts) {
-                const idx = fromPrompts.findIndex(p => p.identifier === identifier);
-                if (idx !== -1) fromPrompts.splice(idx, 1);
-                updateTrayFooter(fromTray, fromPrompts);
-            }
+            fromTray._nemoPrompts = canonicalPromptRecords(fromSection) || [];
+            updateTrayFooter(fromTray, fromTray._nemoPrompts.filter(p => !p.isSubSectionHeader));
         }
 
-        // If destination tray is open, refresh it to show the new prompt
-        const toTray = toSection._nemoCategoryTray;
-        if (toTray) {
-            // Close and reopen to refresh
+        if (toSection._nemoCategoryTray) {
             closeTray(toSection);
             scheduleCategoryTrayTimeout(() => openTray(toSection), 50);
         }
@@ -1230,75 +1171,44 @@ async function movePromptToTopLevel(identifier, promptData, fromSection, fromTra
         return;
     }
 
-    // Don't move if already in top-level
-    if (fromSection === topLevelPromptsContainer || getSectionId(fromSection) === TOP_LEVEL_SECTION_ID) {
+    if (fromSection === topLevelPromptsContainer || getSectionKey(fromSection) === TOP_LEVEL_SECTION_ID) {
         console.log('[NemoTray] Prompt already in top-level, skipping move');
         return;
     }
 
     try {
-        // Update cached prompt IDs for source section
-        if (fromSection._nemoPromptIds) {
-            fromSection._nemoPromptIds = fromSection._nemoPromptIds.filter(p => p.identifier !== identifier);
-            sectionPromptIdsCache.set(getSectionKey(fromSection), fromSection._nemoPromptIds);
-        }
+        const manager = getStateManager();
+        if (!manager) throw new Error('Prompt state manager is unavailable');
+        await movePromptToTopLevelState(promptManager, manager, identifier);
 
-        // Add to top-level prompts cache (only if not already there)
-        let topLevelPrompts = sectionPromptIdsCache.get(TOP_LEVEL_SECTION_ID) || [];
-        const alreadyExists = topLevelPrompts.some(p => p.identifier === identifier);
-        if (!alreadyExists) {
-            topLevelPrompts.unshift({ identifier: promptData.identifier, name: promptData.name });
-            sectionPromptIdsCache.set(TOP_LEVEL_SECTION_ID, topLevelPrompts);
-        } else {
-            console.log('[NemoTray] Prompt already exists in top-level cache, skipping add');
-        }
+        syncCanonicalSectionCache(fromSection);
+        const canonicalTop = topLevelRecords(promptManager, manager).map(record => ({ ...record }));
+        sectionPromptIdsCache.set(TOP_LEVEL_SECTION_ID, canonicalTop);
 
-        // Update the top-level container
         if (topLevelPromptsContainer) {
-            topLevelPromptsContainer._nemoPromptIds = topLevelPrompts;
+            topLevelPromptsContainer._nemoPromptIds = canonicalTop;
             updateSectionProgressFromStoredIds(topLevelPromptsContainer);
-
-            // Update the count display
             const countSpan = topLevelPromptsContainer.querySelector('.nemo-section-count');
-            if (countSpan) {
-                countSpan.textContent = `(${topLevelPrompts.length})`;
-            }
-
-            // If top-level tray is open, refresh it
+            if (countSpan) countSpan.textContent = `(${canonicalTop.length})`;
             if (topLevelPromptsContainer._nemoCategoryTray) {
                 closeTray(topLevelPromptsContainer);
                 scheduleCategoryTrayTimeout(() => openTray(topLevelPromptsContainer), 50);
             }
         } else {
-            // Create the container if it doesn't exist
             const promptList = document.querySelector('#completion_prompt_manager_list');
-            if (promptList) {
-                createTopLevelContainer(promptList, topLevelPrompts);
-            }
+            if (promptList && canonicalTop.length) createTopLevelContainer(promptList, canonicalTop);
         }
 
-        // Update progress bar for source section
         updateSectionProgressFromStoredIds(fromSection);
-
-        // If source tray is open, remove the card from it
         if (fromTray) {
             const card = Array.from(fromTray.querySelectorAll('.nemo-prompt-card'))
                 .find(element => element.dataset.identifier === identifier);
             if (card) card.remove();
-
-            // Update source tray's prompts array and footer
-            const fromPrompts = fromTray._nemoPrompts;
-            if (fromPrompts) {
-                const idx = fromPrompts.findIndex(p => p.identifier === identifier);
-                if (idx !== -1) fromPrompts.splice(idx, 1);
-                updateTrayFooter(fromTray, fromPrompts);
-            }
+            fromTray._nemoPrompts = canonicalPromptRecords(fromSection) || [];
+            updateTrayFooter(fromTray, fromTray._nemoPrompts.filter(p => !p.isSubSectionHeader));
         }
 
         console.log('[NemoTray] Moved prompt', identifier, 'to top-level');
-
-        // Trigger a UI refresh to show the prompt in the list
-        // The prompt should now appear as a top-level item after ST refreshes
     } catch (error) {
         console.error('[NemoTray] Error moving prompt to top-level:', error);
     }
@@ -1737,15 +1647,9 @@ function openTray(section) {
                         // Move in SillyTavern's prompt order
                         await movePromptBetweenSectionsFromTray(identifier, fromSection, toSection, newIndex, toPrompts);
 
-                        // Update cached prompt IDs for both sections
-                        if (fromSection._nemoPromptIds) {
-                            fromSection._nemoPromptIds = fromSection._nemoPromptIds.filter(p => p.identifier !== identifier);
-                            sectionPromptIdsCache.set(getSectionKey(fromSection), fromSection._nemoPromptIds);
-                        }
-                        if (toSection._nemoPromptIds && movedPromptData) {
-                            toSection._nemoPromptIds.splice(newIndex, 0, { identifier: movedPromptData.identifier, name: movedPromptData.name });
-                            sectionPromptIdsCache.set(getSectionKey(toSection), toSection._nemoPromptIds);
-                        }
+                        // Refresh both caches from canonical native order after the move.
+                        syncCanonicalSectionCache(fromSection);
+                        syncCanonicalSectionCache(toSection);
 
                         // Update progress bars for both sections
                         updateSectionProgressFromStoredIds(fromSection);
@@ -1761,7 +1665,9 @@ function openTray(section) {
                     fromPrompts.splice(newIndex, 0, movedPrompt);
 
                     // Update SillyTavern's prompt order
-                    reorderPromptsInSection(fromSection, fromPrompts.map(p => p.identifier));
+                    await reorderPromptsInSection(fromSection, fromPrompts
+                        .filter(p => p.identifier && !p.isSubSectionHeader)
+                        .map(p => p.identifier));
 
                     console.log('[NemoTray] Reordered prompt from', oldIndex, 'to', newIndex);
                 }
@@ -1894,20 +1800,18 @@ function openTray(section) {
     // Load preset handlers
     // Note: Uses performToggle directly since loading a preset is an explicit user choice
     tray.querySelectorAll('.nemo-preset-item').forEach(item => {
-        item.addEventListener('click', (e) => {
+        item.addEventListener('click', async (e) => {
             if (e.target.closest('.nemo-preset-delete')) return; // Don't load if clicking delete
             e.stopPropagation();
             const presetKey = item.dataset.presetKey;
             const preset = loadPreset(presetKey);
             if (preset) {
-                // Apply preset - disable all, then enable preset prompts (skip validation)
-                prompts.forEach(p => {
-                    const shouldEnable = preset.enabledPrompts.includes(p.identifier);
-                    if (p.isEnabled !== shouldEnable) {
-                        performToggle(p.identifier, shouldEnable);
-                        p.isEnabled = shouldEnable;
-                    }
-                });
+                const changes = prompts
+                    .filter(p => p.identifier && !p.isSubSectionHeader)
+                    .map(p => ({ identifier: p.identifier, enabled: preset.enabledPrompts.includes(p.identifier) }))
+                    .filter(change => prompts.find(p => p.identifier === change.identifier)?.isEnabled !== change.enabled);
+                await applyCanonicalChanges(changes);
+                refreshPromptEnabledFlags(prompts);
 
                 // Update all cards visually
                 tray.querySelectorAll('.nemo-prompt-card').forEach(card => {
@@ -1966,31 +1870,23 @@ function openTray(section) {
         closeTray(section);
     });
 
-    // Toggle-all button handler
-    // Note: Uses performToggle directly to skip individual validation popups
-    // (user explicitly wants all enabled/disabled - showing 20 popups would be bad UX)
-    tray.querySelector('.nemo-tray-toggle-all').addEventListener('click', (e) => {
+    // Toggle-all uses the same canonical mutation path as snapshots/section controls.
+    tray.querySelector('.nemo-tray-toggle-all').addEventListener('click', async (e) => {
         e.stopPropagation();
-        const enabledCount = prompts.filter(p => p.isEnabled).length;
-        const newState = enabledCount < prompts.length; // Enable all if not all enabled, else disable all
-
-        // Toggle all prompts (skip validation for bulk action)
-        prompts.forEach(p => {
-            if (p.isEnabled !== newState) {
-                performToggle(p.identifier, newState);
-                p.isEnabled = newState;
-            }
-        });
+        const actualPrompts = prompts.filter(p => p.identifier && !p.isSubSectionHeader);
+        const enabledCount = actualPrompts.filter(p => p.isEnabled).length;
+        const newState = enabledCount < actualPrompts.length;
+        await applyCanonicalChanges(actualPrompts
+            .filter(p => p.isEnabled !== newState)
+            .map(p => ({ identifier: p.identifier, enabled: newState })));
+        refreshPromptEnabledFlags(prompts);
 
         // Update all cards visually
         tray.querySelectorAll('.nemo-prompt-card').forEach(card => {
-            if (newState) {
-                card.classList.add('nemo-prompt-card-enabled');
-                card.querySelector('.nemo-prompt-card-status').textContent = '✓';
-            } else {
-                card.classList.remove('nemo-prompt-card-enabled');
-                card.querySelector('.nemo-prompt-card-status').textContent = '';
-            }
+            const prompt = prompts.find(p => p.identifier === card.dataset.identifier);
+            const enabled = Boolean(prompt?.isEnabled);
+            card.classList.toggle('nemo-prompt-card-enabled', enabled);
+            card.querySelector('.nemo-prompt-card-status').textContent = enabled ? '✓' : '';
         });
 
         updateTrayState();
@@ -2002,42 +1898,18 @@ function openTray(section) {
         card.addEventListener('mouseenter', () => highlightRelated(card, true));
         card.addEventListener('mouseleave', () => highlightRelated(card, false));
 
-        card.addEventListener('click', (e) => {
+        card.addEventListener('click', async (e) => {
             e.stopPropagation();
             const identifier = card.dataset.identifier;
             const prompt = prompts.find(p => p.identifier === identifier);
-            if (prompt) {
-                const newState = !prompt.isEnabled;
-
-                // Helper to update card UI
-                const updateCardUI = (enabled) => {
-                    prompt.isEnabled = enabled;
-                    if (enabled) {
-                        card.classList.add('nemo-prompt-card-enabled');
-                        card.querySelector('.nemo-prompt-card-status').textContent = '✓';
-                    } else {
-                        card.classList.remove('nemo-prompt-card-enabled');
-                        card.querySelector('.nemo-prompt-card-status').textContent = '';
-                    }
-                    updateTrayState();
-                };
-
-                // Toggle with validation - pass callback for async validation result
-                const toggleSuccessful = togglePrompt(identifier, newState, (cancelled) => {
-                    // This callback is called when validation popup is resolved
-                    if (!cancelled) {
-                        // User proceeded - update UI to enabled state
-                        updateCardUI(true);
-                    }
-                    // If cancelled, UI stays as-is (disabled)
-                });
-
-                // If toggle was immediately successful (no validation needed or disabling)
-                if (toggleSuccessful) {
-                    updateCardUI(newState);
-                }
-                // If not successful, we're waiting for user decision via callback
-            }
+            if (!prompt) return;
+            const newState = !prompt.isEnabled;
+            await applyCanonicalChanges([{ identifier, enabled: newState }]);
+            refreshPromptEnabledFlags(prompts);
+            const enabled = Boolean(prompt.isEnabled);
+            card.classList.toggle('nemo-prompt-card-enabled', enabled);
+            card.querySelector('.nemo-prompt-card-status').textContent = enabled ? '✓' : '';
+            updateTrayState();
         });
 
         // Preview button click handler
@@ -2253,6 +2125,22 @@ function refreshTray(section) {
     scheduleCategoryTrayTimeout(() => openTray(section), 50);
 }
 
+async function applyCanonicalChanges(changes) {
+    const actionApi = globalThis.NemoPromptRendering?.applyChanges;
+    if (typeof actionApi === 'function') return actionApi(changes);
+    for (const change of changes) await performToggle(change.identifier, change.enabled);
+    return null;
+}
+
+function refreshPromptEnabledFlags(prompts) {
+    const activeCharacter = promptManager?.activeCharacter;
+    for (const prompt of prompts) {
+        if (!prompt?.identifier || prompt.isSubSectionHeader) continue;
+        const entry = promptManager?.getPromptOrderEntry?.(activeCharacter, prompt.identifier);
+        prompt.isEnabled = Boolean(entry?.enabled);
+    }
+}
+
 /**
  * Toggle a prompt's enabled state with dependency validation
  * @param {string} identifier - Prompt identifier
@@ -2341,65 +2229,19 @@ async function performToggle(identifier, enabled) {
  * @param {HTMLElement} section - The section element
  * @param {string[]} newOrder - Array of prompt identifiers in new order
  */
-function reorderPromptsInSection(section, newOrder) {
+async function reorderPromptsInSection(section, newOrder) {
     if (!promptManager || !promptManager.activeCharacter) {
         console.warn('[NemoTray] Cannot reorder: no active character');
         return;
     }
 
     try {
-        const activeCharacter = promptManager.activeCharacter;
-        const promptOrder = promptManager.getPromptOrderForCharacter(activeCharacter);
-
-        if (!promptOrder || !Array.isArray(promptOrder)) {
-            console.warn('[NemoTray] Cannot reorder: invalid prompt order');
-            return;
-        }
-
-        // Find the indices of our prompts in the full prompt order
-        const promptIndices = new Map();
-        newOrder.forEach(id => {
-            const idx = promptOrder.findIndex(entry => entry.identifier === id);
-            if (idx !== -1) {
-                promptIndices.set(id, idx);
-            }
-        });
-
-        // If we found prompts, reorder them while keeping them in the same position range
-        if (promptIndices.size > 0) {
-            // Get the entries and their current positions
-            const entries = [];
-            const positions = [];
-            newOrder.forEach(id => {
-                const idx = promptIndices.get(id);
-                if (idx !== undefined) {
-                    entries.push(promptOrder[idx]);
-                    positions.push(idx);
-                }
-            });
-
-            // Sort positions to get the range
-            positions.sort((a, b) => a - b);
-
-            // Place entries back in sorted positions with new order
-            entries.forEach((entry, i) => {
-                promptOrder[positions[i]] = entry;
-            });
-
-            // Save the changes
-            promptManager.saveServiceSettings();
-
-            // Update cached prompt IDs for this section
-            if (section._nemoPromptIds) {
-                section._nemoPromptIds = newOrder.map(id => {
-                    const existing = section._nemoPromptIds.find(p => p.identifier === id);
-                    return existing || { identifier: id, name: id };
-                });
-                sectionPromptIdsCache.set(getSectionKey(section), section._nemoPromptIds);
-            }
-
-            console.log('[NemoTray] Successfully reordered prompts in section');
-        }
+        const manager = getStateManager();
+        if (!manager) throw new Error('Prompt state manager is unavailable');
+        const ids = newOrder.filter(id => typeof id === 'string' && id);
+        await reorderSectionMembers(promptManager, manager, getSectionKey(section), ids);
+        syncCanonicalSectionCache(section);
+        console.log('[NemoTray] Successfully reordered prompts in section');
     } catch (error) {
         console.error('[NemoTray] Error reordering prompts:', error);
     }
@@ -2420,61 +2262,16 @@ async function movePromptBetweenSectionsFromTray(identifier, fromSection, toSect
     }
 
     try {
-        const activeCharacter = promptManager.activeCharacter;
-        const promptOrder = promptManager.getPromptOrderForCharacter(activeCharacter);
-
-        if (!promptOrder || !Array.isArray(promptOrder)) {
-            console.warn('[NemoTray] Cannot move prompt: invalid prompt order');
-            return;
-        }
-
-        // Find the prompt's current position and remove it
-        const currentIdx = promptOrder.findIndex(entry => entry.identifier === identifier);
-        if (currentIdx === -1) {
-            console.warn('[NemoTray] Cannot find prompt in order:', identifier);
-            return;
-        }
-
-        const entry = promptOrder[currentIdx];
-        promptOrder.splice(currentIdx, 1);
-
-        // Find where to insert in the destination section
-        // Use the prompt at newIndex in destPrompts as reference
-        let insertIdx = promptOrder.length; // Default to end
-
-        if (destPrompts && destPrompts.length > 0) {
-            if (newIndex >= 0 && newIndex < destPrompts.length) {
-                // Find the prompt at newIndex position in destination
-                const targetIdentifier = destPrompts[newIndex]?.identifier;
-                if (targetIdentifier && targetIdentifier !== identifier) {
-                    const targetIdx = promptOrder.findIndex(e => e.identifier === targetIdentifier);
-                    if (targetIdx !== -1) {
-                        insertIdx = targetIdx;
-                    }
-                }
-            } else if (newIndex > 0 && destPrompts[newIndex - 1]) {
-                // Insert after the previous prompt
-                const prevIdentifier = destPrompts[newIndex - 1]?.identifier;
-                if (prevIdentifier) {
-                    const prevIdx = promptOrder.findIndex(e => e.identifier === prevIdentifier);
-                    if (prevIdx !== -1) {
-                        insertIdx = prevIdx + 1;
-                    }
-                }
-            }
-        }
-
-        // Ensure valid index
-        if (insertIdx < 0) insertIdx = 0;
-        if (insertIdx > promptOrder.length) insertIdx = promptOrder.length;
-
-        // Insert at new position
-        promptOrder.splice(insertIdx, 0, entry);
-
-        // Save the changes
-        promptManager.saveServiceSettings();
-
-        console.log('[NemoTray] Moved prompt', identifier, 'from', getSectionId(fromSection), 'to', getSectionId(toSection), 'at index', insertIdx);
+        const manager = getStateManager();
+        if (!manager) throw new Error('Prompt state manager is unavailable');
+        const beforeTarget = (destPrompts || []).slice(0, Math.max(0, newIndex))
+            .filter(item => item?.identifier && !item.isSubSectionHeader && item.identifier !== identifier).length;
+        await movePromptToSectionIndexState(
+            promptManager, manager, identifier, getSectionKey(toSection), beforeTarget,
+        );
+        syncCanonicalSectionCache(fromSection);
+        syncCanonicalSectionCache(toSection);
+        console.log('[NemoTray] Moved prompt', identifier, 'from', getSectionId(fromSection), 'to', getSectionId(toSection));
     } catch (error) {
         console.error('[NemoTray] Error moving prompt between sections:', error);
     }
@@ -3386,69 +3183,12 @@ async function movePromptBetweenSections(item, fromSection, toSection, newIndex)
 
     try {
         const identifier = item.getAttribute('data-pm-identifier');
-        const activeCharacter = promptManager.activeCharacter;
-        const promptOrder = promptManager.getPromptOrderForCharacter(activeCharacter);
-
-        if (!promptOrder || !Array.isArray(promptOrder)) {
-            console.warn('[NemoTray] Cannot move prompt: invalid prompt order');
-            return;
-        }
-
-        // Find the prompt's current position
-        const currentIdx = promptOrder.findIndex(entry => entry.identifier === identifier);
-        if (currentIdx === -1) {
-            console.warn('[NemoTray] Cannot find prompt in order:', identifier);
-            return;
-        }
-
-        // Get the entry and remove it from current position
-        const entry = promptOrder[currentIdx];
-        promptOrder.splice(currentIdx, 1);
-
-        // Find where to insert in the destination section
-        // Get all prompts in the destination section
-        const destContent = toSection.querySelector('.nemo-section-content');
-        const destPrompts = destContent.querySelectorAll(':scope > li.completion_prompt_manager_prompt');
-
-        let insertIdx;
-        if (newIndex >= destPrompts.length || newIndex < 0) {
-            // Insert at the end of the section - find the last prompt in dest section
-            const lastPromptInDest = destPrompts[destPrompts.length - 1];
-            if (lastPromptInDest) {
-                const lastId = lastPromptInDest.getAttribute('data-pm-identifier');
-                insertIdx = promptOrder.findIndex(e => e.identifier === lastId);
-                if (insertIdx !== -1) insertIdx++; // Insert after
-            } else {
-                // Empty section - find section header position
-                insertIdx = promptOrder.length; // Default to end
-            }
-        } else {
-            // Insert before the prompt at newIndex
-            const targetPrompt = destPrompts[newIndex];
-            if (targetPrompt && targetPrompt !== item) {
-                const targetId = targetPrompt.getAttribute('data-pm-identifier');
-                insertIdx = promptOrder.findIndex(e => e.identifier === targetId);
-            } else if (newIndex > 0 && destPrompts[newIndex - 1]) {
-                // Insert after the previous prompt
-                const prevId = destPrompts[newIndex - 1].getAttribute('data-pm-identifier');
-                insertIdx = promptOrder.findIndex(e => e.identifier === prevId);
-                if (insertIdx !== -1) insertIdx++;
-            } else {
-                insertIdx = promptOrder.length;
-            }
-        }
-
-        // Ensure valid index
-        if (insertIdx < 0) insertIdx = 0;
-        if (insertIdx > promptOrder.length) insertIdx = promptOrder.length;
-
-        // Insert at new position
-        promptOrder.splice(insertIdx, 0, entry);
-
-        // Save the changes
-        promptManager.saveServiceSettings();
-
-        console.log('[NemoTray] Moved prompt', identifier, 'to index', insertIdx);
+        const manager = getStateManager();
+        if (!identifier || !manager) throw new Error('Prompt movement state is unavailable');
+        await movePromptToSectionIndexState(promptManager, manager, identifier, getSectionKey(toSection), newIndex);
+        syncCanonicalSectionCache(fromSection);
+        syncCanonicalSectionCache(toSection);
+        console.log('[NemoTray] Moved prompt', identifier, 'using canonical prompt order');
     } catch (error) {
         console.error('[NemoTray] Error moving prompt between sections:', error);
     }
