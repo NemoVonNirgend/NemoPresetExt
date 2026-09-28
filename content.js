@@ -2,6 +2,7 @@ import { initializeRecipeRuntime, cleanupRecipeRuntime } from './features/recipe
 import { initializePromptPerformance, cleanupPromptPerformance } from './features/prompt-performance/runtime.js';
 import { initializeColdPrompts, cleanupColdPrompts } from './features/cold-prompts/runtime.js';
 import { initializeVexRuntime, cleanupVexRuntime } from './features/vex-runtime/runtime.js';
+import { initializePromptRendering, cleanupPromptRendering } from './features/prompt-rendering/runtime.js';
 import { extension_settings } from '../../../extensions.js';
 import { ensureSettingsNamespace, isFeatureEnabled, waitForElement, NEMO_EXTENSION_NAME } from './core/utils.js';
 import logger from './core/logger.js';
@@ -67,6 +68,7 @@ export function cleanupExtension() {
                 logger.error('Core cleanup callback failed', error);
             }
         }
+        cleanupPromptRendering();
         cleanupColdPrompts();
         cleanupVexRuntime();
         cleanupPromptPerformance();
@@ -99,6 +101,7 @@ export async function initializeExtension() {
         initializePromptPerformance();
         initializeVexRuntime();
         initializeColdPrompts();
+        initializePromptRendering();
         await NemoSettingsUI.initialize();
 
         await initializePromptTools();

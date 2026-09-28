@@ -2,7 +2,7 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.4
+**Version:** 6.0.5
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
@@ -104,7 +104,7 @@ The installer adds or updates the bundled Nemo Engine Chat Completion preset wit
 
 Version 6.0.1 adds Stage **1/5** of the large-preset performance work. After updating and reloading the extension, import the portable Nemo Full JSON through the **Chat Completion preset import** button. Supported writing-recipe banks are verified and saved to separate files in the authenticated SillyTavern user's files directory before the compact preset is saved or selected. Runtime preparation loads only the selected recipe shard and retains at most two selected recipe setter strings. Normal export reconstructs the portable preset.
 
-Existing raw Full installations need a one-time reimport. Back up the ST user files directory along with presets, and export portable before disabling the extension or transferring a preset to another installation. Vex externalization is covered by Stage 4 below; DOM virtualization remains Stage 5/5. See [Recipe runtime usage, safety and validation](docs/RECIPE_RUNTIME.md).
+Existing raw Full installations need a one-time reimport. Back up the ST user files directory along with presets, and export portable before disabling the extension or transferring a preset to another installation. Vex externalization is covered by Stage 4 below; DOM virtualization remains Stage 5B/5. See [Recipe runtime usage, safety and validation](docs/RECIPE_RUNTIME.md).
 
 ### Metadata and search: Stage 2/5
 
@@ -112,7 +112,7 @@ Version 6.0.2 adds a shared, revision-aware metadata index and worker-based prom
 
 Small simple comment fields have a generation-only fast path. Complex macros remain with ST; stored source and portable exports are not rewritten. Metadata declared later in a prompt is preserved, not truncated to a header limit.
 
-Update and reload to receive Stage 2; it does not require another preset import. See the [five-stage progress and validation tracker](docs/PERFORMANCE_STAGES.md). Diagnostics: `window.NemoPromptPerformance?.getStats()`. Closed-section DOM is not unloaded yet; that is Stage **5/5**.
+Update and reload to receive Stage 2; it does not require another preset import. See the [five-stage progress and validation tracker](docs/PERFORMANCE_STAGES.md). Diagnostics: `window.NemoPromptPerformance?.getStats()`. Closed-section DOM is not unloaded yet; that is Stage **5B/5**.
 
 ### Disabled prompt bodies: Stage 3/5
 
@@ -128,7 +128,15 @@ Stage **4A/5 (1/2)** added the inert, verified Vex source store. Version 6.0.4 a
 
 Only one prepared route, its required setter strings and a small scalar/offset catalog are cached. Full and partial portable exports restore the original Vex bodies in the export copy, alongside the recipe and cold-prompt restorers. Unsupported program edits, missing/corrupt source and stale selection are explicit errors, not alternate councils.
 
-Update/reload, export your current configuration portable, then reimport Full through the Chat Completion preset importer. Lite and Tavo have no matching Vex library and are unchanged by this stage. This completes implementation through **4/5**, not browser validation: native macro-engine checks and end-to-end timings remain pending. **5/5 DOM/rendering optimization is next.** Diagnostics: `window.NemoVexRuntime?.getStats()`. See [Stage 4B runtime scope, usage and validation](docs/VEX_RUNTIME.md).
+Update/reload, export your current configuration portable, then reimport Full through the Chat Completion preset importer. Lite and Tavo have no matching Vex library and are unchanged by this stage. This completes implementation through **4/5**, not browser validation: native macro-engine checks and end-to-end timings remain pending. Diagnostics: `window.NemoVexRuntime?.getStats()`. See [Stage 4B runtime scope, usage and validation](docs/VEX_RUNTIME.md).
+
+### Incremental rendering: Stage 5A/5 (1/2)
+
+Version 6.0.5 reuses unchanged native Prompt Manager frames and rows in supported accordion/flat layouts with at least 64 rows. Only changed visual rows are regenerated using ST's own renderer and handlers. It preserves section containers, header counters and footer selection, coalesces redundant organization work, scopes the optional drawer observer to the sidebar, and avoids reinitializing drag controls during an active drag. Source bodies and generation/tokenization behavior are not changed.
+
+**Incremental prompt rendering** is enabled by default and can be unchecked beside the preset search controls. Tray mode, unsupported native row renderers and structural/layout changes use the original native path. Update and reload; no additional preset reimport is needed for 5A. Diagnostics: `window.NemoPromptRendering?.getStats()`.
+
+All prompt rows remain in the DOM in this half. **5B/5 (2/2)** will implement closed-section row virtualization and adapt snapshots, bulk controls, trays and movement to work without every row present. Progress is **4/5 complete plus the first half of Stage 5**. The real Chromium test harness uses an injected native-shaped host, not a running ST client; full-client timing remains unmeasured. See [rendering boundaries and validation](docs/PROMPT_RENDERING.md).
 
 ## Nemo Hub
 
