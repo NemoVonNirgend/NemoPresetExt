@@ -5,8 +5,16 @@ export class PromptBodySearch {
         idleMs = 60000,
         timeoutMs = 15000,
         yieldTask = () => new Promise(resolve => setTimeout(resolve, 0)),
+        readContent = async entry => {
+            if (entry.nemoPromptBody && entry.content === entry.nemoPromptBody.shell) {
+                if (!globalThis.NemoColdPrompts) throw new Error('Prompt storage is unavailable. Restore NemoPresetExt before searching stored text.');
+                return globalThis.NemoColdPrompts.readBody(entry);
+            }
+            return typeof entry.content === 'string' ? entry.content : '';
+        },
+        revisionOf = entry => entry.nemoPromptBody && entry.content === entry.nemoPromptBody.shell ? entry.nemoPromptBody : entry.content,
     } = {}) {
-        Object.assign(this, { createWorker, idleMs, timeoutMs, yieldTask });
+        Object.assign(this, { createWorker, idleMs, timeoutMs, yieldTask, readContent, revisionOf });
         this.worker = null;
         this.pending = new Map();
         this.loaded = new Map();
@@ -75,8 +83,11 @@ export class PromptBodySearch {
         for (const entry of entries) {
             if (sequence !== this.sequence) return false;
             const id = entry.identifier;
-            const content = typeof entry.content === 'string' ? entry.content : '';
-            if (this.loaded.get(id) === content) continue;
+            const revision = this.revisionOf(entry);
+            if (this.loaded.has(id) && this.loaded.get(id) === revision) continue;
+            const content = await this.readContent(entry);
+            if (sequence !== this.sequence) return false;
+            if (revision !== this.revisionOf(entry)) throw new Error('Prompt changed while loading search text. Search again.');
             await this.request({ type: 'begin', id });
             for (let offset = 0; offset < content.length; offset += 65536) {
                 if (sequence !== this.sequence) return false;
@@ -89,7 +100,7 @@ export class PromptBodySearch {
             if (sequence !== this.sequence) return false;
             await this.request({ type: 'commit', id });
             if (sequence !== this.sequence) return false;
-            this.loaded.set(id, content);
+            this.loaded.set(id, revision); // Cold entries retain a small reference, not their source body.
         }
         return sequence === this.sequence;
     }

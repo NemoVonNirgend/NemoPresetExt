@@ -1,5 +1,6 @@
 /** Shared metadata index. No startup rescan, timed expiry, or full-body Map keys. */
 import { promptManager } from '../../../../openai.js';
+import { isCold } from '../features/cold-prompts/format.js';
 import {
     clearDirectiveCache as clearParsedDirectives,
     syncPromptMetadata,
@@ -49,7 +50,10 @@ export function getPromptMetadataList() {
 }
 
 export function getPromptContentOnDemand(identifier) {
-    return syncPromptMetadata().byId.get(identifier)?.content || null;
+    const prompt = syncPromptMetadata().byId.get(identifier);
+    // This synchronous helper is used for optional tray token hints, not editing.
+    // Never tokenize a metadata shell or synchronously fetch cold source text.
+    return prompt && !isCold(prompt) ? prompt.content || null : null;
 }
 
 export function getCacheStats() {
