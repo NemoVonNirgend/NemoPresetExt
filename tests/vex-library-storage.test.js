@@ -229,12 +229,11 @@ test('same prompt IDs from separate captures never cross-contaminate', async () 
     assert.equal((await io.store().originals(a))[0].content, one.prompts[0].content);
     assert.equal((await io.store().originals(b))[0].content, two.prompts[0].content);
 });
-test('Stage 4A is dormant: no entrypoint/runtime imports or manifest changes are needed', () => {
+test('Stage 4A source layer remains inert behind the Stage 4B adapter', () => {
     const format = readFileSync(new URL('../features/vex-library/format.js', import.meta.url), 'utf8');
     const store = readFileSync(new URL('../features/vex-library/store.js', import.meta.url), 'utf8');
     assert.doesNotMatch(format + store, /eventSource|preparePrompt|\.setvar\(|\beval\(|new Function/);
-    try {
-        const entry = readFileSync(new URL('../content.js', import.meta.url), 'utf8');
-        assert.doesNotMatch(entry, /vex-library|vex-runtime/);
-    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    const entry = readFileSync(new URL('../content.js', import.meta.url), 'utf8');
+    assert.doesNotMatch(entry, /from ['"][^'"]*vex-library/);
+    assert.match(entry, /initializeVexRuntime\(\);/);
 });
