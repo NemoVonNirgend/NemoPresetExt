@@ -7,6 +7,7 @@ on:
       - 'tests/recipe-*'
       - 'content.js'
       - 'manifest.json'
+      - 'docs/RECIPE_RUNTIME_STAGE_1.md'
       - '.github/workflows/recipe-runtime-ci.yml'
   push:
     branches: [main]
@@ -15,6 +16,7 @@ on:
       - 'tests/recipe-*'
       - 'content.js'
       - 'manifest.json'
+      - 'docs/RECIPE_RUNTIME_STAGE_1.md'
       - '.github/workflows/recipe-runtime-ci.yml'
 
 permissions:
