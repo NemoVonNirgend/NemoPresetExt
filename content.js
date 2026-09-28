@@ -1,6 +1,7 @@
 import { initializeRecipeRuntime, cleanupRecipeRuntime } from './features/recipe-runtime/runtime.js';
 import { initializePromptPerformance, cleanupPromptPerformance } from './features/prompt-performance/runtime.js';
 import { initializeColdPrompts, cleanupColdPrompts } from './features/cold-prompts/runtime.js';
+import { initializeVexRuntime, cleanupVexRuntime } from './features/vex-runtime/runtime.js';
 import { extension_settings } from '../../../extensions.js';
 import { ensureSettingsNamespace, isFeatureEnabled, waitForElement, NEMO_EXTENSION_NAME } from './core/utils.js';
 import logger from './core/logger.js';
@@ -67,6 +68,7 @@ export function cleanupExtension() {
             }
         }
         cleanupColdPrompts();
+        cleanupVexRuntime();
         cleanupPromptPerformance();
         cleanupRecipeRuntime();
         cleanupPromptTools();
@@ -95,6 +97,7 @@ export async function initializeExtension() {
         validateDividerPatterns();
         initializeRecipeRuntime();
         initializePromptPerformance();
+        initializeVexRuntime();
         initializeColdPrompts();
         await NemoSettingsUI.initialize();
 

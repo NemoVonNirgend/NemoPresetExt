@@ -6,11 +6,11 @@ Track implementation as **stage/5**, not as an estimate of equal effort or measu
 | --- | --- | --- | --- |
 | **1/5** | Import-time writing-recipe extraction, durable server-side source storage, selected-recipe loading, portable export | Shipped in 6.0.1, PR #20 | Pending |
 | **2/5** | Shared metadata index, conservative comment views, asynchronous prompt-text search | Shipped in 6.0.2, PR #21 | Pending |
-| **3/5** | Durable disabled-prompt body storage; hydrate before enable/edit, preserve edits, safe export | Implemented in 6.0.3 | Pending |
-| **4/5** | Externalize the remaining Vex static libraries without changing selection/family semantics | Not started | Not started |
-| **5/5** | Visible/open-section rendering, targeted row updates, reduced observers and lazy drag/drop | Not started | Not started |
+| **3/5** | Durable disabled-prompt body storage; hydrate before enable/edit, preserve edits, safe export | Shipped in 6.0.3, PR #22 | Pending |
+| **4/5** | Externalize the remaining Vex static libraries without changing selection/family semantics | Implemented in 6.0.4 | Pending |
+| **5/5** | Visible/open-section rendering, targeted row updates, reduced observers and lazy drag/drop | Next | Not started |
 
-Next implementation stage: **4/5**. Validate the first three stages in ST as well; automated contracts are not a substitute for that smoke test. Eligible disabled ordinary prompt bodies now become metadata shells with durable server-side source references. Native system/quick fields and static initializer libraries remain resident. Closing a section does not yet unload its DOM rows. For complete import-time compaction, reimport portable Full/Lite after updating/reloading; the source JSON is unchanged.
+Next implementation stage: **5/5**. Validate the first four stages in ST as well; automated contracts are not a substitute for that smoke test. Eligible disabled ordinary prompt bodies become metadata shells with durable server-side source references. Five supported Vex library blocks are now externalized; native system/quick fields and other initializer libraries remain native. Closing a section does not yet unload its DOM rows. For complete import-time compaction, export the current configuration portable, then reimport after updating/reloading; the source JSON is unchanged.
 
 ## Stage 2/5 implementation boundaries
 
@@ -31,28 +31,42 @@ Next implementation stage: **4/5**. Validate the first three stages in ST as wel
 - Await hydration before the Stage 1 recipe preflight reads selector strings. Compose both portable export restorers without inflating the active preset.
 - Worker text search reads cold source without hydrating it into ST, and retains only a lightweight reference in its main-thread bookkeeping for cold entries.
 - Missing/corrupt required files block generation; missing source blocks portable export. Account for ST swallowing event-handler exceptions.
-- Existing system/quick fields, markers, `nemo-init-*` libraries, the recipe slot and oversized records remain native. Vex databases and DOM rows are still Stages 4/5 and 5/5.
+- Existing system/quick fields, markers, `nemo-init-*` libraries, the recipe slot and oversized records stay outside ordinary-prompt storage. Vex libraries are handled separately by **4/5**; DOM rows remain **5/5**.
 
 See [Stage 3 storage, usage, backup requirements and smoke tests](COLD_PROMPTS.md).
 
+## Stage 4/5 implementation boundaries
+
+- Keep the five Vex library IDs and ordering positions, but replace their bodies with explicit runtime stubs only after durable server storage and read-back succeed.
+- Use the exact imported library, never a substitute bundled corpus. Full/partial portable exports restore source in the export copy, not the active preset.
+- Keep the original selectors, reset, family/route resolver and assembler. A restricted dependency preflight reads only the fingerprinted Vex program in an isolated dictionary; it neither mutates ST variables nor executes unrelated prompt macros.
+- Load only the required original setter statements into native preparation. Verify actual raw selection and native route variables before letting the unchanged assembler proceed.
+- Retain one prepared route and a small scalar/dependency index. Source banks are read transiently, not kept as a settled full-corpus cache. Only verified Vex namespace variables are cleared when removing stale data.
+- Reject unknown control fingerprints, custom library access, unsupported selector syntax, missing/corrupt storage and stale selection rather than guessing or using a different council.
+- Compose with cold prompt hydration and the existing recipe runtime. This stage adds no DOM virtualization or new observers. Lite and Tavo have no matching Vex bank schema and are unchanged by this stage.
+
+See [Stage 4 storage, native boundaries, validation and smoke tests](VEX_RUNTIME.md).
+
 ## Validation and diagnostics
 
-Run `node --test tests/*.test.js`. The metadata tests include parity against the unchanged rule implementation, source-revision invalidation, bounded caches, worker failures, real worker-thread execution, stale-query rejection, nested section visibility, and non-mutating comment views. Existing Stage 1 regression tests remain in the full suite. Stage 3 adds durable read-back/round-trip tests, missing/corrupt storage guards, edited/empty source preservation, race handling, toggle/editor/archive boundary tests, and combined Stage 1/2/3 integration tests.
+Run `node --test tests/*.test.js`. Metadata tests include source-revision invalidation, bounded caches, worker execution, stale-query rejection and comment views. Stage 1 recipe and Stage 3 cold-storage regression tests remain in the full suite. Stage 4 adds literal parsing, dependency selection, verified storage, native-route guards, stale loads, partial exports, namespace isolation, lifecycle cleanup, and combined Stage 1/3/4 integration tests.
 
 For local portable presets:
 
 ```sh
 node scripts/validate-metadata-preset.mjs /path/to/Nemo_Engine_v12_Full.json
 node scripts/validate-cold-preset.mjs /path/to/Nemo_Engine_v12_Full.json
+node scripts/validate-vex-preset.mjs /path/to/Nemo_Engine_v12_Full.json --exhaustive
 ```
 
-These reports measure source-processing/storage invariants, not ST browser latency or LLM token savings. No preset prose is printed or uploaded by the scripts.
+These reports measure source-processing/storage invariants, not ST browser latency or LLM token savings. No preset prose is printed or uploaded by the scripts. The Stage 4 Full validator covers all 38,400 resolved family configurations, 164 same-family selection masks, and 128 independent combinations in isolation and with a council. That is restricted-program parity validation, not execution inside ST's actual macro engine.
 
 Browser diagnostics:
 
 ```js
 window.NemoPromptPerformance?.getStats()
 window.NemoColdPrompts?.getStats()
+window.NemoVexRuntime?.getStats()
 ```
 
-Check Classic 3.4, Modern and Classic+ in a running ST client: metadata/text search, clear, nested categories, edits, preset switches, import/export and a real generation. Record browser timings separately; contract tests are not a substitute for that smoke test.
+Check Classic 3.4, Modern and Classic+ in a running ST client: metadata/text search, clear, nested categories, edits, preset switches, import/export and a real generation. Also check Vex singles, family collapse, independent add-ons and changes between turns. Record browser timings separately; contract tests are not a substitute for that smoke test.
