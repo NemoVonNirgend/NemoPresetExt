@@ -6,9 +6,9 @@ import {
 } from '../features/prompt-rendering/state-consumers.js';
 
 const classify = name => {
-    const sub = /^<\\s*(.+?)\\s*>$/.exec(name);
+    const sub = /^<\s*(.+?)\s*>$/.exec(name);
     if (sub) return { isDivider: true, isSubHeader: true, name: sub[1].trim() };
-    const main = /^===\\s*(.*?)\\s*===$/.exec(name);
+    const main = /^===\s*(.*?)\s*===$/.exec(name);
     return main ? { isDivider: true, isSubHeader: false, name: main[1].trim() }
         : { isDivider: false, isSubHeader: false };
 };
