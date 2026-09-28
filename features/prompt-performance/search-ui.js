@@ -56,7 +56,7 @@ export function installSearchUI({ manager, root = document, getRows, getSources,
         const node = root.getElementById('nemoSearchProgress');
         if (node) node.textContent = text;
     }
-    function search() {
+    async function search() {
         if (!active) return originalSearch.call(manager);
         attachControls();
         const input = root.getElementById('nemoPresetSearchInput');
@@ -68,10 +68,18 @@ export function installSearchUI({ manager, root = document, getRows, getSources,
         if (!query) {
             bodySearch.dispose();
             status('');
-            // Preserve the existing persisted section-open state on clear.
-            return originalSearch.call(manager);
+            // Restore persisted section state first, then reconcile normal residency.
+            const result = originalSearch.call(manager);
+            const clearVirtual = globalThis.NemoPromptRendering?.clearSearchMaterialization;
+            if (typeof clearVirtual === 'function') await clearVirtual();
+            return result;
         }
         const matches = metadataMatches(getRows(), query);
+        const materialize = globalThis.NemoPromptRendering?.materializeSearch;
+        if (typeof materialize === 'function') {
+            await materialize(matches);
+            if (!active || request !== current || root.querySelector('#completion_prompt_manager_list') !== container) return;
+        }
         applySearchMatches(container, matches);
         if (!root.getElementById('nemoSearchBodies')?.checked) {
             bodySearch.dispose();
@@ -82,8 +90,17 @@ export function installSearchUI({ manager, root = document, getRows, getSources,
         void bodySearch.search(query, getSources()).then(found => {
             if (!active || request !== current || !found || root.querySelector('#completion_prompt_manager_list') !== container) return;
             for (const id of found) matches.add(id);
-            applySearchMatches(container, matches);
-            status(`${matches.size} matches (metadata and prompt text)`);
+            const materialize = globalThis.NemoPromptRendering?.materializeSearch;
+            if (typeof materialize !== 'function') {
+                applySearchMatches(container, matches);
+                status(`${matches.size} matches (metadata and prompt text)`);
+                return;
+            }
+            return Promise.resolve(materialize(matches)).then(() => {
+                if (!active || request !== current || root.querySelector('#completion_prompt_manager_list') !== container) return;
+                applySearchMatches(container, matches);
+                status(`${matches.size} matches (metadata and prompt text)`);
+            });
         }).catch(error => {
             if (active && request === current) status(`Prompt-text search unavailable: ${error.message}. Only metadata matches are shown.`);
         });
@@ -103,7 +120,7 @@ export function installSearchUI({ manager, root = document, getRows, getSources,
     manager.createSearchAndStatusUI = create;
     attachControls();
     return {
-        refresh() { request++; bodySearch.dispose(); if (active) search(); },
+        refresh() { request++; bodySearch.dispose(); if (active) void search(); },
         cleanup() {
             active = false;
             request++;

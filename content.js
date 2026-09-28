@@ -57,18 +57,18 @@ function publishPublicApi() {
     return api;
 }
 
-export function cleanupExtension() {
+export async function cleanupExtension() {
     if (cleanupInProgress || (!initialized && cleanupCallbacks.length === 0)) return;
     cleanupInProgress = true;
     try {
         for (const cleanup of cleanupCallbacks.splice(0).reverse()) {
             try {
-                cleanup();
+                await cleanup();
             } catch (error) {
                 logger.error('Core cleanup callback failed', error);
             }
         }
-        cleanupPromptRendering();
+        await cleanupPromptRendering();
         cleanupColdPrompts();
         cleanupVexRuntime();
         cleanupPromptPerformance();
@@ -121,7 +121,7 @@ export async function initializeExtension() {
         logger.info('Initialized prompt workstation, directives, dividers, hub, and NemoEngine installer');
     } catch (error) {
         logger.error('Core initialization failed', error);
-        cleanupExtension();
+        await cleanupExtension();
     }
 }
 

@@ -13,9 +13,9 @@ Track implementation as **stage/5**, not as equal effort or measured speedup. Au
 | **5B.1/5 (1/3)** | Metadata-only ordered/section state; DOM-independent snapshot capture | Implemented; no row removal | Live ST pending |
 | **5B.2A/5** | State-based snapshot application/restoration, section counts and section master toggles | Implemented; no row removal | Live ST pending |
 | **5B.2B/5** | State-based tray/navigation membership and movement/reordering consumers | Implemented; no row removal | Live ST pending |
-| **5B.3/5** | Closed-section row removal/recreation, lazy drag/drop and full lifecycle integration | Not started | Not started |
+| **5B.3/5** | Closed-section row removal/recreation, lazy drag/drop and full lifecycle integration | Shipped in 6.0.6, PR #30 | Injected Chromium harness passed; live ST pending |
 
-Progress: **4/5 complete, plus 5A, 5B.1, 5B.2A and 5B.2B**. Next: **5B.3/5** actual row virtualization. This is not a completed 5/5 release. Closing a section still does not unload its DOM rows. Stages 5A through 5B.2A require update/reload only, not preset reimport. The manifest remains 6.0.5 during this small continuation. To activate earlier source-compaction stages, export the current configuration portable before reimporting after update/reload. Native ST validation remains pending independently of implementation progress.
+Progress: **5/5 implementation complete**. Version **6.0.6** completes Stage 5B.3 row virtualization. Closed accordion sections now unload ordinary prompt rows and rematerialize only the rows they need through the native SillyTavern renderer. Update/reload is sufficient for Stage 5; no additional preset reimport is required. Earlier source-compaction stages still require their documented portable-export/reimport flow. Native SillyTavern validation and end-to-end timing/memory measurement remain pending independently of implementation completion.
 
 ## Stage 2/5 boundaries
 
@@ -43,7 +43,7 @@ This is the split implementation replacing the older unmerged whole-stage PR #23
 
 **5B.2B** moves tray membership, tray single/bulk/preset toggles, Prompt Navigator discovery/header selection, and prompt movement/reordering onto canonical native state. Stable section-header identifiers replace display-name cache identity. Tray and Navigator consumers remain correct when ordinary child rows are absent, top-level moves now mutate native order, and accordion/tray reorder paths persist through native save with rollback. See [5B.2B implementation boundaries and tests](PROMPT_CONSUMERS.md).
 
-With the mutating consumers now independent of complete DOM residency, **5B.3** may remove/recreate closed-section rows and integrate incremental rendering, lazy section drag/drop, observer cleanup and search.
+**5B.3** completes Stage 5 by removing ordinary rows from closed sections without retaining detached row nodes. Opening a section regenerates only its direct rows through SillyTavern's original row renderer; closing it releases them. Stage 5A incremental rendering now treats intentional row absence as valid residency rather than structural corruption. Accordion Sortables follow materialized sections, search temporarily materializes matching rows, and clearing search restores normal residency. Structural organization first restores complete native rows, while cleanup restores the complete row list before the rendering adapter releases ownership. See [Stage 5B.3 virtualization behavior and tests](PROMPT_VIRTUALIZATION.md).
 
 ## Validation and diagnostics
 
@@ -67,6 +67,8 @@ Stage 5B.2A adds 11 focused state-action cases plus runtime integration coverage
 
 Stage 5B.2B adds 11 focused consumer-state cases covering canonical tray membership, Navigator/header discovery, top-level and cross-section moves, section/direct-section reorder, save rollback and operation without materialized child rows. The repository-wide implementation snapshot passes **356 tests with zero failures or skips**; JavaScript syntax, relative imports, stylesheet/encoding and whitespace audits also pass. Live ST validation remains separate.
 
+Stage 5B.3 adds residency-planning tests and expands the real Chromium injected-host suite from 24 to **28 cases**. The browser cases verify closed-row eviction, section-only native rematerialization, incremental redraw with intentionally absent rows, and complete cleanup restoration. The final repository suite passes **362/362 tests** with zero failures or skips; JavaScript syntax, relative imports, stylesheet/encoding and whitespace audits also pass. The Chromium host is native-shaped but is not a running SillyTavern client.
+
 ```js
 window.NemoPromptPerformance?.getStats()
 window.NemoColdPrompts?.getStats()
@@ -74,6 +76,7 @@ window.NemoVexRuntime?.getStats()
 window.NemoPromptRendering?.getStats()
 window.NemoPromptRendering?.getStats().snapshots
 window.NemoPromptRendering?.getStats().actions
+window.NemoPromptRendering?.getStats().virtualization
 ```
 
 Native checks remain required in Classic 3.4, Modern and Classic+: search/edit/toggle, preset changes, normal/swipe generation, family singles/masters/councils, independent Vexes, portable/partial export, missing-source recovery, snapshots and drag/drop. Record browser timings separately. A passing Chromium harness does not replace those full-client checks.

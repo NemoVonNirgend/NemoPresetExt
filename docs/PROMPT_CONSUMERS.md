@@ -28,14 +28,11 @@ Prompt Navigator listing now comes from native ordered state rather than `queryS
 
 Navigator movement and the legacy Prompt Manager “move below header” action mutate native prompt order directly. Destination/source rows do not need to exist. UI reorganization follows the native-state mutation rather than being used as the mutation itself.
 
-## Scope intentionally left for 5B.3
+## Follow-on completion in 5B.3
 
-- Closed-section prompt rows are still resident.
-- Search still needs virtualization-aware temporary materialization.
-- Incremental rendering still needs to recognize intentionally absent rows.
-- Section Sortables/observers still need lazy materialization lifecycle cleanup.
-- Preset/API switching must tear down virtualized sections safely.
-- No generation, tokenizer, macro, network or source-storage hook is added here.
+Version 6.0.6 completes the follow-on work that 5B.2B intentionally left open: closed-section rows are virtualized, search temporarily materializes matching rows, incremental rendering recognizes intentional partial residency, accordion drag/drop follows materialized sections, and cleanup restores complete native rows before releasing ownership. See [PROMPT_VIRTUALIZATION.md](PROMPT_VIRTUALIZATION.md).
+
+5B.2B itself still adds no generation, tokenizer, macro, network or source-storage hook.
 
 ## Validation
 
@@ -49,4 +46,4 @@ The focused consumer suite covers canonical section/top-level membership, Naviga
 
 The repository-wide Stage 5B.2B implementation snapshot passes **356/356 tests** with zero failures or skips. JavaScript syntax, relative-import, stylesheet/encoding and whitespace audits pass. This remains contract/injected-runtime validation rather than a live SillyTavern benchmark.
 
-Next: **Stage 5B.3/5**, actual closed-section row virtualization and lifecycle integration.
+Stage 5B.3 is complete in version 6.0.6; the five-stage implementation plan is finished.

@@ -5,10 +5,10 @@ import test from 'node:test';
 const content = readFileSync(new URL('../content.js', import.meta.url), 'utf8');
 
 test('core initialization and teardown share one retry-safe lifecycle', () => {
-    assert.match(content, /export function cleanupExtension\(\)/);
+    assert.match(content, /export async function cleanupExtension\(\)/);
     assert.match(content, /export async function initializeExtension\(\)/);
     assert.match(content, /window\.NemoPresetExtCleanup = cleanupExtension/);
-    assert.match(content, /catch \(error\) \{[\s\S]*?cleanupExtension\(\)/);
+    assert.match(content, /catch \(error\) \{[\s\S]*?await cleanupExtension\(\)/);
 });
 
 test('core publishes merged prompt capabilities before asynchronous initialization', () => {

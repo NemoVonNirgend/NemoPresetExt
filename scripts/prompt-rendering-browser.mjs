@@ -1,5 +1,6 @@
 /** Real Chromium DOM tests with an injected native-shaped host, not a live ST client. */
 import { installIncrementalRendering } from '../features/prompt-rendering/incremental.js';
+import { installSectionVirtualization } from '../features/prompt-rendering/virtualization.js';
 const results = [];
 const assert = (value, message = 'assertion failed') => { if (!value) throw new Error(message); };
 const eq = (a, b, message = '') => assert(JSON.stringify(a) === JSON.stringify(b), message || `${JSON.stringify(a)} !== ${JSON.stringify(b)}`);
@@ -9,7 +10,7 @@ async function test(name, fn) {
     try { await fn(); results.push({ name, passed: true }); }
     catch (error) { results.push({ name, passed: false, error: error.stack }); }
 }
-function harness({ n = 120, unsafe = false } = {}) {
+function harness({ n = 120, unsafe = false, virtualize = false } = {}) {
     let mode = 'accordion', enabled = true, generated = 0, nativeFrames = 0, organizations = 0, inspected = null, edited = null;
     let sourceReads = 0, optionalSyncs = 0, gate = null, gateStarted = false, nativeDrags = 0;
     const panel = document.createElement('div'); panel.id = 'left-nav-panel';
@@ -77,7 +78,15 @@ function harness({ n = 120, unsafe = false } = {}) {
         },
     };
     const nemo = {
-        observers: {}, searchCalls: 0, selectedPromptItem: null,
+        observers: {}, searchCalls: 0, selectedPromptItem: null, sortableInstances: new Set(),
+        getDividerInfo(item) {
+            const raw = item?.dataset?.nemoOriginalText
+                || item?.querySelector?.('.completion_prompt_manager_prompt_name a')?.textContent
+                || item?.querySelector?.()?.textContent || '';
+            const main = /^===\s*(.*?)\s*===$/.exec(raw);
+            return main ? { isDivider: true, isSubHeader: false, name: main[1].trim(), originalText: raw }
+                : { isDivider: false, isSubHeader: false, name: raw, originalText: raw };
+        },
         preparePromptItem(row) { row.dataset.nemoDecorated = 'true'; row.draggable = true; },
         updateSectionCount(section) {
             const span = section.querySelector('.nemo-enabled-count');
@@ -129,8 +138,13 @@ function harness({ n = 120, unsafe = false } = {}) {
     const runtime = installIncrementalRendering({ pm, nemo, minRows: 0,
         enabled: () => enabled, modeKey: () => mode,
         ...(unsafe ? { compatible: () => false } : {}) });
+    const virtualizer = virtualize && !unsafe ? installSectionVirtualization({
+        pm, nemo, renderer: runtime, minRows: 0,
+        enabled: () => enabled, sectionsEnabled: () => true, modeKey: () => mode,
+        notify: error => { throw error; },
+    }) : null;
     const h = {
-        pm, nemo, sources, order, counts, host, panel, input, runtime, originals,
+        pm, nemo, sources, order, counts, host, panel, input, runtime, virtualizer, originals,
         get generated() { return generated; }, get nativeFrames() { return nativeFrames; }, get organizations() { return organizations; },
         get optionalSyncs() { return optionalSyncs; }, get sourceReads() { return sourceReads; }, get inspected() { return inspected; }, get edited() { return edited; },
         get nativeDrags() { return nativeDrags; }, get gateStarted() { return gateStarted; },
@@ -140,11 +154,16 @@ function harness({ n = 120, unsafe = false } = {}) {
         row(id) { return [...pm.listElement.querySelectorAll('li')].find(r => r.dataset.pmIdentifier === id); },
         async paint() { await pm.renderPromptManager(); await pm.renderPromptManagerListItems(); },
         async start() { await this.paint(); await nemo.organizePrompts(true); await settle(); return this; },
-        dispose() { runtime.dispose(); for (const observer of Object.values(nemo.observers)) observer?.disconnect?.(); panel.remove(); },
+        async dispose() {
+            await virtualizer?.dispose({ restore: true });
+            runtime.dispose();
+            for (const observer of Object.values(nemo.observers)) observer?.disconnect?.();
+            panel.remove();
+        },
     };
     return h;
 }
-async function using(fn, options) { const h = await harness(options).start(); try { await fn(h); } finally { h.dispose(); } }
+async function using(fn, options) { const h = await harness(options).start(); try { await fn(h); } finally { await h.dispose(); } }
 
 await test('unchanged redraw retains frame, row identity, section state and footer selection', () => using(async h => {
     const list = h.pm.listElement, row = h.row('p1'), section = row.closest('details'); section.open = true;
@@ -271,6 +290,49 @@ await test('native edit boundary invalidates stale metadata once without reading
     await h.paint(); eq(h.generated - before, 120);
     const warm = h.generated; await h.paint(); eq(h.generated, warm); eq(h.sourceReads, 0);
 }));
+await test('virtualization removes closed ordinary rows without retaining prompt bodies', () => using(async h => {
+    const resident = h.pm.listElement.querySelectorAll('li.completion_prompt_manager_prompt').length;
+    eq(resident, 6); assert(h.virtualizer.getStats().virtualized); eq(h.virtualizer.getStats().virtualizedRows, 114);
+    eq(h.sourceReads, 0);
+}, { virtualize: true }));
+
+await test('opening a virtual section regenerates only its direct native rows and closing evicts them again', () => using(async h => {
+    const section = h.pm.listElement.querySelector('details.nemo-engine-section');
+    const before = h.generated; section.open = true; await settle();
+    eq(h.generated - before, 19);
+    eq(section.querySelectorAll(':scope > .nemo-section-content > li.completion_prompt_manager_prompt').length, 19);
+    const row = h.row('p1'); row.querySelector('a').click(); eq(h.inspected, 'p1');
+    section.open = false; await settle();
+    eq(section.querySelectorAll(':scope > .nemo-section-content > li.completion_prompt_manager_prompt').length, 0);
+    eq(h.pm.listElement.querySelectorAll('li.completion_prompt_manager_prompt').length, 6);
+}, { virtualize: true }));
+
+await test('incremental redraw respects intentional row absence and only repaints live changes', () => using(async h => {
+    const start = h.generated;
+    h.order[25].enabled = false; await h.paint();
+    eq(h.generated, start); assert(!h.row('p25'));
+    const section = h.pm.listElement.querySelector('details.nemo-engine-section');
+    section.open = true; await settle();
+    const afterOpen = h.generated;
+    h.order[1].enabled = false; await h.paint();
+    eq(h.generated, afterOpen + 1); assert(h.row('p1').querySelector('.fa-toggle-off'));
+    eq(h.sourceReads, 0);
+}, { virtualize: true }));
+
+await test('virtualization cleanup restores the complete native row list before adapter teardown', async () => {
+    const h = await harness({ virtualize: true }).start();
+    try {
+        eq(h.pm.listElement.querySelectorAll('li.completion_prompt_manager_prompt').length, 6);
+        await h.virtualizer.dispose({ restore: true });
+        eq(h.pm.listElement.querySelectorAll('li.completion_prompt_manager_prompt').length, 120);
+        assert(!h.runtime.getStats().virtualized);
+    } finally {
+        h.runtime.dispose();
+        for (const observer of Object.values(h.nemo.observers)) observer?.disconnect?.();
+        h.panel.remove();
+    }
+});
+
 await test('all 764 rows survive closed sections; repeated redraws generate none, a toggle generates one', () => using(async h => {
     const total = h.generated;
     for (let i = 0; i < 25; i++) await h.paint();
@@ -280,7 +342,7 @@ await test('all 764 rows survive closed sections; repeated redraws generate none
     globalThis.renderingMeasurement = { rows: 764, warmRedraws: 25, warmRowsGenerated: 0, oneToggleRowsGenerated: 1 };
 }, { n: 764 }));
 
-const report = { stage: '5A/5', browserHarness: true, liveSillyTavern: false,
+const report = { stage: '5B.3/5', browserHarness: true, liveSillyTavern: false,
     tests: results.length, passed: results.filter(r => r.passed).length,
     failed: results.filter(r => !r.passed).length, measurement: globalThis.renderingMeasurement, results };
 document.body.replaceChildren();

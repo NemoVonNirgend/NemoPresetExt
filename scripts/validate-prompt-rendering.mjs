@@ -13,8 +13,16 @@ if (!binary) throw new Error('Install Chromium/Chrome or set CHROME_BIN to run t
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const uri = text => 'data:text/javascript;base64,' + Buffer.from(text).toString('base64');
 const model = uri(await read('../features/prompt-rendering/model.js'));
+const stateModel = uri(await read('../features/prompt-rendering/state-model.js'));
+const consumers = uri((await read('../features/prompt-rendering/state-consumers.js'))
+    .replace("'./state-model.js'", JSON.stringify(stateModel)));
+const virtualization = uri((await read('../features/prompt-rendering/virtualization.js'))
+    .replace("'./state-consumers.js'", JSON.stringify(consumers)));
 const renderer = uri((await read('../features/prompt-rendering/incremental.js')).replace("'./model.js'", JSON.stringify(model)));
-const main = uri((await read('./prompt-rendering-browser.mjs')).replace("'../features/prompt-rendering/incremental.js'", JSON.stringify(renderer)));
+const mainSource = (await read('./prompt-rendering-browser.mjs'))
+    .replace("'../features/prompt-rendering/incremental.js'", JSON.stringify(renderer))
+    .replace("'../features/prompt-rendering/virtualization.js'", JSON.stringify(virtualization));
+const main = uri(mainSource);
 const directory = await mkdtemp(join(tmpdir(), 'nemo-render-browser-'));
 let child, session, nextId = 0, wire = '', stderr = '';
 const pending = new Map();

@@ -48,6 +48,7 @@ let categoryTrayDebounceTimeout = null;
 let dropdownStyleChangeHandler = null;
 let presetChangedHandler = null;
 let promptsOrganizedHandler = null;
+let sectionMaterializedHandler = null;
 const categoryTrayDocumentCleanups = new Set();
 
 function scheduleCategoryTrayTimeout(callback, delay) {
@@ -475,6 +476,19 @@ export function initCategoryTray() {
     };
     document.addEventListener('nemo-prompts-organized', promptsOrganizedHandler);
 
+    sectionMaterializedHandler = (event) => {
+        if (getDropdownStyle() !== 'accordion') return;
+        const section = event.detail?.section;
+        const content = section?.querySelector?.('.nemo-section-content');
+        if (!section || !content) return;
+        content.querySelectorAll(':scope > li.completion_prompt_manager_prompt').forEach(item => {
+            enhancePromptItemForAccordion(item);
+        });
+        if (section.open) initAccordionDragDrop(section);
+        void updateParentSectionCounts(section);
+    };
+    document.addEventListener('nemo-section-materialized', sectionMaterializedHandler);
+
     // Try multiple times with increasing delays to catch sections (initial load backup)
     const delays = [500, 1000, 2000, 3000, 5000];
     delays.forEach(delay => {
@@ -503,12 +517,16 @@ export function cleanupCategoryTray() {
     if (promptsOrganizedHandler) {
         document.removeEventListener('nemo-prompts-organized', promptsOrganizedHandler);
     }
+    if (sectionMaterializedHandler) {
+        document.removeEventListener('nemo-section-materialized', sectionMaterializedHandler);
+    }
     if (presetChangedHandler && eventSource && event_types) {
         eventSource.removeListener(event_types.OAI_PRESET_CHANGED_AFTER, presetChangedHandler);
     }
 
     dropdownStyleChangeHandler = null;
     promptsOrganizedHandler = null;
+    sectionMaterializedHandler = null;
     presetChangedHandler = null;
 
     clearCategoryTrayTimeout(categoryTrayDebounceTimeout);
@@ -3037,8 +3055,8 @@ function convertToAccordionMode() {
             enhancePromptItemForAccordion(item);
         });
 
-        // Initialize drag-and-drop for this section's content
-        initAccordionDragDrop(section);
+        // Closed sections stay row-light and receive drag/drop lazily on materialization.
+        if (section.open) initAccordionDragDrop(section);
 
         converted++;
     });
