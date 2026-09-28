@@ -83,9 +83,10 @@ export function initializePromptRendering() {
         if (!current.pm && state === current && current.attempts++ < 100) current.retry = setTimeout(retry, 100);
     }
     retry();
-    current.api = Object.freeze({ stage: '5B.2A/5', getStats: () => ({
+    current.api = Object.freeze({ stage: '5B.2B/5', getStats: () => ({
         ...(current.controller?.getStats() || { attached: false }), snapshots: current.snapshots.getStats(), actions: current.actions.getStats(),
     }),
+        applyChanges: changes => current.actions.applyChanges(changes),
         refresh: () => { current.controller?.reset(); current.controller?.redraw(); } });
     globalThis.NemoPromptRendering = current.api;
 }
