@@ -2,7 +2,7 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.2
+**Version:** 6.0.3
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
@@ -104,7 +104,7 @@ The installer adds or updates the bundled Nemo Engine Chat Completion preset wit
 
 Version 6.0.1 adds Stage **1/5** of the large-preset performance work. After updating and reloading the extension, import the portable Nemo Full JSON through the **Chat Completion preset import** button. Supported writing-recipe banks are verified and saved to separate files in the authenticated SillyTavern user's files directory before the compact preset is saved or selected. Runtime preparation loads only the selected recipe shard and retains at most two selected recipe setter strings. Normal export reconstructs the portable preset.
 
-Existing raw Full installations need a one-time reimport. Back up the ST user files directory along with presets, and export portable before disabling the extension or transferring a preset to another installation. Ordinary disabled-prompt cold storage, Vex externalization, and DOM virtualization are later stages. See [Recipe runtime usage, safety and validation](docs/RECIPE_RUNTIME.md).
+Existing raw Full installations need a one-time reimport. Back up the ST user files directory along with presets, and export portable before disabling the extension or transferring a preset to another installation. Vex externalization and DOM virtualization are later stages. See [Recipe runtime usage, safety and validation](docs/RECIPE_RUNTIME.md).
 
 ### Metadata and search: Stage 2/5
 
@@ -112,7 +112,15 @@ Version 6.0.2 adds a shared, revision-aware metadata index and worker-based prom
 
 Small simple comment fields have a generation-only fast path. Complex macros remain with ST; stored source and portable exports are not rewritten. Metadata declared later in a prompt is preserved, not truncated to a header limit.
 
-Update and reload to receive Stage 2; it does not require another preset import. See the [five-stage progress and validation tracker](docs/PERFORMANCE_STAGES.md). Diagnostics: `window.NemoPromptPerformance?.getStats()`. Disabled prompt bodies and closed-section DOM are not unloaded yet; those are Stages **3/5** and **5/5** respectively.
+Update and reload to receive Stage 2; it does not require another preset import. See the [five-stage progress and validation tracker](docs/PERFORMANCE_STAGES.md). Diagnostics: `window.NemoPromptPerformance?.getStats()`. Closed-section DOM is not unloaded yet; that is Stage **5/5**.
+
+### Disabled prompt bodies: Stage 3/5
+
+Version 6.0.3 adds durable ordinary-prompt source packs. Reimport a portable Nemo Full or Lite through the Chat Completion importer after updating/reloading for complete import-time conversion. Eligible disabled prompts keep lightweight metadata shells; enabled prompts and open editors load the original text before use. Disabling an unchanged prompt releases its body without another upload. Edits are verified in server-side storage before eviction; if storage fails, the full edit remains available for native saving.
+
+Native toggles, dependency/generation preflight, the prompt editor, Save Prompt to archive, worker text search, and full/partial portable exports are integrated. Missing required source blocks generation or export rather than silently sending a shell. Text search does not hydrate cold bodies into the active preset. Existing native system/quick fields, markers, initializer libraries and the recipe loader remain native; this is not Vex-library extraction or DOM virtualization.
+
+Back up the ST user files directory with presets. Export portable before disabling/uninstalling or moving to another ST server. Clearing browser data does not delete server-side source packs. Diagnostics: `window.NemoColdPrompts?.getStats()`. See [storage behavior, integration boundaries and validation](docs/COLD_PROMPTS.md). Automated tests do not replace the still-pending live ST browser smoke test.
 
 ## Nemo Hub
 
