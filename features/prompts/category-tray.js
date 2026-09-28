@@ -16,6 +16,11 @@ import { extension_settings } from '../../../../../extensions.js';
 import { NEMO_EXTENSION_NAME, isFeatureEnabled } from '../../core/utils.js';
 import storage from '../../core/storage-migration.js';
 import { getTokenCountAsync } from '../../../../../tokenizers.js';
+import {
+    TOP_LEVEL_SECTION_ID, movePromptToSectionIndex as movePromptToSectionIndexState,
+    movePromptToTopLevel as movePromptToTopLevelState, reorderSectionMembers,
+    sectionIdentifierFromElement, sectionRecords, topLevelRecords,
+} from '../prompt-rendering/state-consumers.js';
 
 // Track which sections are in tray mode
 const trayModeEnabled = new Set();
@@ -525,13 +530,23 @@ export function cleanupCategoryTray() {
 
 // Track top-level prompts container
 let topLevelPromptsContainer = null;
-const TOP_LEVEL_SECTION_ID = '__nemo_top_level__';
 
 /**
  * Convert top-level prompts (outside any section) to use our tray system
  * This prevents lag from native SillyTavern drag handlers
  */
 function convertTopLevelPrompts() {
+    try {
+        const manager = getStateManager();
+        if (promptManager && manager) {
+            const canonical = topLevelRecords(promptManager, manager).map(record => ({ ...record }));
+            sectionPromptIdsCache.set(TOP_LEVEL_SECTION_ID, canonical);
+            if (topLevelPromptsContainer) topLevelPromptsContainer._nemoPromptIds = canonical;
+        }
+    } catch (error) {
+        console.warn('[NemoTray] Could not read canonical top-level prompt state:', error);
+    }
+
     // Skip if container already exists and is in DOM
     if (topLevelPromptsContainer && document.contains(topLevelPromptsContainer)) {
         return 0;
@@ -693,13 +708,37 @@ function convertToTrayMode() {
         }
 
         const sectionName = getSectionId(section);
+        const sectionKey = getSectionKey(section);
+
+        // A nested sub-section is represented inside its parent tray. Its shell
+        // remains a valid drop target but it does not own a second tray.
+        const parentSection = section.parentElement?.closest?.('details.nemo-engine-section');
+        if (parentSection) {
+            section._nemoPromptIds = [];
+            sectionPromptIdsCache.set(sectionKey, []);
+            section.dataset.trayConverted = 'true';
+            section.classList.add('nemo-tray-section');
+            content.classList.add('nemo-tray-hidden-content');
+            content.querySelectorAll(':scope > li.completion_prompt_manager_prompt')
+                .forEach(el => el.classList.add('nemo-tray-hidden-prompt'));
+            converted++;
+            return;
+        }
 
         // Check if this section has prompts in DOM
         const promptElements = content.querySelectorAll(':scope > li.completion_prompt_manager_prompt');
         const hasPromptsInDOM = promptElements.length > 0;
 
-        // Check if we have cached data for this section (from previous conversion)
-        const cachedPromptIds = sectionPromptIdsCache.get(sectionName);
+        // Canonical membership is authoritative. DOM rows are only a view.
+        let cachedPromptIds = null;
+        try {
+            cachedPromptIds = sectionRecords(promptManager, getStateManager(), sectionKey)
+                .map(record => ({ ...record }));
+            sectionPromptIdsCache.set(sectionKey, cachedPromptIds);
+        } catch (error) {
+            console.warn('[NemoTray] Canonical section state unavailable; using previous cache:', error);
+            cachedPromptIds = sectionPromptIdsCache.get(sectionKey);
+        }
 
         // Check if this section has sub-sections (parent section)
         const hasSubSections = content.querySelectorAll(':scope > details.nemo-engine-section').length > 0;
@@ -745,7 +784,7 @@ function convertToTrayMode() {
 
                 // Store on section element and cache
                 section._nemoPromptIds = sectionPromptIds;
-                sectionPromptIdsCache.set(sectionName, sectionPromptIds);
+                sectionPromptIdsCache.set(sectionKey, sectionPromptIds);
 
                 // Continue with normal tray conversion
                 section.dataset.trayConverted = 'true';
@@ -853,7 +892,7 @@ function convertToTrayMode() {
             }
 
             // Store in persistent cache (survives DOM refreshes)
-            sectionPromptIdsCache.set(sectionName, sectionPromptIds);
+            sectionPromptIdsCache.set(sectionKey, sectionPromptIds);
             // console.log(`[NemoTray] Cached ${sectionPromptIds.length} prompt IDs for section:`, sectionName);
         } else if (cachedPromptIds) {
             // Restore from cache (Only if DOM elements are missing - e.g. potentially wiped but we want to preserve state?)
@@ -1055,7 +1094,7 @@ async function movePromptToSectionTop(identifier, promptData, fromSection, toSec
         // Update cached prompt IDs for source section
         if (fromSection._nemoPromptIds) {
             fromSection._nemoPromptIds = fromSection._nemoPromptIds.filter(p => p.identifier !== identifier);
-            sectionPromptIdsCache.set(getSectionId(fromSection), fromSection._nemoPromptIds);
+            sectionPromptIdsCache.set(getSectionKey(fromSection), fromSection._nemoPromptIds);
         }
 
         // Update cached prompt IDs for destination section - add at top
@@ -1064,7 +1103,7 @@ async function movePromptToSectionTop(identifier, promptData, fromSection, toSec
         } else {
             toSection._nemoPromptIds = [{ identifier: promptData.identifier, name: promptData.name }];
         }
-        sectionPromptIdsCache.set(getSectionId(toSection), toSection._nemoPromptIds);
+        sectionPromptIdsCache.set(getSectionKey(toSection), toSection._nemoPromptIds);
 
         // Update progress bars
         updateSectionProgressFromStoredIds(fromSection);
@@ -1201,7 +1240,7 @@ async function movePromptToTopLevel(identifier, promptData, fromSection, fromTra
         // Update cached prompt IDs for source section
         if (fromSection._nemoPromptIds) {
             fromSection._nemoPromptIds = fromSection._nemoPromptIds.filter(p => p.identifier !== identifier);
-            sectionPromptIdsCache.set(getSectionId(fromSection), fromSection._nemoPromptIds);
+            sectionPromptIdsCache.set(getSectionKey(fromSection), fromSection._nemoPromptIds);
         }
 
         // Add to top-level prompts cache (only if not already there)
@@ -1289,6 +1328,33 @@ function getSectionId(section) {
     return nameSpan?.textContent?.trim() || 'unknown';
 }
 
+function getStateManager() {
+    return globalThis.NemoPresetManager || globalThis.NemoPromptManager || null;
+}
+
+function getSectionKey(section) {
+    if (section === topLevelPromptsContainer || section?.classList?.contains?.('nemo-top-level-section')) return TOP_LEVEL_SECTION_ID;
+    return sectionIdentifierFromElement(section) || getSectionId(section);
+}
+
+function canonicalPromptRecords(section) {
+    const manager = getStateManager();
+    if (!promptManager || !manager) return null;
+    const key = getSectionKey(section);
+    const records = key === TOP_LEVEL_SECTION_ID
+        ? topLevelRecords(promptManager, manager)
+        : sectionRecords(promptManager, manager, key);
+    return records.map(record => ({ ...record }));
+}
+
+function syncCanonicalSectionCache(section) {
+    const records = canonicalPromptRecords(section);
+    if (!records) return null;
+    section._nemoPromptIds = records;
+    sectionPromptIdsCache.set(getSectionKey(section), records);
+    return records;
+}
+
 /**
  * Open the tray for a section
  */
@@ -1306,7 +1372,12 @@ function openTray(section) {
         return;
     }
 
-    // Get prompts from stored mapping (DOM elements were removed for performance)
+    // Refresh membership from canonical native order. The section may have no
+    // ordinary child rows materialized at all.
+    try { syncCanonicalSectionCache(section); }
+    catch (error) { console.warn('[NemoTray] Could not refresh canonical tray membership:', error); }
+
+    // Get prompts from stored mapping
     const storedPromptIds = section._nemoPromptIds;
     if (!storedPromptIds || storedPromptIds.length === 0) {
         console.log('[NemoTray] No stored prompt IDs for section:', sectionId);
@@ -1669,11 +1740,11 @@ function openTray(section) {
                         // Update cached prompt IDs for both sections
                         if (fromSection._nemoPromptIds) {
                             fromSection._nemoPromptIds = fromSection._nemoPromptIds.filter(p => p.identifier !== identifier);
-                            sectionPromptIdsCache.set(getSectionId(fromSection), fromSection._nemoPromptIds);
+                            sectionPromptIdsCache.set(getSectionKey(fromSection), fromSection._nemoPromptIds);
                         }
                         if (toSection._nemoPromptIds && movedPromptData) {
                             toSection._nemoPromptIds.splice(newIndex, 0, { identifier: movedPromptData.identifier, name: movedPromptData.name });
-                            sectionPromptIdsCache.set(getSectionId(toSection), toSection._nemoPromptIds);
+                            sectionPromptIdsCache.set(getSectionKey(toSection), toSection._nemoPromptIds);
                         }
 
                         // Update progress bars for both sections
@@ -2324,7 +2395,7 @@ function reorderPromptsInSection(section, newOrder) {
                     const existing = section._nemoPromptIds.find(p => p.identifier === id);
                     return existing || { identifier: id, name: id };
                 });
-                sectionPromptIdsCache.set(getSectionId(section), section._nemoPromptIds);
+                sectionPromptIdsCache.set(getSectionKey(section), section._nemoPromptIds);
             }
 
             console.log('[NemoTray] Successfully reordered prompts in section');
@@ -2849,10 +2920,10 @@ function showPromptPreview(identifier, name) {
  */
 function refreshAllSectionProgressBars() {
     document.querySelectorAll('details.nemo-tray-section').forEach(section => {
-        if (section._nemoPromptIds || sectionPromptIdsCache.has(getSectionId(section))) {
+        if (section._nemoPromptIds || sectionPromptIdsCache.has(getSectionKey(section))) {
             // Restore from cache if needed
             if (!section._nemoPromptIds) {
-                section._nemoPromptIds = sectionPromptIdsCache.get(getSectionId(section));
+                section._nemoPromptIds = sectionPromptIdsCache.get(getSectionKey(section));
             }
             updateSectionProgressFromStoredIds(section);
         }
