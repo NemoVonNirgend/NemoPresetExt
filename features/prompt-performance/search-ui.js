@@ -90,7 +90,13 @@ export function installSearchUI({ manager, root = document, getRows, getSources,
         void bodySearch.search(query, getSources()).then(found => {
             if (!active || request !== current || !found || root.querySelector('#completion_prompt_manager_list') !== container) return;
             for (const id of found) matches.add(id);
-            return Promise.resolve(globalThis.NemoPromptRendering?.materializeSearch?.(matches)).then(() => {
+            const materialize = globalThis.NemoPromptRendering?.materializeSearch;
+            if (typeof materialize !== 'function') {
+                applySearchMatches(container, matches);
+                status(`${matches.size} matches (metadata and prompt text)`);
+                return;
+            }
+            return Promise.resolve(materialize(matches)).then(() => {
                 if (!active || request !== current || root.querySelector('#completion_prompt_manager_list') !== container) return;
                 applySearchMatches(container, matches);
                 status(`${matches.size} matches (metadata and prompt text)`);
