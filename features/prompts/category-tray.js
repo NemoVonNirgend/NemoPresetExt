@@ -2284,18 +2284,19 @@ async function movePromptBetweenSectionsFromTray(identifier, fromSection, toSect
  */
 function updateTrayFooter(tray, prompts) {
     if (!tray || !prompts) return;
+    const actualPrompts = prompts.filter(p => p?.identifier && !p.isSubSectionHeader);
 
     const footer = tray.querySelector('.nemo-tray-hint');
     if (footer) {
-        const enabledCount = prompts.filter(p => p.isEnabled).length;
-        footer.textContent = `Click to toggle • Drag ≡ to reorder • ${enabledCount}/${prompts.length} active`;
+        const enabledCount = actualPrompts.filter(p => p.isEnabled).length;
+        footer.textContent = `Click to toggle • Drag ≡ to reorder • ${enabledCount}/${actualPrompts.length} active`;
     }
 
     // Also update the toggle-all button state
     const toggleAllBtn = tray.querySelector('.nemo-tray-toggle-all');
     if (toggleAllBtn) {
-        const enabledCount = prompts.filter(p => p.isEnabled).length;
-        const allEnabled = enabledCount === prompts.length;
+        const enabledCount = actualPrompts.filter(p => p.isEnabled).length;
+        const allEnabled = enabledCount === actualPrompts.length;
         toggleAllBtn.classList.toggle('nemo-all-enabled', allEnabled);
         toggleAllBtn.innerHTML = `${allEnabled ? '☑' : '☐'} All`;
         toggleAllBtn.title = allEnabled ? 'Disable All' : 'Enable All';
@@ -2323,10 +2324,10 @@ function getAllSections() {
         // Skip top-level container (already added above)
         if (section.classList.contains('nemo-top-level-section')) return;
 
-        const sectionId = getSectionId(section);
+        const sectionName = getSectionId(section);
         sections.push({
-            id: sectionId,
-            name: sectionId,
+            id: getSectionKey(section),
+            name: sectionName,
             section: section
         });
     });
@@ -2363,7 +2364,7 @@ function showPromptMoveContextMenu(e, promptData, fromSection, fromTray, card) {
 
     // Get all available sections
     const sections = getAllSections();
-    const currentSectionId = getSectionId(fromSection);
+    const currentSectionId = getSectionKey(fromSection);
 
     // Filter out current section
     const availableSections = sections.filter(s => s.id !== currentSectionId);
