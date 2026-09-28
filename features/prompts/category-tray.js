@@ -17,8 +17,8 @@ import { NEMO_EXTENSION_NAME, isFeatureEnabled } from '../../core/utils.js';
 import storage from '../../core/storage-migration.js';
 import { getTokenCountAsync } from '../../../../../tokenizers.js';
 import {
-    TOP_LEVEL_SECTION_ID, movePromptToSectionIndex as movePromptToSectionIndexState,
-    movePromptToTopLevel as movePromptToTopLevelState, reorderSectionMembers,
+    TOP_LEVEL_SECTION_ID, movePromptToDirectSectionIndex, movePromptToSectionIndex as movePromptToSectionIndexState,
+    movePromptToTopLevel as movePromptToTopLevelState, reorderDirectSectionMembers, reorderSectionMembers,
     sectionIdentifierFromElement, sectionRecords, topLevelRecords,
 } from '../prompt-rendering/state-consumers.js';
 
@@ -3053,8 +3053,8 @@ function convertToAccordionMode() {
 }
 
 /**
- * Update section counts for all accordion sections
- * Uses DOM-based counting since prompts are visible
+ * Update section counts for all accordion sections.
+ * Counts are resolved by the Stage 5B canonical state adapter.
  */
 async function updateAllAccordionSectionCounts() {
     try {
@@ -3131,10 +3131,21 @@ function initAccordionDragDrop(section) {
                 // Get the prompt identifier
                 const identifier = item.getAttribute('data-pm-identifier');
 
-                if (fromSection !== toSection && identifier) {
-                    // Moving between sections - update SillyTavern's prompt order
+                if (identifier && fromSection !== toSection) {
                     console.log('[NemoTray] Moving prompt between sections:', identifier);
-                    await movePromptBetweenSections(item, fromSection, toSection, evt.newIndex);
+                    await movePromptBetweenSections(item, fromSection, toSection, evt.newDraggableIndex ?? evt.newIndex);
+                } else if (identifier && toSection) {
+                    try {
+                        const manager = getStateManager();
+                        if (!manager) throw new Error('Prompt state manager is unavailable');
+                        const directIds = Array.from(to.querySelectorAll(':scope > li.completion_prompt_manager_prompt:not(.nemo-header-item)'))
+                            .map(row => row.getAttribute('data-pm-identifier'))
+                            .filter(Boolean);
+                        await reorderDirectSectionMembers(promptManager, manager, getSectionKey(toSection), directIds);
+                        syncCanonicalSectionCache(toSection);
+                    } catch (error) {
+                        console.error('[NemoTray] Error persisting accordion reorder:', error);
+                    }
                 }
 
                 // Update section counts for both source and destination
@@ -3186,7 +3197,7 @@ async function movePromptBetweenSections(item, fromSection, toSection, newIndex)
         const identifier = item.getAttribute('data-pm-identifier');
         const manager = getStateManager();
         if (!identifier || !manager) throw new Error('Prompt movement state is unavailable');
-        await movePromptToSectionIndexState(promptManager, manager, identifier, getSectionKey(toSection), newIndex);
+        await movePromptToDirectSectionIndex(promptManager, manager, identifier, getSectionKey(toSection), newIndex);
         syncCanonicalSectionCache(fromSection);
         syncCanonicalSectionCache(toSection);
         console.log('[NemoTray] Moved prompt', identifier, 'using canonical prompt order');
