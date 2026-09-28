@@ -10,6 +10,7 @@ import '../../lib/Sortable.min.js'; // Import Sortable
 import { getTooltip } from './prompt-tooltips.js';
 import { parsePromptDirectives } from '../directives/prompt-directives.js';
 import { disableTrayMode } from './category-tray.js';
+import { movePromptBelowHeader as movePromptBelowHeaderState } from '../prompt-rendering/state-consumers.js';
 
 // 1. CONFIGURATION & STATE
 const NEMO_BUILT_IN_PATTERNS = ['=+', '⭐─+', '━+'];
@@ -2611,9 +2612,12 @@ export const NemoPresetManager = {
         sections.forEach(section => {
             const headerItem = section.querySelector('summary li.completion_prompt_manager_prompt.nemo-header-item');
             if (headerItem) {
+                const dividerInfo = this.getDividerInfo(headerItem, true);
                 headers.push({
                     element: headerItem,
                     section: section,
+                    identifier: headerItem.dataset.pmIdentifier,
+                    name: dividerInfo?.name || headerItem.querySelector('.completion_prompt_manager_prompt_name a')?.textContent?.trim() || 'Header',
                     isInSection: true
                 });
             }
@@ -2624,9 +2628,12 @@ export const NemoPresetManager = {
             this.getDividerInfo(item, true).isDivider && !item.closest('details.nemo-engine-section')
         );
         flatHeaders.forEach(header => {
+            const dividerInfo = this.getDividerInfo(header, true);
             headers.push({
                 element: header,
                 section: null,
+                identifier: header.dataset.pmIdentifier,
+                name: dividerInfo?.name || header.querySelector('.completion_prompt_manager_prompt_name a')?.textContent?.trim() || 'Header',
                 isInSection: false
             });
         });
@@ -2735,138 +2742,41 @@ export const NemoPresetManager = {
         dialog.querySelector('.nemo-dialog-close').focus();
     },
 
-    movePromptBelowHeader: function(headerData) {
-        console.log(`${LOG_PREFIX} movePromptBelowHeader called with:`, headerData);
-        console.log(`${LOG_PREFIX} this.selectedPromptItem:`, this.selectedPromptItem);
+    movePromptBelowHeader: async function(headerData) {
+        const selected = this.selectedPromptItem;
+        const identifier = selected?.dataset?.pmIdentifier;
+        const headerId = headerData?.identifier || headerData?.element?.dataset?.pmIdentifier;
 
-        if (!this.selectedPromptItem) {
-            console.error(`${LOG_PREFIX} No selected prompt item`);
+        if (!identifier) {
+            console.error(`${LOG_PREFIX} No selected prompt identifier`);
+            this.showStatusMessage('Prompt is no longer available.', 'error');
             return;
         }
-
-        if (!headerData) {
-            console.error(`${LOG_PREFIX} No header data provided`);
-            return;
-        }
-
-        const targetHeader = headerData.element;
-        const targetSection = headerData.section;
-
-        console.log(`${LOG_PREFIX} Target header:`, targetHeader);
-        console.log(`${LOG_PREFIX} Target section:`, targetSection);
-
-        if (!targetHeader) {
-            console.error(`${LOG_PREFIX} Header element not found`);
+        if (!headerId) {
+            console.error(`${LOG_PREFIX} Header identifier not found`);
             this.showStatusMessage('Header not found.', 'error');
             return;
         }
 
         try {
-            // Get the current section the prompt is in (if any)
-            const fromSection = this.selectedPromptItem.closest('details.nemo-engine-section');
+            const promptName = selected?.querySelector?.('.completion_prompt_manager_prompt_name')?.textContent?.trim()
+                || promptManager?.serviceSettings?.prompts?.find?.(prompt => prompt.identifier === identifier)?.name
+                || 'Prompt';
+            const headerName = headerData?.name
+                || headerData?.element?.querySelector?.('.completion_prompt_manager_prompt_name a')?.textContent?.trim()
+                || promptManager?.serviceSettings?.prompts?.find?.(prompt => prompt.identifier === headerId)?.name
+                || 'Header';
 
-        console.log(`${LOG_PREFIX} Moving prompt to header. Target section:`, targetSection);
-        console.log(`${LOG_PREFIX} Selected prompt item:`, this.selectedPromptItem);
+            await movePromptBelowHeaderState(promptManager, identifier, headerId, { render: true });
+            this.showStatusMessage(`Moved "${promptName}" below "${headerName}"`, 'success', 3000);
 
-        // Log current position before moving
-        const originalParent = this.selectedPromptItem.parentNode;
-        const originalNextSibling = this.selectedPromptItem.nextSibling;
-        console.log(`${LOG_PREFIX} Original position - Parent:`, originalParent, 'Next sibling:', originalNextSibling);
-
-        if (targetSection) {
-            // Insert as first item in the target section
-            const firstPrompt = targetSection.querySelector('li.completion_prompt_manager_prompt:not(.nemo-header-item)');
-
-            console.log(`${LOG_PREFIX} First prompt in target section:`, firstPrompt);
-
-            if (firstPrompt) {
-                // Insert before the first existing prompt
-                firstPrompt.parentNode.insertBefore(this.selectedPromptItem, firstPrompt);
-                console.log(`${LOG_PREFIX} Inserted before first prompt`);
-            } else {
-                // No prompts in section yet, append directly to section
-                targetSection.appendChild(this.selectedPromptItem);
-                console.log(`${LOG_PREFIX} Appended to empty section`);
-            }
-        } else {
-            // Insert directly after header in flat list
-            const container = document.querySelector(SELECTORS.promptsContainer);
-
-            // Find the next sibling after the header
-            let insertPosition = targetHeader.nextSibling;
-            while (insertPosition && insertPosition.nodeType !== Node.ELEMENT_NODE) {
-                insertPosition = insertPosition.nextSibling;
-            }
-
-            if (insertPosition) {
-                container.insertBefore(this.selectedPromptItem, insertPosition);
-                console.log(`${LOG_PREFIX} Inserted after header in flat list`);
-            } else {
-                container.appendChild(this.selectedPromptItem);
-                console.log(`${LOG_PREFIX} Appended to end of container`);
-            }
-        }
-
-        // Log position after moving
-        const newParent = this.selectedPromptItem.parentNode;
-        const newNextSibling = this.selectedPromptItem.nextSibling;
-        console.log(`${LOG_PREFIX} New position - Parent:`, newParent, 'Next sibling:', newNextSibling);
-
-        // Verify the move actually happened
-        if (newParent !== originalParent || newNextSibling !== originalNextSibling) {
-            console.log(`${LOG_PREFIX} DOM move successful!`);
-        } else {
-            console.warn(`${LOG_PREFIX} DOM move failed - element is still in same position`);
-        }
-
-        // Update section counts
-        if (fromSection) this.updateSectionCount(fromSection);
-        if (targetSection && targetSection !== fromSection) this.updateSectionCount(targetSection);
-
-        // Show success message
-        const promptName = this.selectedPromptItem.querySelector('.completion_prompt_manager_prompt_name')?.textContent || 'Prompt';
-
-        // Get header name using the same logic as dialog
-        let headerName = 'Header';
-        const dividerInfo = this.getDividerInfo(targetHeader, true);
-        if (dividerInfo && dividerInfo.name) {
-            headerName = dividerInfo.name;
-        } else {
-            const nameSpan = targetHeader.querySelector('.completion_prompt_manager_prompt_name');
-            if (nameSpan) {
-                const link = nameSpan.querySelector('a');
-                headerName = link ? link.textContent.trim() : nameSpan.textContent.trim();
-                if (DIVIDER_PREFIX_REGEX) {
-                    headerName = headerName.replace(DIVIDER_PREFIX_REGEX, '').trim();
-                }
-            }
-        }
-
-        console.log(`${LOG_PREFIX} Move completed: "${promptName}" -> "${headerName}"`);
-        this.showStatusMessage(`Moved "${promptName}" below "${headerName}"`, 'success', 3000);
-
-        // Trigger reorganization and save
-        console.log(`${LOG_PREFIX} Triggering reorganization after move...`);
-
-        // Force reorganization to ensure proper structure
-        setTimeout(() => {
-            this.organizePrompts(true);
-
-            // Then trigger save
-            const updateButton = document.getElementById('completion_prompt_manager_update_button');
-            if (updateButton) {
-                updateButton.click();
-                console.log(`${LOG_PREFIX} Save triggered after reorganization`);
-            } else {
-                console.warn(`${LOG_PREFIX} Update button not found`);
-            }
-        }, 150);
-
-        this.selectedPromptItem = null;
-
+            // Rebuild presentation from native order. The move itself no longer
+            // depends on either source or destination rows being materialized.
+            setTimeout(() => this.organizePrompts?.(true), 0);
         } catch (error) {
             console.error(`${LOG_PREFIX} Error in movePromptBelowHeader:`, error);
             this.showStatusMessage('Error moving prompt: ' + error.message, 'error');
+        } finally {
             this.selectedPromptItem = null;
         }
     },
