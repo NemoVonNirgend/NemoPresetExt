@@ -106,7 +106,8 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
             catch (error) { fail(error, array); return; }
             if (disposed || this.serviceSettings.prompts !== array) return;
             generationType = 'normal'; pass = null;
-            return original.apply(this, args);
+            try { return await original.apply(this, args); }
+            finally { if (!generationActive) pass = null; }
         });
         wrap('preparePrompt', original => function (prompt, ...args) {
             if (!runtimeOf(this.serviceSettings) || !selectedIds.has(prompt.identifier)) return original.call(this, prompt, ...args);
