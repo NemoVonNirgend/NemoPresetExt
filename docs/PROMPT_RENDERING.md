@@ -1,10 +1,10 @@
-# Stage 5A/5 (1/2): incremental native prompt rendering
+# Stage 5A/5: incremental native prompt rendering
 
-Version 6.0.5 implements the first half of Stage 5. **It does not remove closed-section rows from the DOM.** The complete ordered row list remains available to the existing snapshot, master-toggle, tray, navigation and drag/drop code. Actual row virtualization and adapting those consumers is Stage 5B/5 (2/2).
+Version 6.0.5 introduced the incremental rendering half of Stage 5. Version 6.0.6 completes Stage 5 with closed-section row virtualization. This document describes the Stage 5A renderer itself; see [PROMPT_VIRTUALIZATION.md](PROMPT_VIRTUALIZATION.md) for the 5B.3 residency layer that now sits on top of it.
 
 ## Usage and scope
 
-Update NemoPresetExt and reload ST. No preset reimport is needed for this rendering stage. The **Incremental prompt rendering** checkbox beside the preset search controls enables or disables the adapter without changing prompt content or selections. Its default is enabled. The fast path applies to 64 or more ordered rows in supported accordion/flat layouts. Tray mode, unknown native renderer contracts, missing/duplicate rows, unsupported header markup, structural changes and explicit opt-out use the original native rendering path.
+Update NemoPresetExt and reload ST. No preset reimport is needed for this rendering stage. The **Optimized prompt rendering** checkbox beside the preset search controls enables or disables the combined incremental-rendering and virtualization adapter without changing prompt content or selections. Its default is enabled. The fast path applies to 64 or more ordered rows in supported accordion/flat layouts. Tray mode, unknown native renderer contracts, missing/duplicate rows, unsupported header markup, structural changes and explicit opt-out use the original native rendering path.
 
 The adapter wraps the dynamic `renderPromptManager` and `renderPromptManagerListItems` methods, not `render` alone, so an already-bound native `renderDebounced` still reaches it. It does not skip dry generation, override generation/tokenizer methods, alter source storage, or change prompt-order state. Stages 1-4 remain responsible for source preparation.
 
@@ -34,9 +34,9 @@ node scripts/validate-prompt-rendering.mjs
 
 The standalone script finds installed Chromium/Chrome or uses `CHROME_BIN`. It creates a temporary browser profile and communicates over a CDP pipe. It does not navigate to a network address, connect to an ST server, call a model, or download browser dependencies. Without an installed browser, the Node wrapper reports an explicit skip; the standalone script fails with setup instructions.
 
-The 24 browser cases execute real DOM/listeners/MutationObservers in Chromium against an injected native-shaped host. A synthetic 764-row case creates no new rows across 25 unchanged redraws and one row for one toggle. All 764 rows still exist and prompt-body getter reads remain zero. Other cases cover edits/permissions, native handlers, preserved header/section state, search, footer selection, structure changes, fallback/opt-out, stale work, dragging, observer scope and cleanup. The additional 25 Node unit/wiring tests check metadata-only signatures, invalidation, lifecycle and source-API isolation.
+The original Stage 5A browser suite had 24 Chromium cases against an injected native-shaped host. Stage 5B.3 expands that suite to 28 cases. The incremental cases still verify zero new rows across 25 unchanged redraws and one row for one live toggle, while the virtualization cases verify closed-row eviction, section-only native materialization, redraws with intentionally absent rows, and complete cleanup restoration. Prompt-body getter reads remain zero.
 
-**This is a browser-boundary harness, not a live SillyTavern client or an end-to-end latency/memory benchmark.** There is no claim of reduced initial DOM row count or complete removal of interface lag in 5A. Live ST validation still needs Classic 3.4/Modern/Classic+, accordion and tray, directive conflicts, cold-prompt editing, snapshots, bulk changes, drag/drop, searches and an actual generation with the other stages enabled.
+**This is a browser-boundary harness, not a live SillyTavern client or an end-to-end latency/memory benchmark.** Version 6.0.6 does reduce closed-section resident row count in the supported host contract, but live ST validation still needs Classic 3.4/Modern/Classic+, accordion and tray, directive conflicts, cold-prompt editing, snapshots, bulk changes, drag/drop, searches and an actual generation with the other stages enabled.
 
 Diagnostics:
 
@@ -45,4 +45,4 @@ window.NemoPromptRendering?.getStats()
 window.NemoPromptRendering?.refresh()
 ```
 
-`generatedRows`, `reusedRows`, `replacedRows`, `reusedFrames`, `organizationsSkipped`, `stalePaints` and `optionalObserverScope` describe work, not elapsed speedup. `virtualized` remains `false` until 5B.
+`generatedRows`, `reusedRows`, `replacedRows`, `reusedFrames`, `organizationsSkipped`, `stalePaints` and `optionalObserverScope` describe work, not elapsed speedup. The runtime now also exposes `getStats().virtualization` with resident/virtualized row counts and section lifecycle statistics.
