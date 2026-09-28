@@ -17,7 +17,7 @@ test('Chromium rendering boundary suite (native-shaped host, not live ST)', { ti
         env: { ...process.env, CHROME_BIN: browser }, timeout: 50000, maxBuffer: 2 * 1024 * 1024,
     });
     const report = JSON.parse(stdout);
-    assert.equal(report.tests, 24); assert.equal(report.failed, 0);
+    assert.equal(report.tests, 28); assert.equal(report.failed, 0);
     assert.equal(report.liveSillyTavern, false);
     assert.equal(report.measurement.warmRowsGenerated, 0);
     assert.equal(report.measurement.oneToggleRowsGenerated, 1);
