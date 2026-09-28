@@ -12,10 +12,10 @@ Track implementation as **stage/5**, not as equal effort or measured speedup. Au
 | **5A/5** | Incremental native row/frame rendering, coalesced organization and scoped observer | Shipped in 6.0.5, PR #26 | Injected Chromium harness passed; live ST pending |
 | **5B.1/5 (1/3)** | Metadata-only ordered/section state; DOM-independent snapshot capture | Implemented; no row removal | Live ST pending |
 | **5B.2A/5** | State-based snapshot application/restoration, section counts and section master toggles | Implemented; no row removal | Live ST pending |
-| **5B.2B/5** | State-based tray/navigation membership and movement/reordering consumers | Next | Not started |
+| **5B.2B/5** | State-based tray/navigation membership and movement/reordering consumers | Implemented; no row removal | Live ST pending |
 | **5B.3/5** | Closed-section row removal/recreation, lazy drag/drop and full lifecycle integration | Not started | Not started |
 
-Progress: **4/5 complete, plus 5A, 5B.1 and 5B.2A**. Next: **5B.2B/5**, then 5B.3. This is not a completed 5/5 release. Closing a section still does not unload its DOM rows. Stages 5A through 5B.2A require update/reload only, not preset reimport. The manifest remains 6.0.5 during this small continuation. To activate earlier source-compaction stages, export the current configuration portable before reimporting after update/reload. Native ST validation remains pending independently of implementation progress.
+Progress: **4/5 complete, plus 5A, 5B.1, 5B.2A and 5B.2B**. Next: **5B.3/5** actual row virtualization. This is not a completed 5/5 release. Closing a section still does not unload its DOM rows. Stages 5A through 5B.2A require update/reload only, not preset reimport. The manifest remains 6.0.5 during this small continuation. To activate earlier source-compaction stages, export the current configuration portable before reimporting after update/reload. Native ST validation remains pending independently of implementation progress.
 
 ## Stage 2/5 boundaries
 
@@ -41,7 +41,9 @@ This is the split implementation replacing the older unmerged whole-stage PR #23
 
 **5B.2A** moves snapshot application/restoration, section direct/aggregate counts and section master toggles onto canonical ordered state. It preserves native toggle permissions, Stage 3 hydration before enabling, directive validation/automatic resolution, native save boundaries, rollback and stale-preset guards. It works when a section shell has no materialized child prompt rows. See [5B.2A implementation boundaries and tests](PROMPT_ACTIONS.md).
 
-**5B.2B** must finish the consumer migration by moving tray membership, tray bulk operations, Prompt Navigator discovery and prompt movement/reordering off DOM position. Preserve the full native prompt order and existing interaction semantics. Only after those consumers are safe may **5B.3** remove/recreate closed-section rows and integrate incremental rendering, lazy section drag/drop, observer cleanup and search. Do not merge partial-DOM row removal ahead of those guarantees.
+**5B.2B** moves tray membership, tray single/bulk/preset toggles, Prompt Navigator discovery/header selection, and prompt movement/reordering onto canonical native state. Stable section-header identifiers replace display-name cache identity. Tray and Navigator consumers remain correct when ordinary child rows are absent, top-level moves now mutate native order, and accordion/tray reorder paths persist through native save with rollback. See [5B.2B implementation boundaries and tests](PROMPT_CONSUMERS.md).
+
+With the mutating consumers now independent of complete DOM residency, **5B.3** may remove/recreate closed-section rows and integrate incremental rendering, lazy section drag/drop, observer cleanup and search.
 
 ## Validation and diagnostics
 
@@ -62,6 +64,8 @@ Stage 5A adds 25 Node unit/wiring tests and a Node wrapper for 24 real Chromium 
 Stage 5B.1 adds 38 unit/injected-runtime tests plus three repository-contract tests using the actual legacy divider/snapshot methods. The synthetic 764-row model remains complete with zero source-body reads, including 100 repeated snapshot passes. Those tests do not exercise live ST or row virtualization.
 
 Stage 5B.2A adds 11 focused state-action cases plus runtime integration coverage. The repository-wide implementation snapshot passes 345 tests with zero failures or skips. The key virtualization-boundary case toggles a section whose ordinary child prompt rows are absent, while counts and mutations still come from canonical native state. Live ST validation remains separate.
+
+Stage 5B.2B adds 11 focused consumer-state cases covering canonical tray membership, Navigator/header discovery, top-level and cross-section moves, section/direct-section reorder, save rollback and operation without materialized child rows. The repository-wide implementation snapshot passes **356 tests with zero failures or skips**; JavaScript syntax, relative imports, stylesheet/encoding and whitespace audits also pass. Live ST validation remains separate.
 
 ```js
 window.NemoPromptPerformance?.getStats()
