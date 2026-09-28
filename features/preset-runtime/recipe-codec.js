@@ -234,6 +234,9 @@ export function selectedGenres(preset, characterId = 100001, generationType = 'n
     requireValue(manifest?.schema === SCHEMA, 'unknown runtime schema');
     const profile = preset.prompt_order.find(p => p.character_id === characterId) ?? preset.prompt_order[0];
     const byId = new Map(preset.prompts.map(p => [p.identifier, p]));
+    const resolver = byId.get(RESOLVER_ID);
+    const active = profile.order.find(entry => entry.identifier === RESOLVER_ID)?.enabled === true;
+    if (!active || (resolver?.injection_trigger?.length && !resolver.injection_trigger.includes(generationType))) return new Set();
     const genres = new Set();
     if (manifest.libraries.slice_of_life) genres.add('slice_of_life'); // Existing guard fallback.
     for (const entry of profile.order) {

@@ -1,4 +1,4 @@
-export const SETTINGS_SCHEMA_VERSION = 4;
+export const SETTINGS_SCHEMA_VERSION = 5;
 
 export const PROMPT_UI_MODES = Object.freeze({
     CLASSIC: 'classic',
@@ -14,6 +14,7 @@ export const FEATURE_DEFAULTS = Object.freeze({
     enableDirectives: true,
     enableDirectiveAutocomplete: true,
     enableNemoEngineInstaller: true,
+    enableRecipeOffload: true,
     enableReasoningSection: true,
     enableLorebookManagement: false,
 });

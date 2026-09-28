@@ -76,7 +76,7 @@ async function harness(t) {
     const pm = {
         serviceSettings: preset, activeCharacter: { id: 100001 },
         preparePrompt(prompt) { host.prepared.push(prompt.content); return { ...prompt, content: prompt.content.replace(/\n\{\{trim\}\}$/, '') }; },
-        async tryGenerate() { host.generated++; return pm.preparePrompt(preset.prompts.find(p => p.identifier === 'nc-writing-resolver')); },
+        async tryGenerate() { host.generated++; if (host.holdGeneration) await host.holdGeneration; return pm.preparePrompt(preset.prompts.find(p => p.identifier === 'nc-writing-resolver')); },
     };
     const originalPrepare = pm.preparePrompt; const originalTry = pm.tryGenerate;
     const deps = {
@@ -212,4 +212,36 @@ test('a failed optimized preset does not stop later unrelated generations', asyn
     await h.runtime.recipeGenerationPreflight([], 8000, () => assert.fail('unrelated preset aborted'), 'normal');
     await h.eventSource.emit('CHAT_COMPLETION_PROMPT_READY', {});
     assert.equal(h.host.stops, 0);
+});
+
+test('missing selected record is a failure, never a silent empty replacement', async t => {
+    const h = await harness(t); await h.runtime.prepareRecipeRuntime(h.preset);
+    h.variables.NS_modern_literature = 'zz';
+    assert.throws(() => h.pm.preparePrompt(h.preset.prompts.find(p => p.identifier === 'nc-writing-resolver')), /Selected recipe .* missing/);
+    assert.equal(h.host.prepared.length, 0);
+    assert.equal(h.host.stops, 1);
+});
+
+test('disabled recipe resolution needs no library reads and does not block generation', async t => {
+    const h = await harness(t); h.server.files.clear();
+    h.preset.prompt_order[1].order.find(p => p.identifier === 'nc-writing-resolver').enabled = false;
+    const before = h.server.calls.length;
+    await h.runtime.recipeGenerationPreflight([], 8000, () => assert.fail('disabled recipe preflight aborted'), 'normal');
+    assert.equal(h.server.calls.length, before);
+});
+
+test('an overlapping UI dry run cannot suppress cancellation of a failed real build', async t => {
+    const h = await harness(t);
+    let release;
+    h.host.holdGeneration = new Promise(resolve => { release = resolve; });
+    const dry = h.pm.tryGenerate();
+    await wait(() => h.host.generated === 1);
+    try {
+        h.variables.NS_modern_literature = 'zz';
+        assert.throws(() => h.pm.preparePrompt(h.preset.prompts.find(p => p.identifier === 'nc-writing-resolver')), /missing/);
+        await h.eventSource.emit('CHAT_COMPLETION_PROMPT_READY', { dryRun: true });
+        assert.equal(h.host.stops, 0);
+        await h.eventSource.emit('CHAT_COMPLETION_PROMPT_READY', { dryRun: false });
+        assert.equal(h.host.stops, 1);
+    } finally { release(); await dry; }
 });

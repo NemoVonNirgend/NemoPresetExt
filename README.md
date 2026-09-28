@@ -2,7 +2,7 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.0
+**Version:** 6.1.0
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
@@ -45,6 +45,21 @@ New installations default to **Classic 3.4**. Existing standalone NemoPromptTool
 - `enableDirectives`: `true`
 - `enableDirectiveAutocomplete`: `true`
 - `enableNemoEngineInstaller`: `true`
+- `enableRecipeOffload`: `true`
+
+## Nemo Full import optimization
+
+The first performance stage moves supported v12 **writing recipes** out of the preset before SillyTavern loads them. It does not remove recipe choices or rewrite their text. The extension stores verified per-genre archives in your ST server's user-file storage and resolves the selected recipe in the original prompt slot.
+
+Update the extension, reload ST, and re-import your original portable Full JSON through the normal Chat Completion preset **Import** file picker. Existing raw presets are not silently migrated on startup. Lite, Tavo, and unrelated presets without recipe banks are passed through unchanged.
+
+The **NemoPresetExt > NemoEngine > Optimize supported Nemo Full imports** checkbox controls future imports immediately. To return to a self-contained preset, disable that checkbox and re-import your portable original. Already-optimized presets still need the extension and their server files, regardless of the checkbox.
+
+Use the normal **whole-preset Export** button for sharing: the recipe banks are reconstructed in the download, not in the running preset. Keep the original portable file as a recovery copy. Include ST user files in server backups; clearing browser caches does not delete the authoritative recipe archives. A missing/corrupt archive blocks supported recipe generation rather than silently substituting an empty result.
+
+Worker, DataTransfer, and Web Crypto support are required. Use HTTPS or localhost. Custom recipe grammars are refused rather than partially transformed. Programmatic imports, prompt-only exports, and third-party flows that bypass the normal buttons are not a complete portable interface for this stage. Vex offloading, cold ordinary prompt bodies, and DOM virtualization are separate work.
+
+Technical details and validation scope: [stage 1 runtime notes](docs/RECIPE_RUNTIME_STAGE_1.md).
 
 ## Optional compatibility adapters
 

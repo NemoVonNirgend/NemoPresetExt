@@ -5,7 +5,7 @@ import test from 'node:test';
 const settings = readFileSync(new URL('../settings.html', import.meta.url), 'utf8');
 const settingsUi = readFileSync(new URL('../ui/settings-ui.js', import.meta.url), 'utf8');
 
-test('prompt workstation settings are presented before dividers and directives', () => {
+ test('prompt workstation settings are presented before dividers and directives', () => {
     const promptMode = settings.indexOf('id="nemoPromptUiMode"');
     const dividers = settings.indexOf('id="nemoDividerRegexPattern"');
     const directives = settings.indexOf('id="nemoEnableDirectives"');
@@ -27,6 +27,7 @@ test('settings expose every merged prompt gate and all three interface modes', (
         'nemoEnableDirectives',
         'nemoEnableDirectiveAutocomplete',
         'nemoEnableNemoEngineInstaller',
+        'nemoEnableRecipeOffload',
         'nemoExtensionHubCatalog',
     ]) {
         assert.match(settings, new RegExp(`id="${id}"`));

@@ -89,3 +89,32 @@ test('a cached partition cannot bypass altered reference metadata', async () => 
     await assert.rejects(store.load({ ...ref, count: ref.count + 1 }, 'slice_of_life'));
     await assert.rejects(store.load({ ...ref, bytes: ref.bytes + 1 }, 'slice_of_life'));
 });
+
+test('synchronous cache reads cannot bypass invalid paths, count, size, or genre', async () => {
+    const server = memoryServer(); const store = new RecipeStore({ request: server.request });
+    const lib = planOffload(fixture()).libraries.get('comedy');
+    const ref = await store.persist(lib); await store.load(ref, 'comedy');
+    assert.ok(store.get(ref, 'comedy'));
+    assert.throws(() => store.get({ ...ref, path: '/api/secrets/view' }, 'comedy'), /Untrusted/);
+    assert.throws(() => store.get({ ...ref, count: ref.count + 1 }, 'comedy'), /mismatch/);
+    assert.throws(() => store.get({ ...ref, bytes: ref.bytes + 1 }, 'comedy'), /mismatch/);
+    assert.throws(() => store.get(ref, 'horror'), /mismatch/);
+});
+
+test('archive response streaming stops at the declared byte budget', async () => {
+    let canceled = false;
+    const ref = { path: `user/files/nemo-recipes-v1-${'a'.repeat(64)}.json`, sha256: 'a'.repeat(64), bytes: 4, count: 1 };
+    const store = new RecipeStore({ request: async () => new Response(new ReadableStream({
+        pull(controller) { controller.enqueue(new Uint8Array(100)); },
+        cancel() { canceled = true; },
+    })) });
+    await assert.rejects(store.readText(ref), /byte limit/);
+    assert.equal(canceled, true);
+});
+
+test('aborted archive reads stop before consuming the response', async () => {
+    const server = memoryServer(); const store = new RecipeStore({ request: server.request });
+    const ref = await store.persist(planOffload(fixture()).libraries.get('comedy'));
+    const controller = new AbortController(); controller.abort(new Error('cancelled by test'));
+    await assert.rejects(store.readText(ref, { signal: controller.signal }), /cancelled by test/);
+});

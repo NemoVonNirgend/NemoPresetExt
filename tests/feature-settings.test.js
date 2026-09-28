@@ -17,11 +17,12 @@ const EXPECTED_DEFAULTS = {
     enableDirectives: true,
     enableDirectiveAutocomplete: true,
     enableNemoEngineInstaller: true,
+    enableRecipeOffload: true,
     enableReasoningSection: true,
     enableLorebookManagement: false,
 };
 
-test('schema contains the merged prompt workstation and retained core gates', () => {
+ test('schema contains the merged prompt workstation and retained core gates', () => {
     assert.deepEqual(FEATURE_DEFAULTS, EXPECTED_DEFAULTS);
 });
 
@@ -84,4 +85,9 @@ test('schema application is idempotent', () => {
     const first = structuredClone(settings);
     applySettingsSchema(settings);
     assert.deepEqual(settings, first);
+});
+
+test('recipe import optimization defaults on without replacing an explicit opt-out', () => {
+    assert.equal(applySettingsSchema({}).enableRecipeOffload, true);
+    assert.equal(applySettingsSchema({ enableRecipeOffload: false }).enableRecipeOffload, false);
 });

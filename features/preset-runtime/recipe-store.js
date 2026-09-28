@@ -43,13 +43,46 @@ export class RecipeStore {
 
     async readText(ref, { signal } = {}) {
         const path = validateReference(ref);
-        const response = await this.request(path, { credentials: 'same-origin', redirect: 'error', cache: 'no-store', signal });
-        if (!response.ok) throw new Error(`Missing Nemo recipe library (${response.status}); re-import the original Full preset.`);
-        const text = await response.text();
-        if (encoder.encode(text).length !== ref.bytes || await sha256(text) !== ref.sha256) {
-            throw new Error('Nemo library failed its integrity check; the optimized preset has not been activated.');
+        const controller = new AbortController();
+        const cancel = () => controller.abort(signal?.reason);
+        if (signal?.aborted) cancel();
+        else signal?.addEventListener('abort', cancel, { once: true });
+        const timer = setTimeout(() => controller.abort(new Error('Nemo library read timed out.')), 30000);
+        let reader;
+        try {
+            const response = await this.request(path, {
+                credentials: 'same-origin', redirect: 'error', cache: 'no-store', signal: controller.signal,
+            });
+            if (!response.ok) throw new Error(`Missing Nemo recipe library (${response.status}); re-import the original Full preset.`);
+            let text;
+            if (response.body?.getReader) {
+                reader = response.body.getReader();
+                const chunks = [];
+                let length = 0;
+                while (true) {
+                    controller.signal.throwIfAborted();
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    length += value.byteLength;
+                    if (length > ref.bytes) throw new Error('Nemo library exceeds its declared byte limit.');
+                    chunks.push(value);
+                }
+                const bytes = new Uint8Array(length);
+                let offset = 0;
+                for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+                text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+            } else {
+                text = await response.text();
+            }
+            if (encoder.encode(text).length !== ref.bytes || await sha256(text) !== ref.sha256) {
+                throw new Error('Nemo library failed its integrity check; the optimized preset has not been activated.');
+            }
+            return text;
+        } finally {
+            clearTimeout(timer);
+            signal?.removeEventListener('abort', cancel);
+            if (reader) { await reader.cancel().catch(() => {}); reader.releaseLock(); }
         }
-        return text;
     }
 
     async persist(library, { signal } = {}) {
@@ -98,7 +131,16 @@ export class RecipeStore {
         finally { if (cache && this.pending.get(pendingKey) === task) this.pending.delete(pendingKey); }
     }
 
-    get(ref) { return ref && this.cache.get(ref.sha256)?.value; }
+    get(ref, genre) {
+        if (!ref) return undefined;
+        validateReference(ref);
+        const entry = this.cache.get(ref.sha256);
+        if (entry && (entry.bytes !== ref.bytes || entry.value.index.size !== ref.count
+            || (genre !== undefined && entry.value.library.genre !== genre))) {
+            throw new Error('Cached library metadata mismatch.');
+        }
+        return entry?.value;
+    }
 
     /** Keep current selections pinned; bound all other cached partitions by byte size. */
     trim(pinned = new Set()) {

@@ -98,6 +98,7 @@ export const NemoSettingsUI = {
             ['nemoEnableDirectives', 'enableDirectives'],
             ['nemoEnableDirectiveAutocomplete', 'enableDirectiveAutocomplete'],
             ['nemoEnableNemoEngineInstaller', 'enableNemoEngineInstaller'],
+            ['nemoEnableRecipeOffload', 'enableRecipeOffload'],
         ]) {
             const input = document.getElementById(id);
             if (!input) continue;

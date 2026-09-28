@@ -79,6 +79,11 @@
                     <input id="nemoEnableNemoEngineInstaller" type="checkbox">
                     <span>Enable the NemoEngine installer</span>
                 </label>
+                <label class="checkbox_label" for="nemoEnableRecipeOffload">
+                    <input id="nemoEnableRecipeOffload" type="checkbox">
+                    <span>Optimize supported Nemo Full imports by storing writing recipes outside the preset</span>
+                </label>
+                <small class="notes">Applies to new imports immediately. Existing optimized presets still require this extension and their server-side recipe files. Re-import a portable Full preset with this disabled to return to self-contained storage. Use whole-preset Export for sharing.</small>
                 <div id="nemo-engine-installer-mount" class="nemo-engine-installer-mount"></div>
             </div>
 

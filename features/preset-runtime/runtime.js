@@ -80,13 +80,13 @@ function wireManager() {
             if (!variables?.get) throw new Error('This ST version does not expose the variable API required by Nemo.');
             const genre = String(variables.get('NCGenreId') ?? '');
             const ref = manifest.libraries[genre];
-            const data = store.get(ref);
+            const data = store.get(ref, genre);
             if (!data) throw new Error(`Recipe partition ${genre || '(unset)'} is not ready. Retry after selecting a genre; do not send an incomplete prompt.`);
             const key = 'NP' + String(variables.get(`NG_${genre}`) ?? '')
                 + String(variables.get(`NA_${variables.get('NCAuthorId')}`) ?? '')
                 + String(variables.get(`NS_${variables.get('NCStyleId')}`) ?? '');
-            // Keys use the original index and original source slices. No generated substitutes.
-            // A genuinely absent key retains ST getvar's empty-value behavior.
+            // An explicit empty recipe is valid; a missing record is not.
+            if (!data.index.has(key)) throw new Error(`Selected recipe ${key} is missing; restore the portable preset instead of sending an incomplete prompt.`);
             return original.call(this, { ...prompt, content: data.get(key) + '\n{{trim}}' }, originalContent);
         } catch (error) {
             fatal = error;
@@ -101,7 +101,6 @@ function wireManager() {
         try {
             await prepareRecipeRuntime(preset);
             if (getManifest(this.serviceSettings) !== manifest) return; // Stale dry run after a preset switch.
-            fatal = null;
             dryRuns++;
             try { return await original.apply(this, args); }
             finally { dryRuns--; }
@@ -125,12 +124,16 @@ export async function recipeGenerationPreflight(_chat, _contextSize, abort, type
     fatal = null;
     if (main_api !== 'openai' || !getManifest(oai_settings)) return;
     wireManager();
-    try { await prepareRecipeRuntime(oai_settings, type); }
-    catch (error) { fatal = error; abort(true); report(error); }
+    const manifest = getManifest(oai_settings);
+    try {
+        await prepareRecipeRuntime(oai_settings, type);
+        if (getManifest(oai_settings) !== manifest) throw new Error('The preset changed during recipe preparation. Send again with the selected preset.');
+    } catch (error) { fatal = error; abort(true); report(error); }
 }
 
-function guardPreparedPrompt() {
-    if (fatal && dryRuns === 0 && main_api === 'openai' && getManifest(oai_settings)) getContext().stopGeneration?.();
+function guardPreparedPrompt({ dryRun = false } = {}) {
+    // Use this build's flag, not the count of other in-flight UI dry runs.
+    if (fatal && !dryRun && main_api === 'openai' && getManifest(oai_settings)) getContext().stopGeneration?.();
 }
 
 /** Capture the native file INPUT before ST's async input handler reads or parses it. */

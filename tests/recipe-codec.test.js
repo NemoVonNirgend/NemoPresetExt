@@ -135,3 +135,13 @@ test('real Full fixture: every recipe and complete portable round trip', { skip:
     const sourceIds = new Set(original.prompts.map(p => p.identifier));
     for (const order of slim.prompt_order) for (const entry of order.order) assert.ok(sourceIds.has(entry.identifier));
 });
+
+test('disabled or non-triggered recipe resolvers need no archive hydration', () => {
+    const { slim } = compile();
+    slim.prompt_order[1].order.find(p => p.identifier === 'nc-writing-resolver').enabled = false;
+    assert.equal(selectedGenres(slim).size, 0);
+    slim.prompt_order[1].order.find(p => p.identifier === 'nc-writing-resolver').enabled = true;
+    slim.prompts.find(p => p.identifier === 'nc-writing-resolver').injection_trigger = ['swipe'];
+    assert.equal(selectedGenres(slim, 100001, 'normal').size, 0);
+    assert.equal(selectedGenres(slim, 100001, 'swipe').size, 1);
+});
