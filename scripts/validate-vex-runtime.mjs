@@ -89,9 +89,9 @@ try {
         if (url === '/api/files/upload') {
             const data = JSON.parse(options.body); assert(/^[a-z0-9.-]+$/.test(data.name));
             await fs.writeFile(path.join(directory, data.name), Buffer.from(data.data, 'base64'));
-            return Response.json({ path: `/files/${data.name}` });
+            return Response.json({ path: `/user/files/${data.name}` });
         }
-        assert(/^\/files\/nemo-vex-source-[a-f0-9]{64}\.json$/.test(url));
+        assert(/^\/user\/files\/nemo-vex-source-[a-f0-9]{64}\.json$/.test(url));
         try { return new Response(await fs.readFile(path.join(directory, path.basename(url)))); }
         catch (error) { if (error.code !== 'ENOENT') throw error; return new Response('missing', { status: 404 }); }
     };
