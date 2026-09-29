@@ -1,3 +1,4 @@
+import { matchedUserFilePath } from '../../core/user-file-path.js';
 /** Stage 3/5: reversible ordinary-prompt storage. Never evaluates prompt macros. */
 export const BODY_KEY = 'nemoPromptBody';
 export const SCHEMA = 1;
@@ -23,8 +24,10 @@ export function descriptorOf(prompt) {
     return prompt?.[BODY_KEY] ?? null;
 }
 export function checkedDescriptor(d) {
-    if (!d || d.schema !== SCHEMA || !HEX.test(d.ref?.sha256 ?? '') ||
-        d.ref.path !== `/files/nemo-prompts-${d.ref.sha256}.json` ||
+    const sha256 = d?.ref?.sha256;
+    const name = HEX.test(sha256 ?? '') ? `nemo-prompts-${sha256}.json` : '';
+    if (!d || d.schema !== SCHEMA || !HEX.test(sha256 ?? '') ||
+        !matchedUserFilePath(d.ref?.path, name) ||
         !Number.isSafeInteger(d.index) || d.index < 0 || d.index > 4096 ||
         !Number.isSafeInteger(d.characters) || d.characters < 0 || d.characters > MAX_BODY_CHARS ||
         typeof d.shell !== 'string' || d.shell.length > MAX_SHELL_CHARS) {
