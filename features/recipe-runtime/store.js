@@ -1,5 +1,6 @@
 /** Content-addressed sidecars in the authenticated ST user's files directory. */
 import { parseBank, compactPreset, restorePreset, runtimeOf } from './format.js';
+import { alternateUserFilePath, currentUserFilePath, matchedUserFilePath } from '../../core/user-file-path.js';
 const encoder = new TextEncoder();
 const HEX = /^[a-f0-9]{64}$/;
 
@@ -10,9 +11,10 @@ export async function digest(text) {
 
 export function checkedPath(ref) {
     if (!ref || !HEX.test(ref.sha256 ?? '') || typeof ref.path !== 'string') throw new Error('Invalid Nemo sidecar reference.');
-    const expected = `/files/nemo-recipes-${ref.sha256}.json`;
-    if (ref.path.replace(/^\/?/, '/') !== expected) throw new Error('Unsafe Nemo sidecar path.');
-    return expected;
+    const name = `nemo-recipes-${ref.sha256}.json`;
+    const matched = matchedUserFilePath(ref.path, name);
+    if (!matched) throw new Error('Unsafe Nemo sidecar path.');
+    return matched;
 }
 
 function base64(text) {
@@ -41,7 +43,13 @@ export class RecipeStore {
     }
 
     async read(ref) {
-        const response = await this.request(checkedPath(ref));
+        const name = `nemo-recipes-${ref.sha256}.json`;
+        const primary = checkedPath(ref);
+        let response = await this.request(primary);
+        if (!response.ok && response.status === 404) {
+            const alternate = alternateUserFilePath(primary, name);
+            if (alternate) response = await this.request(alternate);
+        }
         if (!response.ok) throw new Error(`Nemo sidecar unavailable (${response.status}). Reimport the original portable preset to repair it.`);
         if (await digest(response.text) !== ref.sha256) throw new Error('Nemo sidecar checksum mismatch. Reimport the portable preset.');
         return JSON.parse(response.text);
@@ -52,7 +60,7 @@ export class RecipeStore {
         if (text.length > 4 * 1024 * 1024) throw new Error('Nemo sidecar exceeds the supported size.');
         const sha256 = await digest(text);
         const name = `nemo-recipes-${sha256}.json`;
-        const ref = { path: `/files/${name}`, sha256 };
+        let ref = { path: currentUserFilePath(name), sha256 };
         const existing = await this.request(ref.path);
         if (existing.ok && await digest(existing.text) === sha256) return ref;
         if (!existing.ok && existing.status !== 404) throw new Error(`Cannot check recipe storage (${existing.status}).`);
@@ -61,8 +69,9 @@ export class RecipeStore {
             body: JSON.stringify({ name, data: base64(text) }),
         });
         if (!response.ok) throw new Error(`Could not save recipe sidecar (${response.status}).`);
-        const uploaded = JSON.parse(response.text);
-        checkedPath({ path: uploaded.path, sha256 });
+        const path = matchedUserFilePath(JSON.parse(response.text).path, name);
+        if (!path) throw new Error('Unsafe Nemo sidecar path.');
+        ref = { path, sha256 };
         await this.read(ref); // Do not discard the portable source until read-back succeeds.
         return ref;
     }

@@ -26,8 +26,8 @@ function transport() {
         if (url === '/api/files/upload') {
             if (writeFailure) return response('failed', 500);
             const { name, data } = JSON.parse(options.body);
-            files.set(`/files/${name}`, Buffer.from(data, 'base64').toString('utf8'));
-            return response(JSON.stringify({ path: `files/${name}` }));
+            files.set(`/user/files/${name}`, Buffer.from(data, 'base64').toString('utf8'));
+            return response(JSON.stringify({ path: `user/files/${name}` }));
         }
         return files.has(url) ? response(files.get(url)) : response('missing', 404);
     };
@@ -98,6 +98,14 @@ test('import writes and verifies before replacing bodies; export round-trips exa
     await env.runtime.exportReady(exported);
     assert.deepEqual(exported, env.original);
     assert.equal(env.pm.serviceSettings.prompts.filter(isCold).length, 3);
+    env.runtime.dispose();
+});
+test('current ST user/files path is stored and legacy /files descriptors still read through fallback', async () => {
+    const env = await installed(), p = env.pm.getPromptById('optional');
+    assert.match(p[BODY_KEY].ref.path, /^\/user\/files\/nemo-prompts-/);
+    const legacy = structuredClone(p[BODY_KEY]);
+    legacy.ref.path = legacy.ref.path.replace('/user/files/', '/files/');
+    assert.equal(await env.store.read(legacy), env.original.prompts[3].content);
     env.runtime.dispose();
 });
 test('enabled prompts hydrate before native dry run; disabled text stays cold', async () => {
@@ -219,7 +227,7 @@ test('corrupt shell/index/length metadata cannot load another body', async () =>
     }
     env.runtime.dispose();
 });
-for (const path of ['https://evil.example/x', '/api/settings/get', '/files/../x', '//evil/x']) test(`reject external or traversing path ${path}`, () => {
+for (const path of ['https://evil.example/x', '/api/settings/get', '/files/../x', '/user/files/../x', '//evil/x']) test(`reject external or traversing path ${path}`, () => {
     assert.throws(() => checkedDescriptor({ schema: 1, ref: { sha256: 'a'.repeat(64), path }, index: 0, characters: 0, shell: '' }));
 });
 test('an in-flight hydrate never overwrites a newer source edit', async () => {

@@ -30,7 +30,7 @@ function server() {
             if (url === '/api/files/upload') {
                 if (failUpload) return response(500, 'Failed');
                 const { name, data } = JSON.parse(options.body);
-                const path = `/files/${name}`;
+                const path = `/user/files/${name}`;
                 files.set(path, Buffer.from(data, 'base64').toString('utf8'));
                 return response(200, JSON.stringify({ path }));
             }
@@ -153,7 +153,15 @@ test('checksum mismatch is rejected and a later import can repair it', async () 
     await h.runtime.importReady({ data: fixture() });
     assert.equal((await h.store.read(m.shards[0])).identifier, m.shards[0].identifier);
 });
-for (const path of ['https://evil.example/files/x.json', '/api/secrets/read', '/files/../x', '//other.example/file']) test(`rejects unsafe storage path ${path}`, () => assert.throws(() => checkedPath({ path, sha256: 'a'.repeat(64) })));
+for (const path of ['https://evil.example/files/x.json', '/api/secrets/read', '/files/../x', '/user/files/../x', '//other.example/file']) test(`rejects unsafe storage path ${path}`, () => assert.throws(() => checkedPath({ path, sha256: 'a'.repeat(64) })));
+
+test('recipe references use current ST user/files and legacy paths remain readable', async () => {
+    const h = harness(); const f = await optimized(h);
+    const ref = f.extensions[RUNTIME_KEY].manifest;
+    assert.match(ref.path, /^\/user\/files\/nemo-recipes-/);
+    const legacy = { ...ref, path: ref.path.replace('/user/files/', '/files/') };
+    assert.equal((await h.store.read(legacy)).schema, 1);
+});
 
 test('a fresh runtime fetches only the index and selected shard; cache retains only two recipe strings', async () => {
     const h = harness(); const f = await optimized(h); h.runtime.dispose(); h.host.calls.length = 0;

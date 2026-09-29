@@ -39,8 +39,8 @@ function setup() {
         let text, status = 200;
         if (url === '/api/files/upload') {
             const { name, data } = JSON.parse(options.body);
-            files.set(`/files/${name}`, Buffer.from(data, 'base64').toString('utf8'));
-            text = JSON.stringify({ path: `files/${name}` });
+            files.set(`/user/files/${name}`, Buffer.from(data, 'base64').toString('utf8'));
+            text = JSON.stringify({ path: `user/files/${name}` });
         } else { text = files.get(url); if (text === undefined) { status = 404; text = ''; } }
         return { ok: status === 200, status, text: async () => text };
     };

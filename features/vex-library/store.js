@@ -1,6 +1,7 @@
 /** Stage 4A/5 source storage only. Not registered with the extension entry point. */
 import { BANK_IDS, SCHEMA, MAX_BYTES, MAX_ENTRIES, byteLength, libraryKey, parseBank,
     snapshotLibrary, restoreSources, requireThat } from './format.js';
+import { alternateUserFilePath, currentUserFilePath, matchedUserFilePath } from '../../core/user-file-path.js';
 
 const HEX = /^[a-f0-9]{64}$/;
 export async function digest(text) {
@@ -10,8 +11,9 @@ export async function digest(text) {
 export function checkedPath(ref) {
     requireThat(ref && typeof ref.sha256 === 'string' && HEX.test(ref.sha256)
         && typeof ref.path === 'string', 'invalid source reference.');
-    const path = `/files/nemo-vex-source-${ref.sha256}.json`;
-    requireThat(ref.path === path || ref.path === path.slice(1), 'unsafe source path.');
+    const name = `nemo-vex-source-${ref.sha256}.json`;
+    const path = matchedUserFilePath(ref.path, name);
+    requireThat(path, 'unsafe source path.');
     return path;
 }
 function base64(text) {
@@ -71,7 +73,13 @@ export class VexLibraryStore {
         finally { clearTimeout(timer); }
     }
     async read(ref) {
-        const response = await this.request(checkedPath(ref));
+        const name = `nemo-vex-source-${ref.sha256}.json`;
+        const primary = checkedPath(ref);
+        let response = await this.request(primary);
+        if (!response.ok && response.status === 404) {
+            const alternate = alternateUserFilePath(primary, name);
+            if (alternate) response = await this.request(alternate);
+        }
         requireThat(response.ok, `source unavailable (${response.status}). Restore the original portable preset to repair it.`);
         requireThat(await digest(response.text) === ref.sha256, 'source checksum mismatch.');
         return JSON.parse(response.text);
@@ -80,7 +88,7 @@ export class VexLibraryStore {
         const text = JSON.stringify(value);
         requireThat(typeof text === 'string' && byteLength(text) <= MAX_BYTES, 'source exceeds the byte limit.');
         const sha256 = await digest(text), name = `nemo-vex-source-${sha256}.json`;
-        const ref = { path: `/files/${name}`, sha256 };
+        let ref = { path: currentUserFilePath(name), sha256 };
         const existing = await this.request(ref.path);
         if (existing.ok && await digest(existing.text) === sha256) return ref;
         requireThat(existing.ok || existing.status === 404, `cannot check source storage (${existing.status}).`);
@@ -88,7 +96,9 @@ export class VexLibraryStore {
             headers: { ...this.headers(), 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, data: base64(text) }) });
         requireThat(uploaded.ok, `source write failed (${uploaded.status}).`);
-        checkedPath({ path: JSON.parse(uploaded.text).path, sha256 });
+        const path = matchedUserFilePath(JSON.parse(uploaded.text).path, name);
+        requireThat(path, 'unsafe source path.');
+        ref = { path, sha256 };
         await this.read(ref); // No descriptor is returned before durable read-back succeeds.
         return ref;
     }

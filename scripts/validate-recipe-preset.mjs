@@ -21,7 +21,7 @@ const fetchFn = async (url, options) => {
         const { name, data } = JSON.parse(options.body);
         await writeFile(join(directory, name), Buffer.from(data, 'base64'));
         uploads++;
-        text = JSON.stringify({ path: `/files/${name}` });
+        text = JSON.stringify({ path: `/user/files/${name}` });
     } else {
         try { text = await readFile(join(directory, basename(url)), 'utf8'); }
         catch (error) { if (error.code === 'ENOENT') return { ok: false, status: 404, text: async () => '' }; throw error; }

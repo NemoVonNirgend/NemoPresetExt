@@ -21,11 +21,11 @@ if (!hasVexLibrary(preset)) {
                 assert.match(name, /^nemo-vex-source-[a-f0-9]{64}\.json$/);
                 await writeFile(join(directory, name), Buffer.from(data, 'base64'));
                 writes++;
-                return Response.json({ path: `files/${name}` });
+                return Response.json({ path: `user/files/${name}` });
             }
-            assert.match(url, /^\/files\/nemo-vex-source-[a-f0-9]{64}\.json$/);
+            assert.match(url, /^\/user\/files\/nemo-vex-source-[a-f0-9]{64}\.json$/);
             reads++;
-            try { return new Response(await readFile(join(directory, url.slice('/files/'.length)))); }
+            try { return new Response(await readFile(join(directory, url.slice('/user/files/'.length)))); }
             catch (error) { if (error.code === 'ENOENT') return new Response('missing', { status: 404 }); throw error; }
         };
         const before = JSON.stringify(preset), snapshot = snapshotLibrary(preset);

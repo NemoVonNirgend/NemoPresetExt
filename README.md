@@ -2,13 +2,17 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.6
+**Version:** 6.0.7
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.7 storage-path compatibility fix
+
+SillyTavern's authenticated Files API stores uploaded extension files under the user's `/user/files/` route. Earlier Nemo performance-storage code incorrectly expected `/files/`, which could stop fresh preset imports after a successful upload with **Unexpected prompt storage location**. Version 6.0.7 writes new recipe, prompt-body and Vex sidecars to the current `/user/files/` route, accepts legacy `/files/` references, and retries the equivalent current/legacy location on a 404. Exact filename validation, same-origin requests, SHA-256 checks and read-back verification remain enforced.
 
 ## Prompt workstation
 
