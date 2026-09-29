@@ -23,8 +23,8 @@ function transport({ uploadFailure = false, corruptReadback = false, status = nu
         if (url === '/api/files/upload') {
             if (uploadFailure) return new Response('write failed', { status: 507 });
             const { name, data } = JSON.parse(options.body);
-            files.set(`/files/${name}`, corruptReadback ? 'corrupt' : Buffer.from(data, 'base64').toString('utf8'));
-            return Response.json({ path: `files/${name}` });
+            files.set(`/user/files/${name}`, corruptReadback ? 'corrupt' : Buffer.from(data, 'base64').toString('utf8'));
+            return Response.json({ path: `user/files/${name}` });
         }
         if (status) return new Response('read failed', { status });
         return files.has(url) ? new Response(files.get(url)) : new Response('missing', { status: 404 });
@@ -97,6 +97,13 @@ test('capture/read-back and fresh-store restore are exact and do not mutate inpu
     assert.deepEqual(await io.store().restore(copy, descriptor, { expectedContents }), source);
     assert.equal(JSON.stringify(copy), compactBefore);
 });
+test('Vex references use current ST user/files and legacy paths remain readable', async () => {
+    const source = fixture(), io = transport(), store = io.store();
+    const descriptor = await store.capture(source);
+    assert.match(descriptor.manifest.path, /^\/user\/files\/nemo-vex-source-/);
+    const legacy = { ...descriptor.manifest, path: descriptor.manifest.path.replace('/user/files/', '/files/') };
+    assert.equal((await store.read(legacy)).kind, 'manifest');
+});
 test('capture snapshots source before an asynchronous editor change', async () => {
     const source = fixture(), original = source.prompts[0].content, io = transport();
     const work = io.store().capture(source);
@@ -156,7 +163,7 @@ test('non-404 storage errors do not trigger uploads', async () => {
     await assert.rejects(io.store().capture(fixture()), /cannot check/);
     assert.equal(io.calls.some(c => c.url === '/api/files/upload'), false);
 });
-for (const path of ['https://evil.example/x', '//evil/x', '/files/../x', '/api/settings/get',
+for (const path of ['https://evil.example/x', '//evil/x', '/files/../x', '/user/files/../x', '/api/settings/get',
     '/files/nemo-vex-source-x.json', '/files/nemo-vex-source-' + 'a'.repeat(64) + '.json?x=1']) {
     test(`unsafe reference rejected before fetch: ${path}`, async () => {
         const io = transport();
