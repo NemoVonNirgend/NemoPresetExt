@@ -20,7 +20,7 @@ Native system prompts, quick-edit fields (`main`, `nsfw`, `jailbreak`), markers,
 
 ## Storage and backups
 
-Source packs are immutable JSON files named `nemo-prompts-<sha256>.json` in the authenticated ST user's files directory. Requests are same-origin, reject redirects, and validate the exact filename/hash. Each pack is verified by read-back before source removal. Packs normally target 256 Ki UTF-16 code units, with bounded body and response sizes. A temporarily read pack is released after its requested bodies are extracted. The store retains in-flight requests only, not a persistent whole-library RAM cache.
+Source packs are immutable JSON files named `nemo-prompts-<sha256>.json` in the authenticated ST user's `/user/files/` directory. Requests are same-origin, reject redirects, and validate the exact filename/hash. Version 6.0.7 also accepts legacy `/files/` references and retries the equivalent current location on a 404, but new writes use SillyTavern's current `/user/files/` route. Each pack is verified by read-back before source removal. Packs normally target 256 Ki UTF-16 code units, with bounded body and response sizes. A temporarily read pack is released after its requested bodies are extracted. The store retains in-flight requests only, not a persistent whole-library RAM cache.
 
 The browser is not the only copy. Clearing browser data does not erase server-side source packs. Back up your ST user files directory together with settings and presets. Normal ST Save/Update semantics still apply to which preset revision is persisted; this feature does not turn unsaved editor text into a saved preset revision.
 
