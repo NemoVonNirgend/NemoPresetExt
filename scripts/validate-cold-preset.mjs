@@ -18,9 +18,9 @@ const fileFetch = async (url, options = {}) => {
         assert.match(name, /^nemo-prompts-[a-f0-9]{64}\.json$/);
         await writeFile(join(directory, name), Buffer.from(data, 'base64'));
         files.add(name);
-        return response(JSON.stringify({ path: `files/${name}` }));
+        return response(JSON.stringify({ path: `user/files/${name}` }));
     }
-    assert.match(url, /^\/files\/nemo-prompts-[a-f0-9]{64}\.json$/);
+    assert.match(url, /^\/user\/files\/nemo-prompts-[a-f0-9]{64}\.json$/);
     try { return response(await readFile(join(directory, basename(url)), 'utf8')); }
     catch (error) { if (error.code === 'ENOENT') return response('', 404); throw error; }
 };
