@@ -1,5 +1,6 @@
 /** Verified, immutable packs in ST's authenticated files directory. No localStorage body copies. */
 import { BODY_KEY, MAX_BODY_CHARS, checkedDescriptor, descriptorOf, isCold, shellFor, portablePrompt } from './format.js';
+import { alternateUserFilePath, currentUserFilePath, matchedUserFilePath } from '../../core/user-file-path.js';
 const encoder = new TextEncoder();
 const MAX_PACK_CHARS = 4 * 1024 * 1024;
 export async function digest(text) {
@@ -32,7 +33,13 @@ export class PromptBodyStore {
         checkedDescriptor({ schema: 1, ref, index: 0, characters: 0, shell: '' });
         if (this.pending.has(ref.sha256)) return this.pending.get(ref.sha256);
         const work = (async () => {
-            const r = await this.request(ref.path);
+            const name = `nemo-prompts-${ref.sha256}.json`;
+            const primary = matchedUserFilePath(ref.path, name);
+            let r = await this.request(primary);
+            if (!r.ok && r.status === 404) {
+                const alternate = alternateUserFilePath(primary, name);
+                if (alternate) r = await this.request(alternate);
+            }
             if (!r.ok) throw new Error(`Prompt storage unavailable (${r.status}). Reimport a portable preset to repair it.`);
             if (await digest(r.text) !== ref.sha256) throw new Error('Prompt storage checksum mismatch.');
             const value = JSON.parse(r.text);
@@ -73,7 +80,7 @@ export class PromptBodyStore {
         if (text.length > MAX_PACK_CHARS) throw new Error('Prompt pack exceeds storage limit.');
         const sha256 = await digest(text);
         const name = `nemo-prompts-${sha256}.json`;
-        const ref = { path: `/files/${name}`, sha256 };
+        let ref = { path: currentUserFilePath(name), sha256 };
         const existing = await this.request(ref.path);
         if (!existing.ok || await digest(existing.text) !== sha256) {
             if (!existing.ok && existing.status !== 404) throw new Error(`Prompt storage check failed (${existing.status}).`);
@@ -82,8 +89,9 @@ export class PromptBodyStore {
                 body: JSON.stringify({ name, data: base64(text) }),
             });
             if (!r.ok) throw new Error(`Prompt storage write failed (${r.status}).`);
-            const path = JSON.parse(r.text).path;
-            if (typeof path !== 'string' || path.replace(/^\/?/, '/') !== ref.path) throw new Error('Unexpected prompt storage location.');
+            const path = matchedUserFilePath(JSON.parse(r.text).path, name);
+            if (!path) throw new Error('Unexpected prompt storage location.');
+            ref = { path, sha256 };
             this.stats.writes++;
             const verified = await this.pack(ref);
             if (JSON.stringify(verified) !== text) throw new Error('Prompt read-back verification failed.');
