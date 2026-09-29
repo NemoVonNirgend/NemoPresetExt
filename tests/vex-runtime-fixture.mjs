@@ -43,7 +43,7 @@ export function server() {
     const fetchFn = async (url, options = {}) => {
         calls.push({ url, options });
         if (url === '/api/files/upload') {
-            const { name, data } = JSON.parse(options.body), path = '/files/' + name;
+            const { name, data } = JSON.parse(options.body), path = '/user/files/' + name;
             disk.set(path, Buffer.from(data, 'base64').toString('utf8'));
             return Response.json({ path });
         }
