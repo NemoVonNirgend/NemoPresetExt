@@ -2,12 +2,10 @@
 import { BANK_IDS, SCHEMA, MAX_BYTES, MAX_ENTRIES, byteLength, libraryKey, parseBank,
     snapshotLibrary, restoreSources, requireThat } from './format.js';
 import { alternateUserFilePath, currentUserFilePath, matchedUserFilePath } from '../../core/user-file-path.js';
+import { digest } from '../../core/sha256.js';
 
 const HEX = /^[a-f0-9]{64}$/;
-export async function digest(text) {
-    const hash = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-    return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, '0')).join('');
-}
+export { digest };
 export function checkedPath(ref) {
     requireThat(ref && typeof ref.sha256 === 'string' && HEX.test(ref.sha256)
         && typeof ref.path === 'string', 'invalid source reference.');
