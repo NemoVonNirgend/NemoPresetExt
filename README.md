@@ -2,13 +2,17 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.7
+**Version:** 6.0.8
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.8 HTTP-origin hashing compatibility fix
+
+Prompt, recipe and Vex storage now share a SHA-256 helper that uses native Web Crypto when available and a JavaScript implementation of the same algorithm otherwise. This fixes imports where `crypto.subtle` is unavailable, including HTTP LAN contexts, without relaxing checksum verification or changing existing sidecar references. Update the extension, fully reload, and retry the original portable preset import. See [hashing behavior and validation](docs/SHA256_STORAGE.md).
 
 ### 6.0.7 storage-path compatibility fix
 

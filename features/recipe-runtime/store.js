@@ -1,13 +1,11 @@
 /** Content-addressed sidecars in the authenticated ST user's files directory. */
 import { parseBank, compactPreset, restorePreset, runtimeOf } from './format.js';
 import { alternateUserFilePath, currentUserFilePath, matchedUserFilePath } from '../../core/user-file-path.js';
+import { digest } from '../../core/sha256.js';
 const encoder = new TextEncoder();
 const HEX = /^[a-f0-9]{64}$/;
 
-export async function digest(text) {
-    const bytes = await globalThis.crypto.subtle.digest('SHA-256', encoder.encode(text));
-    return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
-}
+export { digest };
 
 export function checkedPath(ref) {
     if (!ref || !HEX.test(ref.sha256 ?? '') || typeof ref.path !== 'string') throw new Error('Invalid Nemo sidecar reference.');
