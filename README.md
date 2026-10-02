@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.8
+**Version:** 6.0.9
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.9 Braille-space lorebook activation
+
+Braille blanks (`U+2800`, `⠀`) now act as ordinary spaces in lorebook scan keywords. `Happy Hapini Village` activates for `Happy⠀Hapini⠀Village`, including mixed spacing. Enabled automatically, this covers primary and secondary keys in global, character, chat and persona lorebooks, recursive scans, injected scan text and inclusion-group scoring. Regex keys also accept Braille blanks wherever their character atoms accept spaces, including `\s`, literal spaces and character classes. Native case sensitivity, single-word boundaries, selective logic, budgets and recursion rules remain in charge. Saved lorebooks and message text are unchanged.
+
+Update the extension and fully reload SillyTavern. Requires the native `WORLDINFO_ENTRIES_LOADED` event. Regex backreferences retain exact captured-character matching.
 
 ### 6.0.8 HTTP-origin hashing compatibility fix
 
