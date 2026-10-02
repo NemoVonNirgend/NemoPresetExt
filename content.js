@@ -19,6 +19,7 @@ import {
 import { cleanupDirectiveAutocomplete, initDirectiveAutocomplete } from './features/directives/directive-autocomplete-ui.js';
 import { cleanupNemoEngineInstaller, initNemoEngineInstaller } from './features/preset-installer/runtime.js';
 import { cleanupPromptTools, initializePromptTools } from './features/prompt-tools/runtime.js';
+import { initializeLorebookSpacing, cleanupLorebookSpacing } from './features/lorebook-spacing/runtime.js';
 
 let initialized = false;
 let cleanupInProgress = false;
@@ -74,6 +75,7 @@ export async function cleanupExtension() {
         cleanupPromptPerformance();
         cleanupRecipeRuntime();
         cleanupPromptTools();
+        cleanupLorebookSpacing();
         cleanupDirectiveAutocomplete();
         cleanupMessageTriggerHooks();
         cleanupPromptDirectiveHooks();
@@ -97,6 +99,7 @@ export async function initializeExtension() {
     try {
         ensureSettingsNamespace();
         validateDividerPatterns();
+        initializeLorebookSpacing();
         initializeRecipeRuntime();
         initializePromptPerformance();
         initializeVexRuntime();
