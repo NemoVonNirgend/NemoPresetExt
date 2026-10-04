@@ -91,7 +91,18 @@ body[data-nemo-prompt-ui] .nemo-status-message.error {
     background: color-mix(in srgb, var(--nemo-prompt-danger) 12%, transparent);
 }
 
-body[data-nemo-prompt-ui] #completion_prompt_manager_list {
+body[data-nemo-prompt-ui] #completion_prompt_manager {
+    /* Native .range-block is a wrapping flex row. Give this size-contained
+       child the available width instead of its now-empty intrinsic width. */
+    container-name: nemo-prompt-panel;
+    container-type: inline-size;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list {
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -132,13 +143,15 @@ body[data-nemo-prompt-ui] .nemo-engine-section[open] > summary::before {
     transform: translateY(-50%) rotate(90deg);
 }
 
-body[data-nemo-prompt-ui] .nemo-engine-section > summary > li.completion_prompt_manager_prompt,
-body[data-nemo-prompt-ui] li.completion_prompt_manager_prompt.nemo-section-header {
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list .nemo-engine-section > summary > li.completion_prompt_manager_prompt,
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt.nemo-header-item {
     width: 100%;
     min-width: 0;
 }
 
-body[data-nemo-prompt-ui] li.completion_prompt_manager_prompt {
+/* Native ST rows use two ID selectors and a three-column grid. Match that
+   scope so the flex layout, including its wrapping rules, actually takes over. */
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -146,14 +159,28 @@ body[data-nemo-prompt-ui] li.completion_prompt_manager_prompt {
     box-sizing: border-box;
 }
 
-body[data-nemo-prompt-ui] span.completion_prompt_manager_prompt_name {
+/* Keep native visibility semantics; inline search hiding and tray !important
+   hiding still take precedence over these normal author declarations. */
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt.completion_prompt_manager_prompt_invisible {
+    display: none;
+}
+
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt.completion_prompt_manager_prompt_visible {
+    display: flex;
+}
+
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt[hidden] {
+    display: none;
+}
+
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list span.completion_prompt_manager_prompt_name {
     display: flex;
     align-items: center;
     flex: 1 1 auto;
     min-width: 0;
 }
 
-body[data-nemo-prompt-ui] span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
     min-width: 0;
 }
 
@@ -164,7 +191,31 @@ body[data-nemo-prompt-ui] .completion_prompt_manager_prompt_controls {
     gap: 5px;
 }
 
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt > :is(.prompt_manager_prompt_tokens, span:has(> .prompt_manager_prompt_controls)) {
+    flex: 0 0 auto;
+}
+
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt .prompt_manager_prompt_controls {
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+/* Native actions are spans, not buttons. Size their hit boxes with the font
+   instead of the native fixed 18px boxes, which overlap at larger text sizes. */
+body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt .prompt_manager_prompt_controls > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 1.2em;
+    height: 1.2em;
+    margin-left: 0;
+    line-height: 1;
+}
+
 body[data-nemo-prompt-ui] .nemo-enabled-count {
+    flex: 0 0 auto;
     color: var(--nemo-prompt-accent);
     font-size: 0.88em;
     font-weight: 400;
@@ -182,6 +233,7 @@ body[data-nemo-prompt-ui] .nemo-engine-section > .nemo-section-content {
 body[data-nemo-prompt-ui] .nemo-section-progress {
     position: relative;
     display: inline-block;
+    flex: 0 0 auto;
     width: 58px;
     height: 6px;
     margin-left: 7px;

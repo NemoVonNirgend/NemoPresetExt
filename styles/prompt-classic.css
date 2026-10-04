@@ -29,8 +29,8 @@ body[data-nemo-prompt-skin='classic'] .nemo-engine-section > summary::before {
     left: 1px;
 }
 
-body[data-nemo-prompt-skin='classic'] .nemo-engine-section > summary > li.completion_prompt_manager_prompt,
-body[data-nemo-prompt-skin='classic'] li.completion_prompt_manager_prompt.nemo-section-header {
+body[data-nemo-prompt-skin='classic'] #completion_prompt_manager #completion_prompt_manager_list .nemo-engine-section > summary > li.completion_prompt_manager_prompt,
+body[data-nemo-prompt-skin='classic'] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt.nemo-header-item {
     align-items: center;
     flex-wrap: nowrap;
     gap: 0;
@@ -41,7 +41,7 @@ body[data-nemo-prompt-skin='classic'] li.completion_prompt_manager_prompt.nemo-s
     line-height: 1.2;
 }
 
-body[data-nemo-prompt-skin='classic'] li.completion_prompt_manager_prompt:not(.nemo-section-header) {
+body[data-nemo-prompt-skin='classic'] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt:not(.nemo-header-item) {
     min-height: 28px;
     padding: 2px 4px !important;
     margin: 0 !important;
@@ -51,19 +51,19 @@ body[data-nemo-prompt-skin='classic'] li.completion_prompt_manager_prompt:not(.n
     line-height: 1.2;
 }
 
-body[data-nemo-prompt-skin='classic'] li.completion_prompt_manager_prompt:hover {
+body[data-nemo-prompt-skin='classic'] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt:hover {
     background: var(--nemo-prompt-hover);
     transform: none;
 }
 
-body[data-nemo-prompt-skin='classic'] span.completion_prompt_manager_prompt_name {
+body[data-nemo-prompt-skin='classic'] #completion_prompt_manager #completion_prompt_manager_list span.completion_prompt_manager_prompt_name {
     flex-wrap: nowrap;
     margin-right: 9px;
     overflow: hidden;
     white-space: nowrap;
 }
 
-body[data-nemo-prompt-skin='classic'] span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
+body[data-nemo-prompt-skin='classic'] #completion_prompt_manager #completion_prompt_manager_list span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
     display: inline-block;
     max-width: 100%;
     overflow: hidden;
@@ -140,7 +140,7 @@ body[data-nemo-prompt-skin='classic'] .nemo-category-tray {
 }
 
 body[data-nemo-prompt-skin='classic'] .nemo-tray-grid {
-    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(155px, 100%), 1fr));
     gap: 6px;
 }
 

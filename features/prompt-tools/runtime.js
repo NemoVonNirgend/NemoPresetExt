@@ -45,6 +45,7 @@ const runtimeState = {
     reconcileTimer: null,
     modeHandler: null,
     activeModeKey: null,
+    generation: 0,
 };
 
 function getSettings() {
@@ -94,6 +95,8 @@ function syncFeatureProfile(settings, forceRefresh = false) {
 }
 
 async function reconcileRuntime() {
+    if (!runtimeState.initialized) return;
+    const generation = runtimeState.generation;
     const settings = getSettings();
     applyPromptUiMode(settings);
 
@@ -104,6 +107,7 @@ async function reconcileRuntime() {
 
     if (featureEnabled('enableCharacterNavigator') && !runtimeState.characterNavigatorInitialized) {
         await NemoCharacterManager.initialize();
+        if (!runtimeState.initialized || generation !== runtimeState.generation) return;
         runtimeState.characterNavigatorInitialized = true;
     }
 
@@ -115,8 +119,11 @@ async function reconcileRuntime() {
         const missingControls = !document.getElementById('nemoSearchAndStatusWrapper');
         if (promptList && (promptList !== runtimeState.promptList || missingControls)) {
             runtimeState.promptList = promptList;
-            delete promptList.dataset.nemoPromptsInitialized;
+            // A completed native paint may already have attached the live list.
+            // Only missing controls require reinitializing that same node.
+            if (missingControls) delete promptList.dataset.nemoPromptsInitialized;
             await NemoPresetManager.initialize(promptList);
+            if (!runtimeState.initialized || generation !== runtimeState.generation) return;
         }
     }
 
@@ -130,9 +137,13 @@ async function reconcileRuntime() {
 }
 
 function scheduleReconcile() {
-    clearTimeout(runtimeState.reconcileTimer);
+    // Coalesce into the first scheduled pass. Continuous chat/extension DOM
+    // updates must not keep pushing a replaced prompt list's recovery away.
+    if (!runtimeState.initialized || runtimeState.reconcileTimer !== null) return;
+    const generation = runtimeState.generation;
     runtimeState.reconcileTimer = setTimeout(() => {
         runtimeState.reconcileTimer = null;
+        if (!runtimeState.initialized || generation !== runtimeState.generation) return;
         void reconcileRuntime().catch(error => logger.error('Prompt workstation reconciliation failed', error));
     }, 75);
 }
@@ -140,6 +151,7 @@ function scheduleReconcile() {
 export async function initializePromptTools() {
     if (runtimeState.initialized) return cleanupPromptTools;
     runtimeState.initialized = true;
+    const generation = ++runtimeState.generation;
 
     initializeStorage();
     migrateFromLocalStorage();
@@ -148,6 +160,7 @@ export async function initializePromptTools() {
 
     if (featureEnabled('enablePromptManager')) {
         await loadAndSetDividerRegex();
+        if (!runtimeState.initialized || generation !== runtimeState.generation) return cleanupPromptTools;
     }
 
     runtimeState.modeHandler = () => syncFeatureProfile(getSettings(), true);
@@ -163,6 +176,7 @@ export async function initializePromptTools() {
     runtimeState.observer.observe(document.body, { childList: true, subtree: true });
 
     await reconcileRuntime();
+    if (!runtimeState.initialized || generation !== runtimeState.generation) return cleanupPromptTools;
 
     window.NemoPromptTools = Object.freeze({
         mergedIntoCore: true,
@@ -182,6 +196,8 @@ export async function initializePromptTools() {
 }
 
 export function cleanupPromptTools() {
+    runtimeState.initialized = false;
+    runtimeState.generation++;
     clearTimeout(runtimeState.reconcileTimer);
     runtimeState.reconcileTimer = null;
     runtimeState.observer?.disconnect();

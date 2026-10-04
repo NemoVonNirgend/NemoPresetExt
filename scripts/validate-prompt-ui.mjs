@@ -1,5 +1,8 @@
-/** Dependency-free Chromium/CDP-pipe harness. No network, ST server or model calls. */
-import { readFile, mkdtemp, rm, access } from 'node:fs/promises';
+/** Dependency-free Chromium/CDP suite: actual Nemo CSS and tray markup + pinned native host excerpts.
+ * CHROME_BIN selects an installed browser. NEMO_UI_SCREENSHOT optionally saves the final fixture.
+ * NEMO_UI_STYLES optionally selects a flattened CSS snapshot for before/after reproduction.
+ */
+import { readFile, writeFile, mkdtemp, rm, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,24 +12,30 @@ let binary = process.env.CHROME_BIN;
 if (!binary) for (const candidate of ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable']) {
     try { await access(candidate, constants.X_OK); binary = candidate; break; } catch { /* Try the next installed browser. */ }
 }
-if (!binary) throw new Error('Install Chromium/Chrome or set CHROME_BIN to run the browser boundary tests.');
+if (!binary) throw new Error('Install Chromium/Chrome or set CHROME_BIN to run the prompt UI tests.');
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
-const uri = text => 'data:text/javascript;base64,' + Buffer.from(text).toString('base64');
-const model = uri(await read('../features/prompt-rendering/model.js'));
-const layoutPreservation = uri(await read('../features/prompt-rendering/layout-preservation.js'));
-const stateModel = uri(await read('../features/prompt-rendering/state-model.js'));
-const consumers = uri((await read('../features/prompt-rendering/state-consumers.js'))
-    .replace("'./state-model.js'", JSON.stringify(stateModel)));
-const virtualization = uri((await read('../features/prompt-rendering/virtualization.js'))
-    .replace("'./state-consumers.js'", JSON.stringify(consumers)));
-const renderer = uri((await read('../features/prompt-rendering/incremental.js'))
-    .replace("'./model.js'", JSON.stringify(model))
-    .replace("'./layout-preservation.js'", JSON.stringify(layoutPreservation)));
-const mainSource = (await read('./prompt-rendering-browser.mjs'))
-    .replace("'../features/prompt-rendering/incremental.js'", JSON.stringify(renderer))
-    .replace("'../features/prompt-rendering/virtualization.js'", JSON.stringify(virtualization));
-const main = uri(mainSource);
-const directory = await mkdtemp(join(tmpdir(), 'nemo-render-browser-'));
+const source = await read('../features/prompts/category-tray.js');
+function between(start, end) {
+    const from = source.indexOf(start), to = source.indexOf(end, from);
+    if (from < 0 || to < 0) throw new Error(`Tray fixture extraction needs updating: ${start}`);
+    return source.slice(from, to);
+}
+// Extract markup and compact/dropdown handlers from production source; never duplicate its classes.
+const trayBody = between("const tray = document.createElement('div');\n    tray.className = `nemo-category-tray", '    // Apply validated colors');
+const compactBody = between('function getSavedCompactSections()', '/**\n * Save a preset');
+const controlBody = between('    // Compact view toggle handler', '    // Save preset handler');
+let nemoCSS = await read('../styles.css');
+for (const match of [...nemoCSS.matchAll(/@import url\(['"]([^'"]+)['"]\);/g)]) {
+    nemoCSS = nemoCSS.replace(match[0], await read(`../${match[1]}`));
+}
+if (process.env.NEMO_UI_STYLES) nemoCSS = await readFile(process.env.NEMO_UI_STYLES, 'utf8');
+const fixtures = {
+    nativeCSS: await read('../tests/fixtures/prompt-ui/native-host.css'),
+    rowHTML: await read('../tests/fixtures/prompt-ui/native-prompt-row.html'),
+    nemoCSS, trayBody, compactBody, controlBody,
+};
+const main = 'data:text/javascript;base64,' + Buffer.from(await read('./prompt-ui-browser.mjs')).toString('base64');
+const directory = await mkdtemp(join(tmpdir(), 'nemo-ui-browser-'));
 let child, session, nextId = 0, wire = '', stderr = '';
 const pending = new Map();
 function fail(error) {
@@ -54,9 +63,9 @@ try {
         wire += chunk.toString();
         let end;
         while ((end = wire.indexOf('\0')) >= 0) {
-            const text = wire.slice(0, end); wire = wire.slice(end + 1);
-            if (!text) continue;
-            const message = JSON.parse(text), entry = pending.get(message.id);
+            const payload = wire.slice(0, end); wire = wire.slice(end + 1);
+            if (!payload) continue;
+            const message = JSON.parse(payload), entry = pending.get(message.id);
             if (!entry) continue;
             pending.delete(message.id); clearTimeout(entry.timer);
             if (message.error) entry.reject(new Error(message.error.message)); else entry.resolve(message.result);
@@ -65,12 +74,19 @@ try {
     const { targetId } = await send('Target.createTarget', { url: 'about:blank' });
     session = (await send('Target.attachToTarget', { targetId, flatten: true })).sessionId;
     await send('Runtime.enable');
-    const evaluated = await send('Runtime.evaluate', { expression: `import(${JSON.stringify(main)}).then(() => globalThis.renderingReport)`, awaitPromise: true, returnByValue: true });
-    if (evaluated.exceptionDetails) throw new Error(evaluated.exceptionDetails.text);
+    await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1200, deviceScaleFactor: 1, mobile: false });
+    const evaluated = await send('Runtime.evaluate', {
+        expression: `globalThis.promptUiFixtures = ${JSON.stringify(fixtures)}; import(${JSON.stringify(main)}).then(() => globalThis.promptUiReport)`,
+        awaitPromise: true, returnByValue: true,
+    });
+    if (evaluated.exceptionDetails) throw new Error(evaluated.exceptionDetails.exception?.description || evaluated.exceptionDetails.text);
     const report = evaluated.result?.value;
-    if (!report || !Number.isInteger(report.tests)) throw new Error('Browser did not produce a test report.');
-    // Data-URI stacks contain embedded test source. Keep errors short and useful.
+    if (!report || !Number.isInteger(report.tests)) throw new Error('Browser did not produce a UI test report.');
     for (const item of report.results) if (item.error) item.error = item.error.split('\n')[0];
+    if (process.env.NEMO_UI_SCREENSHOT) {
+        const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+        await writeFile(process.env.NEMO_UI_SCREENSHOT, Buffer.from(shot.data, 'base64'));
+    }
     console.log(JSON.stringify(report, null, 2));
     if (report.failed) process.exitCode = 1;
 } finally {

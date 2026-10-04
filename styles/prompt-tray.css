@@ -9,6 +9,7 @@ body[data-nemo-prompt-ui] .nemo-tray-section > summary::after {
     margin-left: 7px;
     opacity: 0.65;
     font-size: 0.8em;
+    flex: 0 0 auto;
 }
 
 body[data-nemo-prompt-ui] .nemo-tray-section.nemo-tray-open > summary::after {
@@ -19,6 +20,7 @@ body[data-nemo-prompt-ui] .nemo-category-tray {
     position: relative;
     z-index: 20;
     min-width: 0;
+    box-sizing: border-box;
     margin: 7px 0 9px 18px;
     padding: 10px;
     overflow: visible;
@@ -39,8 +41,10 @@ body[data-nemo-prompt-ui] .nemo-prompt-card-actions {
 }
 
 body[data-nemo-prompt-ui] .nemo-tray-header {
+    position: relative;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 9px;
     padding-bottom: 8px;
@@ -48,9 +52,11 @@ body[data-nemo-prompt-ui] .nemo-tray-header {
 }
 
 body[data-nemo-prompt-ui] .nemo-tray-title {
+    flex: 1 1 10em;
     min-width: 0;
     color: var(--nemo-prompt-text);
     font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 body[data-nemo-prompt-ui] .nemo-tray-header-controls,
@@ -60,29 +66,128 @@ body[data-nemo-prompt-ui] .nemo-prompt-card-actions {
     flex-wrap: wrap;
 }
 
-body[data-nemo-prompt-ui] .nemo-tray-close,
-body[data-nemo-prompt-ui] .nemo-tray-toggle-all,
-body[data-nemo-prompt-ui] .nemo-tray-compact-toggle,
+body[data-nemo-prompt-ui] .nemo-tray-header-controls {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+}
+
+body[data-nemo-prompt-ui] .nemo-category-tray :is(.nemo-tray-close, .nemo-tray-toggle-all, .nemo-tray-compact-toggle, .nemo-tray-compact-all, .nemo-tray-presets-btn, .nemo-preset-save, .nemo-preset-delete),
 body[data-nemo-prompt-ui] .nemo-prompt-card-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 1.8em;
+    padding: 4px 6px;
     border: 1px solid var(--nemo-prompt-border);
     border-radius: 5px;
     background: var(--nemo-prompt-bg-secondary);
     color: var(--nemo-prompt-text);
+    font: inherit;
+    font-size: 0.85em;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
     cursor: pointer;
 }
 
-body[data-nemo-prompt-ui] .nemo-tray-close:hover,
-body[data-nemo-prompt-ui] .nemo-tray-toggle-all:hover,
-body[data-nemo-prompt-ui] .nemo-tray-compact-toggle:hover,
+body[data-nemo-prompt-ui] .nemo-category-tray :is(.nemo-tray-close, .nemo-tray-toggle-all, .nemo-tray-compact-toggle, .nemo-tray-compact-all, .nemo-tray-presets-btn, .nemo-preset-save, .nemo-preset-delete):hover,
 body[data-nemo-prompt-ui] .nemo-prompt-card-action:hover {
     border-color: var(--nemo-prompt-accent);
     color: var(--nemo-prompt-accent);
 }
 
+body[data-nemo-prompt-ui] .nemo-category-tray button:focus-visible {
+    outline: 2px solid var(--nemo-prompt-accent);
+    outline-offset: 2px;
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-compact-toggle.nemo-compact-active,
+body[data-nemo-prompt-ui] .nemo-tray-toggle-all.nemo-all-enabled {
+    border-color: var(--nemo-prompt-accent);
+}
+
+body[data-nemo-prompt-ui] .nemo-tray-presets-dropdown {
+    display: flex;
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Anchor the dropdown to the whole header, not the bookmark's narrow column,
+   so opening it cannot push the controls apart or spill outside a sidebar. */
+body[data-nemo-prompt-ui] .nemo-presets-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 30;
+    box-sizing: border-box;
+    width: min(260px, 100%);
+    max-height: min(340px, 50vh);
+    padding: 8px;
+    overflow-y: auto;
+    border: 1px solid var(--nemo-prompt-border);
+    border-radius: 6px;
+    background: var(--nemo-prompt-bg-secondary);
+    color: var(--nemo-prompt-text);
+    box-shadow: 0 6px 18px var(--nemo-prompt-shadow);
+}
+
+body[data-nemo-prompt-ui] .nemo-presets-menu.nemo-presets-open {
+    display: block;
+}
+
+body[data-nemo-prompt-ui] .nemo-presets-header {
+    margin-bottom: 6px;
+    font-weight: 700;
+}
+
+body[data-nemo-prompt-ui] .nemo-presets-divider {
+    height: 1px;
+    margin: 7px 0;
+    background: var(--nemo-prompt-border);
+}
+
+body[data-nemo-prompt-ui] .nemo-preset-item {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+body[data-nemo-prompt-ui] .nemo-preset-item:hover {
+    background: var(--nemo-prompt-hover);
+}
+
+body[data-nemo-prompt-ui] .nemo-preset-name {
+    flex: 1 1 8em;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+body[data-nemo-prompt-ui] .nemo-preset-info,
+body[data-nemo-prompt-ui] .nemo-presets-empty {
+    color: var(--nemo-prompt-muted);
+    font-size: 0.85em;
+}
+
+body[data-nemo-prompt-ui] .nemo-presets-empty {
+    margin-top: 8px;
+}
+
 body[data-nemo-prompt-ui] .nemo-tray-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
+    align-content: start;
     gap: 8px;
+    min-width: 0;
     min-height: 48px;
     max-height: min(430px, 55vh);
     padding-right: 3px;
@@ -129,6 +234,56 @@ body[data-nemo-prompt-ui] .nemo-prompt-card-content {
     gap: 4px;
 }
 
+body[data-nemo-prompt-ui] .nemo-category-tray .nemo-prompt-card-header {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+}
+
+body[data-nemo-prompt-ui] .nemo-category-tray .nemo-prompt-card-header .nemo-prompt-card-name {
+    display: block;
+    flex: 1 1 8em;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+}
+
+body[data-nemo-prompt-ui] .nemo-category-tray .nemo-prompt-card-actions {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    margin-left: auto;
+}
+
+body[data-nemo-prompt-ui] .nemo-category-tray .nemo-prompt-card-deps {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+body[data-nemo-prompt-ui] .nemo-category-tray :is(.nemo-prompt-card-move, .nemo-prompt-card-edit) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.3em;
+    min-height: 1.3em;
+    color: var(--nemo-prompt-muted);
+}
+
+body[data-nemo-prompt-ui] .nemo-category-tray :is(.nemo-prompt-card-move, .nemo-prompt-card-edit):hover {
+    color: var(--nemo-prompt-accent);
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card-status {
+    min-width: 1em;
+    color: var(--nemo-prompt-success);
+}
+
 body[data-nemo-prompt-ui] .nemo-prompt-card-name,
 body[data-nemo-prompt-ui] .nemo-prompt-card-title {
     overflow: hidden;
@@ -150,6 +305,50 @@ body[data-nemo-prompt-ui] .nemo-tray-footer {
     align-items: center;
     justify-content: space-between;
     gap: 7px;
+}
+
+/* Descriptions emitted by category-tray.js use tooltip-text, not description.
+   Give them the card's width instead of squeezing them alongside token counts. */
+body[data-nemo-prompt-ui] .nemo-category-tray .nemo-prompt-card-meta {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    min-width: 0;
+    gap: 4px;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card-tokens {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+body[data-nemo-prompt-ui] .nemo-prompt-card-tooltip-text {
+    display: block;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+}
+
+/* Both compact controls use this class; card view keeps full descriptions. */
+body[data-nemo-prompt-ui] .nemo-category-tray.nemo-tray-compact .nemo-tray-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+}
+
+body[data-nemo-prompt-ui] .nemo-category-tray.nemo-tray-compact .nemo-prompt-card {
+    gap: 5px;
+    padding: 4px 6px;
+}
+
+body[data-nemo-prompt-ui] .nemo-category-tray.nemo-tray-compact .nemo-prompt-card-content {
+    gap: 2px;
+}
+
+body[data-nemo-prompt-ui] .nemo-category-tray.nemo-tray-compact .nemo-prompt-card-tooltip-text {
+    display: none;
 }
 
 body[data-nemo-prompt-ui] .nemo-tray-footer {

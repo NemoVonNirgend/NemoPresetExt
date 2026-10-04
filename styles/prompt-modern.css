@@ -36,8 +36,8 @@ body[data-nemo-prompt-skin='modern'] .nemo-engine-section > summary::before {
     left: 9px;
 }
 
-body[data-nemo-prompt-skin='modern'] .nemo-engine-section > summary > li.completion_prompt_manager_prompt,
-body[data-nemo-prompt-skin='modern'] li.completion_prompt_manager_prompt.nemo-section-header {
+body[data-nemo-prompt-skin='modern'] #completion_prompt_manager #completion_prompt_manager_list .nemo-engine-section > summary > li.completion_prompt_manager_prompt,
+body[data-nemo-prompt-skin='modern'] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt.nemo-header-item {
     align-items: flex-start;
     flex-wrap: wrap;
     gap: 4px;
@@ -46,7 +46,7 @@ body[data-nemo-prompt-skin='modern'] li.completion_prompt_manager_prompt.nemo-se
     border: 0;
 }
 
-body[data-nemo-prompt-skin='modern'] li.completion_prompt_manager_prompt:not(.nemo-section-header) {
+body[data-nemo-prompt-skin='modern'] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt:not(.nemo-header-item) {
     align-items: flex-start;
     flex-wrap: wrap;
     gap: 4px;
@@ -59,22 +59,26 @@ body[data-nemo-prompt-skin='modern'] li.completion_prompt_manager_prompt:not(.ne
     transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
-body[data-nemo-prompt-skin='modern'] li.completion_prompt_manager_prompt:not(.nemo-section-header):hover {
+body[data-nemo-prompt-skin='modern'] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt:not(.nemo-header-item):hover {
     background: color-mix(in srgb, var(--nemo-prompt-accent) 8%, var(--nemo-prompt-bg-secondary));
     border-color: color-mix(in srgb, var(--nemo-prompt-accent) 40%, var(--nemo-prompt-border));
     transform: translateX(3px);
 }
 
-body[data-nemo-prompt-skin='modern'] span.completion_prompt_manager_prompt_name {
+body[data-nemo-prompt-skin='modern'] #completion_prompt_manager #completion_prompt_manager_list span.completion_prompt_manager_prompt_name {
+    flex-basis: 12em;
     flex-wrap: wrap;
     margin-right: 6px;
     padding-right: 4px;
+    overflow: visible;
     white-space: normal;
     overflow-wrap: anywhere;
 }
 
-body[data-nemo-prompt-skin='modern'] span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
+body[data-nemo-prompt-skin='modern'] #completion_prompt_manager #completion_prompt_manager_list span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
     display: inline;
+    flex: 1 1 10em;
+    max-width: 100%;
     white-space: normal;
     overflow-wrap: anywhere;
 }
@@ -128,7 +132,7 @@ body[data-nemo-prompt-skin='modern'] .nemo-category-tray {
 }
 
 body[data-nemo-prompt-skin='modern'] .nemo-tray-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
     gap: 8px;
 }
 

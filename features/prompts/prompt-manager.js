@@ -11,6 +11,9 @@ import { getTooltip } from './prompt-tooltips.js';
 import { parsePromptDirectives } from '../directives/prompt-directives.js';
 import { disableTrayMode } from './category-tray.js';
 import { movePromptBelowHeader as movePromptBelowHeaderState } from '../prompt-rendering/state-consumers.js';
+import { createPromptOrganizationState } from '../prompt-rendering/organization-state.js';
+import { renderState } from '../prompt-rendering/model.js';
+import { capturePromptLayout, promptLayoutSignature, releasePromptLayout, rememberPromptLayout, restorePromptLayoutSearch, samePromptLayout } from '../prompt-rendering/layout-preservation.js';
 
 // 1. CONFIGURATION & STATE
 const NEMO_BUILT_IN_PATTERNS = ['=+', '⭐─+', '━+'];
@@ -31,8 +34,9 @@ const SELECTORS = {
 let DIVIDER_PREFIX_REGEX;
 let openSectionStates = storage.getOpenSectionStates();
 let isSectionsFeatureEnabled = storage.getSectionsEnabled();
-// Flag to prevent reorganization during toggle operations (set by category-tray.js)
-let isToggleInProgress = false;
+// Save completion and native paint completion are independent. Defer UI work
+// until both have finished, including nested operations and replaced list nodes.
+const promptOrganizationState = createPromptOrganizationState();
 
 
 // 2. MODULE-SPECIFIC HELPERS
@@ -1065,16 +1069,67 @@ export const NemoPresetManager = {
         console.log(`${LOG_PREFIX} All Sortable instances destroyed`);
     },
 
+    deferPromptOrganization: function(force = false) {
+        if (extension_settings[NEMO_EXTENSION_NAME]?.enablePromptManager === false) return true;
+        return promptOrganizationState.defer(force);
+    },
+
+    isPromptOrganizationPaused: function() {
+        return promptOrganizationState.paused;
+    },
+
+    captureNativePromptLayout: function(list, signature) {
+        if (!promptOrganizationState.active) return null;
+        if (this._nativeLayoutSnapshot && !samePromptLayout(this._nativeLayoutSnapshot.signature, signature)) {
+            this.clearNativePromptLayout();
+        }
+        const snapshot = capturePromptLayout(list, signature);
+        if (snapshot) {
+            this.clearNativePromptLayout();
+            this._nativeLayoutSnapshot = snapshot;
+            if (this.selectedPromptItem?.isConnected === false) this.selectedPromptItem = null;
+        }
+        return this._nativeLayoutSnapshot;
+    },
+
+    clearNativePromptLayout: function(snapshot = this._nativeLayoutSnapshot) {
+        if (snapshot !== this._nativeLayoutSnapshot) return;
+        releasePromptLayout(snapshot);
+        this._nativeLayoutSnapshot = null;
+    },
+
+    getNativePromptLayout: function() {
+        const snapshot = this._nativeLayoutSnapshot;
+        if (!snapshot) return null;
+        let current = null;
+        try {
+            current = promptLayoutSignature(renderState(promptManager), storage.getDropdownStyle() === 'tray' ? 'tray' : 'accordion');
+        } catch { /* An unknown native state cannot safely reuse old UI. */ }
+        if (samePromptLayout(snapshot.signature, current)) return snapshot;
+        this.clearNativePromptLayout();
+        return null;
+    },
+
+    flushPromptOrganization: function() {
+        if (this._organizationFrame != null) return;
+        const pending = promptOrganizationState.take();
+        if (pending) this.organizePrompts(pending.force);
+    },
+
     organizePrompts: async function(forceFullReorganization = false) {
-        // Don't reorganize while a toggle operation is in progress - this would destroy open trays
-        if (isToggleInProgress && !forceFullReorganization) {
-            console.log(`${LOG_PREFIX} Skipping organizePrompts - toggle in progress`);
+        // A forced request still has to wait for an in-flight toggle/paint.
+        // Remember it so ending the operation repairs the current live list.
+        if (this.deferPromptOrganization(forceFullReorganization)) return;
+        if (this._organizationFrame != null) {
+            promptOrganizationState.request(forceFullReorganization);
             return;
         }
 
         const promptsContainer = document.querySelector(SELECTORS.promptsContainer);
-        if (!promptsContainer || (promptsContainer.dataset.nemoOrganizing === 'true' && !forceFullReorganization)) return;
+        if (!promptsContainer) return;
+        const generation = promptOrganizationState.generation;
         promptsContainer.dataset.nemoOrganizing = 'true';
+        this._organizationList = promptsContainer;
 
         // Clear any pending initialization to prevent duplicates/races
         if (this.dragDropInitTimeout) {
@@ -1083,7 +1138,27 @@ export const NemoPresetManager = {
         }
 
         // Wrap in requestAnimationFrame to avoid blocking UI thread immediately
-        requestAnimationFrame(() => {
+        this._organizationFrame = requestAnimationFrame(() => {
+            this._organizationFrame = null;
+            this._organizationList = null;
+            if (!promptOrganizationState.active || generation !== promptOrganizationState.generation
+                || extension_settings[NEMO_EXTENSION_NAME]?.enablePromptManager === false) {
+                delete promptsContainer.dataset.nemoOrganizing;
+                return;
+            }
+            if (this.deferPromptOrganization(forceFullReorganization)) {
+                delete promptsContainer.dataset.nemoOrganizing;
+                return;
+            }
+            if (promptsContainer !== document.querySelector(SELECTORS.promptsContainer)) {
+                delete promptsContainer.dataset.nemoOrganizing;
+                promptOrganizationState.request(forceFullReorganization);
+                this.flushPromptOrganization();
+                return;
+            }
+            // Requests received while this frame was queued are covered by this
+            // paint, which reads the current rows rather than an earlier copy.
+            promptOrganizationState.take();
             try {
                 // Pause observer to prevent infinite loop of mutations triggering reorganization
                 this.pauseListObserver();
@@ -1099,6 +1174,15 @@ export const NemoPresetManager = {
 
                 // 1b. Capture existing sections for reuse (preserves open state and trays)
                 const existingSections = new Map();
+                const savedLayout = this.getNativePromptLayout();
+                const hadSearch = Boolean(savedLayout?.search?.query);
+                if (savedLayout) {
+                    for (const [id, section] of savedLayout.sections) existingSections.set(id, section);
+                    for (const item of allCurrentItems) {
+                        const display = savedLayout.displays.get(item.dataset.pmIdentifier);
+                        if (display !== undefined) item.style.display = display;
+                    }
+                }
                 promptsContainer.querySelectorAll('details.nemo-engine-section').forEach(section => {
                     const summaryLi = section.querySelector('summary > li');
                     if (summaryLi) {
@@ -1106,8 +1190,10 @@ export const NemoPresetManager = {
                         // We need to use the DOM element attached to the summary
                         const nameSpan = summaryLi.querySelector('span.completion_prompt_manager_prompt_name a') ||
                                        summaryLi.querySelector('span.completion_prompt_manager_prompt_name');
-                        const text = nameSpan ? nameSpan.textContent.trim() : '';
-                        if (text) existingSections.set(text, section);
+                        const text = summaryLi.dataset.nemoOriginalText
+                            || nameSpan?.dataset.pmName || nameSpan?.textContent.trim() || '';
+                        const identifier = summaryLi.dataset.pmIdentifier;
+                        if (identifier || text) existingSections.set(identifier || text, section);
                     }
                 });
 
@@ -1139,6 +1225,11 @@ export const NemoPresetManager = {
                 // 5. Single DOM Paint
                 promptsContainer.innerHTML = '';
                 promptsContainer.appendChild(fragment);
+                this.clearNativePromptLayout();
+                try {
+                    rememberPromptLayout(promptsContainer, renderState(promptManager),
+                        storage.getDropdownStyle() === 'tray' ? 'tray' : 'accordion');
+                } catch { /* An unknown native state cannot establish ownership. */ }
 
                 delete promptsContainer.dataset.nemoOrganizing;
 
@@ -1148,8 +1239,16 @@ export const NemoPresetManager = {
                 // Resume observer after DOM changes are committed
                 this.resumeListObserver();
 
+                if (hadSearch || document.getElementById('nemoPresetSearchInput')?.value?.trim()) {
+                    // Re-evaluate the visible query after replacing rows. This
+                    // also clears old hidden styles if it was cleared mid-save.
+                    Promise.resolve(this.handlePresetSearch?.()).catch(error => logger.warn('Prompt search restoration failed', error));
+                }
+
                 // 6. Initialize Drag and Drop (after paint) with a small delay
                 this.dragDropInitTimeout = setTimeout(() => {
+                    if (!promptOrganizationState.active || generation !== promptOrganizationState.generation
+                        || promptsContainer !== document.querySelector(SELECTORS.promptsContainer)) return;
                     this.initializeDragAndDrop(promptsContainer);
                     this.dragDropInitTimeout = null;
 
@@ -1162,6 +1261,7 @@ export const NemoPresetManager = {
 
             } catch (error) {
                 console.error(`${LOG_PREFIX} Error in organizePrompts:`, error);
+                this.clearNativePromptLayout();
                 delete promptsContainer.dataset.nemoOrganizing;
                 // Ensure hidden class is removed even on error
                 if (promptsContainer) promptsContainer.classList.remove('nemo-hidden-during-update');
@@ -1226,7 +1326,9 @@ export const NemoPresetManager = {
             item.draggable = false;
 
             // Try to reuse existing section to preserve state (open/closed, tray, etc.)
-            let details = existingSections ? existingSections.get(dividerInfo.originalText) : null;
+            let details = existingSections
+                ? existingSections.get(item.dataset.pmIdentifier) || existingSections.get(dividerInfo.originalText)
+                : null;
             let contentDiv;
 
             if (details) {
@@ -1247,7 +1349,8 @@ export const NemoPresetManager = {
                 }
 
                 // Ensure correct classes based on divider info
-                details.className = dividerInfo.isSubHeader ? 'nemo-engine-section nemo-sub-section' : 'nemo-engine-section';
+                details.classList.add('nemo-engine-section');
+                details.classList.toggle('nemo-sub-section', dividerInfo.isSubHeader);
                 // Update open state mapping just in case
                 openSectionStates[dividerInfo.originalText] = details.open;
             } else {
@@ -1416,17 +1519,25 @@ export const NemoPresetManager = {
 
     // Event Handling & Initialization
     initialize: function(container) {
-        if (container.dataset.nemoPromptsInitialized) return;
+        if (!container || container.isConnected === false
+            || extension_settings[NEMO_EXTENSION_NAME]?.enablePromptManager === false) return;
+        promptOrganizationState.activate();
+        if (container.dataset.nemoPromptsInitialized && this.observers?.listObserverContainer === container) return;
         container.dataset.nemoPromptsInitialized = 'true';
 
         this.createSearchAndStatusUI(container);
+        restorePromptLayoutSearch(this.getNativePromptLayout(), document);
         this.scheduleOptionalSectionSync(container, 0);
 
         // Add event listeners with error handling
         this.setupEventListeners();
 
-        container.addEventListener('click', this.handleContainerClick.bind(this));
-        container.addEventListener('contextmenu', this.handleContextMenu.bind(this));
+        container.removeEventListener('click', container._nemoManagerClickHandler);
+        container.removeEventListener('contextmenu', container._nemoManagerContextHandler);
+        container._nemoManagerClickHandler = this.handleContainerClick.bind(this);
+        container._nemoManagerContextHandler = this.handleContextMenu.bind(this);
+        container.addEventListener('click', container._nemoManagerClickHandler);
+        container.addEventListener('contextmenu', container._nemoManagerContextHandler);
         this.initializeObserver(container);
         this.createContextMenu();
 
@@ -1435,7 +1546,11 @@ export const NemoPresetManager = {
 
         // Wait for prompts to be loaded before organizing
         // Use requestAnimationFrame to ensure DOM is fully rendered
+        const generation = promptOrganizationState.generation;
+        const isCurrent = () => promptOrganizationState.active && generation === promptOrganizationState.generation
+            && container === document.querySelector(SELECTORS.promptsContainer);
         const waitForPromptsAndOrganize = () => {
+            if (!isCurrent()) return;
             const promptItems = container.querySelectorAll('li.completion_prompt_manager_prompt');
             if (promptItems.length > 0) {
                 // Prompts are loaded, organize them now
@@ -1444,6 +1559,7 @@ export const NemoPresetManager = {
                 // Prompts not loaded yet, wait a bit and try again
                 // Use a short timeout to avoid blocking
                 setTimeout(() => {
+                    if (!isCurrent()) return;
                     const itemsNow = container.querySelectorAll('li.completion_prompt_manager_prompt');
                     if (itemsNow.length > 0) {
                         this.organizePrompts();
@@ -2417,7 +2533,9 @@ export const NemoPresetManager = {
 
         this.observers.listObserver = listObserver;
         this.observers.listObserverContainer = container;
-        listObserver.observe(container, { childList: true, subtree: true });
+        if (!promptOrganizationState.paused) {
+            listObserver.observe(container, { childList: true, subtree: true });
+        }
         console.log(`${LOG_PREFIX} List observer initialized`);
 
         if (this.observers.optionalSectionObserver) {
@@ -2459,6 +2577,7 @@ export const NemoPresetManager = {
      * Call this after ST has finished its internal DOM updates.
      */
     resumeListObserver: function() {
+        if (!promptOrganizationState.active || promptOrganizationState.paused) return;
         if (this.observers?.listObserver && this.observers?.listObserverContainer) {
             this.observers.listObserver.observe(
                 this.observers.listObserverContainer,
@@ -2473,18 +2592,46 @@ export const NemoPresetManager = {
      * and destroying open trays during the toggle.
      */
     beginToggle: function() {
-        isToggleInProgress = true;
+        const token = promptOrganizationState.beginToggle();
+        if (!token) return null;
         this.pauseListObserver();
         console.log(`${LOG_PREFIX} Toggle operation started`);
+        return token;
     },
 
     /**
      * End a toggle operation. Resumes normal reorganization behavior.
      */
-    endToggle: function() {
-        isToggleInProgress = false;
+    endToggle: function(token) {
+        if (!promptOrganizationState.endToggle(token)) return;
         this.resumeListObserver();
+        this.flushPromptOrganization();
         console.log(`${LOG_PREFIX} Toggle operation ended`);
+    },
+
+    beginNativePromptPaint: function() {
+        if (extension_settings[NEMO_EXTENSION_NAME]?.enablePromptManager === false) return null;
+        const token = promptOrganizationState.beginPaint();
+        if (token) this.pauseListObserver();
+        return token;
+    },
+
+    isNativePromptPaintCurrent: function(token) {
+        return Boolean(token && promptOrganizationState.active && token.generation === promptOrganizationState.generation);
+    },
+
+    endNativePromptPaint: function(token, renderedList = null) {
+        if (!this.isNativePromptPaintCurrent(token)) return;
+        const resumed = promptOrganizationState.endPaint(token);
+        const currentList = document.querySelector(SELECTORS.promptsContainer);
+        if (renderedList && renderedList === currentList) {
+            this.initialize(currentList);
+            promptOrganizationState.request();
+        }
+        if (resumed) {
+            this.resumeListObserver();
+            this.flushPromptOrganization();
+        }
     },
 
     // Context Menu for Prompt Movement
@@ -4046,6 +4193,14 @@ export const NemoPresetManager = {
     // Cleanup method to properly destroy all observers and listeners
     destroy: function() {
         console.log(`${LOG_PREFIX} Destroying NemoPresetManager...`);
+        promptOrganizationState.dispose();
+        this.clearNativePromptLayout();
+        if (this._organizationFrame != null) cancelAnimationFrame(this._organizationFrame);
+        this._organizationFrame = null;
+        if (this._organizationList) delete this._organizationList.dataset.nemoOrganizing;
+        this._organizationList = null;
+        if (this.dragDropInitTimeout) clearTimeout(this.dragDropInitTimeout);
+        this.dragDropInitTimeout = null;
 
         // Disconnect all observers
         if (this.observers) {

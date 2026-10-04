@@ -208,8 +208,9 @@ export function installStateActions({
             assertCurrent(ticket);
             const before = new Map();
             let resolutionChanged = 0;
+            let toggleToken;
             try {
-                manager.beginToggle?.();
+                toggleToken = manager.beginToggle?.();
                 for (const related of resolution) {
                     if (mutate(ticket, related, before)) resolutionChanged++;
                 }
@@ -230,7 +231,7 @@ export function installStateActions({
                 rollback(ticket, before);
                 throw error;
             } finally {
-                manager.endToggle?.();
+                manager.endToggle?.(toggleToken);
             }
         };
         const cold = getCold?.();
