@@ -2221,9 +2221,7 @@ async function performToggle(identifier, enabled) {
             // Begin toggle operation - this pauses the observer AND sets a flag
             // to prevent organizePrompts from destroying the tray
             const { NemoPresetManager } = await import('./prompt-manager.js');
-            if (NemoPresetManager?.beginToggle) {
-                NemoPresetManager.beginToggle();
-            }
+            const toggleToken = NemoPresetManager?.beginToggle?.();
 
             promptManager.saveServiceSettings();
 
@@ -2231,7 +2229,7 @@ async function performToggle(identifier, enabled) {
             // Use a longer timeout to be safe - ST may have async operations.
             scheduleCategoryTrayTimeout(() => {
                 if (NemoPresetManager?.endToggle) {
-                    NemoPresetManager.endToggle();
+                    NemoPresetManager.endToggle(toggleToken);
                 }
             }, 300);
 

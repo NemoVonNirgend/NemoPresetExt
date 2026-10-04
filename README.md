@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.9
+**Version:** 6.0.10
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.10 Prompt layout and redraw recovery
+
+Prompt sections recover after native redraws even when a settings save is still pending. Deferred organization is replayed after the toggle completes, preserving open sections and trays across toggles within the same preset. Native row styles now respect Nemo's layout in narrow settings panels, including panels inside Chat Completion Tabs. Tray controls share the active theme, the presets menu opens as a dropdown, and Compact / All Compact use a compact layout with correctly sized labels and tooltips.
+
+Update the extension and fully reload SillyTavern. This UI repair does not require reimporting presets.
 
 ### 6.0.9 Braille-space lorebook activation
 

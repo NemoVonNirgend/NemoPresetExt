@@ -1,5 +1,52 @@
 /* Responsive safety shared by all three prompt modes. */
 
+/* Desktop drawers can be narrow even when the viewport is wide. Use the
+   actual prompt manager width, scaled with its text size, for row layout. */
+@container nemo-prompt-panel (max-width: 30em) {
+    body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt,
+    body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list .nemo-engine-section > summary > li.completion_prompt_manager_prompt {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list span.completion_prompt_manager_prompt_name {
+        flex-basis: 100%;
+        margin-right: 0;
+        padding-right: 0;
+    }
+
+    body[data-nemo-prompt-skin='modern'] #completion_prompt_manager #completion_prompt_manager_list span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
+        flex-basis: calc(100% - 2em);
+    }
+
+    body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt > span:has(> .prompt_manager_prompt_controls) {
+        margin-left: auto;
+    }
+
+    body[data-nemo-prompt-skin='modern'] #completion_prompt_manager #completion_prompt_manager_list {
+        padding: 8px;
+    }
+
+    body[data-nemo-prompt-skin='modern'] .nemo-engine-section > summary {
+        padding: 6px 6px 6px 20px;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-engine-section > .nemo-section-content {
+        margin-left: 4px;
+        padding-left: 8px;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-category-tray {
+        margin-left: 4px;
+        padding: 8px;
+    }
+
+    body[data-nemo-prompt-ui] .nemo-tray-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 @media (max-width: 900px) {
     body[data-nemo-prompt-ui] :is(.nemo-preset-navigator-content-wrapper, .nemo-prompt-navigator-content-wrapper, .nemo-character-manager-content-wrapper) {
         min-width: min(94vw, 760px);
@@ -30,15 +77,15 @@
         justify-content: center;
     }
 
-    body[data-nemo-prompt-ui] li.completion_prompt_manager_prompt,
-    body[data-nemo-prompt-skin='classic'] .nemo-engine-section > summary > li.completion_prompt_manager_prompt {
+    body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt,
+    body[data-nemo-prompt-skin='classic'] #completion_prompt_manager #completion_prompt_manager_list .nemo-engine-section > summary > li.completion_prompt_manager_prompt {
         align-items: flex-start;
         flex-wrap: wrap;
         gap: 4px;
     }
 
-    body[data-nemo-prompt-ui] span.completion_prompt_manager_prompt_name,
-    body[data-nemo-prompt-ui] span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
+    body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list span.completion_prompt_manager_prompt_name,
+    body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list span.completion_prompt_manager_prompt_name a.prompt-manager-inspect-action {
         white-space: normal;
         overflow-wrap: anywhere;
     }

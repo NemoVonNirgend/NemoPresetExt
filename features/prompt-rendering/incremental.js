@@ -1,4 +1,5 @@
 import { renderState, remember, sameRevision, changedRows, supportsNativeRows } from './model.js';
+import { forgetPromptLayout, getRememberedPromptLayout, promptLayoutSignature, samePromptLayout } from './layout-preservation.js';
 
 const ROW = 'li.completion_prompt_manager_prompt';
 const NAME = '.completion_prompt_manager_prompt_name';
@@ -64,6 +65,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     let organization = null, organizationFrame = null, pendingForce = false, incrementalList = null;
     let retryFrame = null, optionalObserver = null, optionalRoot = null, deferredDrag = false;
     let residency = null;
+    let lastLayout = null, preservedLayout = null, nativeFrameSequence = 0;
     const cleanups = [], originals = [];
     const stats = { fullLists: 0, incrementalLists: 0, unchangedLists: 0, generatedRows: 0,
         reusedRows: 0, replacedRows: 0, reusedFrames: 0, stalePaints: 0,
@@ -72,7 +74,8 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     const originalRows = pm.renderPromptManagerListItems;
     const supported = compatible(originalRows);
     const active = () => !disposed && supported && enabled() && modeKey() === 'accordion'
-        && pm.configuration?.prefix === 'completion_' && toggleDepth === 0;
+        && pm.configuration?.prefix === 'completion_'
+        && !(nemo.isPromptOrganizationPaused?.() ?? toggleDepth > 0);
     const busy = () => Boolean(pm.listElement?.querySelector('.sortable-chosen, .sortable-drag, .ui-sortable-helper'));
     function state() { try { return renderState(pm); } catch { return null; } }
     function expectedRows(current) {
@@ -105,7 +108,29 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     async function afterNativePaint() {
         try { await residency?.afterNativePaint?.(); } catch (error) { notify(error); }
     }
-    function reset() { sequence++; previous = null; frame = null; organization = null; incrementalList = null; }
+    function reset() {
+        sequence++; previous = null; frame = null; organization = null; incrementalList = null;
+        lastLayout = null; nativeFrameSequence++;
+        forgetPromptLayout(pm.listElement);
+        if (preservedLayout) nemo.clearNativePromptLayout?.(preservedLayout);
+        preservedLayout = null;
+    }
+    function preserveLayout(current, list) {
+        const signature = promptLayoutSignature(current, modeKey());
+        // Startup can organize the native list before these wrappers attach.
+        // Use its recorded owner, never infer ownership from a later preset.
+        const completed = getRememberedPromptLayout(list) || lastLayout;
+        if (!samePromptLayout(signature, completed)) {
+            if (preservedLayout) nemo.clearNativePromptLayout?.(preservedLayout);
+            preservedLayout = null;
+            return null;
+        }
+        // Carry the validated old-list receipt across native frame replacement
+        // so its following row paint does not discard the same pending shell.
+        lastLayout = completed;
+        preservedLayout = nemo.captureNativePromptLayout?.(list, signature) || null;
+        return preservedLayout;
+    }
     function redraw() {
         if (disposed || retryFrame !== null) return;
         retryFrame = requestFrame(() => { retryFrame = null; if (!disposed) pm.render(false); });
@@ -156,11 +181,23 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
             return;
         }
         previous = null; organization = null;
-        const result = await original.apply(this, args);
-        const after = state();
-        frame = current && sameRevision(current, after) && this.containerElement?.contains(this.listElement)
-            ? remember(current, this.listElement) : null;
-        return result;
+        const frameTicket = ++nativeFrameSequence;
+        const paint = nemo.beginNativePromptPaint?.();
+        let captured = null;
+        try {
+            captured = preserveLayout(current, list);
+            const result = await original.apply(this, args);
+            const after = state();
+            frame = current && sameRevision(current, after) && this.containerElement?.contains(this.listElement)
+                ? remember(current, this.listElement) : null;
+            return result;
+        } catch (error) {
+            if (!disposed && frameTicket === nativeFrameSequence && captured
+                && nemo.isNativePromptPaintCurrent?.(paint) !== false) nemo.clearNativePromptLayout?.(captured);
+            throw error;
+        } finally {
+            nemo.endNativePromptPaint?.(paint);
+        }
     });
 
     wrap(pm, 'renderPromptManagerListItems', original => async function (...args) {
@@ -171,15 +208,34 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         async function full() {
             previous = null; organization = null;
             stats.fullLists++;
-            const result = await original.apply(pm, args);
-            await afterNativePaint();
-            const after = state();
-            if (!disposed && ticket === sequence && current && sameRevision(current, after)
-                && pm.listElement && complete(pm.listElement, current)) {
-                previous = remember(current, pm.listElement);
-                stats.generatedRows += expectedRows(current).length;
+            const renderedList = pm.listElement;
+            const paint = nemo.beginNativePromptPaint?.();
+            let painted = false, captured = null;
+            try {
+                captured = preserveLayout(current, renderedList);
+                const result = await original.apply(pm, args);
+                painted = true;
+                await afterNativePaint();
+                const after = state();
+                if (!disposed && ticket === sequence && current && sameRevision(current, after)
+                    && pm.listElement && complete(pm.listElement, current)) {
+                    previous = remember(current, pm.listElement);
+                    stats.generatedRows += expectedRows(current).length;
+                }
+                if (!disposed && renderedList === pm.listElement && current && sameRevision(current, after)) {
+                    lastLayout = promptLayoutSignature(after, modeKey());
+                }
+                return result;
+            } catch (error) {
+                if (!disposed && ticket === sequence && captured
+                    && nemo.isNativePromptPaintCurrent?.(paint) !== false) nemo.clearNativePromptLayout?.(captured);
+                throw error;
+            } finally {
+                // Native renders can finish after the save promise. Report their
+                // actual completion instead of waiting for another DOM mutation.
+                nemo.endNativePromptPaint?.(paint, painted && !disposed
+                    && renderedList === pm.listElement ? renderedList : null);
             }
-            return result;
         }
         if (!active() || busy() || !current || current.rows.length < minRows
             || !list || !this.containerElement?.contains(list) || previous?.list !== list) return full();
@@ -191,6 +247,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         if (!changes.length) {
             stats.unchangedLists++; stats.reusedRows += expected.length;
             previous = remember(current, list); incrementalList = list;
+            lastLayout = promptLayoutSignature(current, modeKey());
             return;
         }
         // A receiver-local detached list: no temporary writes to the actual manager,
@@ -260,12 +317,13 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     });
 
     wrap(nemo, 'organizePrompts', original => function (force = false, ...args) {
+        if (disposed || nemo.deferPromptOrganization?.(force)) return Promise.resolve();
         if (busy()) return original.call(this, force, ...args);
         stats.organizationRequests++;
         if (active() && !force && stableOrganization()) { stats.organizationsSkipped++; return Promise.resolve(); }
         if (!active()) {
             return Promise.resolve(residency?.beforeOrganization?.())
-                .then(() => original.call(this, force, ...args)).catch(notify);
+                .then(() => { if (!disposed) return original.call(this, force, ...args); }).catch(notify);
         }
         pendingForce ||= Boolean(force);
         if (organizationFrame !== null) return Promise.resolve();
@@ -276,7 +334,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
             if (!forced && stableOrganization()) { stats.organizationsSkipped++; return; }
             stats.organizationRuns++;
             Promise.resolve(residency?.beforeOrganization?.())
-                .then(() => original.call(nemo, forced, ...args)).catch(notify);
+                .then(() => { if (!disposed) return original.call(nemo, forced, ...args); }).catch(notify);
         });
         return Promise.resolve();
     });
@@ -286,10 +344,23 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         return result;
     });
     wrap(nemo, 'beginToggle', original => function (...args) { toggleDepth++; return original.apply(this, args); });
-    wrap(nemo, 'endToggle', original => function (...args) { try { return original.apply(this, args); } finally { toggleDepth = Math.max(0, toggleDepth - 1); } });
+    wrap(nemo, 'endToggle', original => function (...args) {
+        toggleDepth = Math.max(0, toggleDepth - 1);
+        return original.apply(this, args);
+    });
 
     const onOrganized = () => rememberOrganization();
-    const onMode = () => reset();
+    const onMode = () => {
+        const completed = getRememberedPromptLayout(pm.listElement) || lastLayout;
+        reset();
+        const current = promptLayoutSignature(state(), modeKey());
+        // Mode conversion changes presentation without a native/organization
+        // paint. Retain only its already-proven owner metadata; content edits
+        // still use reset() and invalidate both this receipt and old trays.
+        if (completed && current && samePromptLayout({ ...completed, mode: current.mode }, current)) {
+            lastLayout = current;
+        }
+    };
     const onDragEnd = () => { if (deferredDrag) { deferredDrag = false; redraw(); } };
     for (const type of ['pointerup', 'dragend', 'touchend']) {
         doc.addEventListener(type, onDragEnd, true);
