@@ -20,6 +20,7 @@ import { cleanupDirectiveAutocomplete, initDirectiveAutocomplete } from './featu
 import { cleanupNemoEngineInstaller, initNemoEngineInstaller } from './features/preset-installer/runtime.js';
 import { cleanupPromptTools, initializePromptTools } from './features/prompt-tools/runtime.js';
 import { initializeLorebookSpacing, cleanupLorebookSpacing } from './features/lorebook-spacing/runtime.js';
+import { initializeFinalUserRole, cleanupFinalUserRole } from './features/final-user-role/runtime.js';
 
 let initialized = false;
 let cleanupInProgress = false;
@@ -32,6 +33,7 @@ const CAPABILITIES = Object.freeze({
     customDividers: true,
     nemoEngineInstaller: true,
     hub: true,
+    finalUserRole: true,
 });
 
 function featureEnabled(key) {
@@ -76,6 +78,7 @@ export async function cleanupExtension() {
         cleanupRecipeRuntime();
         cleanupPromptTools();
         cleanupLorebookSpacing();
+        cleanupFinalUserRole();
         cleanupDirectiveAutocomplete();
         cleanupMessageTriggerHooks();
         cleanupPromptDirectiveHooks();
@@ -120,6 +123,7 @@ export async function initializeExtension() {
 
         if (featureEnabled('enableNemoEngineInstaller')) initNemoEngineInstaller();
 
+        initializeFinalUserRole();
         publishPublicApi();
         logger.info('Initialized prompt workstation, directives, dividers, hub, and NemoEngine installer');
     } catch (error) {

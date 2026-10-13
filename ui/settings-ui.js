@@ -95,6 +95,7 @@ export const NemoSettingsUI = {
             ['nemoEnableReasoningCapture', 'enableReasoningCapture'],
             ['nemoEnableReasoningSection', 'enableReasoningSection'],
             ['nemoEnableLorebookManagement', 'enableLorebookManagement'],
+            ['nemoForceLastUserRole', 'forceLastUserRole'],
             ['nemoEnableDirectives', 'enableDirectives'],
             ['nemoEnableDirectiveAutocomplete', 'enableDirectiveAutocomplete'],
             ['nemoEnableNemoEngineInstaller', 'enableNemoEngineInstaller'],

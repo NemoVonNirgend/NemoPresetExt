@@ -22,6 +22,7 @@ test('core publishes merged prompt capabilities before asynchronous initializati
 test('core teardown owns every active runtime', () => {
     for (const cleanup of [
         'cleanupPromptTools()',
+        'cleanupFinalUserRole()',
         'cleanupDirectiveAutocomplete()',
         'cleanupMessageTriggerHooks()',
         'cleanupPromptDirectiveHooks()',
