@@ -69,6 +69,16 @@ export const NEMO_EXTENSION_CATALOG = Object.freeze([
         recommended: false,
         requiresReload: true,
     }),
+    Object.freeze({
+        id: 'NemoPlotlight',
+        name: 'Nemo Plotlight',
+        repository: 'https://github.com/NemoVonNirgend/NemoPlotlight',
+        description: 'Browse and import Plotlight characters, presets, lorebooks, and personas. Previews, ratings, and some persona downloads need the bundled helper; setup instructions appear on first launch.',
+        category: 'Content Discovery',
+        icon: 'fa-solid fa-masks-theater',
+        recommended: false,
+        requiresReload: true,
+    }),
 ]);
 
 export function findCatalogEntry(id) {

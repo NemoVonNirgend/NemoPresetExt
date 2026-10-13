@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.11
+**Version:** 6.0.12
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.12 Nemo Plotlight in Nemo Hub
+
+Install **Nemo Plotlight** from **NemoPresetExt → Nemo Hub** to browse and import Plotlight characters, Chat Completion presets, lorebooks, and personas. Its first-launch notice explains how to install the bundled companion helper for published-image previews, ratings/roses, and the persona-download fallback. The helper is installed separately from the browser extension.
+
+Update NemoPresetExt and reload SillyTavern to see the new installer entry.
 
 ### 6.0.11 Force the final user role
 
@@ -114,6 +120,7 @@ Install these independently from Nemo Hub:
 | [Nemo Guides](https://github.com/NemoVonNirgend/NemoGuides) | Scene assessment, planning, writing, DM notes, rules, and narrative utilities. |
 | [Ember](https://github.com/NemoVonNirgend/Ember) | Interactive HTML/JavaScript chat artifacts. |
 | [NemoRewrite](https://github.com/NemoVonNirgend/NemoRewrite) | Selection-based rewriting tools. |
+| [Nemo Plotlight](https://github.com/NemoVonNirgend/NemoPlotlight) | Browse and import public characters, presets, lorebooks, and personas. A bundled companion helper is installed separately for previews, ratings, and the persona-download fallback. |
 
 NemoUIOverhaul and NemoEmojiPicker remain separate because they alter broader SillyTavern presentation or composer behavior rather than the prompt workstation itself.
 
