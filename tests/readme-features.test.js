@@ -17,6 +17,7 @@ test('README documents the merged prompt workstation defaults', () => {
         '`enableReasoningCapture`: `true`',
         '`enableReasoningSection`: `true`',
         '`enableLorebookManagement`: `false`',
+        '`forceLastUserRole`: `false`',
         '`promptUiMode`: `classic`',
         '`enableDirectives`: `true`',
         '`enableDirectiveAutocomplete`: `true`',

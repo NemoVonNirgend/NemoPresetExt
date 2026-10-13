@@ -19,6 +19,7 @@ const EXPECTED_DEFAULTS = {
     enableNemoEngineInstaller: true,
     enableReasoningSection: true,
     enableLorebookManagement: false,
+    forceLastUserRole: false,
 };
 
 test('schema contains the merged prompt workstation and retained core gates', () => {

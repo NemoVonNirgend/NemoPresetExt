@@ -1,4 +1,4 @@
-export const SETTINGS_SCHEMA_VERSION = 4;
+export const SETTINGS_SCHEMA_VERSION = 5;
 
 export const PROMPT_UI_MODES = Object.freeze({
     CLASSIC: 'classic',
@@ -16,6 +16,7 @@ export const FEATURE_DEFAULTS = Object.freeze({
     enableNemoEngineInstaller: true,
     enableReasoningSection: true,
     enableLorebookManagement: false,
+    forceLastUserRole: false,
 });
 
 const NON_FEATURE_DEFAULTS = Object.freeze({

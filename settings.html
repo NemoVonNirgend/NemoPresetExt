@@ -51,6 +51,15 @@
             </div>
 
             <div class="nemo-settings-section">
+                <h4>Outgoing messages</h4>
+                <label class="checkbox_label" for="nemoForceLastUserRole">
+                    <input id="nemoForceLastUserRole" type="checkbox" aria-describedby="nemoForceLastUserRoleHelp">
+                    <span>Force the last outgoing message to user role</span>
+                </label>
+                <small id="nemoForceLastUserRoleHelp" class="notes">Applies immediately to Chat Completion requests. The final message is sent as user regardless of its source: prompts, lorebooks, extensions, quick replies, or Start reply with. Earlier prompt roles and saved text stay as configured.</small>
+            </div>
+
+            <div class="nemo-settings-section">
                 <h4>Custom dividers</h4>
                 <label for="nemoDividerRegexPattern">Additional divider patterns</label>
                 <input id="nemoDividerRegexPattern" class="text_pole" type="text" placeholder="pattern-one, pattern-two">

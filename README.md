@@ -2,13 +2,21 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.10
+**Version:** 6.0.11
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.11 Force the final user role
+
+Enable **NemoPresetExt → Outgoing messages → Force the last outgoing message to user role** to send the final Chat Completion message as `user`, regardless of whether it comes from a preset prompt, lorebook, extension, quick reply, chat history, continuation, or **Start reply with**. The switch defaults to off, persists with extension settings, and applies immediately to subsequent requests in every prompt interface mode.
+
+The override attaches at `CHAT_COMPLETION_SETTINGS_READY` and applies when SillyTavern serializes the outgoing request, after all event listeners finish. This also catches content appended by later extension listeners. Claude's separately transmitted assistant prefill becomes the final user message so the server cannot append it as an assistant turn. Earlier message roles, saved prompts, lorebooks, chat history, and the configured prefill remain unchanged. A trailing native tool result keeps its required protocol entry and is repeated as the final user message to preserve its tool-call pairing. Plain Text Completion APIs have no message-role field.
+
+Update the extension and fully reload SillyTavern once to install the feature. Toggling it afterward requires no reload or preset reimport.
 
 ### 6.0.10 Prompt layout and redraw recovery
 
@@ -61,6 +69,7 @@ New installations default to **Classic 3.4**. Existing standalone NemoPromptTool
 - `enableReasoningCapture`: `true`
 - `enableReasoningSection`: `true`
 - `enableLorebookManagement`: `false`
+- `forceLastUserRole`: `false`
 - `promptUiMode`: `classic`
 - `enableDirectives`: `true`
 - `enableDirectiveAutocomplete`: `true`
