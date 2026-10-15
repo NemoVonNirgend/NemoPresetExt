@@ -11,6 +11,7 @@ The design follows Nemo-wiki's structural approach: scan saved prompt order, rec
 | Renamed recipe data partitions with supported genre guards | Indexed by content; original IDs and exact setter statements are retained. |
 | Updated Vex control comments or display prose with a verified executable shape | Accepted with a new exact source fingerprint. |
 | New routing algorithm, namespace, control IDs, or unsupported syntax | That subsystem stays in native mode, with its original source and a compatibility warning. |
+| Vex control or recipe index/guard/resolver cannot be found, or prompt order uses an unfamiliar format | Portable import continues unchanged for that subsystem, using native execution. |
 | Missing/corrupt external source, altered stored loader, or native/preflight disagreement | Blocked until the original source can be verified or restored. |
 
 ## Import behavior

@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { buildPresetIndex } from '../features/preset-index/discovery.js';
 import { compile } from '../features/vex-runtime/program.js';
 import { programShape } from '../features/vex-runtime/program-shape.js';
-import { validatePrograms, planExtraction as planVex, ASSEMBLE, KEY as VEX_KEY } from '../features/vex-runtime/format.js';
+import { validatePrograms, planExtraction as planVex, RESET, ASSEMBLE, KEY as VEX_KEY } from '../features/vex-runtime/format.js';
 import { createVexRuntime } from '../features/vex-runtime/controller.js';
 import { RecipeStore } from '../features/recipe-runtime/store.js';
 import { planExtraction, selectedKey, RESOLVER_TEXT, GUARD_TEXT, RUNTIME_KEY } from '../features/recipe-runtime/format.js';
@@ -151,6 +151,56 @@ test('unsupported raw recipe controls keep the original preset usable and report
         assert.equal(notices.at(-1)[1], 'warning');
     } finally { runtime.dispose(); }
 });
+
+test('a missing Vex control does not prevent portable import or native generation', async () => {
+    const f = vexFixture();
+    f.preset.prompts = f.preset.prompts.filter(p => p.identifier !== RESET);
+    f.preset.prompt_order[0].order = f.preset.prompt_order[0].order.filter(e => e.identifier !== RESET);
+    const original = JSON.stringify(f.preset), io = server();
+    const h = vexHarness(f, io, { validate: validatePrograms, planImport: planVex });
+    try {
+        await h.runtime.importReady({ data: f.preset });
+        assert.equal(JSON.stringify(f.preset), original);
+        assert.equal(io.calls.length, 0);
+        assert.equal(h.runtime.getStats().compatibility.mode, 'native');
+        assert.match(h.runtime.getStats().compatibility.reason, /not a supported raw Vex source layout/);
+        assert.equal(await h.manager.tryGenerate(), 'native');
+    } finally { h.runtime.dispose(); }
+});
+
+test('an unrecognized prompt order cannot fail import before Vex compatibility fallback', async () => {
+    const f = vexFixture(), io = server();
+    f.preset.prompt_order = { future_format: [] };
+    const original = JSON.stringify(f.preset);
+    const h = vexHarness(f, io);
+    try {
+        await h.runtime.importReady({ data: f.preset });
+        assert.equal(JSON.stringify(f.preset), original);
+        assert.equal(io.calls.length, 0);
+        assert.equal(h.runtime.getStats().compatibility.mode, 'native');
+        assert.equal(await h.manager.tryGenerate(), 'native');
+    } finally { h.runtime.dispose(); }
+});
+
+for (const missing of ['nemo-init-recipe-index', 'nemo-recipe-selection-sanitize', 'nc-writing-resolver']) {
+    test(`missing recipe structure does not prevent portable import: ${missing}`, async () => {
+        const p = recipeFixture(), io = server();
+        p.prompts = p.prompts.filter(p => p.identifier !== missing);
+        p.prompt_order[0].order = p.prompt_order[0].order.filter(e => e.identifier !== missing);
+        const original = JSON.stringify(p);
+        const manager = { serviceSettings: p, preparePrompt(x) { return x; }, tryGenerate() { return 'native'; },
+            import(x) { return x; }, export(x) { return x; } };
+        const runtime = createRecipeRuntime({ events: new Events(), types: TYPES, getManager: () => manager,
+            getContext: () => ({}), store: new RecipeStore({ fetchFn: io.fetchFn }) });
+        try {
+            await runtime.importReady({ data: p });
+            assert.equal(JSON.stringify(p), original);
+            assert.equal(io.calls.length, 0);
+            assert.equal(runtime.getStats().compatibility.mode, 'native');
+            assert.equal(await manager.tryGenerate(), 'native');
+        } finally { runtime.dispose(); }
+    });
+}
 
 test('renamed Vex control/bank IDs and a future namespace retain native source', async () => {
     const f = vexFixture(), io = server();

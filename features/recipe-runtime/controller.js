@@ -132,9 +132,11 @@ export function createRecipeRuntime({ events, types, getManager, getContext, sto
             if (!manager) throw new Error('Wait for SillyTavern to finish starting before importing Nemo Full.');
             if (runtimeOf(data)) { await store.manifest(data); return; }
             notify('Preparing Nemo recipe storage. The original preset remains intact until verification finishes.', 'info');
-            let plan;
-            const discovered = indexSummary(data);
-            try { plan = planExtraction(data); }
+            let plan, discovered;
+            try {
+                discovered = indexSummary(data);
+                plan = planExtraction(data);
+            }
             catch (error) {
                 compatibility = { mode: 'native', presetName, reason: error.message, index: discovered };
                 notify(`Recipe optimization skipped: ${error.message} The original recipe prompts will run in SillyTavern.`, 'warning');

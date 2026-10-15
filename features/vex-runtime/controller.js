@@ -159,22 +159,26 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
     }
     async function importReady({ data, presetName = '' }) {
         if (!runtimeOf(data) && (!candidate(data) || !autoExtract())) return;
-        const snap = snapshot(data, 'normal', true);
+        let snap;
         try {
             attach();
             requireThat(manager && ['tryGenerate', 'preparePrompt', 'export', 'import'].every(k => typeof manager[k] === 'function'), 'required ST boundaries unavailable.');
             const vars = getContext()?.variables?.local;
             requireThat(typeof vars?.get === 'function' && typeof vars?.del === 'function', 'native local-variable API unavailable.');
             if (runtimeOf(data)) {
+                snap = snapshot(data, 'normal', true);
                 await store.restore(data); // Validate all banks, not only the active route.
                 const contract = await validate(data, readBody);
                 const m = await store.manifest(data);
                 checkControlHashes(contract, m);
                 for (const profile of data.prompt_order) dependencies(data, profile.order, contract, m);
             } else {
-                let plan;
-                const discovered = indexSummary(data);
-                try { plan = await planImport(data, readBody); }
+                let plan, discovered;
+                try {
+                    discovered = indexSummary(data);
+                    snap = snapshot(data, 'normal', true);
+                    plan = await planImport(data, readBody);
+                }
                 catch (error) {
                     compatibility = { mode: 'native', presetName, reason: error.message, index: discovered };
                     notify(`Vex optimization skipped: ${error.message} The original Vex prompts will run in SillyTavern.`, 'warning');
