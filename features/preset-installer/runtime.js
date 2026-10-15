@@ -279,6 +279,17 @@ export async function getNemoEngineSetupReport({ presetId = DEFAULT_PRESET_ID } 
         detail: report.activeName ? `Active preset: ${report.activeName}.` : 'No active OpenAI preset detected yet.',
     });
 
+    for (const [label, runtime] of [['Recipes', globalThis.NemoRecipeRuntime], ['Vex', globalThis.NemoVexRuntime]]) {
+        const compatibility = runtime?.getStats?.().compatibility;
+        if (!report.installed || compatibility?.presetName !== report.installedName) continue;
+        report.checks.push({ state: compatibility.mode === 'native' ? 'warning' : 'ok',
+            label: `${label}: ${compatibility.mode === 'native' ? 'native execution' : 'indexed and optimized'}`,
+            detail: compatibility.mode === 'native'
+                ? 'Imported with original prompts. ' + compatibility.reason
+                : 'Compatible selector and library structure was verified.',
+        });
+    }
+
 
     report.hasErrors = report.checks.some(check => check.state === 'error');
     report.hasWarnings = report.checks.some(check => check.state === 'warning');

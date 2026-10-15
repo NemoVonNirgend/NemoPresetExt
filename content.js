@@ -21,6 +21,7 @@ import { cleanupNemoEngineInstaller, initNemoEngineInstaller } from './features/
 import { cleanupPromptTools, initializePromptTools } from './features/prompt-tools/runtime.js';
 import { initializeLorebookSpacing, cleanupLorebookSpacing } from './features/lorebook-spacing/runtime.js';
 import { initializeFinalUserRole, cleanupFinalUserRole } from './features/final-user-role/runtime.js';
+import { buildPresetIndex } from './features/preset-index/discovery.js';
 
 let initialized = false;
 let cleanupInProgress = false;
@@ -51,6 +52,7 @@ function publishPublicApi() {
         getDividerPatterns,
         refreshDividerPatterns: validateDividerPatterns,
         getPromptTools: () => window.NemoPromptTools ?? null,
+        inspectPreset: buildPresetIndex,
     });
     window.NemoPresetExt = api;
     window.NemoPresetExtCleanup = cleanupExtension;

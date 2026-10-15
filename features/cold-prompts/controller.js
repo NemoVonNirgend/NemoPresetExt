@@ -25,7 +25,7 @@ export function createColdPromptRuntime({
         const pm = getManager();
         if (preset === pm?.serviceSettings) return pm.getPromptOrderForCharacter(pm.activeCharacter) ?? [];
         const id = pm?.activeCharacter?.id ?? 100001;
-        return preset.prompt_order?.find(p => p.character_id === id)?.order ?? preset.prompt_order?.[0]?.order ?? [];
+        return preset.prompt_order?.find(p => String(p.character_id) === String(id))?.order ?? preset.prompt_order?.[0]?.order ?? [];
     }
     function snapshot(preset) {
         return { ...preset, _order: orderFor(preset).map(e => ({ ...e })) };

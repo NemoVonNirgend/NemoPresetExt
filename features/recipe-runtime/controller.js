@@ -1,4 +1,5 @@
 import { isCandidate, runtimeOf, selectedKey, planExtraction, blockSerialization, RESOLVER_ID, RESOLVER_TEXT, LOADER_TEXT } from './format.js';
+import { indexSummary } from '../preset-index/discovery.js';
 
 /** Dependency-injected lifecycle controller. No global tokenizer patches or async getters. */
 export function createRecipeRuntime({ events, types, getManager, getContext, store, notify = () => {}, autoExtract = () => true }) {
@@ -12,13 +13,14 @@ export function createRecipeRuntime({ events, types, getManager, getContext, sto
     const selectedCache = new Map();
     const pending = new Map();
     const stats = { imports: 0, materializations: 0, cacheHits: 0 };
+    let compatibility = null;
     const identity = preset => runtimeOf(preset)?.manifest?.sha256;
     const active = () => getManager()?.serviceSettings;
     const orderFor = preset => {
         const pm = getManager();
         if (preset === pm?.serviceSettings) return pm.getPromptOrderForCharacter(pm.activeCharacter);
         const id = pm?.activeCharacter?.id ?? 100001;
-        return preset.prompt_order.find(p => p.character_id === id)?.order ?? preset.prompt_order[0]?.order;
+        return preset.prompt_order.find(p => String(p.character_id) === String(id))?.order ?? preset.prompt_order[0]?.order;
     };
     const activeFault = () => fault && fault.identity === identity(active());
     const fail = (error, preset = active()) => {
@@ -123,18 +125,26 @@ export function createRecipeRuntime({ events, types, getManager, getContext, sto
         manager = null;
     }
 
-    async function importReady({ data }) {
+    async function importReady({ data, presetName = '' }) {
         if (!runtimeOf(data) && (!isCandidate(data) || !autoExtract())) return;
         try {
             attach();
             if (!manager) throw new Error('Wait for SillyTavern to finish starting before importing Nemo Full.');
             if (runtimeOf(data)) { await store.manifest(data); return; }
             notify('Preparing Nemo recipe storage. The original preset remains intact until verification finishes.', 'info');
-            const plan = planExtraction(data);
+            let plan;
+            const discovered = indexSummary(data);
+            try { plan = planExtraction(data); }
+            catch (error) {
+                compatibility = { mode: 'native', presetName, reason: error.message, index: discovered };
+                notify(`Recipe optimization skipped: ${error.message} The original recipe prompts will run in SillyTavern.`, 'warning');
+                return;
+            }
             const compact = await store.extract(data, plan);
             // Preload the default selected recipe before ST's first automatic dry run.
             await ready(compact, 'normal');
             Object.assign(data, compact);
+            compatibility = { mode: 'optimized', presetName, index: discovered };
             stats.imports++;
             notify(`Nemo optimized: ${plan.banks.length} recipe partitions moved out of the preset.`, 'success');
         } catch (error) {
@@ -184,7 +194,7 @@ export function createRecipeRuntime({ events, types, getManager, getContext, sto
             try { await ready(active(), String(type || 'normal')); }
             catch (error) { fail(error); abort(true); }
         },
-        getStats: () => ({ ...stats, cachedRecipes: selectedCache.size, cachedCharacters: [...selectedCache.values()].reduce((n, s) => n + s.length, 0) }),
+        getStats: () => ({ ...stats, compatibility, cachedRecipes: selectedCache.size, cachedCharacters: [...selectedCache.values()].reduce((n, s) => n + s.length, 0) }),
         dispose() {
             disposed = true;
             for (const [type, fn] of listeners) events.removeListener(type, fn);
