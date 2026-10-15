@@ -1,0 +1,2 @@
+# The installer verifies the exact portable release bytes on every platform.
+assets/nemo-engine/* -text
