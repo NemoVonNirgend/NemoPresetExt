@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture, server, harness, TYPES } from './vex-runtime-fixture.mjs';
 import { BANKS, RESET, RESOLVE, ASSEMBLE, KEY, SCHEMA, loader, dependencies, validatePrograms,
-    planExtraction, selectorValue, blockSerialization, parseBank } from '../features/vex-runtime/format.js';
+    planExtraction, selectorValue, blockSerialization, parseBank, HASHES, CONTROL_HASHES,
+    checkControlHashes } from '../features/vex-runtime/format.js';
 import { compile, execute } from '../features/vex-runtime/program.js';
 import { VexStore } from '../features/vex-runtime/store.js';
 const cosy = 'v11-317-vex-cozy-vex';
@@ -18,6 +19,55 @@ for (const content of ['{{incvar::x}}', '{{setvar::NVCR1_raw_bubbly::0}}', '{{se
 test('restricted interpreter has no JavaScript, dice or unrelated macro execution', () => {
     for (const text of ['{{roll::1d20}}', '{{eval::foo}}', '{{random::a::b}}', '{{/if}}', '{{#if 1}}']) assert.throws(() => compile(text));
     assert.throws(() => execute(compile('hello'), {}, {}, new Set(), { maxSteps: 0 }), /budget/);
+});
+test('v12.1-sized programs compile while oversized programs remain bounded', () => {
+    assert.equal(execute(compile('x'.repeat(424400)), {}), 'x'.repeat(424400));
+    assert.throws(() => compile('x'.repeat(512 * 1024 + 1)), /program size/);
+});
+for (const spacing of [' ', '\u2800']) test(`selector style survives native preparation and portable export (${spacing.codePointAt(0)})`, async () => {
+    const h = harness(), selector = h.f.preset.prompts.find(p => p.identifier === 'v11-300-vex-bubbly-vex');
+    selector.content += '\n{{#setvar::NemoVexAdultStyle}}{{getvar::NemoVexAdultStyle}}'
+        + `Style${spacing}label {{user}} {{#if {{getvar::NemoInterpreterEnabled}}}}on{{else}}off{{/if}}{{/setvar}}{{trim}}`;
+    const before = structuredClone(h.f.preset);
+    try {
+        assert.equal(selectorValue(selector.content), 'NVCR1_raw_bubbly');
+        await h.import(); h.state.NemoVexAdultStyle = 'Prior: '; h.state.NemoInterpreterEnabled = '1'; h.generate();
+        assert(h.state.NemoVexAdultStyle.startsWith(`Prior: Style${spacing}label`));
+        assert(h.state.NemoVexAdultStyle.endsWith('on'));
+        assert.equal(h.state.VexPersona, 'First 🧩 original.');
+        assert.deepEqual(await h.io.store.restore(h.f.preset), before);
+    } finally { h.runtime.dispose(); }
+});
+for (const body of [
+    '{{setvar::NVCR1_raw_cozy::1}}', '{{addvar::NVCR1_raw_cozy::1}}',
+    '{{getvar::NVCL1_text_1}}', '{{getvar::NVCR1_raw_cozy}}',
+    '{{getvar::{{user}}}}', '{{roll::1d20}}',
+]) test(`selector style cannot bypass dependency discovery: ${body}`, () => {
+    assert.throws(() => selectorValue('{{setvar::NVCR1_raw_bubbly::1}}'
+        + `{{#setvar::NemoVexAdultStyle}}${body}{{/setvar}}`));
+});
+for (const hash of CONTROL_HASHES[ASSEMBLE]) test(`catalog retains its accepted control fingerprint: ${hash}`, async () => {
+    const f = fixture(), io = server(), plan = await f.planImport(f.preset);
+    plan.contract.hashes = { ...HASHES, [ASSEMBLE]: hash };
+    const compact = await io.store.extract(f.preset, plan), manifest = await io.store.manifest(compact);
+    assert.deepEqual(manifest.hashes, plan.contract.hashes);
+    assert.doesNotThrow(() => checkControlHashes(plan.contract, manifest));
+    assert.deepEqual(await io.store.restore(compact), f.preset);
+    assert.throws(() => checkControlHashes({ hashes: { ...HASHES, [ASSEMBLE]: 'edited' } }, manifest), /controls changed/);
+    const corrupt = { ...manifest, hashes: { ...manifest.hashes, [ASSEMBLE]: '0'.repeat(64) } };
+    compact.extensions[KEY].manifest = await io.store.sources.write(corrupt);
+    await assert.rejects(io.store.manifest(compact), /unsupported Vex control contract/);
+});
+test('optimized import and preflight reject a recognized program from a different catalog', async () => {
+    const f = fixture(), io = server();
+    f.preset = await io.store.extract(f.preset, await f.planImport(f.preset));
+    const h = harness(f, io, { validate: async (...args) => ({ ...await f.validate(...args),
+        hashes: { ...HASHES, [ASSEMBLE]: CONTROL_HASHES[ASSEMBLE][1] },
+    }) });
+    try {
+        await assert.rejects(h.runtime.importReady({ data: f.preset }), /controls changed since import/);
+        await assert.rejects(h.runtime.ready(), /controls changed since import/);
+    } finally { h.runtime.dispose(); }
 });
 test('import uses Stage 4A source packs and leaves exact full/partial portable exports', async () => {
     const h = harness(), before = structuredClone(h.f.preset);

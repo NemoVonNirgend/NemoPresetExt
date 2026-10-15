@@ -3,7 +3,8 @@
  * supplies its prose to the model. ST still executes the original program.
  */
 export function compile(text) {
-    if (typeof text !== 'string' || text.length > 400000) throw new Error('Unsupported Vex program size.');
+    // The v12.1 assembler is 424,400 UTF-16 code units in both spacing editions.
+    if (typeof text !== 'string' || text.length > 512 * 1024) throw new Error('Unsupported Vex program size.');
     let pos = 0, nodes = 0;
     function token() {
         const start = pos;

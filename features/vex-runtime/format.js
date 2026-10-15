@@ -14,6 +14,20 @@ export const HASHES = Object.freeze({
     [RESOLVE]: 'e32941910f005440c2b51bc207949e280b7b0cdb812119d14c2aeb410fff4206',
     [ASSEMBLE]: '0311e2862e20fca36abeb0b04b451ab7bbbad5d27218515586ab6d3df369134a',
 });
+// Keep the original contract for already stored v12 catalogs. Accept only the
+// inspected v12.1 exports as additional programs, without rewriting their text.
+export const CONTROL_HASHES = Object.freeze(Object.fromEntries(Object.entries(HASHES).map(([id, hash]) =>
+    [id, Object.freeze(id === ASSEMBLE ? [hash,
+        'adaab38cc0587e35a68aaa4fdbb509a9febb1628d5fb8c30cb1a3e77efa11f08', // v12.1, ordinary spaces
+        'bd906a52a9a5c952d827690e9aa95ab0fd61fc2eba8828b75d1d67551b0b5126', // v12.1, Braille spaces
+    ] : [hash])])));
+export const supportedControlHash = (id, hash) => Object.hasOwn(CONTROL_HASHES, id)
+    && CONTROL_HASHES[id].includes(hash);
+export function checkControlHashes(contract, manifest) {
+    for (const [id, hash] of Object.entries(contract.hashes ?? {})) {
+        requireThat(manifest.hashes?.[id] === hash, 'Vex controls changed since import; reimport the portable preset.');
+    }
+}
 export const runtimeOf = preset => preset?.extensions?.[KEY] ?? null;
 export const candidate = preset => hasVexLibrary(preset) && !/tavo/i.test(preset.preset_name ?? '');
 export const blockSerialization = (object, error) => Object.defineProperty(object, 'toJSON', {
@@ -28,18 +42,35 @@ export const comparable = value => {
 };
 export function selectorValue(content) {
     const text = content.replace(/\{\{\/\/[^{}]*\}\}/g, '').replace(/\{\{trim\}\}/g, '').trim();
-    const match = /^\{\{setvar::(NVCR1_(?:raw_[a-z_]+|default_requested))::1\}\}$/.exec(text);
+    const match = /^\{\{setvar::(NVCR1_(?:raw_[a-z_]+|default_requested))::1\}\}(?:\s*\{\{#setvar::NemoVexAdultStyle\}\}([\s\S]*)\{\{\/setvar\}\})?$/.exec(text);
     requireThat(match, 'unsupported Vex selector; export portable before changing selection logic.');
+    if (match[2] !== undefined) {
+        // v12.1 selectors append a prose-only style field. ST executes it as
+        // supplied; dependency discovery needs only the leading selection flag.
+        // Limit nested macros to display reads so they cannot alter routing or
+        // read externalized library data behind the preflight's back.
+        const check = program => program.forEach(node => {
+            if (typeof node === 'string') return;
+            if (node.op === 'if') { check(node.condition); check(node.yes); check(node.no); return; }
+            if (['user', 'char', 'trim'].includes(node.op)) return;
+            requireThat(node.op === 'getvar' && node.args[0].length === 1
+                && ['NemoVexAdultStyle', 'NemoInterpreterEnabled'].includes(node.args[0][0]),
+            'unsupported Vex selector style macro.');
+        });
+        check(compile(match[2]));
+    }
     return match[1];
 }
 const touchesLibrary = text => /NVCL1_|\bNVM[a-z0-9]|NVCR1_(?:is_|map_|idmap_|namemap_|keymap_)/.test(text);
 export async function validatePrograms(preset, readBody = async p => p.content ?? '', activeIds = null) {
-    const byId = indexPrompts(preset), programs = {}, source = {}, selectors = {};
+    const byId = indexPrompts(preset), programs = {}, source = {}, selectors = {}, hashes = {};
     // Fingerprint before compiling. No untrusted JavaScript or general macros run.
-    for (const [id, hash] of Object.entries(HASHES)) {
+    for (const id of Object.keys(CONTROL_HASHES)) {
         requireThat(byId.has(id), `missing ${id}.`);
         const body = await readBody(byId.get(id));
-        requireThat(await digest(body) === hash, `unsupported or edited ${id}; conversion refused.`);
+        const hash = await digest(body);
+        requireThat(supportedControlHash(id, hash), `unsupported or edited ${id}; conversion refused.`);
+        hashes[id] = hash;
         programs[id] = compile(body); source[id] = body;
     }
     for (const p of preset.prompts) {
@@ -52,7 +83,7 @@ export async function validatePrograms(preset, readBody = async p => p.content ?
             requireThat(!/\{\{(?:#?setvar|addvar)::NVCR1_|\{\{\.NVCR1_\w+\s*(?:=(?!=)|\+=|\+\+)/.test(body), `custom Vex state writer in ${p.identifier}.`);
         }
     }
-    return { byId, programs, source, selectors };
+    return { byId, programs, source, selectors, hashes };
 }
 export function checkOrder(preset, order, selectors, type = 'normal') {
     const byId = indexPrompts(preset), positions = new Map();

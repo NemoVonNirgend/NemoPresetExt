@@ -1,5 +1,5 @@
 import { BANKS, RESET, RESOLVE, ASSEMBLE, runtimeOf, candidate, loader, requireThat,
-    blockSerialization, validatePrograms, planExtraction, dependencies, comparable } from './format.js';
+    blockSerialization, validatePrograms, planExtraction, dependencies, comparable, checkControlHashes } from './format.js';
 
 /** Async source preparation, synchronous native execution. No replacement council. */
 export function createVexRuntime({ events, types, getManager, getContext = () => ({}), store,
@@ -52,6 +52,7 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
             const m = catalog?.descriptor === snap.descriptor ? catalog.value : await store.manifest(preset);
             const ids = new Set(orderFor(preset).filter(e => e.enabled).map(e => e.identifier));
             const contract = await validate(preset, readBody, ids);
+            checkControlHashes(contract, m);
             for (const id of BANKS) requireThat(contract.byId.get(id)?.content === loader(id), 'Vex loader was edited; export portable to edit the library.');
             const selection = dependencies(preset, orderFor(preset), contract, m, type);
             const materialized = await store.selected(m, selection.reads);
@@ -166,6 +167,7 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
                 await store.restore(data); // Validate all banks, not only the active route.
                 const contract = await validate(data, readBody);
                 const m = await store.manifest(data);
+                checkControlHashes(contract, m);
                 for (const profile of data.prompt_order) dependencies(data, profile.order, contract, m);
             } else {
                 const plan = await planImport(data, readBody);
