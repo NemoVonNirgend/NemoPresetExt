@@ -1,25 +1,40 @@
 # Nemo Engine Setup
 
-This extension bundles the latest Nemo Engine preset as `assets/nemo-engine-latest.json`.
+NemoPresetExt 6.0.14 includes four verified Nemo Engine v12.1 releases. Each is bundled with the extension and checked against its release checksum before importing.
 
-## One-click install
+| Edition | Controls | Spacing |
+| --- | --- | --- |
+| Standard (recommended) | Direct Vex and writing controls | Ordinary spaces |
+| Standard · Braille spaces | Standard controls and context-conversion rules | Braille spaces |
+| Full | Combined Vex Council selection and Genre × Author × Style recipes | Ordinary spaces |
+| Full · Braille spaces | Full controls and context-conversion rules | Braille spaces |
 
-1. Open SillyTavern extension settings.
-2. Open `NemoPresetExt`.
-3. Click `Install / Update Nemo Engine v11.3`.
-4. Confirm `Nemo Engine v11.3` is selected in the Chat Completion preset dropdown.
+## One-click import and processing
 
-The installer uses SillyTavern's normal `/api/presets/save` endpoint with `apiId: "openai"`, so the preset is saved exactly like a manual Chat Completion preset import.
+1. Update NemoPresetExt and fully reload SillyTavern.
+2. Open **Extensions → NemoPresetExt → Nemo Engine Preset Installer**.
+3. Choose an edition, then click **Import and process**.
+4. Wait for **Setup is ready**. The imported edition is saved and selected in the Chat Completion preset dropdown.
+
+The installer verifies the bundled file, runs the normal preset import processing, saves prompt-body storage, and prepares Vex and writing-recipe storage for Full editions. Processing must finish before the preset is saved or selected. Full editions may take longer on their first import.
+
+Every edition has a separate preset name. **Reimporting replaces the installed copy of that edition.** Save custom edits under another preset name before reinstalling. Installing one edition does not replace a differently named edition.
+
+**Check / repair selected edition** checks its installation and processing receipt, installs it if needed, and selects it. Opening extension settings alone does not import or process anything.
+
+## If installation stops
+
+- Enable automatic prompt-body storage; Full editions also require the Vex and writing-recipe runtimes. Reload SillyTavern after updating the extension.
+- If a bundled file is missing, incomplete, or fails its checksum, update the extension and retry. An unknown or changed file is not installed as a verified release.
+- If processing or saving fails, the installer shows the error without selecting the failed import. Resolve the error and retry **Import and process**.
+- A current browser with gzip decompression support is required. If the installer reports that it cannot unpack presets, update the browser.
 
 ## First-use checks
 
-1. Open Advanced Formatting / Prompts.
-2. Confirm NemoPresetExt prompt section dropdowns are visible.
-3. Pick one active option per exclusive section, such as style, genre, language, and tracker profile.
-4. Send a short test message and verify the output matches the selected prompt sections.
+1. Open Advanced Formatting / Prompts and confirm NemoPresetExt prompt section dropdowns are visible.
+2. Pick one active option per exclusive section, such as style, genre, language, and tracker profile.
+3. Send a short test message and check that the output matches the selected prompt sections.
 
-## NemoLore and Guides
+Provider credentials remain configured in SillyTavern. Enable NemoLore systems and provider-compatible function/tool calling only if you want NemoLore Guides tool calls.
 
-The bundled preset keeps function calling and tool reasoning disabled by default. Normal preset use does not require them.
-
-Enable NemoLore systems and provider-compatible function/tool calling only if you want NemoLore Guides tool calls.
+Processed presets use files in the authenticated SillyTavern user's files directory. Back up those files along with your presets. Use the normal preset export to reconstruct a portable JSON before moving to another installation or disabling the extension.

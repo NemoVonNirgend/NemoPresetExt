@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.13
+**Version:** 6.0.14
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.14 One-click compatible preset installer
+
+The installer now includes all four verified **Nemo Engine v12.1** editions: Standard and Full, each with ordinary or Braille spaces. Choose an edition in **NemoPresetExt → Nemo Engine Preset Installer**, then click **Import and process** to verify, process, save, and select it. Full editions automatically prepare Vex and writing-recipe storage; all editions prepare prompt-body storage. The installer checks processing before saving and records the installed release for its setup report.
+
+Each edition has a distinct preset name. Reimporting replaces that edition's installed copy; save custom edits under another name first. The extension carries compressed copies of the verified releases, so installation does not depend on a moving external download. Update the extension and fully reload SillyTavern to use the new installer. See the [setup guide](NEMO_ENGINE_SETUP.md).
 
 ### 6.0.13 Nemo Engine v12.1 import compatibility
 
@@ -140,7 +146,7 @@ Add comma-separated regular expressions under **Custom dividers** and save. The 
 
 ## NemoEngine
 
-The installer adds or updates the bundled Nemo Engine Chat Completion preset without changing SillyTavern source. Its setup report validates bundled and installed prompt slots. Provider credentials remain owned by SillyTavern.
+The installer adds or updates a chosen bundled Nemo Engine v12.1 Chat Completion preset. Its setup report checks the selected edition's installation, verified release receipt, processed storage, and active preset. Provider credentials remain owned by SillyTavern.
 
 ### Large-preset recipe runtime
 
