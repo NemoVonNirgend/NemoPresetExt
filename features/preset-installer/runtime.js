@@ -3,27 +3,19 @@ import { extension_settings } from '../../../../../extensions.js';
 import { oai_settings, openai_setting_names, openai_settings } from '../../../../../openai.js';
 import { escapeHtml, getExtensionPath } from '../../core/utils.js';
 import logger from '../../core/logger.js';
+import { PRESET_VERSION, DEFAULT_VARIANT, PRESET_VARIANTS, presetVariant } from './catalog.js';
+import { loadPresetAsset } from './asset-loader.js';
 
-const PRESET_VERSION = '11.3';
-const PRESET_NAME = `Nemo Engine v${PRESET_VERSION}`;
-const PRESET_ASSET_PATH = 'assets/nemo-engine-latest.json';
+const PRESET_NAME = presetVariant().name;
 const INSTALLER_CARD_CLASS = 'nemo-engine-installer-section';
 const INSTALLER_STYLE_ID = 'nemo-engine-installer-styles';
 const SETTINGS_SELECTOR = '#nemo-engine-installer-mount';
-const STATUS_IDLE = `Bundled preset: ${PRESET_NAME}.`;
-const PREFERENCES_VARIABLE_NAME = 'NemoLorePreferences';
-const GUIDES_TOOL_RESULTS_VARIABLE_NAME = 'NemoGuidesToolResults';
-const CORE_PACK_VARIABLE_SLOTS = [
-    { name: 'NemoLoreTimeline', label: 'timeline memory' },
-    { name: 'NemoLoreRetrievedArchive', label: 'retrieved archive' },
-    { name: PREFERENCES_VARIABLE_NAME, label: 'cross-chat preferences' },
-    { name: 'NemoGuidesInstructions', label: 'Guides instructions' },
-    { name: GUIDES_TOOL_RESULTS_VARIABLE_NAME, label: 'Guides tool/preflight results' },
-];
+const STATUS_IDLE = `Four verified v${PRESET_VERSION} editions included. Choose one, then import and process.`;
 
 let initialized = false;
 let settingsPoll = null;
 let activeInstall = null;
+let activeVariantId = null;
 
 function clonePreset(preset) {
     return typeof structuredClone === 'function'
@@ -43,8 +35,8 @@ function revealInstallerStatus(card) {
     (status || card)?.scrollIntoView?.({ behavior: 'smooth', block: 'center', inline: 'center' });
 }
 
-function getPresetUrl() {
-    return getExtensionPath(PRESET_ASSET_PATH);
+function getPresetUrl(variant) {
+    return getExtensionPath(variant.assetPath);
 }
 
 function validateNemoEnginePreset(preset) {
@@ -75,15 +67,14 @@ function validateNemoEnginePreset(preset) {
     };
 }
 
-export async function loadBundledNemoEnginePreset() {
-    const response = await fetch(`${getPresetUrl()}?v=${Date.now()}`, { cache: 'no-store' });
-    if (!response.ok) {
-        throw new Error(`Could not load bundled preset (${response.status}).`);
-    }
-
-    const preset = await response.json();
+export async function loadBundledNemoEnginePreset(variantId = DEFAULT_VARIANT) {
+    const variant = presetVariant(variantId);
+    const preset = await loadPresetAsset(variant, getPresetUrl(variant));
     const stats = validateNemoEnginePreset(preset);
-    return { preset, stats };
+    if (stats.promptCount !== variant.promptCount || stats.regexScriptCount !== variant.regexScriptCount) {
+        throw new Error('Bundled preset does not match its release catalog. Update the extension and retry.');
+    }
+    return { preset, stats, variant };
 }
 
 function ensureOpenAiPresetState() {
@@ -166,10 +157,33 @@ function updateOpenAiPresetSelect(name, value, selectAfterInstall) {
     }
 }
 
-async function saveBundledPreset(name, presetBody, selectAfterInstall) {
-    if (event_types.OAI_PRESET_IMPORT_READY) {
-        await eventSource.emit(event_types.OAI_PRESET_IMPORT_READY, { data: presetBody, presetName: name });
+function requireImportPipeline(variant) {
+    const settings = extension_settings.NemoPresetExt || {};
+    if (!event_types.OAI_PRESET_IMPORT_READY || !globalThis.NemoColdPrompts
+        || (variant.full && (!globalThis.NemoVexRuntime || !globalThis.NemoRecipeRuntime))) {
+        throw new Error('Preset processing is not ready. Reload SillyTavern and retry.');
     }
+    if (settings.enableColdPromptStorage === false
+        || (variant.full && (settings.enableVexRuntime === false || settings.enableRecipeRuntime === false))) {
+        throw new Error('Enable automatic preset storage in NemoPresetExt before using the one-click installer.');
+    }
+}
+
+function processedPreset(preset, variant) {
+    // ST swallows event-listener exceptions. Runtime failures install a toJSON
+    // barrier, so serialize BEFORE checking descriptors or sending the save.
+    const serialized = JSON.stringify(preset);
+    if (!preset.prompts.some(p => p.nemoPromptBody)
+        || (variant.full && (!preset.extensions?.nemoVexRuntime || !preset.extensions?.nemoRecipeRuntime))) {
+        throw new Error('Preset processing did not finish. Reload NemoPresetExt and retry.');
+    }
+    return serialized;
+}
+
+async function saveBundledPreset(name, presetBody, selectAfterInstall, variant) {
+    requireImportPipeline(variant);
+    await eventSource.emit(event_types.OAI_PRESET_IMPORT_READY, { data: presetBody, presetName: name });
+    const serialized = processedPreset(presetBody, variant);
 
     const response = await fetch('/api/presets/save', {
         method: 'POST',
@@ -177,7 +191,7 @@ async function saveBundledPreset(name, presetBody, selectAfterInstall) {
         body: JSON.stringify({
             apiId: 'openai',
             name,
-            preset: presetBody,
+            preset: JSON.parse(serialized),
         }),
     });
 
@@ -192,30 +206,42 @@ async function saveBundledPreset(name, presetBody, selectAfterInstall) {
 }
 
 export async function installBundledNemoEnginePreset(options = {}) {
-    if (activeInstall) return activeInstall;
-
+    const variant = presetVariant(options.variantId);
+    if (activeInstall) {
+        if (activeVariantId !== variant.id) throw new Error('Another preset edition is still being installed.');
+        return activeInstall;
+    }
     const {
-        presetName = PRESET_NAME,
+        presetName = variant.name,
         selectAfterInstall = true,
     } = options;
 
+    requireImportPipeline(variant);
+    activeVariantId = variant.id;
     activeInstall = (async () => {
-        const { preset, stats } = await loadBundledNemoEnginePreset();
-        const savedName = await saveBundledPreset(presetName, preset, selectAfterInstall);
+        const { preset, stats } = await loadBundledNemoEnginePreset(variant.id);
+        const savedName = await saveBundledPreset(presetName, preset, selectAfterInstall, variant);
 
         extension_settings.NemoPresetExt = extension_settings.NemoPresetExt || {};
-        extension_settings.NemoPresetExt.nemoEnginePresetInstaller = {
+        const receipt = {
             name: savedName,
             version: PRESET_VERSION,
+            variantId: variant.id,
+            sourceSha256: variant.sha256,
+            processed: true,
             installedAt: new Date().toISOString(),
             promptCount: stats.promptCount,
             regexScriptCount: stats.regexScriptCount,
         };
+        extension_settings.NemoPresetExt.nemoEnginePresetInstaller = receipt;
+        const installations = extension_settings.NemoPresetExt.nemoEnginePresetInstallations ||= {};
+        installations[variant.id] = receipt;
         saveSettingsDebounced();
 
         return {
             name: savedName,
             version: PRESET_VERSION,
+            variantId: variant.id,
             stats,
             selected: selectAfterInstall,
         };
@@ -225,11 +251,8 @@ export async function installBundledNemoEnginePreset(options = {}) {
         return await activeInstall;
     } finally {
         activeInstall = null;
+        activeVariantId = null;
     }
-}
-
-function formatStats(stats) {
-    return `${stats.promptCount} prompts, ${stats.regexScriptCount} regex scripts (${stats.enabledRegexScriptCount} enabled)`;
 }
 
 function getActiveOpenAiPresetName() {
@@ -255,75 +278,38 @@ function getOpenAiPresetByName(name) {
     return openai_settings[index] || null;
 }
 
-function findMissingCorePackSlots(preset) {
-    const text = JSON.stringify(preset || {});
-    return CORE_PACK_VARIABLE_SLOTS
-        .filter(slot => !text.includes(`{{getglobalvar::${slot.name}}}`));
-}
-
-function formatMissingSlots(slots) {
-    return slots.length
-        ? slots.map(slot => `${slot.name} (${slot.label})`).join(', ')
-        : 'All core-pack variable slots found.';
-}
-
-export async function getNemoEngineSetupReport() {
+export async function getNemoEngineSetupReport(options = {}) {
+    const variant = presetVariant(options.variantId);
+    ensureOpenAiPresetState();
+    const settings = extension_settings.NemoPresetExt || {};
+    const receipt = settings.nemoEnginePresetInstallations?.[variant.id]
+        || (settings.nemoEnginePresetInstaller?.variantId === variant.id ? settings.nemoEnginePresetInstaller : {});
+    const installedName = receipt.name || variant.name;
+    const installedPreset = getOpenAiPresetByName(installedName);
+    const verified = receipt.version === PRESET_VERSION && receipt.sourceSha256 === variant.sha256
+        && receipt.processed === true;
+    const processed = !!installedPreset?.prompts?.some(p => p.nemoPromptBody)
+        && (!variant.full || !!(installedPreset.extensions?.nemoVexRuntime && installedPreset.extensions?.nemoRecipeRuntime));
     const report = {
-        stats: null,
-        bundledMissingSlots: [],
-        installedMissingSlots: [],
-        installed: false,
-        installedName: '',
-        installedVersion: '',
-        activeName: '',
-        activeIsInstalled: false,
+        variantId: variant.id,
+        stats: { promptCount: variant.promptCount, regexScriptCount: variant.regexScriptCount },
+        installed: !!installedPreset, installedName, installedVersion: receipt.version || '',
+        activeName: getActiveOpenAiPresetName(), verified: verified && processed,
         checks: [],
     };
-
-    const { preset, stats } = await loadBundledNemoEnginePreset();
-    report.stats = stats;
-    report.bundledMissingSlots = findMissingCorePackSlots(preset);
-
-    ensureOpenAiPresetState();
-
-    const installerState = extension_settings.NemoPresetExt?.nemoEnginePresetInstaller || {};
-    const installedName = String(installerState.name || PRESET_NAME).trim();
-    const installedPreset = getOpenAiPresetByName(installedName) || getOpenAiPresetByName(PRESET_NAME);
-    report.installed = !!installedPreset;
-    report.installedName = installedPreset ? (getOpenAiPresetByName(installedName) ? installedName : PRESET_NAME) : installedName;
-    report.installedVersion = String(installerState.version || '');
-    report.installedMissingSlots = installedPreset ? findMissingCorePackSlots(installedPreset) : [];
-    report.activeName = getActiveOpenAiPresetName();
-    report.activeIsInstalled = !!report.installedName && report.activeName === report.installedName;
-
-
-    report.checks.push({
-        state: 'ok',
-        label: `Bundled ${PRESET_NAME} preset is readable`,
-        detail: formatStats(stats),
-    });
-    report.checks.push({
-        state: report.bundledMissingSlots.length ? 'error' : 'ok',
-        label: 'Bundled core pack contains NemoLore/NemoGuides slots',
-        detail: formatMissingSlots(report.bundledMissingSlots),
-    });
-    report.checks.push({
-        state: report.installed ? 'ok' : 'warning',
-        label: 'Nemo Engine preset is installed in SillyTavern',
-        detail: report.installed ? `Installed as ${report.installedName}.` : 'Run Install / Update or Run Setup Wizard.',
-    });
-    report.checks.push({
-        state: !report.installed || !report.installedMissingSlots.length ? 'ok' : 'warning',
-        label: 'Installed preset matches the current core-pack slots',
-        detail: report.installed ? formatMissingSlots(report.installedMissingSlots) : 'Not installed yet.',
-    });
-    report.checks.push({
-        state: report.activeIsInstalled ? 'ok' : 'warning',
-        label: 'Nemo Engine is selected as the active Chat Completion preset',
-        detail: report.activeName ? `Active preset: ${report.activeName}.` : 'No active OpenAI preset detected yet.',
-    });
-
-
+    report.activeIsInstalled = report.installed && report.activeName === installedName;
+    report.checks.push({ state: 'ok', label: `${variant.name} is included with this extension`,
+        detail: `${variant.promptCount} prompts, ${variant.regexScriptCount} regex scripts. ${variant.description}` });
+    report.checks.push({ state: report.installed ? 'ok' : 'warning',
+        label: 'Preset is installed in SillyTavern',
+        detail: report.installed ? `Installed as ${installedName}.` : 'Choose Import and process to install this edition.' });
+    report.checks.push({ state: report.verified ? 'ok' : 'warning',
+        label: 'Compatible release imported and processed',
+        detail: report.verified ? `Verified v${PRESET_VERSION} release; preset storage is ready.`
+            : 'Use Import and process to install the verified release.' });
+    report.checks.push({ state: report.activeIsInstalled ? 'ok' : 'warning',
+        label: 'Edition is selected as the active Chat Completion preset',
+        detail: report.activeName ? `Active preset: ${report.activeName}.` : 'No active Chat Completion preset detected.' });
     report.hasErrors = report.checks.some(check => check.state === 'error');
     report.hasWarnings = report.checks.some(check => check.state === 'warning');
     return report;
@@ -339,7 +325,7 @@ function renderSetupReport(report) {
     const summary = report.hasErrors
         ? 'Setup found a blocking preset issue.'
         : report.hasWarnings
-            ? 'Setup is usable, but some items need attention.'
+            ? 'The selected edition needs attention.'
             : 'Setup is ready.';
 
     return `
@@ -350,21 +336,20 @@ function renderSetupReport(report) {
     `;
 }
 
-async function runPresetAwareSetup(card) {
+async function runPresetAwareSetup(card, variantId = DEFAULT_VARIANT) {
     revealInstallerStatus(card);
     setStatus(card, 'Running preset-aware setup...', 'idle');
-    const initial = await getNemoEngineSetupReport();
+    const initial = await getNemoEngineSetupReport({ variantId });
     const needsInstall = !initial.installed
-        || initial.installedVersion !== PRESET_VERSION
-        || initial.installedMissingSlots.length > 0;
+        || !initial.verified;
 
     if (needsInstall) {
-        await installBundledNemoEnginePreset({ selectAfterInstall: true });
+        await installBundledNemoEnginePreset({ variantId, selectAfterInstall: true });
     } else {
         selectOpenAiPreset(initial.installedName);
     }
 
-    const report = await getNemoEngineSetupReport();
+    const report = await getNemoEngineSetupReport({ variantId });
     setStatus(card, renderSetupReport(report), report.hasErrors ? 'error' : report.hasWarnings ? 'warning' : 'success');
     revealInstallerStatus(card);
     return report;
@@ -388,6 +373,16 @@ function ensureInstallerStyles() {
             flex-wrap: wrap;
             gap: 10px;
             margin: 12px 0;
+        }
+
+        .nemo-engine-preset-variant {
+            width: 100%;
+            margin: 6px 0;
+        }
+
+        .nemo-engine-preset-description {
+            font-size: 13px;
+            line-height: 1.45;
         }
 
         .nemo-engine-install-button {
@@ -469,13 +464,20 @@ function createInstallerCard() {
     card.className = `nemo-settings-section ${INSTALLER_CARD_CLASS}`;
     card.innerHTML = `
         <h3>Nemo Engine Preset Installer</h3>
-        <p>Install or update the bundled ${escapeHtml(PRESET_NAME)} Chat Completion preset, then select it automatically for this session.</p>
+        <p>Choose a verified v${PRESET_VERSION} edition. One click imports, processes, saves, and selects it.</p>
+        <label>Preset edition
+            <select class="nemo-engine-preset-variant text_pole">
+                ${PRESET_VARIANTS.map(variant => `<option value="${escapeHtml(variant.id)}">${escapeHtml(variant.label)}</option>`).join('')}
+            </select>
+        </label>
+        <p class="nemo-engine-preset-description">${escapeHtml(presetVariant().description)}</p>
+        <p>Reimporting replaces the installed copy of this edition. Save custom edits under another preset name first.</p>
         <div class="nemo-engine-installer-actions">
             <button class="nemo-engine-install-button menu_button interactable" type="button">
-                Install / Update ${escapeHtml(PRESET_NAME)}
+                Import and process
             </button>
             <button class="nemo-engine-setup-button menu_button interactable" type="button">
-                Run Setup Wizard
+                Check / repair selected edition
             </button>
             <button class="nemo-engine-guide-button menu_button interactable" type="button">
                 Open Setup Guide
@@ -487,17 +489,27 @@ function createInstallerCard() {
     const installButton = card.querySelector('.nemo-engine-install-button');
     const setupButton = card.querySelector('.nemo-engine-setup-button');
     const guideButton = card.querySelector('.nemo-engine-guide-button');
+    const variantSelect = card.querySelector('.nemo-engine-preset-variant');
+    const lastVariant = extension_settings.NemoPresetExt?.nemoEnginePresetInstaller?.variantId;
+    variantSelect.value = PRESET_VARIANTS.some(variant => variant.id === lastVariant) ? lastVariant : DEFAULT_VARIANT;
+    card.querySelector('.nemo-engine-preset-description').textContent = presetVariant(variantSelect.value).description;
+    variantSelect.addEventListener('change', () => {
+        card.querySelector('.nemo-engine-preset-description').textContent = presetVariant(variantSelect.value).description;
+        setStatus(card, STATUS_IDLE);
+    });
 
     installButton.addEventListener('click', async () => {
         installButton.disabled = true;
         setupButton.disabled = true;
-        setStatus(card, 'Installing bundled preset...', 'idle');
+        variantSelect.disabled = true;
+        const variantId = variantSelect.value;
+        setStatus(card, 'Verifying and processing the selected preset. Full editions may take a moment…', 'idle');
 
         try {
-            const result = await installBundledNemoEnginePreset();
-            const report = await getNemoEngineSetupReport();
+            const result = await installBundledNemoEnginePreset({ variantId });
+            const report = await getNemoEngineSetupReport({ variantId });
             setStatus(card, renderSetupReport(report), report.hasErrors ? 'error' : report.hasWarnings ? 'warning' : 'success');
-            globalThis.toastr?.success(`Installed ${result.name}`, 'Nemo Engine');
+            globalThis.toastr?.success(`Imported and processed ${result.name}`, 'Nemo Engine');
         } catch (error) {
             logger.error('Nemo Engine preset install failed', error);
             setStatus(card, `Install failed: ${escapeHtml(error.message)}`, 'error');
@@ -505,15 +517,17 @@ function createInstallerCard() {
         } finally {
             installButton.disabled = false;
             setupButton.disabled = false;
+            variantSelect.disabled = false;
         }
     });
 
     setupButton.addEventListener('click', async () => {
         installButton.disabled = true;
         setupButton.disabled = true;
+        variantSelect.disabled = true;
 
         try {
-            const report = await runPresetAwareSetup(card);
+            const report = await runPresetAwareSetup(card, variantSelect.value);
             if (report.hasErrors) {
                 globalThis.toastr?.error('Setup found a blocking preset issue.', 'Nemo Engine');
             } else if (report.hasWarnings) {
@@ -528,6 +542,7 @@ function createInstallerCard() {
         } finally {
             installButton.disabled = false;
             setupButton.disabled = false;
+            variantSelect.disabled = false;
         }
     });
 
@@ -544,15 +559,8 @@ function mountInstallerCard(settingsContainer) {
     const card = createInstallerCard();
     settingsContainer.insertBefore(card, settingsContainer.firstChild);
 
-
-    loadBundledNemoEnginePreset()
-        .then(({ stats }) => {
-            setStatus(card, `Bundled preset ready: ${formatStats(stats)}.`, 'idle');
-        })
-        .catch(error => {
-            logger.error('Could not validate bundled Nemo Engine preset', error);
-            setStatus(card, `Bundled preset could not be read: ${escapeHtml(error.message)}`, 'error');
-        });
+    // Load only the chosen asset on demand, not every time settings are opened.
+    setStatus(card, STATUS_IDLE);
 }
 
 export function initNemoEngineInstaller() {
@@ -567,6 +575,7 @@ export function initNemoEngineInstaller() {
         getSetupReport: getNemoEngineSetupReport,
         version: PRESET_VERSION,
         presetName: PRESET_NAME,
+        variants: PRESET_VARIANTS,
     };
 
     settingsPoll = setInterval(() => {
