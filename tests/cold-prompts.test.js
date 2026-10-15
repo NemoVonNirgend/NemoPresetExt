@@ -100,6 +100,26 @@ test('import writes and verifies before replacing bodies; export round-trips exa
     assert.equal(env.pm.serviceSettings.prompts.filter(isCold).length, 3);
     env.runtime.dispose();
 });
+test('a raw preset with a missing prompt-order reference imports unchanged without storage writes', async () => {
+    const p = fixture();
+    p.prompt_order[0].order.push({ identifier: 'renamed-or-missing-selector', enabled: true });
+    const env = environment(p), original = JSON.stringify(p);
+    try {
+        await env.runtime.importReady({ data: p });
+        assert.equal(JSON.stringify(p), original);
+        assert.equal(env.network.log.length, 0);
+        assert.equal(env.notices.at(-1)[1], 'warning');
+    } finally { env.runtime.dispose(); }
+});
+test('missing prompt-order references in an optimized preset still require verified recovery', async () => {
+    const env = await installed();
+    const p = structuredClone(env.pm.serviceSettings);
+    p.prompt_order[0].order.push({ identifier: 'missing', enabled: true });
+    try {
+        await assert.rejects(env.runtime.importReady({ data: p }), /prompt-order reference/);
+        assert.throws(() => JSON.stringify(p), /prompt-order reference/);
+    } finally { env.runtime.dispose(); }
+});
 test('current ST user/files path is stored and legacy /files descriptors still read through fallback', async () => {
     const env = await installed(), p = env.pm.getPromptById('optional');
     assert.match(p[BODY_KEY].ref.path, /^\/user\/files\/nemo-prompts-/);

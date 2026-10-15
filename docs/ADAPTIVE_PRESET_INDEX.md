@@ -16,7 +16,7 @@ The design follows Nemo-wiki's structural approach: scan saved prompt order, rec
 
 ## Import behavior
 
-Recipes and Vex are assessed separately before their own storage writes. If a raw layout is unsupported, no extraction is attempted for that subsystem and no serialization barrier is installed for that compatibility decision. Other compatible subsystems can still optimize normally. If actual storage writes or verification fail, the existing barriers remain in force.
+Recipes and Vex are assessed separately before their own storage writes. If a raw layout is unsupported, no extraction is attempted for that subsystem and no serialization barrier is installed for that compatibility decision. Ordinary prompt storage also skips optimization if a raw preset has missing prompt-order references or an unfamiliar structure. Other compatible subsystems can still optimize normally. If actual storage writes or verification fail, the existing barriers remain in force.
 
 Native mode delegates the original instructions to SillyTavern and may do more work than an optimized import. The indexer does not invent a replacement Vex, genre, or recipe. It cannot guarantee that a new macro dialect unsupported by SillyTavern itself will execute successfully.
 

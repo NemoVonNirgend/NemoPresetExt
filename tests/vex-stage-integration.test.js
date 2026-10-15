@@ -10,7 +10,7 @@ import { createRecipeRuntime } from '../features/recipe-runtime/controller.js';
 import { RecipeStore } from '../features/recipe-runtime/store.js';
 import { DEFAULT_ID, INDEX_ID, GUARD_ID, RESOLVER_ID, GUARD_TEXT, RESOLVER_TEXT } from '../features/recipe-runtime/format.js';
 import { createVexRuntime } from '../features/vex-runtime/controller.js';
-import { KEY, BANKS, ASSEMBLE, loader } from '../features/vex-runtime/format.js';
+import { KEY, BANKS, RESET, ASSEMBLE, loader } from '../features/vex-runtime/format.js';
 import { compile, execute } from '../features/vex-runtime/program.js';
 
 function setup() {
@@ -80,6 +80,20 @@ test('cold selector loads before Vex preflight and updates family selection', as
         await x.pm.tryGenerate();
         assert(!isCold(selector)); assert.equal(x.state.VexPersona, 'Family master.');
         assert.equal(x.state.NVCL1_text_1, undefined);
+    } finally { x.dispose(); }
+});
+test('all import hooks retain a portable preset with missing controls and dangling order references', async () => {
+    const x = setup();
+    const p = x.pm.serviceSettings;
+    p.prompts = p.prompts.filter(prompt => ![RESET, INDEX_ID].includes(prompt.identifier));
+    const original = JSON.stringify(p);
+    try {
+        await x.events.emit(x.types.OAI_PRESET_IMPORT_READY, { data: p });
+        assert.equal(JSON.stringify(p), original);
+        assert.equal(x.d.calls.length, 0);
+        assert.equal(x.recipe.getStats().compatibility.mode, 'native');
+        assert.equal(x.vex.getStats().compatibility.mode, 'native');
+        assert.equal(x.cold.getStats().imports, 0);
     } finally { x.dispose(); }
 });
 test('Vex write failures block save even after later cold-storage handlers run', async () => {

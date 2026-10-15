@@ -125,14 +125,20 @@ export function createColdPromptRuntime({
         });
     }
     async function importReady({ data }) {
-        if (!hasBodies(data) && (!autoStore() || !isNemoPreset(data))) return;
+        const referenced = hasBodies(data);
+        if (!referenced && (!autoStore() || !isNemoPreset(data))) return;
         try {
             attach();
             if (!getManager() || ['preparePrompt', 'tryGenerate', 'getPromptCollection', 'saveServiceSettings', 'loadPromptIntoEditForm', 'export', 'import'].some(name => typeof getManager()[name] !== 'function')) {
                 throw new Error('This ST PromptManager does not expose the required prompt-storage boundaries. Import was not changed.');
             }
-            validatePreset(data);
-            if (hasBodies(data)) {
+            try { validatePreset(data); }
+            catch (error) {
+                if (referenced) throw error;
+                notify(`Prompt optimization skipped: ${error.message} The original prompts will be imported unchanged.`, 'warning');
+                return;
+            }
+            if (referenced) {
                 // Verify all referenced bodies, including disabled ones, before accepting a shell import.
                 await store.readMany(data.prompts.filter(isCold), () => {});
                 return;
