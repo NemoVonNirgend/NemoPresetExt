@@ -1,4 +1,5 @@
 /** Portable Nemo v12 recipe schema. This module never evaluates prompt macros. */
+import { hasRecipeSelection, recipePartitionGenre } from '../preset-index/discovery.js';
 export const RUNTIME_KEY = 'nemoRecipeRuntime';
 export const RESOLVER_ID = 'nc-writing-resolver';
 export const INDEX_ID = 'nemo-init-recipe-index';
@@ -11,12 +12,12 @@ const SELECTOR_ID = /^(?:nc-selection-init|nc-(?:genre|author|style)-[a-z0-9_]+)
 const DEFAULTS = { NCGenreId: 'slice_of_life', NCAuthorId: 'nemo_manuscript', NCStyleId: 'modern_literature' };
 export const GUARD_TEXT = '{{#if {{getvar::NG_{{getvar::NCGenreId}}}}}}{{else}}{{setvar::NCGenreId::slice_of_life}}{{setvar::NCAuthorId::nemo_manuscript}}{{setvar::NCStyleId::modern_literature}}{{setvar::GenreName::Slice of Life}}{{setvar::InfluenceName::Nemo / Manuscript Voice}}{{setvar::FormatName::Modern Literature / Contemporary Novel}}{{/if}}\n{{#if {{getvar::NA_{{getvar::NCAuthorId}}}}}}{{else}}{{setvar::NCAuthorId::nemo_manuscript}}{{setvar::InfluenceName::Nemo / Manuscript Voice}}{{/if}}\n{{#if {{getvar::NS_{{getvar::NCStyleId}}}}}}{{else}}{{setvar::NCStyleId::modern_literature}}{{setvar::FormatName::Modern Literature / Contemporary Novel}}{{/if}}{{trim}}';
 const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
-export const isBank = p => BANK_ID.test(p?.identifier ?? '');
+export const isBank = p => BANK_ID.test(p?.identifier ?? '') || Boolean(recipePartitionGenre(p?.content)
+    && /\{\{#?setvar::NP[a-z]{6}(?:::|\}\})/.test(p.content));
+export const isRecipeSelector = p => SELECTOR_ID.test(p?.identifier ?? '') || hasRecipeSelection(p?.content);
 export const runtimeOf = preset => preset?.extensions?.[RUNTIME_KEY] ?? null;
 export const isCandidate = preset => Array.isArray(preset?.prompts)
-    && preset.prompts.some(isBank)
-    && preset.prompts.some(p => p.identifier === DEFAULT_ID)
-    && preset.prompts.some(p => p.identifier === RESOLVER_ID);
+    && preset.prompts.some(isBank);
 
 function requireThat(ok, message) {
     if (!ok) throw new Error(`Nemo recipe runtime: ${message}`);
@@ -37,7 +38,7 @@ export function literalAssignments(text) {
         /\{\{setvar::([A-Za-z][\w-]*)::([^{}]*?)\}\}/g,
         (_, key, value) => { assignments.push([key, value.trim()]); return ''; },
     );
-    requireThat(!rest.trim(), 'dynamic or unsupported selector syntax; export portable before changing selector logic.');
+    requireThat(!rest.replace(/\u2800/g, ' ').trim(), 'dynamic or unsupported selector syntax; export portable before changing selector logic.');
     return assignments;
 }
 
@@ -53,12 +54,13 @@ export function parseIndex(text) {
 
 /** Parse one inert data partition, retaining the EXACT native setter for each recipe. */
 export function parseBank(prompt) {
-    const genre = BANK_ID.exec(prompt?.identifier ?? '')?.[1];
-    requireThat(genre && typeof prompt.content === 'string', 'invalid recipe partition.');
-    const prefix = `{{#if {{.NCGenreId == ${genre}}}}}`;
+    requireThat(typeof prompt?.content === 'string', 'invalid recipe partition.');
     const content = prompt.content.trim();
-    requireThat(content.startsWith(prefix) && content.endsWith('{{/if}}'), `unsupported partition guard: ${prompt.identifier}`);
-    let text = content.slice(prefix.length, -'{{/if}}'.length);
+    // Discover by content, but retain the verified native guard grammar.
+    const header = /^\{\{#if \{\{\.NCGenreId == ([a-z0-9_]+)\}\}\}\}/.exec(content);
+    requireThat(header && content.endsWith('{{/if}}'), `unsupported partition guard: ${prompt.identifier}`);
+    const genre = header[1];
+    let text = content.slice(header[0].length, -'{{/if}}'.length);
     const recipes = Object.create(null);
     // Scoped setters exist in the shipped v12 too. Preserve their whitespace and spelling.
     const setter = /\{\{setvar::(NP[a-z]{6})::([^{}]*?)\}\}|\{\{#setvar::(NP[a-z]{6})\}\}([^{}]*?)\{\{\/setvar\}\}/g;
@@ -94,8 +96,11 @@ export function selectedKey(preset, order, type = 'normal') {
         requireThat(p, `missing ordered prompt ${entry.identifier}.`);
         const triggers = p.injection_trigger;
         if (!entry.enabled || (Array.isArray(triggers) && triggers.length && !triggers.includes(type))) continue;
-        if (SELECTOR_ID.test(p.identifier)) {
-            for (const [key, value] of literalAssignments(p.content)) state[key] = value;
+        if (isRecipeSelector(p)) {
+            for (const [key, value] of literalAssignments(p.content)) {
+                requireThat(!/^(?:NP|N[GAS]_|NVCR|NVCL)/.test(key), 'selector writes into a stored library or index.');
+                state[key] = value;
+            }
             if (p.identifier === DEFAULT_ID) defaults = true;
         } else if (p.identifier === INDEX_ID) {
             index = parseIndex(p.content);
@@ -120,7 +125,7 @@ export function planExtraction(preset) {
     requireThat(isCandidate(preset) && !runtimeOf(preset), 'not a portable supported Nemo recipe preset.');
     const byId = indexPrompts(preset);
     const resolver = byId.get(RESOLVER_ID);
-    requireThat(resolver.content === RESOLVER_TEXT, 'modified recipe resolver; automatic conversion refused.');
+    requireThat(resolver?.content === RESOLVER_TEXT, 'modified or renamed recipe resolver; automatic conversion refused.');
     const index = parseIndex(byId.get(INDEX_ID)?.content ?? '');
     const banks = preset.prompts.filter(isBank);
     const bankIds = new Set(banks.map(p => p.identifier));
@@ -142,7 +147,7 @@ export function planExtraction(preset) {
         const resolverPosition = ids.indexOf(RESOLVER_ID);
         const guardPosition = ids.indexOf(GUARD_ID);
         requireThat(ids.indexOf(DEFAULT_ID) < ids.indexOf(INDEX_ID) && ids.indexOf(INDEX_ID) < guardPosition, 'invalid selector/index order.');
-        requireThat(profile.order.every((e, i) => !SELECTOR_ID.test(e.identifier) || i < guardPosition), 'selectors must precede the recipe guard.');
+        requireThat(profile.order.every((e, i) => !isRecipeSelector(byId.get(e.identifier)) || i < guardPosition), 'selectors must precede the recipe guard.');
         for (const id of bankIds) {
             const i = ids.indexOf(id);
             requireThat(i >= 0 && i > ids.indexOf(GUARD_ID) && i < resolverPosition && profile.order[i].enabled === true,
@@ -153,7 +158,7 @@ export function planExtraction(preset) {
     }
     // Do not externalize libraries used by unknown custom consumers or setters.
     for (const p of preset.prompts) {
-        if (isBank(p) || p.identifier === RESOLVER_ID || SELECTOR_ID.test(p.identifier) || p.identifier === GUARD_ID) continue;
+        if (isBank(p) || p.identifier === RESOLVER_ID || isRecipeSelector(p) || p.identifier === GUARD_ID) continue;
         requireThat(!/\bNP[a-z]{6}\b|getvar::NP\{\{|setvar::NC(?:Genre|Author|Style)Id|\.(?:NCGenreId|NCAuthorId|NCStyleId)\s*(?:=(?!=)|\+=|\+\+)/.test(p.content ?? ''),
             `custom recipe access in ${p.identifier}; conversion refused.`);
     }

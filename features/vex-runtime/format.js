@@ -2,6 +2,8 @@
 import { BANK_IDS, CONTROL_IDS, hasVexLibrary, snapshotLibrary } from '../vex-library/format.js';
 import { digest } from '../vex-library/store.js';
 import { compile, execute, truthy } from './program.js';
+import { programShape, CONTROL_SHAPES } from './program-shape.js';
+import { vexSelectorKey, selectorBody } from '../preset-index/discovery.js';
 export { parseBank, libraryKey, indexPrompts, requireThat } from '../vex-library/format.js';
 import { parseBank, indexPrompts, requireThat } from '../vex-library/format.js';
 export { digest };
@@ -23,26 +25,31 @@ export const CONTROL_HASHES = Object.freeze(Object.fromEntries(Object.entries(HA
     ] : [hash])])));
 export const supportedControlHash = (id, hash) => Object.hasOwn(CONTROL_HASHES, id)
     && CONTROL_HASHES[id].includes(hash);
+export const supportedControlShape = (id, shape) => CONTROL_SHAPES[id]?.includes(shape) === true;
 export function checkControlHashes(contract, manifest) {
     for (const [id, hash] of Object.entries(contract.hashes ?? {})) {
         requireThat(manifest.hashes?.[id] === hash, 'Vex controls changed since import; reimport the portable preset.');
     }
 }
 export const runtimeOf = preset => preset?.extensions?.[KEY] ?? null;
-export const candidate = preset => hasVexLibrary(preset) && !/tavo/i.test(preset.preset_name ?? '');
+export const candidate = preset => (hasVexLibrary(preset) || (Array.isArray(preset?.prompts)
+    && preset.prompts.some(p => vexSelectorKey(p?.content))
+    && preset.prompts.some(p => /\{\{#?setvar::NVCL\d+_/.test(p?.content ?? ''))))
+    && !/tavo/i.test(preset.preset_name ?? '');
 export const blockSerialization = (object, error) => Object.defineProperty(object, 'toJSON', {
     configurable: true, enumerable: false, value() { throw error; },
 });
 export const loader = id => `{{// @category Variable-Init }}{{// @hidden }}{{// @badge LAZY }}{{// Vex source ${id} is stored by NemoPresetExt. Export portable before editing the library. }}\n[NemoPresetExt Vex runtime required. Restore the extension or reimport the portable preset.]`;
-export const isSelector = p => /^v11-\d+-(?:vex-|classicvex-)/.test(p.identifier) || p.identifier === 'v11-299-default-vex';
+export const isSelector = p => /^v11-\d+-(?:vex-|classicvex-)/.test(p.identifier)
+    || p.identifier === 'v11-299-default-vex' || Boolean(vexSelectorKey(p.content));
 export const probeValue = (name, value) => /^(NVCL1_text_|NVCL1_exchange_)/.test(name) ? (truthy(value) ? 'VEX_TEXT' : '') : value;
 export const comparable = value => {
     const text = String(value ?? '');
     return text.trim() !== '' && !Number.isNaN(Number(text)) ? String(Number(text)) : text;
 };
 export function selectorValue(content) {
-    const text = content.replace(/\{\{\/\/[^{}]*\}\}/g, '').replace(/\{\{trim\}\}/g, '').trim();
-    const match = /^\{\{setvar::(NVCR1_(?:raw_[a-z_]+|default_requested))::1\}\}(?:\s*\{\{#setvar::NemoVexAdultStyle\}\}([\s\S]*)\{\{\/setvar\}\})?$/.exec(text);
+    const text = selectorBody(content);
+    const match = /^\{\{setvar::(NVCR1_(?:raw_[a-z0-9_]+|default_requested))::1\}\}(?:[\s\u2800]*\{\{#setvar::NemoVexAdultStyle\}\}([\s\S]*)\{\{\/setvar\}\})?$/.exec(text);
     requireThat(match, 'unsupported Vex selector; export portable before changing selection logic.');
     if (match[2] !== undefined) {
         // v12.1 selectors append a prose-only style field. ST executes it as
@@ -63,27 +70,29 @@ export function selectorValue(content) {
 }
 const touchesLibrary = text => /NVCL1_|\bNVM[a-z0-9]|NVCR1_(?:is_|map_|idmap_|namemap_|keymap_)/.test(text);
 export async function validatePrograms(preset, readBody = async p => p.content ?? '', activeIds = null) {
-    const byId = indexPrompts(preset), programs = {}, source = {}, selectors = {}, hashes = {};
-    // Fingerprint before compiling. No untrusted JavaScript or general macros run.
+    const byId = indexPrompts(preset), programs = {}, source = {}, selectors = {}, hashes = {}, shapes = {};
+    // Hash and compile only the bounded macro grammar; no JavaScript runs.
     for (const id of Object.keys(CONTROL_HASHES)) {
         requireThat(byId.has(id), `missing ${id}.`);
         const body = await readBody(byId.get(id));
         const hash = await digest(body);
-        requireThat(supportedControlHash(id, hash), `unsupported or edited ${id}; conversion refused.`);
+        programs[id] = compile(body);
+        shapes[id] = await digest(JSON.stringify(programShape(programs[id])));
+        requireThat(supportedControlHash(id, hash) || supportedControlShape(id, shapes[id]), `unsupported or edited ${id} executable structure; use native preset execution.`);
         hashes[id] = hash;
-        programs[id] = compile(body); source[id] = body;
+        source[id] = body;
     }
     for (const p of preset.prompts) {
         if (BANKS.includes(p.identifier) || CONTROL_IDS.includes(p.identifier)) continue;
         if (activeIds && !activeIds.has(p.identifier)) continue;
         const body = await readBody(p);
-        if (isSelector(p)) selectors[p.identifier] = selectorValue(body);
+        if (isSelector({ ...p, content: body })) selectors[p.identifier] = selectorValue(body);
         else {
             requireThat(!touchesLibrary(body), `custom library access in ${p.identifier}.`);
             requireThat(!/\{\{(?:#?setvar|addvar)::NVCR1_|\{\{\.NVCR1_\w+\s*(?:=(?!=)|\+=|\+\+)/.test(body), `custom Vex state writer in ${p.identifier}.`);
         }
     }
-    return { byId, programs, source, selectors, hashes };
+    return { byId, programs, source, selectors, hashes, shapes };
 }
 export function checkOrder(preset, order, selectors, type = 'normal') {
     const byId = indexPrompts(preset), positions = new Map();

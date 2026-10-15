@@ -1,5 +1,6 @@
 import { BANKS, RESET, RESOLVE, ASSEMBLE, runtimeOf, candidate, loader, requireThat,
     blockSerialization, validatePrograms, planExtraction, dependencies, comparable, checkControlHashes } from './format.js';
+import { indexSummary } from '../preset-index/discovery.js';
 
 /** Async source preparation, synchronous native execution. No replacement council. */
 export function createVexRuntime({ events, types, getManager, getContext = () => ({}), store,
@@ -10,6 +11,7 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
     let ticket = 0, fault = null, pass = null, generationType = 'normal', generationActive = false;
     const originals = new Map(), listeners = [];
     const stats = { imports: 0, loads: 0, cacheHits: 0, rejectedStale: 0 };
+    let compatibility = null;
     const active = () => getManager()?.serviceSettings;
     const stop = () => getContext()?.stopGeneration?.();
     const isChat = () => !getContext()?.mainApi || getContext().mainApi === 'openai';
@@ -23,7 +25,7 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
     function orderFor(preset) {
         const pm = getManager();
         if (preset === pm?.serviceSettings) return pm.getPromptOrderForCharacter(pm.activeCharacter) ?? [];
-        return preset.prompt_order?.find(p => p.character_id === (pm?.activeCharacter?.id ?? 100001))?.order
+        return preset.prompt_order?.find(p => String(p.character_id) === String(pm?.activeCharacter?.id ?? 100001))?.order
             ?? preset.prompt_order?.[0]?.order ?? [];
     }
     function snapshot(preset, type, all = false) {
@@ -155,25 +157,37 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
             return original.call(this, data, ...args);
         });
     }
-    async function importReady({ data }) {
+    async function importReady({ data, presetName = '' }) {
         if (!runtimeOf(data) && (!candidate(data) || !autoExtract())) return;
-        const snap = snapshot(data, 'normal', true);
+        let snap;
         try {
             attach();
             requireThat(manager && ['tryGenerate', 'preparePrompt', 'export', 'import'].every(k => typeof manager[k] === 'function'), 'required ST boundaries unavailable.');
             const vars = getContext()?.variables?.local;
             requireThat(typeof vars?.get === 'function' && typeof vars?.del === 'function', 'native local-variable API unavailable.');
             if (runtimeOf(data)) {
+                snap = snapshot(data, 'normal', true);
                 await store.restore(data); // Validate all banks, not only the active route.
                 const contract = await validate(data, readBody);
                 const m = await store.manifest(data);
                 checkControlHashes(contract, m);
                 for (const profile of data.prompt_order) dependencies(data, profile.order, contract, m);
             } else {
-                const plan = await planImport(data, readBody);
+                let plan, discovered;
+                try {
+                    discovered = indexSummary(data);
+                    snap = snapshot(data, 'normal', true);
+                    plan = await planImport(data, readBody);
+                }
+                catch (error) {
+                    compatibility = { mode: 'native', presetName, reason: error.message, index: discovered };
+                    notify(`Vex optimization skipped: ${error.message} The original Vex prompts will run in SillyTavern.`, 'warning');
+                    return;
+                }
                 const compact = await store.extract(data, plan);
                 requireThat(!disposed && unchanged(snap), 'preset changed while storing Vex source; import stopped.');
                 Object.assign(data, compact); stats.imports++;
+                compatibility = { mode: 'optimized', presetName, index: discovered };
                 notify(`Nemo Vex storage: ${plan.entries} original assignments stored separately.`, 'success');
                 return;
             }
@@ -225,7 +239,7 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
             try { generationType = String(type || 'normal'); await ready(active(), generationType); return true; }
             catch (error) { fail(error, array); abort(true); return false; }
         },
-        getStats: () => ({ stage: '4B/5', ...stats, cachedRoutes: prepared ? 1 : 0,
+        getStats: () => ({ stage: '4B/5', ...stats, compatibility, cachedRoutes: prepared ? 1 : 0,
             cachedSetterCharacters: prepared?.characters ?? 0, selectedAssignments: prepared?.selection.reads.size ?? 0 }),
         dispose() {
             disposed = true; drop();

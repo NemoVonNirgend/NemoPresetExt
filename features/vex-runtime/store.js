@@ -1,7 +1,7 @@
 /** Runtime catalog built on the verified, bounded Stage 4A storage transport. */
 import { VexLibraryStore } from '../vex-library/store.js';
 import { CONTROL_IDS, MAX_ENTRIES } from '../vex-library/format.js';
-import { BANKS, HASHES, KEY, SCHEMA, loader, runtimeOf, requireThat, probeValue, parseBank, supportedControlHash } from './format.js';
+import { BANKS, HASHES, KEY, SCHEMA, loader, runtimeOf, requireThat, probeValue, parseBank, supportedControlHash, supportedControlShape } from './format.js';
 
 export class VexStore {
     constructor(options = {}) {
@@ -13,7 +13,7 @@ export class VexStore {
         }))] };
         const source = await this.sources.capture(capture);
         const manifest = await this.sources.write({ schema: SCHEMA, source, probes: plan.probes,
-            hashes: plan.contract.hashes ?? HASHES });
+            hashes: plan.contract.hashes ?? HASHES, shapes: plan.contract.shapes });
         return {
             ...preset,
             prompts: preset.prompts.map(p => BANKS.includes(p.identifier) ? { ...p, content: loader(p.identifier) } : p),
@@ -26,7 +26,8 @@ export class VexStore {
             && descriptor.entries > 0 && descriptor.entries <= MAX_ENTRIES, 'unsupported Vex runtime descriptor.');
         const m = await this.sources.read(descriptor.manifest);
         requireThat(m?.schema === SCHEMA && m.probes && typeof m.probes === 'object' && !Array.isArray(m.probes), 'invalid dependency catalog.');
-        for (const id of Object.keys(HASHES)) requireThat(supportedControlHash(id, m.hashes?.[id]), 'unsupported Vex control contract.');
+        for (const id of Object.keys(HASHES)) requireThat(/^[a-f0-9]{64}$/.test(m.hashes?.[id] ?? '')
+            && (supportedControlHash(id, m.hashes[id]) || supportedControlShape(id, m.shapes?.[id])), 'unsupported Vex control contract.');
         const sourceIndex = await this.sources.manifest(m.source);
         requireThat(sourceIndex.entryCount === descriptor.entries && Object.keys(m.probes).length === descriptor.entries, 'catalog/source count mismatch.');
         for (const bank of sourceIndex.banks) for (const e of bank.entries) {
