@@ -8,9 +8,11 @@ import { createVexRuntime } from '../features/vex-runtime/controller.js';
 import { VexStore } from '../features/vex-runtime/store.js';
 import { createColdPromptRuntime } from '../features/cold-prompts/controller.js';
 import { PromptBodyStore } from '../features/cold-prompts/store.js';
+import { NEMO_ENGINE_PRESETS, loadNemoEnginePreset } from '../features/preset-installer/presets.js';
 
 const files = process.argv.slice(2);
-assert(files.length, 'Usage: node scripts/validate-preset-imports.mjs PRESET.json [PRESET.json ...]');
+assert(files.length, 'Usage: node scripts/validate-preset-imports.mjs --bundled | PRESET.json [PRESET.json ...]');
+const sources = files.flatMap(file => file === '--bundled' ? NEMO_ENGINE_PRESETS : [file]);
 const types = Object.fromEntries(['OAI_PRESET_IMPORT_READY', 'OAI_PRESET_EXPORT_READY', 'APP_READY',
     'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'GENERATION_STARTED', 'GENERATION_AFTER_COMMANDS',
     'GENERATION_ENDED', 'GENERATION_STOPPED', 'CHAT_COMPLETION_PROMPT_READY', 'CHAT_COMPLETION_SETTINGS_READY']
@@ -52,8 +54,11 @@ function setup(preset, disk) {
     return { manager, events, recipe, vex, cold, dispose() { cold.dispose(); vex.dispose(); recipe.dispose(); } };
 }
 
-for (const file of files) {
-    const original = JSON.parse(await fs.readFile(file, 'utf8')), disk = new Map();
+for (const source of sources) {
+    const file = typeof source === 'string' ? source : source.assetPath;
+    const original = typeof source === 'string' ? JSON.parse(await fs.readFile(file, 'utf8'))
+        : (await loadNemoEnginePreset(source, { fetchFn: async url => new Response(await fs.readFile(new URL(`../${url}`, import.meta.url))) })).preset;
+    const disk = new Map();
     let current = setup(structuredClone(original), disk);
     try {
         await current.events.emit(types.OAI_PRESET_IMPORT_READY, { data: current.manager.serviceSettings });

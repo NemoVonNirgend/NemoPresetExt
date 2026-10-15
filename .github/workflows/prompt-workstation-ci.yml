@@ -29,6 +29,9 @@ jobs:
       - name: Node contract tests
         run: node --test tests/*.test.js
 
+      - name: Bundled preset import and portable export audit
+        run: node scripts/validate-preset-imports.mjs --bundled
+
       - name: Relative import audit
         run: |
           python - <<'PY'
