@@ -12,6 +12,8 @@ Back up the authenticated ST user's files directory alongside presets. The five 
 
 The original selector, reset, resolver and assembler bodies are not rewritten. The adapter accepts only the fingerprinted v12 control programs and literal selector/library schema. A restricted isolated preflight discovers which original assignments are needed. It does not run JavaScript, call provider APIs, read/write chat variables, execute unrelated macros, roll dice, or generate replacement Vex prose. Scalar maps remain exact; prose fields are represented only by their truth values during dependency discovery.
 
+Version 6.0.13 also recognizes the inspected v12.1 full assembler in ordinary-space and Braille-space editions. Each catalog records the exact accepted control hashes; original v12 catalogs retain their existing schema and fingerprints. The compiler remains bounded at 512 Ki UTF-16 code units, allowing the current 424,400-character assembler. Current selector style appendices may write only `NemoVexAdultStyle`, with display reads of that field, `NemoInterpreterEnabled`, `user`, and `char`, plus conditionals. Dependency discovery reads the leading selection flag; native ST still executes the complete original selector. Recipe guard comparison also accepts Braille-spaced display labels without rewriting the original guard.
+
 Stage 4A retrieves the requested exact setter statements. ST then executes those statements in the five original library slots and executes the unchanged resolver and assembler. Actual selection flags and resolved route/edge/family values are checked against the prepared selection. Missing preparation, skipped data slots, native divergence and corrupt/missing files stop the managed generation rather than supplying another council. Final request serialization is blocked on known failures because ST's event emitter catches listener exceptions.
 
 The runtime keeps one prepared route plus a scalar/offset catalog, not the full corpus. Source banks are read transiently. Changes to enabled prompts, selectors, order, generation triggers, body references or preset identity invalidate preparation. Obsolete loads cannot replace a newer route. At native library slots only verified original Vex library keys are cleared, preventing old unused recipe text from carrying into the new selection while leaving unrelated variables alone.
@@ -30,7 +32,10 @@ Full portable export restores the five original Vex bodies in the export copy. T
 node --test tests/*.test.js
 node scripts/validate-vex-storage.mjs /path/to/Nemo_Engine_v12_Full.json
 node scripts/validate-vex-runtime.mjs /path/to/Nemo_Engine_v12_Full.json --exhaustive
+node scripts/validate-preset-imports.mjs /path/to/standard.json /path/to/full.json /path/to/standard-braille.json /path/to/full-braille.json
 ```
+
+The import verifier exercises the production recipe, Vex, and cold-body hooks together, serializes the optimized preset, reimports it with fresh stores, prepares each saved profile, and requires an exact portable round trip. It accepts external preset paths so release verification does not commit prompt prose to this repository. These are offline runtime checks; they do not run SillyTavern's native macro engine or a browser.
 
 The local Full verifier passed 38,988 full-library-versus-selected-library cases, including every one of the 38,400 resolved family configurations, 164 same-family selection masks, and all 128 independent combinations both alone and with a council. It checks the actual imported control fingerprints, selected setter identity, exact portable JSON round trip, export/input immutability, and restoration using fresh filesystem-backed stores. The default saved profiles each select 45 of the 4,378 library assignments: 10,396 setter characters, compared with 690,239 characters in the five original banks.
 

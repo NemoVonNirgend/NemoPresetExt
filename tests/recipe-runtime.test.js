@@ -76,6 +76,17 @@ test('extraction preserves exact inline and scoped setters', () => {
     assert.equal(parseBank(f.prompts[8]).recipes.NPacayas, '{{#setvar::NPacayas}}  Scoped author voice.  {{/setvar}}');
     assert.equal(f.prompts.length, 11);
 });
+test('Braille-spaced guard labels import and restore exactly without accepting changed routing', async () => {
+    const f = fixture(), guard = f.prompts.find(p => p.identifier === 'nemo-recipe-selection-sanitize');
+    guard.content = '{{// Braille edition }}' + GUARD_TEXT.replaceAll(' ', '\u2800');
+    const original = structuredClone(f), host = server(), store = new RecipeStore({ fetchFn: host.fetchFn });
+    const plan = planExtraction(f);
+    assert.equal(selectedKey(f, f.prompt_order[0].order), 'NPaoasas');
+    const compact = await store.extract(f, plan);
+    assert.deepEqual(await store.restore(compact), original);
+    guard.content = guard.content.replace('NCGenreId::slice_of_life', 'NCGenreId::comedy');
+    assert.throws(() => planExtraction(f), /unsupported selection guard/);
+});
 test('selection follows saved order, genre defaults and explicit style', () => {
     const f = fixture(); assert.equal(selectedKey(f, f.prompt_order[0].order), 'NPaoasas');
     assert.equal(selectedKey(f, f.prompt_order[1].order), 'NPacayan');

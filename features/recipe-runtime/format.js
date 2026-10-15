@@ -26,7 +26,9 @@ function requireThat(ok, message) {
 function simpleComments(text) {
     return text.replace(/\{\{\/\/([^{}]*?)\}\}/g, '');
 }
-const normalized = s => simpleComments(s).replace(/\s+/g, '');
+// Braille editions change the guard's display labels, not its selection logic.
+// Compare spacing only; keep original setters/labels in storage and exports.
+const normalized = s => simpleComments(s).replace(/[\s\u2800]+/g, '');
 
 /** Accept only literal setter statements, comments and trim in known selector fields. */
 export function literalAssignments(text) {

@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.12
+**Version:** 6.0.13
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.13 Nemo Engine v12.1 import compatibility
+
+Supports the current standard and full v12.1 exports with ordinary or Braille spaces. Full imports recognize both inspected Vex assembly programs, their newer selector style blocks, and Braille-spaced recipe guard labels. The bounded Vex compiler now accommodates the 424,400-character assembler. Original v12 runtime catalogs remain readable, and portable exports retain the exact source text and spacing.
+
+Update NemoPresetExt, fully reload SillyTavern, and retry importing the original portable preset if an earlier attempt reported **unsupported or edited nemo-vc-assemble-selected**. Unknown control programs and selectors that modify routing or read stored libraries outside preflight are still rejected.
 
 ### 6.0.12 Nemo Plotlight in Nemo Hub
 
