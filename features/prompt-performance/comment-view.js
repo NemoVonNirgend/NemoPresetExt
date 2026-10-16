@@ -41,6 +41,12 @@ export function installCommentView(manager) {
     let active = true;
     function wrapped(prompt, ...args) {
         if (!active || !prompt || typeof prompt !== 'object') return previous.call(this, prompt, ...args);
+        // Runtime loaders and cold shells are checked byte-for-byte by inner wrappers.
+        // Even removing a native comment would hide their identity or look like an edit.
+        if (prompt.identifier === 'nc-writing-resolver' || /^nemo-init-vex-/.test(prompt.identifier ?? '')
+            || (prompt.nemoPromptBody && prompt.content === prompt.nemoPromptBody.shell)) {
+            return previous.call(this, prompt, ...args);
+        }
         let entry = cache.get(prompt);
         if (!entry || entry.source !== prompt.content) {
             entry = { source: prompt.content, view: safeCommentView(prompt.content) };
