@@ -3,6 +3,7 @@ import test from 'node:test';
 import { BODY_KEY, checkedDescriptor, isCold, isNemoPreset, eligible, shellFor, bodyRevision, blockSerialization } from '../features/cold-prompts/format.js';
 import { PromptBodyStore, digest } from '../features/cold-prompts/store.js';
 import { createColdPromptRuntime } from '../features/cold-prompts/controller.js';
+import { installCommentView } from '../features/prompt-performance/comment-view.js';
 
 function fixture() {
     const prompts = [
@@ -85,6 +86,16 @@ test('recognition is structural; unrelated and Tavo presets are untouched', asyn
 test('metadata shells preserve late directives and a plain leading tooltip', () => {
     const shell = shellFor(fixture().prompts[3].content);
     assert.match(shell, /Intro tooltip/); assert.match(shell, /@requires/); assert.doesNotMatch(shell, /Rare prose/);
+});
+test('a late comment view cannot disguise a cold shell from its preparation guard', async () => {
+    const env = await installed();
+    const restoreComments = installCommentView(env.pm);
+    const prompt = env.pm.getPromptById('optional'), original = prompt.content;
+    try {
+        assert.throws(() => env.pm.preparePrompt(prompt), /cold prompt reached native preparation/);
+        assert.equal(prompt.content, original);
+        assert.equal(env.stopped(), 1);
+    } finally { restoreComments(); env.runtime.dispose(); }
 });
 test('native quick fields, markers, initializers and recipe loader are not externalized', () => {
     for (const p of [{ identifier: 'main' }, { identifier: 'nsfw' }, { identifier: 'nc-writing-resolver' }, { identifier: 'nemo-init-core' }, { marker: true }, { system_prompt: true }]) {

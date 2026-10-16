@@ -8,10 +8,11 @@ import { PromptBodyStore } from '../features/cold-prompts/store.js';
 import { isCold } from '../features/cold-prompts/format.js';
 import { createRecipeRuntime } from '../features/recipe-runtime/controller.js';
 import { RecipeStore } from '../features/recipe-runtime/store.js';
-import { DEFAULT_ID, INDEX_ID, GUARD_ID, RESOLVER_ID, GUARD_TEXT, RESOLVER_TEXT } from '../features/recipe-runtime/format.js';
+import { DEFAULT_ID, INDEX_ID, GUARD_ID, RESOLVER_ID, GUARD_TEXT, RESOLVER_TEXT, LOADER_TEXT } from '../features/recipe-runtime/format.js';
 import { createVexRuntime } from '../features/vex-runtime/controller.js';
 import { KEY, BANKS, RESET, ASSEMBLE, loader } from '../features/vex-runtime/format.js';
 import { compile, execute } from '../features/vex-runtime/program.js';
+import { installCommentView } from '../features/prompt-performance/comment-view.js';
 
 function setup() {
     const f = fixture(), d = server(), events = new Events();
@@ -40,16 +41,17 @@ function setup() {
         get: k => state[k] ?? '', has: k => Object.hasOwn(state, k), del: k => { delete state[k]; },
     } } });
     const recipe = createRecipeRuntime({ events, types, getManager: () => pm, getContext, store: new RecipeStore({ fetchFn: d.fetchFn }) });
+    const restoreComments = installCommentView(pm);
     let cold;
     const vex = createVexRuntime({ events, types, getManager: () => pm, getContext, store: d.store,
         readBody: p => cold.readBody(p), planImport: f.planImport, validate: f.validate,
     });
     cold = createColdPromptRuntime({ events, types, getManager: () => pm, getContext, store: new PromptBodyStore({ fetchFn: d.fetchFn }) });
     return { f, pm, events, types, state, original, recipe, vex, cold, d,
-        dispose() { cold.dispose(); vex.dispose(); recipe.dispose(); },
+        dispose() { cold.dispose(); vex.dispose(); restoreComments(); recipe.dispose(); },
     };
 }
-test('Stages 1, 3, 4A and 4B compose through import, selection, preparation and exact export', async () => {
+test('recipe, comment-view, Vex and cold runtimes compose through native preparation and exact export', async () => {
     const x = setup();
     try {
         await x.events.emit(x.types.OAI_PRESET_IMPORT_READY, { data: x.pm.serviceSettings });
@@ -67,6 +69,31 @@ test('Stages 1, 3, 4A and 4B compose through import, selection, preparation and 
         await x.events.emit(x.types.OAI_PRESET_EXPORT_READY, out);
         assert.deepEqual(out, x.original);
         assert.equal(copy.prompts.find(p => p.identifier === BANKS[0]).content, loader(BANKS[0]));
+    } finally { x.dispose(); }
+});
+test('comment views attached after the runtimes preserve recipe and Vex loader identity', async () => {
+    const x = setup();
+    let restoreLateComments = () => {};
+    try {
+        await x.events.emit(x.types.OAI_PRESET_IMPORT_READY, { data: x.pm.serviceSettings });
+        restoreLateComments = installCommentView(x.pm);
+        await x.pm.tryGenerate();
+        assert.equal(x.state.NPaaaaaa, 'EXACT RECIPE');
+        assert.equal(x.state.VexPersona, 'First 🧩 original.');
+        assert.equal(x.pm.serviceSettings.prompts.find(p => p.identifier === RESOLVER_ID).content, LOADER_TEXT);
+        for (const id of BANKS) assert.equal(x.pm.serviceSettings.prompts.find(p => p.identifier === id).content, loader(id));
+    } finally { restoreLateComments(); x.dispose(); }
+});
+test('a real loader edit still blocks generation and serialization with comment views enabled', async () => {
+    const x = setup();
+    try {
+        await x.events.emit(x.types.OAI_PRESET_IMPORT_READY, { data: x.pm.serviceSettings });
+        const resolver = x.pm.serviceSettings.prompts.find(p => p.identifier === RESOLVER_ID);
+        resolver.content = resolver.content.replace('Recipe data is stored', 'Recipe data was stored');
+        await assert.rejects(x.pm.tryGenerate(), /optimized recipe loader was edited/);
+        const data = { messages: [] };
+        await x.events.emit(x.types.CHAT_COMPLETION_SETTINGS_READY, data);
+        assert.throws(() => JSON.stringify(data), /optimized recipe loader was edited/);
     } finally { x.dispose(); }
 });
 test('cold selector loads before Vex preflight and updates family selection', async () => {
@@ -117,10 +144,12 @@ test('combined partial export restores both stored Vex and cold ordinary text', 
 });
 test('entrypoint initializes and tears down wrappers in reverse ownership order', () => {
     const content = readFileSync(new URL('../content.js', import.meta.url), 'utf8');
-    assert(content.indexOf('initializeRecipeRuntime();') < content.indexOf('initializeVexRuntime();'));
+    assert(content.indexOf('initializeRecipeRuntime();') < content.indexOf('initializePromptPerformance();'));
+    assert(content.indexOf('initializePromptPerformance();') < content.indexOf('initializeVexRuntime();'));
     assert(content.indexOf('initializeVexRuntime();') < content.indexOf('initializeColdPrompts();'));
     assert(content.indexOf('cleanupColdPrompts();') < content.indexOf('cleanupVexRuntime();'));
     assert(content.indexOf('cleanupVexRuntime();') < content.indexOf('cleanupPromptPerformance();'));
+    assert(content.indexOf('cleanupPromptPerformance();') < content.indexOf('cleanupRecipeRuntime();'));
 });
 test('Vex preflight chaining is reversible; abort never reaches recipe preflight', async () => {
     const source = readFileSync(new URL('../features/vex-runtime/runtime.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
