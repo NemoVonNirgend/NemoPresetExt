@@ -1,5 +1,6 @@
 /** Portable Nemo v12 recipe schema. This module never evaluates prompt macros. */
 import { hasRecipeSelection, recipePartitionGenre } from '../preset-index/discovery.js';
+import { matchesRuntimeLoader } from '../../core/runtime-loader.js';
 export const RUNTIME_KEY = 'nemoRecipeRuntime';
 export const RESOLVER_ID = 'nc-writing-resolver';
 export const INDEX_ID = 'nemo-init-recipe-index';
@@ -200,9 +201,14 @@ function weave(current, originalIds, insertions, getId) {
 /** Restore into the EXPORT COPY only; keep all unrelated edits and new prompts. */
 export function restorePreset(preset, manifest, banks) {
     requireThat(runtimeOf(preset)?.schema === 1, 'unsupported optimized preset.');
+    const resolvers = preset.prompts.filter(p => p.identifier === RESOLVER_ID);
+    requireThat(resolvers.length === 1, 'missing or duplicate recipe resolver.');
+    requireThat(matchesRuntimeLoader(resolvers[0].content, LOADER_TEXT)
+        || resolvers[0].content === manifest.restore.resolverContent,
+    'recipe loader was edited; export portable before changing resolver logic.');
     const ids = new Set(banks.map(p => p.identifier));
     const prompts = weave(preset.prompts, manifest.restore.promptIds, banks, p => p.identifier)
-        .map(p => p.identifier === RESOLVER_ID && p.content === LOADER_TEXT ? { ...p, content: manifest.restore.resolverContent } : p);
+        .map(p => p.identifier === RESOLVER_ID ? { ...p, content: manifest.restore.resolverContent } : p);
     const prompt_order = preset.prompt_order.map(profile => {
         const saved = manifest.restore.profiles.find(p => p.character_id === profile.character_id) ?? manifest.restore.profiles[0];
         const order = weave(profile.order, saved.order.map(e => e.identifier), saved.order.filter(e => ids.has(e.identifier)), e => e.identifier);

@@ -2,6 +2,7 @@
 import { VexLibraryStore } from '../vex-library/store.js';
 import { CONTROL_IDS, MAX_ENTRIES } from '../vex-library/format.js';
 import { BANKS, HASHES, KEY, SCHEMA, loader, runtimeOf, requireThat, probeValue, parseBank, supportedControlHash, supportedControlShape } from './format.js';
+import { matchesRuntimeLoader } from '../../core/runtime-loader.js';
 
 export class VexStore {
     constructor(options = {}) {
@@ -54,8 +55,11 @@ export class VexStore {
         const m = await this.manifest(preset);
         let result;
         if (!partial) {
+            const expectedContents = new Map(preset.prompts
+                .filter(p => BANKS.includes(p.identifier) && matchesRuntimeLoader(p.content, loader(p.identifier)))
+                .map(p => [p.identifier, p.content]));
             result = await this.sources.restore(preset, m.source, {
-                expectedContents: new Map(BANKS.map(id => [id, loader(id)])),
+                expectedContents,
             });
         } else {
             const originals = new Map();
@@ -65,7 +69,7 @@ export class VexStore {
             const seen = new Set();
             result = { ...preset, prompts: preset.prompts.map(p => {
                 if (!originals.has(p.identifier)) return p;
-                requireThat(!seen.has(p.identifier) && (p.content === loader(p.identifier)
+                requireThat(!seen.has(p.identifier) && (matchesRuntimeLoader(p.content, loader(p.identifier))
                     || p.content === originals.get(p.identifier)), 'unexpected library edit or duplicate export slot.');
                 seen.add(p.identifier);
                 return { ...p, content: originals.get(p.identifier) };

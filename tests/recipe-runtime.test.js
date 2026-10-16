@@ -190,6 +190,46 @@ test('synchronous native preparation receives the exact selected setter and orig
     assert.equal(h.manager.preparePrompt(prompt).content, '{{setvar::NPacayan::Light novel scene.}}{{trim}}' + RESOLVER_TEXT);
     assert.equal(h.manager.preparePrompt(f.prompts[0]).content, f.prompts[0].content);
 });
+
+for (const [name, change] of [
+    ['removed comments', text => text.replace(/\{\{\/\/[^{}]*\}\}/g, '')],
+    ['reworded comments', text => text.replace(/\{\{\/\/[^{}]*\}\}/g, '{{// Updated explanatory note }}')],
+    ['line endings and wrapping', text => '\r\n\t' + text.replace(/\s+/g, '\u2800\t') + '\r\n'],
+    ['trim markers', text => '{{trim}}' + text + '{{trim}}'],
+]) test(`recipe loader tolerates ${name} across preparation and portable export`, async () => {
+    const h = harness();
+    try {
+        const f = await optimized(h); liveVars(h);
+        const prompt = f.prompts.find(p => p.identifier === RESOLVER_ID);
+        prompt.content = change(LOADER_TEXT);
+        const before = JSON.stringify(f);
+        assert.equal(h.manager.preparePrompt(prompt).content, '{{setvar::NPacayan::Light novel scene.}}{{trim}}' + RESOLVER_TEXT);
+        assert.deepEqual(await h.store.restore(f), fixture());
+        const partial = await h.manager.export({ prompts: f.prompts, prompt_order: f.prompt_order[1].order });
+        assert.equal(partial.prompts.find(p => p.identifier === RESOLVER_ID).content, RESOLVER_TEXT);
+        h.manager.import({ data: { prompts: [prompt] } });
+        assert.equal(h.counts().imports, 0);
+        assert.equal(JSON.stringify(f), before);
+    } finally { h.runtime.dispose(); }
+});
+
+for (const [name, change] of [
+    ['edited warning', f => { const p = f.prompts.find(p => p.identifier === RESOLVER_ID); p.content = p.content.replace('runtime required', 'runtime optional'); }],
+    ['executable macro', f => { f.prompts.find(p => p.identifier === RESOLVER_ID).content += '{{incvar::turnCounter}}'; }],
+    ['missing resolver', f => { f.prompts = f.prompts.filter(p => p.identifier !== RESOLVER_ID); }],
+    ['duplicate resolver', f => { f.prompts.push({ ...f.prompts.find(p => p.identifier === RESOLVER_ID) }); }],
+]) test(`portable recipe export stops for ${name} without changing the preset`, async () => {
+    const h = harness();
+    try {
+        const f = await optimized(h); change(f);
+        const before = JSON.stringify(f);
+        await assert.rejects(h.store.restore(f), /resolver|loader/);
+        assert.equal(JSON.stringify(f), before);
+        const copy = structuredClone(f);
+        await h.events.emit(types.OAI_PRESET_EXPORT_READY, copy);
+        assert.throws(() => JSON.stringify(copy), /resolver|loader/);
+    } finally { h.runtime.dispose(); }
+});
 test('unexpected selector change blocks final request serialization even when ST swallows the error', async () => {
     const h = harness(); const f = await optimized(h); liveVars(h, 'comedy', 'terry_pratchett', 'modern_literature');
     assert.throws(() => h.manager.preparePrompt(f.prompts.find(p => p.identifier === RESOLVER_ID)), /not prepared/);

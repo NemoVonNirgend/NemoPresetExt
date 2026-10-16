@@ -89,11 +89,35 @@ test('a real loader edit still blocks generation and serialization with comment 
     try {
         await x.events.emit(x.types.OAI_PRESET_IMPORT_READY, { data: x.pm.serviceSettings });
         const resolver = x.pm.serviceSettings.prompts.find(p => p.identifier === RESOLVER_ID);
-        resolver.content = resolver.content.replace('Recipe data is stored', 'Recipe data was stored');
+        resolver.content += '{{incvar::turnCounter}}';
         await assert.rejects(x.pm.tryGenerate(), /optimized recipe loader was edited/);
         const data = { messages: [] };
         await x.events.emit(x.types.CHAT_COMPLETION_SETTINGS_READY, data);
         assert.throws(() => JSON.stringify(data), /optimized recipe loader was edited/);
+    } finally { x.dispose(); }
+});
+
+test('formatting-only loader changes survive combined cold, Vex, recipe, and export boundaries', async () => {
+    const x = setup();
+    try {
+        await x.events.emit(x.types.OAI_PRESET_IMPORT_READY, { data: x.pm.serviceSettings });
+        for (const prompt of x.pm.serviceSettings.prompts) {
+            if (prompt.identifier !== RESOLVER_ID && !BANKS.includes(prompt.identifier)) continue;
+            prompt.content = '{{trim}}\r\n' + prompt.content.replace(/\{\{\/\/[^{}]*\}\}/g, '')
+                .replace(/\s+/g, '\u2800\t') + '\r\n{{trim}}';
+        }
+        const loaders = x.pm.serviceSettings.prompts.filter(p => p.identifier === RESOLVER_ID || BANKS.includes(p.identifier))
+            .map(p => p.content);
+        await x.pm.tryGenerate();
+        assert.equal(x.state.NPaaaaaa, 'EXACT RECIPE');
+        assert.equal(x.state.VexPersona, 'First \u{1f9e9} original.');
+        assert.deepEqual(x.pm.serviceSettings.prompts.filter(p => p.identifier === RESOLVER_ID || BANKS.includes(p.identifier))
+            .map(p => p.content), loaders);
+        const before = JSON.stringify(x.pm.serviceSettings);
+        const copy = structuredClone(x.pm.serviceSettings);
+        await x.events.emit(x.types.OAI_PRESET_EXPORT_READY, copy);
+        assert.deepEqual(copy, x.original);
+        assert.equal(JSON.stringify(x.pm.serviceSettings), before);
     } finally { x.dispose(); }
 });
 test('cold selector loads before Vex preflight and updates family selection', async () => {

@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.16
+**Version:** 6.0.17
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.17 Runtime loader formatting failsafe
+
+Generated recipe and Vex placeholders are recognized after harmless comment, whitespace, and `{{trim}}` changes. Generation still uses the verified original stored source, and portable export restores that exact source without rewriting the active preset. Changed warning text, executable macros, missing or duplicate resolver slots, missing source files, and checksum failures remain blocking errors. Stored prompt bodies, executable controls, and cold-prompt edit detection retain their existing integrity checks.
+
+Update NemoPresetExt and fully reload SillyTavern. An intact optimized preset does not need to be reimported.
 
 ### 6.0.16 Recipe loader compatibility fix
 

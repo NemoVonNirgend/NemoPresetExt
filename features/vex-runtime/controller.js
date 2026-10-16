@@ -1,6 +1,7 @@
 import { BANKS, RESET, RESOLVE, ASSEMBLE, runtimeOf, candidate, loader, requireThat,
     blockSerialization, validatePrograms, planExtraction, dependencies, comparable, checkControlHashes } from './format.js';
 import { indexSummary } from '../preset-index/discovery.js';
+import { matchesRuntimeLoader } from '../../core/runtime-loader.js';
 
 /** Async source preparation, synchronous native execution. No replacement council. */
 export function createVexRuntime({ events, types, getManager, getContext = () => ({}), store,
@@ -55,7 +56,7 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
             const ids = new Set(orderFor(preset).filter(e => e.enabled).map(e => e.identifier));
             const contract = await validate(preset, readBody, ids);
             checkControlHashes(contract, m);
-            for (const id of BANKS) requireThat(contract.byId.get(id)?.content === loader(id), 'Vex loader was edited; export portable to edit the library.');
+            for (const id of BANKS) requireThat(matchesRuntimeLoader(contract.byId.get(id)?.content, loader(id)), 'Vex loader was edited; export portable to edit the library.');
             const selection = dependencies(preset, orderFor(preset), contract, m, type);
             const materialized = await store.selected(m, selection.reads);
             if (disposed || sequence !== ticket || !unchanged(snap)) {
@@ -123,7 +124,7 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
                 }
                 const bank = BANKS.indexOf(prompt.identifier);
                 if (bank >= 0) {
-                    requireThat(prompt.content === loader(prompt.identifier), 'unexpected library stub.');
+                    requireThat(matchesRuntimeLoader(prompt.content, loader(prompt.identifier)), 'unexpected library stub.');
                     // Only keys named by the verified original library are removed.
                     for (const name of loaded.keysByBank[bank]) if (vars.has ? vars.has(name) : vars.get(name) !== '') vars.del(name);
                     const result = original.call(this, { ...prompt, content: loaded.bodies[prompt.identifier] }, ...args);

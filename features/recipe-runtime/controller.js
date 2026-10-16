@@ -1,5 +1,6 @@
 import { isCandidate, runtimeOf, selectedKey, planExtraction, blockSerialization, RESOLVER_ID, RESOLVER_TEXT, LOADER_TEXT } from './format.js';
 import { indexSummary } from '../preset-index/discovery.js';
+import { matchesRuntimeLoader } from '../../core/runtime-loader.js';
 
 /** Dependency-injected lifecycle controller. No global tokenizer patches or async getters. */
 export function createRecipeRuntime({ events, types, getManager, getContext, store, notify = () => {}, autoExtract = () => true }) {
@@ -87,7 +88,7 @@ export function createRecipeRuntime({ events, types, getManager, getContext, sto
         wrap('preparePrompt', original => function (prompt, ...args) {
             if (!runtimeOf(this.serviceSettings) || prompt.identifier !== RESOLVER_ID) return original.call(this, prompt, ...args);
             try {
-                if (prompt.content !== LOADER_TEXT) throw new Error('The optimized recipe loader was edited. Export portable before changing resolver logic.');
+                if (!matchesRuntimeLoader(prompt.content, LOADER_TEXT)) throw new Error('The optimized recipe loader was edited. Export portable before changing resolver logic.');
                 const vars = getContext()?.variables?.local;
                 if (!vars?.get) throw new Error('ST local variable API is unavailable.');
                 const key = 'NP' + vars.get(`NG_${vars.get('NCGenreId')}`) + vars.get(`NA_${vars.get('NCAuthorId')}`) + vars.get(`NS_${vars.get('NCStyleId')}`);
@@ -111,7 +112,7 @@ export function createRecipeRuntime({ events, types, getManager, getContext, sto
         });
         wrap('import', original => function (data, ...args) {
             const prompts = data?.data?.prompts ?? [];
-            if (prompts.some(p => /^nemo-init-recipes-/.test(p.identifier) || (p.identifier === RESOLVER_ID && p.content === LOADER_TEXT))) {
+            if (prompts.some(p => /^nemo-init-recipes-/.test(p.identifier) || (p.identifier === RESOLVER_ID && matchesRuntimeLoader(p.content, LOADER_TEXT)))) {
                 notify('Import Nemo Full using the Chat Completion preset import button, not the partial prompt-list importer.', 'error');
                 return;
             }

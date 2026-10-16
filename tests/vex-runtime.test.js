@@ -9,6 +9,28 @@ import { VexStore } from '../features/vex-runtime/store.js';
 const cosy = 'v11-317-vex-cozy-vex';
 const choose = (h, enabled) => { h.manager.getPromptOrderForCharacter().find(e => e.identifier === cosy).enabled = enabled; };
 
+for (const [name, change] of [
+    ['removed comments', text => text.replace(/\{\{\/\/[^{}]*\}\}/g, '')],
+    ['reworded comments', text => text.replace(/\{\{\/\/[^{}]*\}\}/g, '{{// Updated explanatory note }}')],
+    ['line endings and wrapping', text => '\r\n\t' + text.replace(/\s+/g, '\u2800\t') + '\r\n'],
+    ['trim markers', text => '{{trim}}' + text + '{{trim}}'],
+]) test(`Vex loaders tolerate ${name} across readiness, preparation, and portable exports`, async () => {
+    const h = harness(), original = structuredClone(h.f.preset);
+    try {
+        await h.import();
+        for (const p of h.f.preset.prompts.filter(p => BANKS.includes(p.identifier))) p.content = change(loader(p.identifier));
+        await h.runtime.ready();
+        h.generate();
+        assert.equal(h.state.VexPersona, 'First \u{1f9e9} original.');
+        const before = JSON.stringify(h.f.preset);
+        assert.deepEqual(await h.io.store.restore(h.f.preset), original);
+        const prompt = h.f.preset.prompts.find(p => p.identifier === BANKS[0]);
+        const partial = await h.io.store.restore({ ...h.f.preset, prompts: [prompt] }, { partial: true });
+        assert.equal(partial.prompts[0].content, original.prompts.find(p => p.identifier === BANKS[0]).content);
+        assert.equal(JSON.stringify(h.f.preset), before);
+    } finally { h.runtime.dispose(); }
+});
+
 test('production validation refuses unknown control programs before storage', async () => {
     const f = fixture(); await assert.rejects(validatePrograms(f.preset), /unsupported or edited/);
     await assert.rejects(planExtraction(f.preset), /unsupported or edited/);
