@@ -24,6 +24,8 @@ Each import creates a fresh copy. If that name exists, the installer appends `(2
 
 ## Before your first generation
 
+Enable **User Settings → Experimental Macro Engine** and fully reload SillyTavern. Nemo's nested lookups and scoped conditionals require the new engine; an older regex-only engine can leave the Vex family code unevaluated. Update SillyTavern if this option is missing.
+
 1. Confirm the imported preset is selected under **Chat Completion**.
 2. Set context size, response budget, sampling, and reasoning controls for your actual model and endpoint. The exported values are not limits supported by every model.
 3. Open Advanced Formatting / Prompts and confirm NemoPresetExt's sections are visible.
@@ -34,6 +36,7 @@ For a full section guide, see the [Nemo Engine v12.1 configuration reference](ht
 
 ## Troubleshooting
 
+- **Native Vex route diverged at NVCR1_code:** first enable **User Settings → Experimental Macro Engine** and reload. NemoPresetExt 6.0.18 detects an incompatible engine before managed execution. If the error persists with the new engine enabled, keep the preset and stored files intact: a real routing mismatch still needs investigation.
 - **Bundled preset does not match this extension release:** update NemoPresetExt and fully reload SillyTavern. Avoid editing the bundled JSONs; customize the imported copy instead.
 - **Import or storage failed:** the installer stops before saving an incomplete preset. Restore access to SillyTavern's user-file storage, then retry. The source export and existing presets are kept.
 - **Not ready for Chat Completion imports:** wait for SillyTavern startup to finish and retry. Use a current version with the native preset import event.
