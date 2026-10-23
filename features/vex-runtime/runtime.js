@@ -3,6 +3,7 @@ import { getContext, extension_settings } from '../../../../../extensions.js';
 import { promptManager } from '../../../../../openai.js';
 import { VexStore } from './store.js';
 import { createVexRuntime } from './controller.js';
+import { requireNativeVexMacros } from './macro-engine.js';
 
 let runtime = null, api = null, previousPreflight = null, combinedPreflight = null;
 function notify(message, level) {
@@ -14,6 +15,7 @@ export function initializeVexRuntime() {
     runtime = createVexRuntime({
         events: eventSource, types: event_types, getManager: () => promptManager, getContext,
         store: new VexStore({ headers: getRequestHeaders }), notify,
+        checkMacroEngine: () => requireNativeVexMacros(getContext()),
         // Called after all runtimes are initialized. Cold bodies stay authoritative.
         readBody: p => globalThis.NemoColdPrompts?.readBody(p) ?? Promise.resolve(p.content ?? ''),
         autoExtract: () => extension_settings.NemoPresetExt?.enableVexRuntime !== false,

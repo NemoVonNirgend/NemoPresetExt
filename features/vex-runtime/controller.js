@@ -2,11 +2,13 @@ import { BANKS, RESET, RESOLVE, ASSEMBLE, runtimeOf, candidate, loader, requireT
     blockSerialization, validatePrograms, planExtraction, dependencies, comparable, checkControlHashes } from './format.js';
 import { indexSummary } from '../preset-index/discovery.js';
 import { matchesRuntimeLoader } from '../../core/runtime-loader.js';
+import { MACRO_ENGINE_ERROR } from './macro-engine.js';
 
 /** Async source preparation, synchronous native execution. No replacement council. */
 export function createVexRuntime({ events, types, getManager, getContext = () => ({}), store,
     readBody = async p => p.content ?? '', notify = () => {}, autoExtract = () => true,
     validate = validatePrograms, planImport = planExtraction,
+    checkMacroEngine = () => {},
 }) {
     let manager = null, disposed = false, prepared = null, catalog = null, pending = null;
     let ticket = 0, fault = null, pass = null, generationType = 'normal', generationActive = false;
@@ -47,8 +49,17 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
     async function ready(preset = active(), type = generationType) {
         if (!runtimeOf(preset)) return null;
         requireThat(!disposed, 'Vex runtime is stopped.');
+        // Check before the cache fast path: changing the host engine does not
+        // change the preset snapshot or its already prepared selection.
+        checkMacroEngine();
         const snap = snapshot(preset, type);
-        if (prepared && equal(snap, prepared.snapshot)) { stats.cacheHits++; return prepared; }
+        if (prepared && equal(snap, prepared.snapshot)) {
+            stats.cacheHits++;
+            // Only a freshly verified engine can clear its compatibility fault.
+            // A cache hit must not forgive a genuine native-route divergence.
+            if (fault?.array === preset.prompts && fault.error.code === MACRO_ENGINE_ERROR) fault = null;
+            return prepared;
+        }
         if (pending && equal(snap, pending.snapshot)) return pending.promise;
         const sequence = ++ticket;
         const work = (async () => {
@@ -75,6 +86,7 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
         try { return await work; } finally { if (pending?.promise === work) pending = null; }
     }
     function requirePrepared() {
+        checkMacroEngine();
         requireThat(prepared && equal(prepared.snapshot, snapshot(active(), generationType)), 'selected Vex source is not ready; generation was blocked.');
         return prepared;
     }
@@ -179,10 +191,13 @@ export function createVexRuntime({ events, types, getManager, getContext = () =>
                     discovered = indexSummary(data);
                     snap = snapshot(data, 'normal', true);
                     plan = await planImport(data, readBody);
+                    // Keep portable imports intact on incompatible hosts; do
+                    // not evict source into managed loaders they cannot run.
+                    checkMacroEngine();
                 }
                 catch (error) {
                     compatibility = { mode: 'native', presetName, reason: error.message, index: discovered };
-                    notify(`Vex optimization skipped: ${error.message} The original Vex prompts will run in SillyTavern.`, 'warning');
+                    notify(`Vex optimization skipped: ${error.message} The original Vex prompts were preserved.`, 'warning');
                     return;
                 }
                 const compact = await store.extract(data, plan);
