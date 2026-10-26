@@ -28,6 +28,9 @@ test('settings expose every merged prompt gate and all three interface modes', (
         'nemoEnableDirectives',
         'nemoEnableDirectiveAutocomplete',
         'nemoEnableNemoEngineInstaller',
+        'nemoEnableReSwipe',
+        'nemoReSwipeInstruction',
+        'nemoResetReSwipeInstruction',
         'nemoExtensionHubCatalog',
     ]) {
         assert.match(settings, new RegExp(`id="${id}"`));

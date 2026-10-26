@@ -1,4 +1,4 @@
-export const SETTINGS_SCHEMA_VERSION = 5;
+export const SETTINGS_SCHEMA_VERSION = 6;
 
 export const PROMPT_UI_MODES = Object.freeze({
     CLASSIC: 'classic',
@@ -14,6 +14,7 @@ export const FEATURE_DEFAULTS = Object.freeze({
     enableDirectives: true,
     enableDirectiveAutocomplete: true,
     enableNemoEngineInstaller: true,
+    enableReSwipe: false,
     enableReasoningSection: true,
     enableLorebookManagement: false,
     forceLastUserRole: false,
@@ -24,6 +25,7 @@ const NON_FEATURE_DEFAULTS = Object.freeze({
     promptUiMode: PROMPT_UI_MODES.CLASSIC,
     dropdownStyle: 'tray',
     dropdownTheme: 'st',
+    reSwipeInstruction: '',
 });
 
 export const SETTINGS_DEFAULTS = Object.freeze({

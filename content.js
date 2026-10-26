@@ -21,6 +21,7 @@ import { cleanupNemoEngineInstaller, initNemoEngineInstaller } from './features/
 import { cleanupPromptTools, initializePromptTools } from './features/prompt-tools/runtime.js';
 import { initializeLorebookSpacing, cleanupLorebookSpacing } from './features/lorebook-spacing/runtime.js';
 import { initializeFinalUserRole, cleanupFinalUserRole } from './features/final-user-role/runtime.js';
+import { initializeReSwipe, cleanupReSwipe } from './features/reswipe/runtime.js';
 import { buildPresetIndex } from './features/preset-index/discovery.js';
 
 let initialized = false;
@@ -35,6 +36,7 @@ const CAPABILITIES = Object.freeze({
     nemoEngineInstaller: true,
     hub: true,
     finalUserRole: true,
+    reSwipe: true,
 });
 
 function featureEnabled(key) {
@@ -74,6 +76,7 @@ export async function cleanupExtension() {
             }
         }
         await cleanupPromptRendering();
+        cleanupReSwipe();
         cleanupColdPrompts();
         cleanupVexRuntime();
         cleanupPromptPerformance();
@@ -109,6 +112,7 @@ export async function initializeExtension() {
         initializePromptPerformance();
         initializeVexRuntime();
         initializeColdPrompts();
+        initializeReSwipe();
         initializePromptRendering();
         await NemoSettingsUI.initialize();
 

@@ -34,6 +34,14 @@ Enable **User Settings → Experimental Macro Engine** and fully reload SillyTav
 
 For a full section guide, see the [Nemo Engine v12.1 configuration reference](https://github.com/NemoVonNirgend/NemoEngine/blob/main/Nemo%20Engine/README.md).
 
+## Optional ReSwipe guidance
+
+NemoPresetExt 6.0.20 adds **Use rejected swipes as guidance (ReSwipe)** under **Extensions → NemoPresetExt → NemoEngine**. It is off by default for new and existing users. Enable it to include the response you just rejected with editable instructions, in the user role, when generating a new swipe. Changes apply immediately with your active preset; no additional extension is needed.
+
+The default instruction is: "This is a previously rejected swipe, think about why it was likely rejected, and approach the response in a different way."
+
+The entire rejected response uses context tokens. The guidance is temporary and does not change saved messages, swipe history, or preset prompts. Browsing existing swipes, normal replies, Continue, Regenerate, and background/quiet generations are unaffected.
+
 ## Troubleshooting
 
 - **Native Vex route diverged at NVCR1_code:** first enable **User Settings → Experimental Macro Engine** and reload. NemoPresetExt 6.0.18 detects an incompatible engine before managed execution. If the error persists with the new engine enabled, keep the preset and stored files intact: a real routing mismatch still needs investigation.

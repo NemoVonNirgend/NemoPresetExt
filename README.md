@@ -10,9 +10,11 @@ NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combin
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
 
-### 6.0.20 Nemo ReSwipe in Nemo Hub
+### 6.0.20 Optional ReSwipe guidance
 
-Nemo Hub now includes the optional **Nemo ReSwipe** extension. When generating a new swipe, it sends the rejected response as user-role guidance with editable instructions to approach the reply differently. Install it from the Writing Tools category and reload SillyTavern. It works independently and does not change saved chat messages or preset prompts.
+ReSwipe is built into **Extensions → NemoPresetExt → NemoEngine** and is **off by default**, including for existing installations. Enable **Use rejected swipes as guidance (ReSwipe)** to send the response you just rejected as a user-role negative example when generating a new swipe. The instructions are editable; the default asks the model to consider why the previous swipe was rejected and approach the response differently. Changes apply to the next swipe with your active preset. No separate extension is required.
+
+Only the currently displayed response is included, including any edits. Browsing saved swipes, normal replies, Continue, Regenerate, quiet/background generations, and token-count previews are unchanged. Guidance exists only in the temporary generation context; saved chats, swipe history, and preset prompts are not altered. The full rejected response uses context tokens and can reduce room for older chat history. Text Completion uses your configured user/instruct formatting. Existing prompt integrity checks still run before guidance is added.
 
 ### 6.0.19 Prompt order and virtualization safety
 
@@ -130,6 +132,7 @@ New installations default to **Classic 3.4**. Existing standalone NemoPromptTool
 - `enableDirectives`: `true`
 - `enableDirectiveAutocomplete`: `true`
 - `enableNemoEngineInstaller`: `true`
+- `enableReSwipe`: `false`
 
 ## Optional compatibility adapters
 
@@ -170,7 +173,6 @@ Install these independently from Nemo Hub:
 | [Nemo Guides](https://github.com/NemoVonNirgend/NemoGuides) | Scene assessment, planning, writing, DM notes, rules, and narrative utilities. |
 | [Ember](https://github.com/NemoVonNirgend/Ember) | Interactive HTML/JavaScript chat artifacts. |
 | [NemoRewrite](https://github.com/NemoVonNirgend/NemoRewrite) | Selection-based rewriting tools. |
-| [Nemo ReSwipe](https://github.com/NemoVonNirgend/NemoReSwipe) | Previous rejected swipe as user-role guidance for a different response. |
 | [Nemo Plotlight](https://github.com/NemoVonNirgend/NemoPlotlight) | Browse and import public characters, presets, lorebooks, and personas. A bundled companion helper is installed separately for previews, ratings, and the persona-download fallback. |
 
 NemoUIOverhaul and NemoEmojiPicker remain separate because they alter broader SillyTavern presentation or composer behavior rather than the prompt workstation itself.

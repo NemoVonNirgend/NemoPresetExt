@@ -17,6 +17,7 @@ const EXPECTED_DEFAULTS = {
     enableDirectives: true,
     enableDirectiveAutocomplete: true,
     enableNemoEngineInstaller: true,
+    enableReSwipe: false,
     enableReasoningSection: true,
     enableLorebookManagement: false,
     forceLastUserRole: false,

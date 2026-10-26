@@ -5,6 +5,7 @@ import { applyPromptUiMode } from '../features/prompts/ui-mode.js';
 import { validateDividerPatterns } from '../core/divider-patterns.js';
 import logger from '../core/logger.js';
 import { NemoExtensionHub } from '../features/hub/hub-ui.js';
+import { DEFAULT_RESWIPE_INSTRUCTION, getReSwipeInstruction } from '../features/reswipe/controller.js';
 
 export const NemoSettingsUI = {
     _settingsObserver: null,
@@ -99,6 +100,7 @@ export const NemoSettingsUI = {
             ['nemoEnableDirectives', 'enableDirectives'],
             ['nemoEnableDirectiveAutocomplete', 'enableDirectiveAutocomplete'],
             ['nemoEnableNemoEngineInstaller', 'enableNemoEngineInstaller'],
+            ['nemoEnableReSwipe', 'enableReSwipe'],
         ]) {
             const input = document.getElementById(id);
             if (!input) continue;
@@ -121,6 +123,29 @@ export const NemoSettingsUI = {
                 this._persist();
             });
         }
+
+        const reSwipeToggle = document.getElementById('nemoEnableReSwipe');
+        const reSwipeInstruction = document.getElementById('nemoReSwipeInstruction');
+        const reSwipeReset = document.getElementById('nemoResetReSwipeInstruction');
+        if (reSwipeInstruction) {
+            reSwipeInstruction.value = getReSwipeInstruction(settings);
+            reSwipeInstruction.addEventListener('input', () => {
+                settings.reSwipeInstruction = reSwipeInstruction.value;
+                saveSettingsDebounced();
+            });
+        }
+        reSwipeReset?.addEventListener('click', () => {
+            settings.reSwipeInstruction = DEFAULT_RESWIPE_INSTRUCTION;
+            if (reSwipeInstruction) reSwipeInstruction.value = DEFAULT_RESWIPE_INSTRUCTION;
+            this._persist();
+        });
+        const syncReSwipeControls = () => {
+            const disabled = reSwipeToggle?.checked !== true;
+            if (reSwipeInstruction) reSwipeInstruction.disabled = disabled;
+            if (reSwipeReset) reSwipeReset.disabled = disabled;
+        };
+        reSwipeToggle?.addEventListener('change', syncReSwipeControls);
+        syncReSwipeControls();
 
         const directivesToggle = document.getElementById('nemoEnableDirectives');
         const directiveAutocompleteToggle = document.getElementById('nemoEnableDirectiveAutocomplete');
