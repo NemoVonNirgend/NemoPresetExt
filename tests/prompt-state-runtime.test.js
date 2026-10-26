@@ -4,9 +4,10 @@ import { readFileSync } from 'node:fs';
 import { Script } from 'node:vm';
 import { installStateSnapshots } from '../features/prompt-rendering/state-snapshots.js';
 import { installStateActions } from '../features/prompt-rendering/state-actions.js';
+import { installNativeSortGuard } from '../features/prompt-rendering/native-sort-guard.js';
 
 function setup() {
-    const listeners = new Map(); let captured, renderDisposals = 0, saves = 0;
+    const listeners = new Map(); let captured, renderDisposals = 0, saves = 0, sortable, virtualizationOptions;
     const take = () => { throw new Error('No legacy DOM enumeration on Chat Completion.'); };
     const apply = () => 'legacy apply', counts = () => 'legacy counts';
     const nemo = { takeSnapshot: take, capturePromptStates: take, checkExistingSnapshot() {},
@@ -21,6 +22,13 @@ function setup() {
         renderPromptManagerListItems() {}, render() {}, async saveServiceSettings() { saves++; },
         isPromptToggleAllowed() { return true; }, getPromptOrderForCharacter() { return order; },
         tokenHandler: { getCounts() { return {}; } } };
+    pm.listElement = {};
+    pm.makeDraggable = function () {
+        sortable = { options: { update() { order.splice(0, order.length); saves++; } } };
+    };
+    pm.makeDraggable();
+    const nativeDrag = pm.makeDraggable, nativeUpdate = sortable.options.update;
+    const jquery = () => ({ sortable: command => command === 'instance' ? sortable : [] });
     const source = readFileSync(new URL('../features/prompt-rendering/runtime.js', import.meta.url), 'utf8')
         .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
     const context = {
@@ -34,15 +42,22 @@ function setup() {
             savePromptStates(ids) { captured = ids; }, getSnapshot: () => captured ?? ['hidden'], getPromptStates: () => ['hidden'] },
         installIncrementalRendering: () => ({ dispose() { renderDisposals++; }, getStats: () => ({ virtualized: false }), reset() {}, redraw() {},
             renderRows: async () => [], setResidency() {}, syncResidency() {} }),
-        installSectionVirtualization: () => ({ refresh() {}, materializeSearch() {}, clearSearch() {},
-            getStats: () => ({ stage: '5B.3/5', active: true, virtualized: true }), async dispose() {} }),
+        installSectionVirtualization: options => {
+            virtualizationOptions = options;
+            assert.equal(options.canVirtualize(), true);
+            assert.notEqual(sortable.options.update, nativeUpdate, 'native sorting must be guarded before unloading can attach');
+            return { refresh() {}, materializeSearch() {}, clearSearch() {},
+                getStats: () => ({ stage: '5B.3/5', active: true, virtualized: true }), async dispose() {} };
+        },
+        installNativeSortGuard: options => installNativeSortGuard({ ...options, jquery: () => jquery, notify() {} }),
         installStateSnapshots, installStateActions, getContext: () => ({ mainApi: 'openai' }), saveSettingsDebounced() {},
         console, setTimeout, clearTimeout,
         document: { getElementById: () => null, querySelectorAll: () => [] },
     };
     const api = new Script(source + '\n({ initializePromptRendering, cleanupPromptRendering })').runInNewContext(context);
     return { api, context, nemo, take, apply, counts, listeners, get captured() { return captured; },
-        get renderDisposals() { return renderDisposals; }, get saves() { return saves; }, order };
+        get renderDisposals() { return renderDisposals; }, get saves() { return saves; }, order,
+        get sortable() { return sortable; }, get virtualizationOptions() { return virtualizationOptions; }, nativeDrag, nativeUpdate };
 }
 
 test('real rendering runtime installs read and mutation adapters once and tears down only owned wrappers', async () => {
@@ -61,6 +76,8 @@ test('real rendering runtime installs read and mutation adapters once and tears 
     assert.equal(h.renderDisposals, 1);
     assert.equal([...h.listeners.values()].reduce((n, set) => n + set.size, 0), 0);
     assert.equal(h.context.NemoPromptRendering, undefined);
+    assert.equal(h.context.promptManager.makeDraggable, h.nativeDrag);
+    assert.equal(h.sortable.options.update, h.nativeUpdate);
 });
 
 test('rendering opt-out leaves state snapshots and actions installed without touching generation paths', async () => {
@@ -70,5 +87,16 @@ test('rendering opt-out leaves state snapshots and actions installed without tou
     assert.notEqual(h.nemo.applySnapshot, h.apply);
     assert.equal(h.context.promptManager.preparePrompt, undefined);
     assert.equal(h.context.promptManager.getPromptCollection, undefined);
+    await h.api.cleanupPromptRendering();
+});
+
+test('real rendering runtime protects an already installed native sort before virtualization', async () => {
+    const h = setup(); h.api.initializePromptRendering();
+    h.sortable.options.update();
+    assert.equal(h.saves, 0); assert.equal(h.order.length, 1);
+    assert.equal(h.context.NemoPromptRendering.getStats().sorting.blocked, 1);
+    h.context.promptManager.makeDraggable(); h.sortable.options.update();
+    assert.equal(h.saves, 0); assert.equal(h.order.length, 1);
+    assert.equal(h.virtualizationOptions.canVirtualize(), true);
     await h.api.cleanupPromptRendering();
 });

@@ -10,6 +10,7 @@ import { installIncrementalRendering } from './incremental.js';
 import { installStateSnapshots } from './state-snapshots.js';
 import { installStateActions } from './state-actions.js';
 import { installSectionVirtualization } from './virtualization.js';
+import { installNativeSortGuard } from './native-sort-guard.js';
 
 let state = null;
 const KEY = 'enableIncrementalPromptRendering';
@@ -71,12 +72,17 @@ export function initializePromptRendering() {
         if (promptManager && promptManager !== current.pm && typeof promptManager.renderPromptManagerListItems === 'function') {
             void current.virtualizer?.dispose({ restore: false });
             current.controller?.dispose();
+            current.sortGuard?.dispose();
             current.pm = promptManager;
+            current.sortGuard = installNativeSortGuard({ pm: promptManager,
+                notify: error => console.warn('[Nemo prompt sorting]', error),
+                redraw: () => current.controller?.redraw() });
             current.controller = installIncrementalRendering({ pm: promptManager, nemo: NemoPresetManager,
                 enabled, modeKey: () => storage.getDropdownStyle() === 'tray' ? 'tray' : 'accordion', notify });
             current.virtualizer = installSectionVirtualization({
                 pm: promptManager, nemo: NemoPresetManager, renderer: current.controller,
                 enabled, sectionsEnabled: () => storage.getSectionsEnabled(),
+                canVirtualize: () => current.sortGuard.protect(),
                 modeKey: () => storage.getDropdownStyle() === 'tray' ? 'tray' : 'accordion',
                 notify: error => console.warn('[Nemo prompt virtualization]', error),
             });
@@ -96,6 +102,7 @@ export function initializePromptRendering() {
         ...(current.controller?.getStats() || { attached: false }),
         virtualization: current.virtualizer?.getStats() || { active: false, virtualized: false },
         snapshots: current.snapshots.getStats(), actions: current.actions.getStats(),
+        sorting: current.sortGuard?.getStats(),
     }),
         applyChanges: changes => current.actions.applyChanges(changes),
         materializeSearch: ids => current.virtualizer?.materializeSearch(ids),
@@ -112,6 +119,7 @@ export async function cleanupPromptRendering() {
     current.actions?.dispose();
     current.snapshots?.dispose();
     current.controller?.dispose();
+    current.sortGuard?.dispose();
     if (NemoPresetManager.createSearchAndStatusUI === current.uiWrapper) NemoPresetManager.createSearchAndStatusUI = current.uiOriginal;
     document.querySelectorAll('[data-nemo-incremental-control]').forEach(node => node.remove());
     if (globalThis.NemoPromptRendering === current.api) delete globalThis.NemoPromptRendering;

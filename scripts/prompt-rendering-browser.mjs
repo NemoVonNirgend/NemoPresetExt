@@ -1,6 +1,7 @@
 /** Real Chromium DOM tests with an injected native-shaped host, not a live ST client. */
 import { installIncrementalRendering } from '../features/prompt-rendering/incremental.js';
 import { installSectionVirtualization } from '../features/prompt-rendering/virtualization.js';
+import { installNativeSortGuard } from '../features/prompt-rendering/native-sort-guard.js';
 const results = [];
 const assert = (value, message = 'assertion failed') => { if (!value) throw new Error(message); };
 const eq = (a, b, message = '') => assert(JSON.stringify(a) === JSON.stringify(b), message || `${JSON.stringify(a)} !== ${JSON.stringify(b)}`);
@@ -10,7 +11,8 @@ async function test(name, fn) {
     try { await fn(); results.push({ name, passed: true }); }
     catch (error) { results.push({ name, passed: false, error: error.stack }); }
 }
-function harness({ n = 120, unsafe = false, virtualize = false } = {}) {
+function harness({ n = 120, unsafe = false, virtualize = false, sortProtected = true, minRows = 0 } = {}) {
+    const errors = [];
     let mode = 'accordion', enabled = true, generated = 0, nativeFrames = 0, organizations = 0, inspected = null, edited = null;
     let sourceReads = 0, optionalSyncs = 0, gate = null, gateStarted = false, nativeDrags = 0;
     const panel = document.createElement('div'); panel.id = 'left-nav-panel';
@@ -138,13 +140,14 @@ function harness({ n = 120, unsafe = false, virtualize = false } = {}) {
     const runtime = installIncrementalRendering({ pm, nemo, minRows: 0,
         enabled: () => enabled, modeKey: () => mode,
         ...(unsafe ? { compatible: () => false } : {}) });
-    const virtualizer = virtualize && !unsafe ? installSectionVirtualization({
-        pm, nemo, renderer: runtime, minRows: 0,
+    const virtualizer = virtualize ? installSectionVirtualization({
+        pm, nemo, renderer: runtime, minRows,
         enabled: () => enabled, sectionsEnabled: () => true, modeKey: () => mode,
-        notify: error => { throw error; },
+        canVirtualize: () => sortProtected,
+        notify: error => errors.push(error.message),
     }) : null;
     const h = {
-        pm, nemo, sources, order, counts, host, panel, input, runtime, virtualizer, originals,
+        pm, nemo, sources, order, counts, host, panel, input, runtime, virtualizer, originals, errors,
         get generated() { return generated; }, get nativeFrames() { return nativeFrames; }, get organizations() { return organizations; },
         get optionalSyncs() { return optionalSyncs; }, get sourceReads() { return sourceReads; }, get inspected() { return inspected; }, get edited() { return edited; },
         get nativeDrags() { return nativeDrags; }, get gateStarted() { return gateStarted; },
@@ -332,6 +335,63 @@ await test('virtualization cleanup restores the complete native row list before 
         h.panel.remove();
     }
 });
+
+await test('an unsupported native renderer retains every row even in closed sections', () => using(async h => {
+    assert(!h.runtime.canRenderRows()); assert(!h.virtualizer.getStats().active);
+    eq(h.pm.listElement.querySelectorAll('li.completion_prompt_manager_prompt').length, 120);
+    eq(h.errors, []); eq(h.sourceReads, 0);
+}, { virtualize: true, unsafe: true }));
+
+await test('virtualization requires protected sorting and keeps small presets fully resident', async () => {
+    await using(async h => {
+        eq(h.pm.listElement.querySelectorAll('li.completion_prompt_manager_prompt').length, 120);
+        assert(!h.virtualizer.getStats().active);
+    }, { virtualize: true, sortProtected: false });
+    await using(async h => {
+        eq(h.pm.listElement.querySelectorAll('li.completion_prompt_manager_prompt').length, 63);
+        assert(!h.virtualizer.getStats().active);
+    }, { virtualize: true, n: 63, minRows: 64 });
+});
+
+await test('failed regeneration stops unloading and a full native paint recovers all rows', () => using(async h => {
+    h.runtime.renderRows = async () => null;
+    h.pm.listElement.querySelector('details').open = true;
+    await h.virtualizer.refresh(); await settle();
+    assert(h.virtualizer.getStats().failed); assert(!h.virtualizer.getStats().active);
+    assert(h.errors.some(message => message.includes('could not materialize')));
+    eq(h.pm.redrawRequests, 1); eq(h.order.length, 120);
+    await h.paint(); await h.nemo.organizePrompts(true); await settle();
+    eq(h.pm.listElement.querySelectorAll('li.completion_prompt_manager_prompt').length, 120);
+    eq(h.sourceReads, 0);
+}, { virtualize: true }));
+
+await test('cleanup awaits full native restoration when isolated row regeneration fails', () => using(async h => {
+    h.runtime.renderRows = async () => null;
+    await h.virtualizer.dispose({ restore: true });
+    eq(h.pm.listElement.querySelectorAll('li.completion_prompt_manager_prompt').length, 120);
+    eq(h.order.length, 120); eq(h.sourceReads, 0);
+}, { virtualize: true }));
+
+await test('native sorting cannot save only resident headers; full-list sorting still works', () => using(async h => {
+    let instance, saves = 0, rejected = 0;
+    const ids = () => [...h.pm.listElement.querySelectorAll('li.completion_prompt_manager_prompt')].map(row => row.dataset.pmIdentifier);
+    const priorMakeDraggable = h.pm.makeDraggable;
+    h.pm.makeDraggable = function () {
+        instance = { options: { update() {
+            const byId = new Map(h.order.map(entry => [entry.identifier, entry]));
+            h.order.splice(0, h.order.length, ...ids().map(id => byId.get(id))); saves++;
+        } } };
+    };
+    const guard = installNativeSortGuard({ pm: h.pm, jquery: () => () => ({ sortable: command => command === 'instance' ? instance : ids() }),
+        notify: () => rejected++, redraw() {} });
+    try {
+        h.pm.makeDraggable();
+        const before = JSON.stringify(h.order); eq(ids().length, 6);
+        instance.options.update(); eq(saves, 0); eq(rejected, 1); eq(JSON.stringify(h.order), before);
+        await h.virtualizer.restoreAll(); eq(ids().length, 120);
+        instance.options.update(); eq(saves, 1); eq(JSON.stringify(h.order), before); eq(h.sourceReads, 0);
+    } finally { guard.dispose(); h.pm.makeDraggable = priorMakeDraggable; }
+}, { virtualize: true }));
 
 await test('all 764 rows survive closed sections; repeated redraws generate none, a toggle generates one', () => using(async h => {
     const total = h.generated;
