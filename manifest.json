@@ -1,7 +1,7 @@
 {
   "display_name": "NemoPresetExt",
   "author": "@NemoVonNirgend",
-  "version": "6.0.19",
+  "version": "6.0.20",
   "description": "Complete prompt workstation with three interface modes, directives, navigation, reasoning capture, NemoEngine setup, and Nemo Hub.",
   "requires": [],
   "optional": [],

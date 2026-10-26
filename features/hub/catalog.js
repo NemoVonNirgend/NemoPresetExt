@@ -70,6 +70,16 @@ export const NEMO_EXTENSION_CATALOG = Object.freeze([
         requiresReload: true,
     }),
     Object.freeze({
+        id: 'NemoReSwipe',
+        name: 'Nemo ReSwipe',
+        repository: 'https://github.com/NemoVonNirgend/NemoReSwipe',
+        description: 'Use the previous rejected swipe as user-role guidance for a different response, with editable instructions.',
+        category: 'Writing Tools',
+        icon: 'fa-solid fa-rotate-right',
+        recommended: false,
+        requiresReload: true,
+    }),
+    Object.freeze({
         id: 'NemoPlotlight',
         name: 'Nemo Plotlight',
         repository: 'https://github.com/NemoVonNirgend/NemoPlotlight',
