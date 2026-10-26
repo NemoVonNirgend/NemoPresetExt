@@ -50,6 +50,10 @@ The **Optimized prompt rendering** control disables both incremental reuse and c
 
 ## Safety boundaries
 
+Version 6.0.19 requires native row-renderer compatibility before unloading any row. It also guards the native jQuery UI sort callback: the serialized DOM order must be an exact permutation of the active native order, with no missing, duplicated, unknown, or stale identifiers. An incomplete sort requests a redraw without reaching the native save callback. Nemo's canonical movement adapters remain unchanged.
+
+If isolated row regeneration fails, this controller stops unloading rows for the remainder of the session, invalidates the incremental cache, and requests a full native redraw. Cleanup falls back to the original native row renderer and awaits it before removing the adapters. Existing saved order damage cannot be inferred safely from unused prompt definitions and is not automatically repaired.
+
 Stage 5B.3 does not replace or wrap generation, tokenizer, macro, import/export, source-storage or prompt-order APIs. Prompt state remains authoritative in SillyTavern's native service settings.
 
 Unsupported native row-renderer contracts continue to use the native fallback path. Unknown or incomplete state fails open to complete residency rather than inventing rows or order.

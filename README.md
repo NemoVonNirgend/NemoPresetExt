@@ -2,13 +2,21 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.18
+**Version:** 6.0.19
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.19 Prompt order and virtualization safety
+
+Closed sections can unload their prompt rows to reduce rendering work. Native drag-and-drop now refuses to save an incomplete, duplicated, or stale list of visible rows as the full prompt order. This prevents hidden prompts from being detached while section headers remain at `(0/0)`.
+
+Row unloading also requires a compatible renderer and protected native sorting. If regeneration fails, unloading stops and a complete native redraw restores the list. Extension cleanup awaits native restoration if isolated row rendering cannot recover the missing rows.
+
+Update NemoPresetExt and fully reload SillyTavern. This prevents new loss of prompt-order entries; it does not automatically reattach entries already removed from a saved preset. Restore a backup or reimport the original preset for an already-damaged order. Prompt definitions and intentional detach operations are preserved.
 
 ### 6.0.18 Vex macro-engine compatibility
 

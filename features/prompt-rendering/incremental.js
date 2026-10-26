@@ -135,6 +135,13 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         if (disposed || retryFrame !== null) return;
         retryFrame = requestFrame(() => { retryFrame = null; if (!disposed) pm.render(false); });
     }
+    async function restoreNativeRows() {
+        if (disposed) return;
+        reset();
+        const paint = nemo.beginNativePromptPaint?.();
+        try { await originalRows.apply(pm); }
+        finally { nemo.endNativePromptPaint?.(paint, pm.listElement); }
+    }
     function wrap(owner, name, factory) {
         if (typeof owner[name] !== 'function') return;
         const original = owner[name], replacement = factory(original);
@@ -373,7 +380,8 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     if (enabled() && nemo.observers?.listObserverContainer) scopeOptionalObserver(nemo.observers.listObserverContainer);
 
     return {
-        reset, redraw, renderRows,
+        reset, redraw, renderRows, restoreNativeRows,
+        canRenderRows: () => !disposed && supported && pm.configuration?.prefix === 'completion_',
         setResidency(next) { residency = next || null; previous = null; organization = null; },
         syncResidency() {
             const current = state(), currentList = pm.listElement;

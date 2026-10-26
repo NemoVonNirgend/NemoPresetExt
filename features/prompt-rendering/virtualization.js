@@ -28,9 +28,10 @@ export function desiredDirectIds(section, {
 export function installSectionVirtualization({
     pm, nemo, renderer, document: doc = globalThis.document,
     enabled = () => true, sectionsEnabled = () => true, modeKey = () => 'accordion',
-    minRows = 64, notify = () => {},
+    minRows = 64, notify = () => {}, canVirtualize = () => true,
 }) {
     let disposed = false, residentIds = null, virtualized = false, searchIds = null;
+    let failed = false;
     let pass = Promise.resolve(), generation = 0, restoreDepth = 0;
     const sectionListeners = new Map();
     const cleanups = [];
@@ -50,13 +51,14 @@ export function installSectionVirtualization({
         return root ? [...root.querySelectorAll(ROW)].map(row => row.dataset.pmIdentifier).filter(Boolean) : [];
     }
     function active(current = state()) {
-        return Boolean(!disposed && restoreDepth === 0 && enabled() && sectionsEnabled()
+        return Boolean(!disposed && !failed && restoreDepth === 0 && enabled() && sectionsEnabled()
+            && renderer.canRenderRows?.() === true && canVirtualize()
             && current && current.rows.length >= minRows && list());
     }
     function syncResident() {
         residentIds = new Set(rowIds());
         const current = state();
-        virtualized = Boolean(active(current) && current && residentIds.size < current.rows.length);
+        virtualized = Boolean(current && residentIds.size < current.rows.length);
     }
     function sectionId(section) { return sectionIdentifierFromElement(section); }
     function parentOpen(section) {
@@ -102,6 +104,8 @@ export function installSectionVirtualization({
         const content = section.querySelector(CONTENT), planned = plan(section, current, forceAll);
         if (!content || !planned) return;
         const ticket = ++generation, owner = pm.serviceSettings?.prompts;
+        const root = list(), activeId = pm.activeCharacter?.id;
+        const order = pm.getPromptOrderForCharacter(pm.activeCharacter);
         const wanted = new Set(planned.desired);
         const existing = new Map(directRows(section)
             .filter(row => row.dataset.pmIdentifier)
@@ -111,7 +115,9 @@ export function installSectionVirtualization({
         if (missing.length) {
             fresh = await renderer.renderRows(missing);
             if (!fresh || fresh.length !== missing.length) throw new Error('Native row renderer could not materialize the requested section rows.');
-            if (disposed || ticket !== generation || pm.serviceSettings?.prompts !== owner || !section.isConnected) {
+            if (disposed || ticket !== generation || pm.serviceSettings?.prompts !== owner || !section.isConnected
+                || list() !== root || pm.activeCharacter?.id !== activeId
+                || pm.getPromptOrderForCharacter(pm.activeCharacter) !== order) {
                 stats.staleRenders++; return;
             }
         }
@@ -167,7 +173,10 @@ export function installSectionVirtualization({
     async function reconcile({ forceAll = false } = {}) {
         if (disposed) return;
         const root = list(), current = state();
-        if (!root || !current) { residentIds = null; virtualized = false; return; }
+        if (!root || !current) {
+            if (virtualized) throw new Error('Prompt state became unavailable while rows were unloaded.');
+            residentIds = null; virtualized = false; return;
+        }
         const sections = attachSections(root);
         if (!sections.length) { syncResident(); return; }
         for (const section of sections) await reconcileSection(section, current, forceAll);
@@ -176,7 +185,16 @@ export function installSectionVirtualization({
         stats.passes++;
     }
     function queueReconcile(options = {}) {
-        pass = pass.catch(() => {}).then(() => reconcile(options)).catch(error => notify(error));
+        pass = pass.catch(() => {}).then(() => reconcile(options)).catch(error => {
+            notify(error);
+            // Stop unloading for this controller's lifetime. A complete native
+            // redraw can recover rows even when isolated rendering has failed.
+            if (!failed && !disposed) {
+                failed = true;
+                renderer.reset?.();
+                renderer.redraw?.();
+            }
+        });
         return pass;
     }
     async function materializeAll() {
@@ -218,7 +236,7 @@ export function installSectionVirtualization({
         getStats() {
             const current = state(), resident = residentIds?.size ?? rowIds().length;
             return {
-                stage: '5B.3/5', active: active(current), mode: modeKey(), virtualized,
+                stage: '5B.3/5', active: active(current), mode: modeKey(), virtualized, failed,
                 residentRows: resident, totalRows: current?.rows.length ?? 0,
                 virtualizedRows: Math.max(0, (current?.rows.length ?? 0) - resident),
                 trackedSections: sectionListeners.size, searching: searchIds !== null, ...stats,
@@ -228,6 +246,10 @@ export function installSectionVirtualization({
             if (disposed) return;
             if (restore) {
                 try { await materializeAll(); } catch (error) { notify(error); }
+                if (virtualized) {
+                    try { await renderer.restoreNativeRows?.(); syncResident(); }
+                    catch (error) { notify(error); }
+                }
             }
             disposed = true; generation++;
             for (const [section, handler] of sectionListeners) section.removeEventListener('toggle', handler);
