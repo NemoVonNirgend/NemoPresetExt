@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.19
+**Version:** 6.0.20
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.20 Optional ReSwipe guidance
+
+ReSwipe is built into **Extensions → NemoPresetExt → NemoEngine** and is **off by default**, including for existing installations. Enable **Use rejected swipes as guidance (ReSwipe)** to send the response you just rejected as a user-role negative example when generating a new swipe. The instructions are editable; the default asks the model to consider why the previous swipe was rejected and approach the response differently. Changes apply to the next swipe with your active preset. No separate extension is required.
+
+Only the currently displayed response is included, including any edits. Browsing saved swipes, normal replies, Continue, Regenerate, quiet/background generations, and token-count previews are unchanged. Guidance exists only in the temporary generation context; saved chats, swipe history, and preset prompts are not altered. The full rejected response uses context tokens and can reduce room for older chat history. Text Completion uses your configured user/instruct formatting. Existing prompt integrity checks still run before guidance is added.
 
 ### 6.0.19 Prompt order and virtualization safety
 
@@ -126,6 +132,7 @@ New installations default to **Classic 3.4**. Existing standalone NemoPromptTool
 - `enableDirectives`: `true`
 - `enableDirectiveAutocomplete`: `true`
 - `enableNemoEngineInstaller`: `true`
+- `enableReSwipe`: `false`
 
 ## Optional compatibility adapters
 

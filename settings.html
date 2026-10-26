@@ -84,6 +84,14 @@
 
             <div class="nemo-settings-section">
                 <h4>NemoEngine</h4>
+                <label class="checkbox_label" for="nemoEnableReSwipe">
+                    <input id="nemoEnableReSwipe" type="checkbox" aria-describedby="nemoReSwipeHelp">
+                    <span>Use rejected swipes as guidance (ReSwipe)</span>
+                </label>
+                <small id="nemoReSwipeHelp" class="notes">Off by default. When enabled, generating a new swipe sends the previous response as user-role guidance for a different reply. Applies immediately with your active preset. Saved chat messages and preset prompts are unchanged. The full rejected response uses context tokens.</small>
+                <label for="nemoReSwipeInstruction">ReSwipe instructions</label>
+                <textarea id="nemoReSwipeInstruction" class="text_pole" rows="4" disabled></textarea>
+                <button id="nemoResetReSwipeInstruction" class="menu_button" type="button" disabled>Restore default ReSwipe instructions</button>
                 <label class="checkbox_label" for="nemoEnableNemoEngineInstaller">
                     <input id="nemoEnableNemoEngineInstaller" type="checkbox">
                     <span>Enable the NemoEngine installer</span>

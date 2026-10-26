@@ -22,6 +22,7 @@ test('README documents the merged prompt workstation defaults', () => {
         '`enableDirectives`: `true`',
         '`enableDirectiveAutocomplete`: `true`',
         '`enableNemoEngineInstaller`: `true`',
+        '`enableReSwipe`: `false`',
     ]) assert.ok(README.includes(row), `Missing core default ${row}`);
 });
 
