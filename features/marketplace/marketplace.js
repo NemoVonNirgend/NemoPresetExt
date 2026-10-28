@@ -73,6 +73,14 @@ const FALLBACK_DATA = [
         tags: ['lightweight', 'nemo-engine', 'preset'],
     },
     {
+        name: 'Sola',
+        description: 'Storyteller and co-author presets by Pyrxpia: V3 Flame offers modular prose, NPC, and state-tracker controls; Kindling V1 is a compact edition with the Feeling Engine and Sola Easel.',
+        author: 'Pyrxpia',
+        url: 'https://pyrxpia.github.io/sola-hub/',
+        category: 'presets',
+        tags: ['roleplay', 'storytelling', 'modular', 'flame', 'kindling'],
+    },
+    {
         name: 'TunnelVision',
         description: 'Activity feed and monitoring extension for SillyTavern — track what\'s happening in your chats in real time.',
         author: 'Coneja-Chibi',

@@ -34,6 +34,12 @@ Existing installations keep explicit choices and the historical behavior inferre
 
 The settings card always mounts in SillyTavern's native Extensions settings area. The optional **Extensions Tab Overhaul** only changes how extensions are browsed; it is not required to configure NemoPresetExt.
 
+## Sola preset support
+
+The Marketplace **Presets** category includes [Sola](https://pyrxpia.github.io/sola-hub/), with V3 Flame and Kindling V1 available from its official hub. The entry also appears when the remote recommendation list cannot load.
+
+Flame's numbered titles ending in `══════════` form collapsible sections without changing prompt contents or enabled states. Existing `< Sub-Section >` nesting remains supported. The supplied Kindling V1 has no section dividers: `Header`, `Feeling Engine`, and `Sola Easel` remain ordinary prompts. Flame's `[PICK 1: …]` choices stay inside their authored sections.
+
 ## Feature guide
 
 ### Prompt Dropdowns & Tools
