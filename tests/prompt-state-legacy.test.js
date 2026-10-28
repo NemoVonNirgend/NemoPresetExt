@@ -30,6 +30,63 @@ test('section model uses the actual legacy divider classifier, including custom 
     assert.equal(index.getSection('p13').name, 'One');
     assert.deepEqual(index.getSection('p13').memberIds, []);
 });
+
+for (const preset of ['sola-v3-flame', 'sola-kindling-v1']) {
+    const fixture = JSON.parse(readFileSync(new URL(`./fixtures/${preset}.json`, import.meta.url), 'utf8'));
+    for (const profile of fixture.profiles) {
+        test(`${preset}: every prompt belongs to its authored section in order ${profile.character_id}`, () => {
+            const rows = profile.rows.map(row => ({ ...row, toggleAllowed: true }));
+            const before = JSON.stringify(rows);
+            const index = buildSectionIndex(rows, classify);
+            assert.deepEqual(new Set(index.sectionIds), new Set(fixture.headerIds));
+            for (const row of rows) {
+                assert.equal(index.parentOf(row.identifier), row.expectedParent, row.name);
+            }
+            if (preset === 'sola-v3-flame') {
+                assert.equal(index.roots.length, 10);
+                assert.equal(index.getSection(index.roots[0]).name, "🧠 00. SOLA'S MIND");
+                assert.equal(index.getSection(index.roots[0]).total, 3);
+            } else {
+                assert.deepEqual(index.roots, rows.map(row => row.identifier));
+            }
+            assert.equal(JSON.stringify(rows), before, 'classification must not modify native metadata');
+        });
+    }
+}
+
+test('Sola sections retain existing subheader nesting and reset it at the next main header', () => {
+    const names = ['🧠 00. SOLA\'S MIND ══════════', '< Choices >', 'Choice',
+        '📜 02. CORE FOUNDATIONS ══════════', 'Oath'];
+    const rows = names.map((name, i) => ({ identifier: `p${i}`, name, enabled: true, toggleAllowed: true }));
+    const index = buildSectionIndex(rows, classify);
+    assert.deepEqual(index.roots, ['p0', 'p3']);
+    assert.equal(index.parentOf('p1'), 'p0');
+    assert.equal(index.parentOf('p2'), 'p1');
+    assert.equal(index.parentOf('p4'), 'p3');
+});
+
+test('ordinary Sola prompt labels and PICK 1 choices are not dividers', () => {
+    for (const name of ['Header', 'HTML Headers 🎬', 'Simple Headers 📱', 'Feeling Engine',
+        '👾 Gremlin Sola [PICK 1: MIND]', '[PICK 1: ↓] Agency-Lite', 'He / Him [PICK 1: PRONOUN]',
+        'Text ══', 'Text ═══ followed by prose', '══════════']) {
+        assert.equal(classify(name).isDivider, false, name);
+    }
+});
+
+test('forced divider checks preserve cleaned Sola titles and honor subsequent renames', () => {
+    const original = '📊 08. TELEMETRY & STATE TRACKERS ══════════';
+    const link = { textContent: original };
+    const element = { dataset: {}, querySelector: () => link };
+    const info = divider(element, true);
+    link.textContent = info.name; // processSingleItem displays the cleaned name.
+    assert.equal(divider(element, true).originalText, original);
+    assert.equal(divider(element).name, info.name);
+    link.textContent = 'Ordinary renamed prompt';
+    assert.equal(divider(element, true).isDivider, false);
+    assert.equal(element.dataset.nemoOriginalText, undefined);
+    link.textContent = original;
+    assert.equal(divider(element, true).isDivider, true);
+});
 test('state snapshot matches actual legacy capture on a complete native-shaped row list', async () => {
     const prompts = ['Header', 'A', 'Locked', 'B'].map((name, i) => ({ identifier: `p${i}`, name,
         get content() { throw new Error('Do not read source.'); } }));

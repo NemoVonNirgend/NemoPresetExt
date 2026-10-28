@@ -799,7 +799,7 @@ export class PromptNavigator {
         }
 
         if (headers.length === 0) {
-            toastr.info('No headers found in the prompt manager. Headers are prompts that start with divider patterns like ===, ⭐─, or ━━.');
+            toastr.info('No headers found in the prompt manager. Use divider titles such as === Section ===, < Sub-Section >, or Sola’s numbered titles ending in ═══.');
             return;
         }
 

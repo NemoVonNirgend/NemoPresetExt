@@ -971,7 +971,13 @@ export const NemoPresetManager = {
         const promptNameElement = promptElement.querySelector(SELECTORS.promptNameLink);
         if (!promptNameElement) return { isDivider: false, isSubHeader: false };
 
-        const promptName = promptNameElement.textContent.trim();
+        const displayedName = promptNameElement.textContent.trim();
+        // Organized rows display a cleaned title. Forced checks (e.g. Move to
+        // Header) must still classify the original divider, but honor renamed rows.
+        const promptName = promptElement.dataset.nemoIsDivider === 'true'
+            && displayedName === promptElement.dataset.nemoSectionName
+            ? promptElement.dataset.nemoOriginalText || displayedName
+            : displayedName;
 
         // Check for sub-header pattern: < text >
         const subHeaderMatch = /^<\s*(.+?)\s*>$/.exec(promptName);
@@ -985,6 +991,19 @@ export const NemoPresetManager = {
             promptElement.dataset.nemoOriginalText = promptName;
 
             return { isDivider: true, isSubHeader: true, name: cleanName, originalText: promptName };
+        }
+
+        // Sola Flame places its double-line divider after the numbered title.
+        // These headers may contain live macros; classification is UI-only.
+        const trailingHeaderMatch = /^(.+?)\s+═{3,}$/.exec(promptName);
+        if (trailingHeaderMatch) {
+            const cleanName = trailingHeaderMatch[1].trim();
+            promptElement.dataset.nemoDividerChecked = 'true';
+            promptElement.dataset.nemoIsDivider = 'true';
+            promptElement.dataset.nemoIsSubHeader = 'false';
+            promptElement.dataset.nemoSectionName = cleanName;
+            promptElement.dataset.nemoOriginalText = promptName;
+            return { isDivider: true, isSubHeader: false, name: cleanName, originalText: promptName };
         }
 
         // Check for main header pattern: === text === or similar
@@ -1007,6 +1026,8 @@ export const NemoPresetManager = {
 
         promptElement.dataset.nemoIsDivider = 'false';
         promptElement.dataset.nemoIsSubHeader = 'false';
+        delete promptElement.dataset.nemoSectionName;
+        delete promptElement.dataset.nemoOriginalText;
         return { isDivider: false, isSubHeader: false };
     },
 
