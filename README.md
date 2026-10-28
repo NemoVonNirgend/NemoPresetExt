@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.20
+**Version:** 6.0.21
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.21 Sola preset grouping
+
+Sola V3 Flame's numbered titles ending in `══════════` now form collapsible sections, including headers that contain active prompt macros. Prompt names, contents, enabled states, and native order are preserved. Existing `< Sub-Section >` nesting and custom prefix dividers continue to work. Cleaned header titles remain valid destinations in **Move Prompt**.
+
+The supplied Sola Kindling V1 preset has no section dividers. Its `Header`, `Feeling Engine`, and `Sola Easel` entries remain ordinary prompts; `[PICK 1: …]` labels in Flame remain choices within their authored sections.
 
 ### 6.0.20 Optional ReSwipe guidance
 
