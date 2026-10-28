@@ -1,0 +1,59 @@
+{
+  "source": "☀️ 🧡 Sola Kindling V1 🧡 ☀️.json",
+  "note": "Prompt names, IDs, enabled states and order only; no prompt bodies or regex scripts.",
+  "headerIds": [],
+  "profiles": [
+    {
+      "character_id": "undefined",
+      "rows": [
+        {"identifier": "01a11e50-227b-7000-b641-e1deba91aa78", "name": "Oath", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4f-c2c4-7000-8815-b0172e3b7d3d", "name": "Anti-Therapy Speech", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4e-6894-7000-b259-beaec0f6ba58", "name": "Intimate Tension", "enabled": true, "expectedParent": null},
+        {"identifier": "jailbreak", "name": "Card JB", "enabled": true, "expectedParent": null},
+        {"identifier": "worldInfoBefore", "name": "World Info", "enabled": true, "expectedParent": null},
+        {"identifier": "scenario", "name": "Scenario", "enabled": true, "expectedParent": null},
+        {"identifier": "main", "name": "Card Prompt", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e49-fcce-7000-8cdd-e65f7e44f521", "name": "Lightning Review", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e48-6b14-7000-a5e9-0e1eb0358b23", "name": "User Persona", "enabled": true, "expectedParent": null},
+        {"identifier": "personaDescription", "name": "User Persona", "enabled": false, "expectedParent": null},
+        {"identifier": "nsfw", "name": "NSFW Prompt", "enabled": false, "expectedParent": null},
+        {"identifier": "charDescription", "name": "Character Info", "enabled": true, "expectedParent": null},
+        {"identifier": "charPersonality", "name": "Character Personality", "enabled": true, "expectedParent": null},
+        {"identifier": "enhanceDefinitions", "name": "Enhance Definitions", "enabled": false, "expectedParent": null},
+        {"identifier": "dialogueExamples", "name": "Chat Examples", "enabled": true, "expectedParent": null},
+        {"identifier": "chatHistory", "name": "Chat History", "enabled": true, "expectedParent": null},
+        {"identifier": "worldInfoAfter", "name": "World Info (after)", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4f-2d9d-7000-826c-31d7027d37d4", "name": "Header", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4d-3ddd-7000-8e26-621b230590eb", "name": "Feeling Engine", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4b-6d7e-7000-8c2f-21e382edb6ea", "name": "Sola Easel", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4a-de42-7000-acfb-15ac0a443e8f", "name": "Post History", "enabled": true, "expectedParent": null}
+      ]
+    },
+    {
+      "character_id": 100001,
+      "rows": [
+        {"identifier": "01a11e50-227b-7000-b641-e1deba91aa78", "name": "Oath", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4f-c2c4-7000-8815-b0172e3b7d3d", "name": "Anti-Therapy Speech", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4e-6894-7000-b259-beaec0f6ba58", "name": "Intimate Tension", "enabled": true, "expectedParent": null},
+        {"identifier": "jailbreak", "name": "Card JB", "enabled": true, "expectedParent": null},
+        {"identifier": "worldInfoBefore", "name": "World Info", "enabled": true, "expectedParent": null},
+        {"identifier": "scenario", "name": "Scenario", "enabled": true, "expectedParent": null},
+        {"identifier": "main", "name": "Card Prompt", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e49-fcce-7000-8cdd-e65f7e44f521", "name": "Lightning Review", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e48-6b14-7000-a5e9-0e1eb0358b23", "name": "User Persona", "enabled": true, "expectedParent": null},
+        {"identifier": "personaDescription", "name": "User Persona", "enabled": false, "expectedParent": null},
+        {"identifier": "nsfw", "name": "NSFW Prompt", "enabled": false, "expectedParent": null},
+        {"identifier": "charDescription", "name": "Character Info", "enabled": true, "expectedParent": null},
+        {"identifier": "charPersonality", "name": "Character Personality", "enabled": true, "expectedParent": null},
+        {"identifier": "enhanceDefinitions", "name": "Enhance Definitions", "enabled": false, "expectedParent": null},
+        {"identifier": "dialogueExamples", "name": "Chat Examples", "enabled": true, "expectedParent": null},
+        {"identifier": "chatHistory", "name": "Chat History", "enabled": true, "expectedParent": null},
+        {"identifier": "worldInfoAfter", "name": "World Info (after)", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4f-2d9d-7000-826c-31d7027d37d4", "name": "Header", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4d-3ddd-7000-8e26-621b230590eb", "name": "Feeling Engine", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4b-6d7e-7000-8c2f-21e382edb6ea", "name": "Sola Easel", "enabled": true, "expectedParent": null},
+        {"identifier": "01a11e4a-de42-7000-acfb-15ac0a443e8f", "name": "Post History", "enabled": true, "expectedParent": null}
+      ]
+    }
+  ]
+}
