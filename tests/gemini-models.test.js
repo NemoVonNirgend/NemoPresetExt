@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
+import { readFileSync } from 'node:fs';
+import { Script } from 'node:vm';
 import test from 'node:test';
 import { createGeminiModelsRuntime } from '../features/gemini-models/controller.js';
 
@@ -30,12 +32,13 @@ class Element {
     }
 }
 
-function fixture(settings = {}) {
+function fixture(settings = {}, { memory = {}, startupSettings = settings } = {}) {
     const selects = new Map();
     const events = new EventEmitter();
     const types = Object.fromEntries(['APP_READY', 'SETTINGS_LOADED', 'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'CHATCOMPLETION_SOURCE_CHANGED', 'CHATCOMPLETION_MODEL_CHANGED', 'CONNECTION_PROFILE_LOADED'].map(key => [key, key]));
     const changes = [];
     const observers = [];
+    const memoryWrites = [];
     const document = {
         querySelector: selector => selects.get(selector) ?? null,
         createElement: tag => new Element(tag),
@@ -65,8 +68,15 @@ function fixture(settings = {}) {
     }
     const start = () => createGeminiModelsRuntime({
         document, getSettings: () => settings, Observer, events, types, notifyChange,
+        getStartupSettings: () => startupSettings,
+        getModelMemory: () => memory,
+        saveModelMemory(models) {
+            for (const key of Object.keys(memory)) delete memory[key];
+            Object.assign(memory, models);
+            memoryWrites.push(structuredClone(models));
+        },
     });
-    return { selects, events, types, changes, observers, settings, addOption, start, notifyChange };
+    return { selects, events, types, changes, observers, settings, addOption, start, notifyChange, memory, memoryWrites };
 }
 
 const modelIds = ['gemini-4-argon', 'gemini-3.8-flash'];
@@ -98,14 +108,127 @@ test('each model restores independently for each provider through the native cha
     }
 });
 
-test('original settings payload recovers a Vertex model cleared before extensions loaded', () => {
-    const h = fixture({ google_model: 'gemini-2.5-pro', vertexai_model: '' });
+test('startup snapshot recovers models cleared before extension load with a payload-free SETTINGS_LOADED event', () => {
+    const saved = { google_model: 'gemini-4-argon', vertexai_model: 'gemini-3.8-flash' };
+    const h = fixture({ google_model: '', vertexai_model: '' }, { startupSettings: saved });
     const runtime = h.start();
-    h.selects.get('#model_vertexai_select').value = '';
-    h.events.emit(h.types.SETTINGS_LOADED, { oai_settings: { google_model: 'gemini-4-argon', vertexai_model: 'gemini-3.8-flash' } });
-    assert.equal(h.settings.google_model, 'gemini-4-argon');
-    assert.equal(h.settings.vertexai_model, 'gemini-3.8-flash');
+    h.events.emit(h.types.SETTINGS_LOADED); // Actual native event has no payload.
+    assert.equal(h.settings.google_model, saved.google_model);
+    assert.equal(h.settings.vertexai_model, saved.vertexai_model);
     runtime.dispose();
+});
+
+test('a complete restart restores both providers from serialized model memory even if native settings were saved blank', () => {
+    for (const google_model of modelIds) for (const vertexai_model of modelIds) {
+        const initial = fixture({ google_model, vertexai_model });
+        const firstRuntime = initial.start();
+        const diskMemory = JSON.parse(JSON.stringify(initial.memory));
+        assert.deepEqual(diskMemory, { google_model, vertexai_model });
+        firstRuntime.dispose();
+
+        const reboot = fixture({ google_model: '', vertexai_model: '' }, { memory: diskMemory });
+        const runtime = reboot.start();
+        reboot.events.emit(reboot.types.SETTINGS_LOADED);
+        reboot.events.emit(reboot.types.APP_READY);
+        assert.equal(reboot.settings.google_model, google_model);
+        assert.equal(reboot.settings.vertexai_model, vertexai_model);
+        assert.equal(reboot.selects.get('#model_google_select').value, google_model);
+        assert.equal(reboot.selects.get('#model_vertexai_select').value, vertexai_model);
+        assert.equal(reboot.memoryWrites.length, 0, 'restoring unchanged memory should not schedule another save');
+        runtime.dispose();
+    }
+});
+
+test('selecting another model updates persistent memory and switching to a native model releases it across restarts', () => {
+    const h = fixture({ google_model: 'gemini-4-argon', vertexai_model: 'gemini-3.8-flash' });
+    const runtime = h.start();
+    const google = h.selects.get('#model_google_select');
+    google.value = 'gemini-3.8-flash';
+    h.notifyChange(google);
+    assert.deepEqual(h.memory, { google_model: 'gemini-3.8-flash', vertexai_model: 'gemini-3.8-flash' });
+    google.value = 'gemini-2.5-pro';
+    h.notifyChange(google);
+    assert.deepEqual(h.memory, { vertexai_model: 'gemini-3.8-flash' });
+    const diskMemory = JSON.parse(JSON.stringify(h.memory));
+    runtime.dispose();
+
+    const reboot = fixture({ google_model: '', vertexai_model: '' }, { memory: diskMemory });
+    const next = reboot.start();
+    reboot.events.emit(reboot.types.SETTINGS_LOADED);
+    assert.equal(reboot.settings.google_model, '');
+    assert.equal(reboot.settings.vertexai_model, 'gemini-3.8-flash');
+    next.dispose();
+});
+
+test('non-empty live and startup native choices take precedence over an older remembered managed model', () => {
+    for (const live of ['gemini-2.5-pro', '']) {
+        const h = fixture({ google_model: live }, {
+            memory: { google_model: 'gemini-4-argon' },
+            startupSettings: { google_model: 'gemini-2.5-pro' },
+        });
+        const runtime = h.start();
+        assert.equal(h.selects.get('#model_google_select').value, 'gemini-2.5-pro');
+        assert.deepEqual(h.memory, {});
+        runtime.dispose();
+    }
+});
+
+test('production runtime saves per-account extension settings and restores them on successive fresh boots', () => {
+    const source = readFileSync(new URL('../features/gemini-models/runtime.js', import.meta.url), 'utf8')
+        .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+    let disk = {
+        oai_settings: { google_model: 'gemini-4-argon', vertexai_model: 'gemini-3.8-flash' },
+        extension_settings: { NemoPresetExt: { enableReSwipe: true } },
+    };
+    for (let boot = 0; boot < 3; boot++) {
+        // Native settings load before extensions and cannot select unknown IDs.
+        const h = fixture({ google_model: disk.oai_settings.google_model, vertexai_model: '' });
+        for (const select of h.selects.values()) select.value = 'missing-model';
+        const extensions = structuredClone(disk.extension_settings);
+        let saves = 0;
+        const api = new Script(source + '\n({ initializeGeminiModels, cleanupGeminiModels })').runInNewContext({
+            eventSource: h.events, event_types: h.types, oai_settings: h.settings,
+            savedSettings: structuredClone(disk), extension_settings: extensions,
+            NEMO_EXTENSION_NAME: 'NemoPresetExt', saveSettingsDebounced() { saves++; },
+            createGeminiModelsRuntime, MutationObserver: undefined,
+            document: {
+                querySelector: selector => h.selects.get(selector) ?? null,
+                createElement: tag => new Element(tag),
+            },
+            $: select => ({ trigger: name => { assert.equal(name, 'change'); h.notifyChange(select); } }),
+        });
+        api.initializeGeminiModels();
+        api.initializeGeminiModels();
+        h.events.emit(h.types.SETTINGS_LOADED);
+        h.events.emit(h.types.APP_READY);
+        assert.equal(h.settings.google_model, 'gemini-4-argon');
+        assert.equal(h.settings.vertexai_model, 'gemini-3.8-flash');
+        assert.equal(h.selects.get('#model_google_select').value, 'gemini-4-argon');
+        assert.equal(h.selects.get('#model_vertexai_select').value, 'gemini-3.8-flash');
+        assert.equal(saves, boot === 0 ? 1 : 0, 'only a changed backup schedules a settings save');
+        disk = JSON.parse(JSON.stringify({ oai_settings: h.settings, extension_settings: extensions }));
+        assert.equal(disk.extension_settings.NemoPresetExt.enableReSwipe, true);
+        assert.deepEqual(disk.extension_settings.NemoPresetExt.geminiModels, {
+            google_model: 'gemini-4-argon', vertexai_model: 'gemini-3.8-flash',
+        });
+        api.cleanupGeminiModels();
+        assert.ok(Object.values(h.types).every(type => h.events.listenerCount(type) === 0));
+        // Also cover recovering from a prior save of temporarily blank fields.
+        disk.oai_settings.google_model = '';
+        disk.oai_settings.vertexai_model = '';
+    }
+});
+
+test('unsupported or malformed backup values cannot inject arbitrary model entries', () => {
+    for (const memory of [null, 'gemini-4-argon', { google_model: 'custom-invalid-model', vertexai_model: {} }]) {
+        const h = fixture({}, { memory });
+        const runtime = h.start();
+        for (const select of h.selects.values()) {
+            assert.equal(select.value, 'gemini-2.5-pro');
+            assert.equal(select.options.some(option => option.value === 'custom-invalid-model'), false);
+        }
+        runtime.dispose();
+    }
 });
 
 test('native entries and pre-existing CustomModels entries are retained without duplicate Nemo options', () => {
