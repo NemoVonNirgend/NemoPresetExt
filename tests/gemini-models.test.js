@@ -33,7 +33,7 @@ class Element {
 function fixture(settings = {}) {
     const selects = new Map();
     const events = new EventEmitter();
-    const types = Object.fromEntries(['APP_READY', 'SETTINGS_LOADED', 'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'CHATCOMPLETION_SOURCE_CHANGED'].map(key => [key, key]));
+    const types = Object.fromEntries(['APP_READY', 'SETTINGS_LOADED', 'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'CHATCOMPLETION_SOURCE_CHANGED', 'CHATCOMPLETION_MODEL_CHANGED', 'CONNECTION_PROFILE_LOADED'].map(key => [key, key]));
     const changes = [];
     const observers = [];
     const document = {
@@ -57,15 +57,16 @@ function fixture(settings = {}) {
         observe(select) { this.select = select; this.connected = true; }
         disconnect() { this.connected = false; }
     }
+    function notifyChange(select) {
+        const provider = select === selects.get('#model_google_select') ? 'google' : 'vertexai';
+        settings[`${provider}_model`] = select.value;
+        changes.push([provider, select.value]);
+        events.emit(types.CHATCOMPLETION_MODEL_CHANGED, select.value);
+    }
     const start = () => createGeminiModelsRuntime({
-        document, getSettings: () => settings, Observer, events, types,
-        notifyChange(select) {
-            const provider = select === selects.get('#model_google_select') ? 'google' : 'vertexai';
-            settings[`${provider}_model`] = select.value;
-            changes.push([provider, select.value]);
-        },
+        document, getSettings: () => settings, Observer, events, types, notifyChange,
     });
-    return { selects, events, types, changes, observers, settings, addOption, start };
+    return { selects, events, types, changes, observers, settings, addOption, start, notifyChange };
 }
 
 const modelIds = ['gemini-4-argon', 'gemini-3.8-flash'];
@@ -151,6 +152,61 @@ test('native list rebuilds restore entries; preset changes and later native choi
     select.value = 'gemini-2.5-pro';
     h.events.emit(h.types.CHATCOMPLETION_SOURCE_CHANGED);
     assert.equal(select.value, 'gemini-2.5-pro');
+    runtime.dispose();
+});
+
+test('list rebuild recovers a managed model even when the host saves an empty value before the observer runs', () => {
+    for (const provider of ['google', 'vertexai']) for (const model of modelIds) {
+        const h = fixture({ [`${provider}_model`]: model });
+        const runtime = h.start();
+        const select = h.selects.get(`#model_${provider}_select`);
+
+        for (const child of [...select.children]) child.remove();
+        h.addOption(select, 'gemini-2.5-pro');
+        select.value = model; // Native .val(savedModel) cannot select a missing option.
+        h.settings[`${provider}_model`] = select.value;
+        assert.equal(h.settings[`${provider}_model`], '');
+        for (const observer of h.observers) observer.callback();
+
+        assert.equal(select.value, model);
+        assert.equal(h.settings[`${provider}_model`], model);
+        runtime.dispose();
+    }
+});
+
+test('model and profile events repair blank selections without a child-list mutation or a notification loop', () => {
+    for (const event of ['CHATCOMPLETION_MODEL_CHANGED', 'CONNECTION_PROFILE_LOADED']) {
+        const h = fixture({ google_model: 'gemini-3.8-flash', vertexai_model: 'gemini-4-argon' });
+        const runtime = h.start();
+        for (const provider of ['google', 'vertexai']) {
+            h.selects.get(`#model_${provider}_select`).value = '';
+            h.settings[`${provider}_model`] = '';
+        }
+        h.events.emit(h.types[event], '');
+
+        assert.equal(h.selects.get('#model_google_select').value, 'gemini-3.8-flash');
+        assert.equal(h.settings.google_model, 'gemini-3.8-flash');
+        assert.equal(h.selects.get('#model_vertexai_select').value, 'gemini-4-argon');
+        assert.equal(h.settings.vertexai_model, 'gemini-4-argon');
+        assert.equal(h.changes.length, 4, 'each repair should notify the host only once');
+        runtime.dispose();
+    }
+});
+
+test('a later native model choice releases the previous managed selection for that provider', () => {
+    const h = fixture({ google_model: 'gemini-4-argon', vertexai_model: 'gemini-3.8-flash' });
+    const runtime = h.start();
+    const google = h.selects.get('#model_google_select');
+    google.value = 'gemini-2.5-pro';
+    h.notifyChange(google);
+    assert.equal(google.value, 'gemini-2.5-pro');
+
+    google.value = '';
+    h.notifyChange(google);
+    h.events.emit(h.types.CONNECTION_PROFILE_LOADED, 'Native model profile');
+    assert.equal(google.value, '', 'an old Argon selection must not override a later native choice');
+    assert.equal(h.settings.google_model, '');
+    assert.equal(h.settings.vertexai_model, 'gemini-3.8-flash');
     runtime.dispose();
 });
 
