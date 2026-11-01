@@ -24,6 +24,7 @@ import { initializeFinalUserRole, cleanupFinalUserRole } from './features/final-
 import { initializeReSwipe, cleanupReSwipe } from './features/reswipe/runtime.js';
 import { buildPresetIndex } from './features/preset-index/discovery.js';
 import { initializeGeminiModels, cleanupGeminiModels } from './features/gemini-models/runtime.js';
+import { initializeResponseTokens, cleanupResponseTokens } from './features/response-tokens/runtime.js';
 
 let initialized = false;
 let cleanupInProgress = false;
@@ -86,6 +87,7 @@ export async function cleanupExtension() {
         cleanupLorebookSpacing();
         cleanupFinalUserRole();
         cleanupGeminiModels();
+        cleanupResponseTokens();
         cleanupDirectiveAutocomplete();
         cleanupMessageTriggerHooks();
         cleanupPromptDirectiveHooks();
@@ -108,6 +110,7 @@ export async function initializeExtension() {
 
     try {
         ensureSettingsNamespace();
+        initializeResponseTokens();
         initializeGeminiModels();
         validateDividerPatterns();
         initializeLorebookSpacing();
