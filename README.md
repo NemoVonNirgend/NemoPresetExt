@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.21
+**Version:** 6.0.22
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.22 Gemini model entries
+
+Installing NemoPresetExt automatically adds `gemini-4-argon` and `gemini-3.8-flash` to **Google AI Studio** and **Vertex AI** in Chat Completion connections. Missing entries appear under **Nemo Models**. Existing selections are preserved, and saved selections of these models are restored on reload. Native entries and entries supplied by [CustomModels](https://github.com/LenAnderson/SillyTavern-CustomModels) take precedence, preventing duplicate Nemo entries. CustomModels is not required.
+
+Update NemoPresetExt and fully reload SillyTavern. Model access, authentication, regions, and request capabilities still depend on your provider and SillyTavern version.
 
 ### 6.0.21 Sola preset grouping
 

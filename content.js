@@ -23,6 +23,7 @@ import { initializeLorebookSpacing, cleanupLorebookSpacing } from './features/lo
 import { initializeFinalUserRole, cleanupFinalUserRole } from './features/final-user-role/runtime.js';
 import { initializeReSwipe, cleanupReSwipe } from './features/reswipe/runtime.js';
 import { buildPresetIndex } from './features/preset-index/discovery.js';
+import { initializeGeminiModels, cleanupGeminiModels } from './features/gemini-models/runtime.js';
 
 let initialized = false;
 let cleanupInProgress = false;
@@ -84,6 +85,7 @@ export async function cleanupExtension() {
         cleanupPromptTools();
         cleanupLorebookSpacing();
         cleanupFinalUserRole();
+        cleanupGeminiModels();
         cleanupDirectiveAutocomplete();
         cleanupMessageTriggerHooks();
         cleanupPromptDirectiveHooks();
@@ -106,6 +108,7 @@ export async function initializeExtension() {
 
     try {
         ensureSettingsNamespace();
+        initializeGeminiModels();
         validateDividerPatterns();
         initializeLorebookSpacing();
         initializeRecipeRuntime();
