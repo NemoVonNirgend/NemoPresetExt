@@ -2,13 +2,17 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.22
+**Version:** 6.0.23
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.23 Gemini selection persistence
+
+Argon and Flash selections now survive model-list rebuilds that temporarily clear the Google AI Studio or Vertex AI model field. NemoPresetExt restores the last valid managed model through SillyTavern's normal change handler and checks model and connection-profile events as well as option-list mutations. Later native model and preset choices remain authoritative.
 
 ### 6.0.22 Gemini model entries
 

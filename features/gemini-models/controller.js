@@ -13,11 +13,24 @@ export function createGeminiModelsRuntime({ document, getSettings, notifyChange,
     const bindings = new Map();
     const ownedOptions = new Set();
     const ownedGroups = new Set();
+    const lastModels = new Map();
     const listeners = [];
     let disposed = false;
+    let refreshing = false;
 
     function refresh(settings = getSettings()) {
-        if (disposed) return;
+        if (disposed || refreshing) return;
+        // Native change notifications emit model events synchronously. A repair
+        // must finish both providers before those events can start another pass.
+        refreshing = true;
+        try {
+            syncSelectors(settings);
+        } finally {
+            refreshing = false;
+        }
+    }
+
+    function syncSelectors(settings) {
         for (const { selector, setting } of PROVIDERS) {
             const select = document.querySelector(selector);
             const previousBinding = bindings.get(selector);
@@ -58,10 +71,18 @@ export function createGeminiModelsRuntime({ document, getSettings, notifyChange,
             }
 
             const savedModel = settings?.[setting];
-            const restore = GEMINI_MODELS.includes(savedModel);
-            const value = restore ? savedModel : previousValue;
+            // A list rebuild can .val(savedModel).trigger('change') before our
+            // observer restores the options. Vertex then saves an empty model.
+            // Recover only a blank choice; a newer non-empty setting always wins.
+            const fallback = previousValue || lastModels.get(selector);
+            const restoreModel = GEMINI_MODELS.includes(savedModel) ? savedModel
+                : !savedModel && GEMINI_MODELS.includes(fallback) ? fallback : null;
+            const value = restoreModel ?? previousValue;
             if (select.value !== value) select.value = value;
-            if (restore && previousValue !== value) notifyChange(select);
+            // Remember native choices too, so switching away releases the old
+            // managed model instead of resurrecting it on a later blank field.
+            if (savedModel || value) lastModels.set(selector, savedModel || value);
+            if (restoreModel && (previousValue !== value || getSettings()?.[setting] !== value)) notifyChange(select);
 
             if (!bindings.has(selector)) {
                 const observer = Observer ? new Observer(() => refresh()) : null;
@@ -82,7 +103,7 @@ export function createGeminiModelsRuntime({ document, getSettings, notifyChange,
     // Vertex can replace an unknown saved model with an empty selection at startup.
     // The final SETTINGS_LOADED payload still contains the original saved choice.
     listen('SETTINGS_LOADED', settings => refresh(settings?.oai_settings ?? settings ?? getSettings()));
-    for (const key of ['APP_READY', 'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'CHATCOMPLETION_SOURCE_CHANGED']) {
+    for (const key of ['APP_READY', 'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'CHATCOMPLETION_SOURCE_CHANGED', 'CHATCOMPLETION_MODEL_CHANGED', 'CONNECTION_PROFILE_LOADED']) {
         listen(key, () => refresh());
     }
     refresh();
@@ -92,6 +113,7 @@ export function createGeminiModelsRuntime({ document, getSettings, notifyChange,
             disposed = true;
             for (const { observer } of bindings.values()) observer?.disconnect();
             bindings.clear();
+            lastModels.clear();
             for (const [type, handler] of listeners) events.removeListener(type, handler);
             listeners.length = 0;
             for (const option of ownedOptions) option.remove();
