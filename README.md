@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.24
+**Version:** 6.0.25
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.25 Response-token limit across page reloads
+
+NemoPresetExt now saves your Chat Completion response-token preference separately, with its preset name, and restores it once at the end of startup. This recovers the saved limit when startup or automatic model restoration resets the setting or its displayed field. Direct edits update the backup. Later preset changes apply and remember their own token limits; an older preset's preference is not imposed on a different preset. Temporary generation-only token budgets are not recorded.
+
+Update NemoPresetExt, reload SillyTavern, and set your desired response-token limit once if an earlier reset was already saved. Subsequent reloads restore that preference for the same preset.
 
 ### 6.0.24 Gemini selections across page reloads
 
