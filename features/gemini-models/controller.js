@@ -9,7 +9,10 @@ const PROVIDERS = Object.freeze([
 ]);
 
 /** Add missing options without taking ownership of native or CustomModels entries. */
-export function createGeminiModelsRuntime({ document, getSettings, notifyChange, Observer, events, types }) {
+export function createGeminiModelsRuntime({
+    document, getSettings, notifyChange, Observer, events, types,
+    getStartupSettings = getSettings, getModelMemory = () => ({}), saveModelMemory = () => {},
+}) {
     const bindings = new Map();
     const ownedOptions = new Set();
     const ownedGroups = new Set();
@@ -18,6 +21,29 @@ export function createGeminiModelsRuntime({ document, getSettings, notifyChange,
     let disposed = false;
     let refreshing = false;
 
+    const memory = getModelMemory();
+    const startup = getStartupSettings();
+    let persistedModels = {};
+    for (const { selector, setting } of PROVIDERS) {
+        if (GEMINI_MODELS.includes(memory?.[setting])) persistedModels[setting] = memory[setting];
+        // The original settings snapshot predates native dropdown initialization.
+        // A real non-empty saved choice takes precedence over an older backup.
+        const model = startup?.[setting] || persistedModels[setting];
+        if (typeof model === 'string' && model) lastModels.set(selector, model);
+    }
+
+    function persistModels() {
+        const models = {};
+        for (const { selector, setting } of PROVIDERS) {
+            const model = lastModels.get(selector);
+            if (GEMINI_MODELS.includes(model)) models[setting] = model;
+        }
+        if (PROVIDERS.some(({ setting }) => models[setting] !== persistedModels[setting])) {
+            saveModelMemory(models);
+            persistedModels = models;
+        }
+    }
+
     function refresh(settings = getSettings()) {
         if (disposed || refreshing) return;
         // Native change notifications emit model events synchronously. A repair
@@ -25,6 +51,7 @@ export function createGeminiModelsRuntime({ document, getSettings, notifyChange,
         refreshing = true;
         try {
             syncSelectors(settings);
+            persistModels();
         } finally {
             refreshing = false;
         }
@@ -74,7 +101,7 @@ export function createGeminiModelsRuntime({ document, getSettings, notifyChange,
             // A list rebuild can .val(savedModel).trigger('change') before our
             // observer restores the options. Vertex then saves an empty model.
             // Recover only a blank choice; a newer non-empty setting always wins.
-            const fallback = previousValue || lastModels.get(selector);
+            const fallback = GEMINI_MODELS.includes(previousValue) ? previousValue : lastModels.get(selector);
             const restoreModel = GEMINI_MODELS.includes(savedModel) ? savedModel
                 : !savedModel && GEMINI_MODELS.includes(fallback) ? fallback : null;
             const value = restoreModel ?? previousValue;
@@ -99,11 +126,9 @@ export function createGeminiModelsRuntime({ document, getSettings, notifyChange,
         listeners.push([type, handler]);
     }
 
-    // Native settings are applied before third-party extensions load. In particular,
-    // Vertex can replace an unknown saved model with an empty selection at startup.
-    // The final SETTINGS_LOADED payload still contains the original saved choice.
-    listen('SETTINGS_LOADED', settings => refresh(settings?.oai_settings ?? settings ?? getSettings()));
-    for (const key of ['APP_READY', 'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'CHATCOMPLETION_SOURCE_CHANGED', 'CHATCOMPLETION_MODEL_CHANGED', 'CONNECTION_PROFILE_LOADED']) {
+    // SETTINGS_LOADED has no payload. Initial recovery uses the captured startup
+    // snapshot and persistent backup; later events use the live native settings.
+    for (const key of ['SETTINGS_LOADED', 'APP_READY', 'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'CHATCOMPLETION_SOURCE_CHANGED', 'CHATCOMPLETION_MODEL_CHANGED', 'CONNECTION_PROFILE_LOADED']) {
         listen(key, () => refresh());
     }
     refresh();

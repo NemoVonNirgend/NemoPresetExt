@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.23
+**Version:** 6.0.24
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.24 Gemini selections across page reloads
+
+Argon and Flash choices are now backed up separately for Google AI Studio and Vertex AI in your NemoPresetExt settings. On page reload, Nemo recovers a model cleared during native startup using the original saved settings or this backup. It no longer expects the payload-free `SETTINGS_LOADED` event to contain settings. Selecting a different model updates the backup; selecting a native model clears the old managed choice for that provider.
+
+Update NemoPresetExt and fully reload SillyTavern. If an earlier version already saved a blank model, select your model once so Nemo can save it for subsequent reloads.
 
 ### 6.0.23 Gemini selection persistence
 
