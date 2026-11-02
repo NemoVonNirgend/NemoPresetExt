@@ -14,6 +14,7 @@ export function initializeResponseTokens() {
         getSettings: () => oai_settings,
         getStartupSettings: () => savedSettings?.oai_settings ?? savedSettings,
         getMemory: () => extension_settings[NEMO_EXTENSION_NAME]?.responseTokens,
+        getDisplayedTokens: () => Number($('#openai_max_tokens').val()),
         saveMemory(value) {
             const settings = extension_settings[NEMO_EXTENSION_NAME] ||= {};
             settings.responseTokens = value;

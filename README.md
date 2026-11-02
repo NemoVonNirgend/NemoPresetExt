@@ -2,13 +2,19 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.25
+**Version:** 6.0.26
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.26 Outgoing response-token mismatch
+
+Normal Chat Completion replies now use the response-token limit shown in the control when the request is serialized. This repairs cases where the field still shows `64000` but an internal temporary budget makes the server receive `1200`. The correction applies to the outgoing request copy, including changes made by later request listeners, and supports both `max_tokens` and `max_completion_tokens`. Quiet/helper requests keep their separate limits, and existing serialization checks remain active. Reload persistence and later intentional preset changes continue to work.
+
+Update NemoPresetExt and fully reload SillyTavern. A provider's `429 RESOURCE_EXHAUSTED` response is a separate error; correcting the token limit does not resolve that response.
 
 ### 6.0.25 Response-token limit across page reloads
 
