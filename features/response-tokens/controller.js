@@ -12,12 +12,20 @@ function storedPreference(value) {
         ? { preset: value.preset, tokens: value.tokens } : null;
 }
 
+const REPLY_TYPES = new Set(['normal', 'continue', 'swipe', 'regenerate', 'impersonate', 'append']);
+
+function isReply(request) {
+    return request && typeof request === 'object' && !Array.isArray(request) && REPLY_TYPES.has(request.type);
+}
+
 /** Restore the saved response budget once at startup, then follow intentional edits. */
 export function createResponseTokensRuntime({
     events, types, getSettings, getStartupSettings, getMemory, saveMemory,
-    writeTokens, subscribeInput, schedule = callback => setTimeout(callback, 0), cancel = clearTimeout,
+    writeTokens, subscribeInput, getDisplayedTokens = () => getSettings()?.openai_max_tokens,
+    schedule = callback => setTimeout(callback, 0), cancel = clearTimeout,
 }) {
     const listeners = [];
+    const requestGuards = new WeakMap();
     let disposed = false;
     let ready = false;
     let restoring = false;
@@ -27,6 +35,48 @@ export function createResponseTokensRuntime({
     const startup = preference(startupSettings);
     const startupPreset = String(startupSettings?.preset_settings_openai ?? '');
     let restore = stored?.preset === startupPreset ? stored : startup;
+
+    function protectRequest(request) {
+        if (disposed || !isReply(request)) return;
+        const displayed = Number(getDisplayedTokens());
+        const samePreset = stored?.preset === String(getSettings()?.preset_settings_openai ?? '');
+        const tokens = validTokens(displayed) ? displayed : samePreset ? stored?.tokens : null;
+        if (!validTokens(tokens)) return;
+
+        const installed = requestGuards.get(request);
+        if (installed && installed.serializer === request.toJSON) {
+            installed.tokens = tokens;
+            return;
+        }
+        const originalToJSON = request.toJSON;
+        const guard = { tokens, serializer: null };
+        const serializer = function (key) {
+            // Preserve native integrity blockers and any earlier serializer.
+            const value = typeof originalToJSON === 'function' ? originalToJSON.call(this, key) : this;
+            if (disposed || !isReply(value)) return value;
+            const fields = ['max_tokens', 'max_completion_tokens'].filter(field => Object.hasOwn(value, field));
+            if (!fields.length) return value;
+            const outgoing = { ...value };
+            delete outgoing.toJSON;
+            for (const field of fields) outgoing[field] = guard.tokens;
+            return outgoing;
+        };
+        guard.serializer = serializer;
+        // Request-local correction avoids changing a concurrent helper's shared
+        // temporary budget. Quiet/raw helper requests retain their own limits.
+        Object.defineProperty(request, 'toJSON', { value: serializer, configurable: true, writable: true, enumerable: false });
+        requestGuards.set(request, guard);
+    }
+
+    function moveProtectorLast() {
+        if (disposed || !types.CHAT_COMPLETION_SETTINGS_READY) return;
+        const type = types.CHAT_COMPLETION_SETTINGS_READY;
+        if (typeof events.makeLast === 'function') events.makeLast(type, protectRequest);
+        else {
+            events.removeListener(type, protectRequest);
+            events.on(type, protectRequest);
+        }
+    }
 
     function remember(value) {
         if (!value || (stored?.preset === value.preset && stored?.tokens === value.tokens)) return;
@@ -61,6 +111,7 @@ export function createResponseTokensRuntime({
     function finishStartup() {
         if (disposed || ready) return;
         ready = true;
+        moveProtectorLast();
         // Let synchronous APP_READY listeners finish before applying the budget.
         timer = schedule(() => {
             timer = null;
@@ -88,6 +139,8 @@ export function createResponseTokensRuntime({
     }
 
     listen('APP_READY', finishStartup);
+    listen('CHAT_COMPLETION_SETTINGS_READY', protectRequest);
+    for (const key of ['GENERATION_STARTED', 'CHAT_COMPLETION_PROMPT_READY']) listen(key, moveProtectorLast);
     listen('OAI_PRESET_CHANGED_BEFORE', () => {
         if (ready) cancelRestore();
     });
