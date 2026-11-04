@@ -67,3 +67,33 @@ test('organization restores tray scroll after reattaching the same tray nodes', 
     const tray = read('../features/prompts/category-tray.js');
     assert.match(tray, /trayGrid\?\.addEventListener\('scroll', \(\) => \{\s*if \(trayGrid\.isConnected\) tray\._nemoGridScrollTop = trayGrid\.scrollTop;/);
 });
+
+// A toggle only defers Nemo's section organization; the renderer may replace
+// changed rows during it. Only a complete native paint owns the list.
+test('organization state separates toggles from native paints', async () => {
+    const { createPromptOrganizationState } = await import('../features/prompt-rendering/organization-state.js');
+    const state = createPromptOrganizationState(); state.activate();
+    const toggle = state.beginToggle();
+    assert.equal(state.paused, true); assert.equal(state.painting, false);
+    const paint = state.beginPaint();
+    assert.equal(state.painting, true);
+    state.endPaint(paint); assert.equal(state.painting, false); assert.equal(state.paused, true);
+    state.endToggle(toggle); assert.equal(state.paused, false);
+});
+
+test('incremental rendering is not disabled by tray mode or by a toggle in progress', () => {
+    const code = read('../features/prompt-rendering/incremental.js');
+    assert.doesNotMatch(code, /modeKey\(\) === 'accordion'/);
+    assert.doesNotMatch(code, /toggleDepth/);
+    assert.match(code, /nemo\.isNativePromptPaintInProgress\?\.\(\)/);
+    assert.match(code, /const CARRIED_CLASSES = \['nemo-tray-hidden-prompt'\]/);
+    const manager = read('../features/prompts/prompt-manager.js');
+    assert.match(manager, /isNativePromptPaintInProgress: function\(\) \{\s*return promptOrganizationState\.painting;/);
+});
+
+test('tray changes refresh section counters and other open trays without a rebuild', () => {
+    const tray = read('../features/prompts/category-tray.js');
+    const start = tray.indexOf('async function applyCanonicalChanges(');
+    const body = tray.slice(start, tray.indexOf('\n}\n', start));
+    assert.match(body, /finally \{[\s\S]*refreshSectionIndicators\(\);[\s\S]*syncOpenTrayCards\(\);/);
+});

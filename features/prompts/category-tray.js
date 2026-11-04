@@ -1961,6 +1961,8 @@ function openTray(section) {
             const identifier = card.dataset.identifier;
             const prompt = prompts.find(p => p.identifier === identifier);
             if (!prompt) return;
+            // Another tray or a directive auto-resolution may have changed it.
+            refreshPromptEnabledFlags(prompts);
             const newState = !prompt.isEnabled;
             await applyCanonicalChanges([{ identifier, enabled: newState }]);
             refreshPromptEnabledFlags(prompts);
@@ -2192,9 +2194,38 @@ function refreshTray(section) {
 
 async function applyCanonicalChanges(changes) {
     const actionApi = globalThis.NemoPromptRendering?.applyChanges;
-    if (typeof actionApi === 'function') return actionApi(changes);
-    for (const change of changes) await performToggle(change.identifier, change.enabled);
-    return null;
+    try {
+        if (typeof actionApi === 'function') return await actionApi(changes);
+        for (const change of changes) await performToggle(change.identifier, change.enabled);
+        return null;
+    } finally {
+        // Toggles update rows in place instead of rebuilding the list, so section
+        // counters and other open trays no longer refresh as a side effect.
+        // Directive auto-resolution can also change prompts in other sections.
+        refreshSectionIndicators();
+        syncOpenTrayCards();
+    }
+}
+
+/** Recount every section header (counter + progress bar) from canonical state. */
+function refreshSectionIndicators() {
+    const manager = getStateManager();
+    if (typeof manager?.updateSectionCount !== 'function') return;
+    document.querySelectorAll('details.nemo-engine-section').forEach(section => manager.updateSectionCount(section));
+}
+
+/** Bring every open tray's card checkmarks in line with the active prompt order. */
+function syncOpenTrayCards() {
+    const activeCharacter = promptManager?.activeCharacter;
+    if (!activeCharacter) return;
+    document.querySelectorAll('.nemo-category-tray .nemo-prompt-card[data-identifier]').forEach(card => {
+        const entry = promptManager.getPromptOrderEntry?.(activeCharacter, card.dataset.identifier);
+        if (!entry) return;
+        const enabled = Boolean(entry.enabled);
+        card.classList.toggle('nemo-prompt-card-enabled', enabled);
+        const status = card.querySelector('.nemo-prompt-card-status');
+        if (status) status.textContent = enabled ? '✓' : '';
+    });
 }
 
 function refreshPromptEnabledFlags(prompts) {

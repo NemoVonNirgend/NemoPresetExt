@@ -27,6 +27,10 @@ export function updateTotal(list, value) {
     return true;
 }
 
+// Presentation classes another Nemo layer applied to a live row. A replacement
+// row must keep them, e.g. tray mode hides top-level rows that stay resident.
+const CARRIED_CLASSES = ['nemo-tray-hidden-prompt'];
+
 /** Native rows and native listeners, with Nemo header decoration carried across a changed row. */
 export function replaceRow(oldRow, newRow, nemo) {
     const isHeader = oldRow.classList.contains('nemo-header-item');
@@ -34,6 +38,7 @@ export function replaceRow(oldRow, newRow, nemo) {
     const label = oldRow.querySelector(`${NAME} a`)?.textContent;
     const counters = isHeader ? [...oldRow.querySelectorAll('.nemo-enabled-count, .nemo-section-progress, .nemo-section-master-toggle')] : [];
     const display = oldRow.style.display;
+    const carried = CARRIED_CLASSES.filter(name => oldRow.classList.contains(name));
     const selected = nemo.selectedPromptItem === oldRow;
     // Use the existing extension decorator, never a second interpretation of its directives.
     nemo.preparePromptItem?.(newRow);
@@ -47,6 +52,7 @@ export function replaceRow(oldRow, newRow, nemo) {
         if (name) for (const node of counters) name.appendChild(node);
     }
     newRow.style.display = display;
+    if (carried.length) newRow.classList.add(...carried);
     oldRow.replaceWith(newRow);
     if (selected) nemo.selectedPromptItem = newRow;
 }
@@ -54,6 +60,10 @@ export function replaceRow(oldRow, newRow, nemo) {
 /**
  * Live incremental redraws only. All rows remain present in 5A so existing snapshots,
  * tray logic, movement and bulk controls still see the complete native prompt order.
+ *
+ * Tray mode uses this path for every preset size: a complete native redraw would
+ * detach the open tray, flash the flat native list and lose the tray's scroll
+ * position for what is usually a one-row change.
  */
 export function installIncrementalRendering({ pm, nemo, document: doc = globalThis.document,
     enabled = () => true, modeKey = () => 'accordion', minRows = 64,
@@ -61,7 +71,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     requestFrame = cb => requestAnimationFrame(cb), cancelFrame = id => cancelAnimationFrame(id),
     notify = () => {},
 }) {
-    let disposed = false, previous = null, frame = null, sequence = 0, toggleDepth = 0;
+    let disposed = false, previous = null, frame = null, sequence = 0;
     let organization = null, organizationFrame = null, pendingForce = false, incrementalList = null;
     let retryFrame = null, optionalObserver = null, optionalRoot = null, deferredDrag = false;
     let residency = null;
@@ -73,9 +83,13 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         scopedOptionalObservers: 0, fallbacks: 0, dragSetupsSkipped: 0 };
     const originalRows = pm.renderPromptManagerListItems;
     const supported = compatible(originalRows);
-    const active = () => !disposed && supported && enabled() && modeKey() === 'accordion'
-        && pm.configuration?.prefix === 'completion_'
-        && !(nemo.isPromptOrganizationPaused?.() ?? toggleDepth > 0);
+    // A toggle in progress only defers Nemo's section organization; replacing
+    // changed rows in place is exactly what a toggle's redraw needs. Stand down
+    // only while a complete native paint owns the list.
+    const painting = () => Boolean(nemo.isNativePromptPaintInProgress?.() ?? nemo.isPromptOrganizationPaused?.());
+    const active = () => !disposed && supported && enabled()
+        && pm.configuration?.prefix === 'completion_' && !painting();
+    const threshold = () => (modeKey() === 'tray' ? 0 : minRows);
     const busy = () => Boolean(pm.listElement?.querySelector('.sortable-chosen, .sortable-drag, .ui-sortable-helper'));
     function state() { try { return renderState(pm); } catch { return null; } }
     function expectedRows(current) {
@@ -87,6 +101,11 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         return current.rows.filter(row => wanted.has(row.id));
     }
     function complete(list, current) { return completeRows(list, current, expectedRows(current)); }
+    // Rows that are not on the page (unloaded or tray-only) changed: no live row
+    // marks their section, and no full rebuild will recount it.
+    function recountSections(list) {
+        for (const section of list.querySelectorAll(SECTION)) nemo.updateSectionCount?.(section);
+    }
     async function renderRows(ids) {
         const current = state();
         if (!supported || !current || !Array.isArray(ids)) return null;
@@ -181,7 +200,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     wrap(pm, 'renderPromptManager', original => async function (...args) {
         if (active() && busy()) { deferredDrag = true; return; }
         const current = state(), list = this.listElement;
-        if (active() && !busy() && current && current.rows.length >= minRows && frame
+        if (active() && !busy() && current && current.rows.length >= threshold() && frame
             && frame.owner === current.owner && frame.frame === current.frame && frame.list === list
             && this.containerElement?.contains(list) && updateTotal(list, current.tokens)) {
             stats.reusedFrames++;
@@ -244,7 +263,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
                     && renderedList === pm.listElement ? renderedList : null);
             }
         }
-        if (!active() || busy() || !current || current.rows.length < minRows
+        if (!active() || busy() || !current || current.rows.length < threshold()
             || !list || !this.containerElement?.contains(list) || previous?.list !== list) return full();
         const allChanges = changedRows(previous, current), expected = expectedRows(current);
         const liveIds = new Set(expected.map(row => row.id));
@@ -252,6 +271,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         const oldRows = complete(list, current);
         if (!allChanges || !oldRows) return full();
         if (!changes.length) {
+            if (allChanges.length) recountSections(list);
             stats.unchangedLists++; stats.reusedRows += expected.length;
             previous = remember(current, list); incrementalList = list;
             lastLayout = promptLayoutSignature(current, modeKey());
@@ -289,7 +309,8 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
                     replaceRow(row, fresh.get(row.dataset.pmIdentifier), nemo);
                 }
             } finally { nemo.resumeListObserver?.(); }
-            for (const section of affected) nemo.updateSectionCount?.(section);
+            if (allChanges.length > changes.length) recountSections(list);
+            else for (const section of affected) nemo.updateSectionCount?.(section);
             previous = remember(current, list); incrementalList = list;
             stats.incrementalLists++; stats.generatedRows += changes.length;
             stats.replacedRows += changes.length; stats.reusedRows += expected.length - changes.length;
@@ -349,11 +370,6 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         const result = original.call(this, container, ...args);
         if (enabled() && !disposed) scopeOptionalObserver(container);
         return result;
-    });
-    wrap(nemo, 'beginToggle', original => function (...args) { toggleDepth++; return original.apply(this, args); });
-    wrap(nemo, 'endToggle', original => function (...args) {
-        toggleDepth = Math.max(0, toggleDepth - 1);
-        return original.apply(this, args);
     });
 
     const onOrganized = () => rememberOrganization();

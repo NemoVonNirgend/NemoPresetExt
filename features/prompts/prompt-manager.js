@@ -1099,6 +1099,11 @@ export const NemoPresetManager = {
         return promptOrganizationState.paused;
     },
 
+    /** True only while a complete native prompt-manager paint is replacing the list. */
+    isNativePromptPaintInProgress: function() {
+        return promptOrganizationState.painting;
+    },
+
     captureNativePromptLayout: function(list, signature) {
         if (!promptOrganizationState.active) return null;
         if (this._nativeLayoutSnapshot && !samePromptLayout(this._nativeLayoutSnapshot.signature, signature)) {

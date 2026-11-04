@@ -10,11 +10,11 @@ NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combin
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
 
-### 6.0.27 Empty Classic 3.4 sections and tray scroll jumps
+### 6.0.27 Empty Classic 3.4 sections and tray toggles without redraws
 
 **Classic 3.4:** Sections no longer open empty while their header still shows counts like `(0/7)`. Classic 3.4 does not load the category tray, but optimized prompt rendering was reading the saved dropdown style (default: tray), so it unloaded every row of every open section. Row rendering now follows the layout actually in use. Switching between Classic 3.4 and Classic+/Modern immediately refreshes the rows each layout needs.
 
-**Classic+ and Modern tray:** Toggling a prompt card no longer scrolls the open tray back to its first card. Each toggle makes SillyTavern redraw the prompt list, which detached and reattached the tray and reset its scroll position. The tray now keeps its scroll position through that redraw.
+**Classic+ and Modern tray:** Toggling a prompt no longer rebuilds the prompt list. Previously, every toggle redrew the whole list: the flat native list flashed, the open tray was detached and reattached, and the tray scrolled back to its first card. Optimized prompt rendering now updates only the rows that changed, plus the token total and section counters. This applies to trays for every preset size, and also while the settings save from that toggle is still pending, which previously forced a full rebuild in every layout. Other open trays update their checkmarks when a directive auto-resolution changes their prompts. If a complete redraw is still required, such as after a rename, reorder or preset change, or when **Optimized prompt rendering** is off, the tray keeps its scroll position.
 
 Classic+ and Modern share the same category tray and differ only in styling. If you prefer prompts listed inline under each section, as in Classic 3.4, use the layers button (**Switch View Mode (Tray/Accordion)**) next to the prompt search box. Update NemoPresetExt and reload SillyTavern; no preset reimport is needed.
 

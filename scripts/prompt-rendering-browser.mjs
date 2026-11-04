@@ -11,10 +11,11 @@ async function test(name, fn) {
     try { await fn(); results.push({ name, passed: true }); }
     catch (error) { results.push({ name, passed: false, error: error.stack }); }
 }
-function harness({ n = 120, unsafe = false, virtualize = false, sortProtected = true, minRows = 0 } = {}) {
+function harness({ n = 120, unsafe = false, virtualize = false, sortProtected = true, minRows = 0, incrementalMinRows = 0 } = {}) {
     const errors = [];
     let mode = 'accordion', enabled = true, generated = 0, nativeFrames = 0, organizations = 0, inspected = null, edited = null;
     let sourceReads = 0, optionalSyncs = 0, gate = null, gateStarted = false, nativeDrags = 0;
+    let toggling = false, painting = false, sectionRecounts = 0;
     const panel = document.createElement('div'); panel.id = 'left-nav-panel';
     const host = document.createElement('div'); panel.appendChild(host); document.body.appendChild(panel);
     const input = document.createElement('input'); input.id = 'nemoPresetSearchInput'; panel.appendChild(input);
@@ -91,6 +92,7 @@ function harness({ n = 120, unsafe = false, virtualize = false, sortProtected = 
         },
         preparePromptItem(row) { row.dataset.nemoDecorated = 'true'; row.draggable = true; },
         updateSectionCount(section) {
+            sectionRecounts++;
             const span = section.querySelector('.nemo-enabled-count');
             if (span) span.textContent = `${section.querySelectorAll('.fa-toggle-on').length}`;
         },
@@ -108,7 +110,9 @@ function harness({ n = 120, unsafe = false, virtualize = false, sortProtected = 
             });
             this.observers.optionalSectionObserver.observe(document.body, { childList: true, subtree: true });
         },
-        beginToggle() { this.pauseListObserver(); }, endToggle() { this.resumeListObserver(); },
+        beginToggle() { toggling = true; this.pauseListObserver(); }, endToggle() { toggling = false; this.resumeListObserver(); },
+        isNativePromptPaintInProgress: () => painting,
+        isPromptOrganizationPaused: () => toggling || painting,
         async organizePrompts() {
             organizations++;
             const list = pm.listElement; list.dataset.nemoOrganizing = 'true';
@@ -137,7 +141,7 @@ function harness({ n = 120, unsafe = false, virtualize = false, sortProtected = 
         },
     };
     const originals = { frame: pm.renderPromptManager, rows: pm.renderPromptManagerListItems, organize: nemo.organizePrompts };
-    const runtime = installIncrementalRendering({ pm, nemo, minRows: 0,
+    const runtime = installIncrementalRendering({ pm, nemo, minRows: incrementalMinRows,
         enabled: () => enabled, modeKey: () => mode,
         ...(unsafe ? { compatible: () => false } : {}) });
     const virtualizer = virtualize ? installSectionVirtualization({
@@ -151,6 +155,8 @@ function harness({ n = 120, unsafe = false, virtualize = false, sortProtected = 
         get generated() { return generated; }, get nativeFrames() { return nativeFrames; }, get organizations() { return organizations; },
         get optionalSyncs() { return optionalSyncs; }, get sourceReads() { return sourceReads; }, get inspected() { return inspected; }, get edited() { return edited; },
         get nativeDrags() { return nativeDrags; }, get gateStarted() { return gateStarted; },
+        get sectionRecounts() { return sectionRecounts; },
+        painting(value) { painting = value; },
         mode(value) { mode = value; document.dispatchEvent(new Event('nemo-dropdown-style-changed')); },
         enable(value) { enabled = value; runtime.reset(); },
         delay(value) { gate = value; },
@@ -229,11 +235,48 @@ await test('append and remove use full native rows without losing disabled entri
 await test('missing rendered row falls back rather than treating it as deleted data', () => using(async h => {
     h.row('p4').remove(); await h.paint(); assert(h.row('p4')); eq(h.order.length, 120);
 }));
-await test('tray mode delegates to native rendering and leaving it resets the cache', () => using(async h => {
-    h.mode('tray'); const n = h.generated; await h.paint(); eq(h.generated - n, 120); assert(!h.runtime.getStats().active);
-    h.mode('accordion'); await h.paint(); await h.nemo.organizePrompts(true); await settle();
-    const warm = h.generated; await h.paint(); eq(h.generated, warm);
+function openTray(h, section, cards = 40) {
+    // Category-tray shape: a sibling of the closed section with its own scrolling card grid.
+    const tray = document.createElement('div'); tray.className = 'nemo-category-tray';
+    const grid = document.createElement('div'); grid.className = 'nemo-tray-grid';
+    grid.style.cssText = 'max-height:200px;overflow-y:auto';
+    for (let i = 0; i < cards; i++) { const card = document.createElement('div'); card.style.height = '40px'; grid.append(card); }
+    tray.append(grid); section.after(tray); grid.scrollTop = 600;
+    return { tray, grid };
+}
+await test('tray toggle repaints one row in place: no list rebuild, open tray stays attached and scrolled', () => using(async h => {
+    h.mode('tray'); await h.paint(); await h.nemo.organizePrompts(true); await settle();
+    const list = h.pm.listElement, section = h.row('p0').closest('details');
+    const { tray, grid } = openTray(h, section); assert(grid.scrollTop > 0, 'fixture grid must scroll');
+    const scrolled = grid.scrollTop, frames = h.nativeFrames, organizations = h.organizations, before = h.generated;
+    h.row('p1').classList.add('nemo-tray-hidden-prompt');
+    h.nemo.beginToggle(); h.order[1].enabled = false; h.pm.tokenUsage = 98; await h.paint(); h.nemo.endToggle(); await settle();
+    eq(h.generated - before, 1); eq(h.nativeFrames, frames); eq(h.organizations, organizations);
+    assert(h.pm.listElement === list); assert(tray.isConnected); assert(section.nextElementSibling === tray);
+    eq(grid.scrollTop, scrolled);
+    assert(h.row('p1').querySelector('.fa-toggle-off'));
+    assert(h.row('p1').classList.contains('nemo-tray-hidden-prompt'), 'tray-hidden row must stay hidden');
+    assert(h.host.querySelector('.completion_prompt_manager_header').textContent.includes('98'));
+    eq(h.sourceReads, 0);
 }));
+await test('a complete native paint in progress still owns the list', () => using(async h => {
+    h.painting(true); const n = h.generated; h.order[1].enabled = false; await h.paint(); h.painting(false);
+    eq(h.generated - n, 120);
+}));
+await test('tray mode stays incremental below the accordion size threshold', () => using(async h => {
+    h.mode('tray'); await h.paint(); await h.nemo.organizePrompts(true); await settle();
+    const n = h.generated; h.order[1].enabled = false; await h.paint(); eq(h.generated - n, 1);
+    h.mode('accordion'); await h.paint(); const warm = h.generated;
+    h.order[2].enabled = false; await h.paint(); eq(h.generated - warm, 30, 'accordion keeps its size threshold');
+}, { n: 30, incrementalMinRows: 64 }));
+await test('toggling an unloaded tray row generates nothing and recounts the section headers', () => using(async h => {
+    h.mode('tray'); await h.paint(); await h.nemo.organizePrompts(true); await settle();
+    eq(h.pm.listElement.querySelectorAll('li.completion_prompt_manager_prompt').length, 6);
+    const n = h.generated, recounts = h.sectionRecounts;
+    h.order[25].enabled = false; await h.paint();
+    eq(h.generated, n); assert(!h.row('p25')); assert(h.sectionRecounts - recounts >= 6, 'every section header recounted');
+    eq(h.sourceReads, 0);
+}, { virtualize: true }));
 await test('opt-out retains native rendering and does not change prompt settings', () => using(async h => {
     const order = JSON.stringify(h.order); h.enable(false); const n = h.generated; await h.paint();
     eq(h.generated - n, 120); eq(JSON.stringify(h.order), order);
