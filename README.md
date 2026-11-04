@@ -10,11 +10,13 @@ NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combin
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
 
-### 6.0.27 Empty Classic 3.4 sections and tray toggles without redraws
+### 6.0.27 Lag-free prompt toggles and empty Classic 3.4 sections
 
 **Classic 3.4:** Sections no longer open empty while their header still shows counts like `(0/7)`. Classic 3.4 does not load the category tray, but optimized prompt rendering was reading the saved dropdown style (default: tray), so it unloaded every row of every open section. Row rendering now follows the layout actually in use. Switching between Classic 3.4 and Classic+/Modern immediately refreshes the rows each layout needs.
 
 **Classic+ and Modern tray:** Toggling a prompt no longer rebuilds the prompt list. Previously, every toggle redrew the whole list: the flat native list flashed, the open tray was detached and reattached, and the tray scrolled back to its first card. Optimized prompt rendering now updates only the rows that changed, plus the token total and section counters. This applies to trays for every preset size, and also while the settings save from that toggle is still pending, which previously forced a full rebuild in every layout. Other open trays update their checkmarks when a directive auto-resolution changes their prompts. If a complete redraw is still required, such as after a rename, reorder or preset change, or when **Optimized prompt rendering** is off, the tray keeps its scroll position.
+
+**Lag-free toggles:** Switching prompts on or off no longer makes SillyTavern rebuild and tokenize the whole prompt before the panel updates. That dry run only refreshed token numbers, and SillyTavern already recounts after every generation, incoming message and edit. Toggles now repaint immediately. The token total is dimmed with a ↻ until the next count, and you can click it to recount at any time. This applies to the row toggle button, trays, section toggles, snapshots and directive auto-resolution. Generation is unaffected: SillyTavern assembles the prompt from the saved on/off states when you send. Edits, reorders, preset or chat changes and new messages still recount immediately. Turning off **Optimized prompt rendering** restores per-toggle counting.
 
 Classic+ and Modern share the same category tray and differ only in styling. If you prefer prompts listed inline under each section, as in Classic 3.4, use the layers button (**Switch View Mode (Tray/Accordion)**) next to the prompt search box. Update NemoPresetExt and reload SillyTavern; no preset reimport is needed.
 

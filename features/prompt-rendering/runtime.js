@@ -12,6 +12,7 @@ import { installStateSnapshots } from './state-snapshots.js';
 import { installStateActions } from './state-actions.js';
 import { installSectionVirtualization } from './virtualization.js';
 import { installNativeSortGuard } from './native-sort-guard.js';
+import { installDeferredTokenCounts } from './deferred-counts.js';
 
 let state = null;
 const KEY = 'enableIncrementalPromptRendering';
@@ -40,7 +41,7 @@ export function initializePromptRendering() {
             label = document.createElement('label');
             label.className = 'checkbox_label';
             label.dataset.nemoIncrementalControl = 'true';
-            label.title = 'Reuse unchanged prompt rows and unload closed-section rows. Disable to restore the complete native prompt list.';
+            label.title = 'Reuse unchanged prompt rows, unload closed-section rows, and refresh token counts at the next generation instead of on every toggle. Disable to restore the complete native prompt list and per-toggle token counting.';
             const input = document.createElement('input');
             input.type = 'checkbox';
             input.setAttribute('aria-label', 'Incremental prompt rendering');
@@ -72,6 +73,7 @@ export function initializePromptRendering() {
         if (state !== current) return;
         if (promptManager && promptManager !== current.pm && typeof promptManager.renderPromptManagerListItems === 'function') {
             void current.virtualizer?.dispose({ restore: false });
+            current.counts?.dispose();
             current.controller?.dispose();
             current.sortGuard?.dispose();
             current.pm = promptManager;
@@ -87,6 +89,8 @@ export function initializePromptRendering() {
                 modeKey: () => getActiveDropdownStyle(),
                 notify: error => console.warn('[Nemo prompt virtualization]', error),
             });
+            current.counts = installDeferredTokenCounts({ pm: promptManager, enabled,
+                notify: error => console.warn('[Nemo token counts]', error) });
         }
         checkbox();
     }
@@ -104,6 +108,7 @@ export function initializePromptRendering() {
         virtualization: current.virtualizer?.getStats() || { active: false, virtualized: false },
         snapshots: current.snapshots.getStats(), actions: current.actions.getStats(),
         sorting: current.sortGuard?.getStats(),
+        tokenCounts: current.counts?.getStats(),
     }),
         applyChanges: changes => current.actions.applyChanges(changes),
         materializeSearch: ids => current.virtualizer?.materializeSearch(ids),
@@ -119,6 +124,7 @@ export async function cleanupPromptRendering() {
     await current.virtualizer?.dispose({ restore: true });
     current.actions?.dispose();
     current.snapshots?.dispose();
+    current.counts?.dispose();
     current.controller?.dispose();
     current.sortGuard?.dispose();
     if (NemoPresetManager.createSearchAndStatusUI === current.uiWrapper) NemoPresetManager.createSearchAndStatusUI = current.uiOriginal;

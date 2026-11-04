@@ -270,3 +270,14 @@ body[data-nemo-prompt-features='legacy'] .nemo-category-tray,
 body[data-nemo-prompt-features='legacy'] .nemo-top-level-drop-zone {
     display: none !important;
 }
+
+/* Token figures awaiting ST's next count: prompt toggles skip the dry run.
+   Pseudo-content only, so the native header cell keeps its two text nodes. */
+.nemo-token-counts-stale .completion_prompt_manager_header > :last-child {
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.nemo-token-counts-stale .completion_prompt_manager_header > :last-child::after {
+    content: " \21BB";
+}

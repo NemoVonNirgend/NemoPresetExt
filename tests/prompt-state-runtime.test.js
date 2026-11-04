@@ -5,6 +5,7 @@ import { Script } from 'node:vm';
 import { installStateSnapshots } from '../features/prompt-rendering/state-snapshots.js';
 import { installStateActions } from '../features/prompt-rendering/state-actions.js';
 import { installNativeSortGuard } from '../features/prompt-rendering/native-sort-guard.js';
+import { installDeferredTokenCounts } from '../features/prompt-rendering/deferred-counts.js';
 
 function setup() {
     const listeners = new Map(); let captured, renderDisposals = 0, saves = 0, sortable, virtualizationOptions;
@@ -50,6 +51,7 @@ function setup() {
                 getStats: () => ({ stage: '5B.3/5', active: true, virtualized: true }), async dispose() {} };
         },
         installNativeSortGuard: options => installNativeSortGuard({ ...options, jquery: () => jquery, notify() {} }),
+        installDeferredTokenCounts, getActiveDropdownStyle: () => 'accordion',
         installStateSnapshots, installStateActions, getContext: () => ({ mainApi: 'openai' }), saveSettingsDebounced() {},
         console, setTimeout, clearTimeout,
         document: { getElementById: () => null, querySelectorAll: () => [] },
@@ -61,7 +63,10 @@ function setup() {
 }
 
 test('real rendering runtime installs read and mutation adapters once and tears down only owned wrappers', async () => {
-    const h = setup(); h.api.initializePromptRendering();
+    const h = setup(); const nativeRender = h.context.promptManager.render;
+    h.api.initializePromptRendering();
+    assert.notEqual(h.context.promptManager.render, nativeRender, 'toggle dry runs are deferred');
+    assert.equal(h.context.NemoPromptRendering.getStats().tokenCounts.stale, false);
     const snapshotWrapper = h.nemo.takeSnapshot, actionWrapper = h.nemo.applySnapshot;
     h.api.initializePromptRendering(); assert.equal(h.nemo.takeSnapshot, snapshotWrapper); assert.equal(h.nemo.applySnapshot, actionWrapper);
     await h.nemo.takeSnapshot(); assert.deepEqual(h.captured, ['hidden']);
@@ -78,6 +83,7 @@ test('real rendering runtime installs read and mutation adapters once and tears 
     assert.equal(h.context.NemoPromptRendering, undefined);
     assert.equal(h.context.promptManager.makeDraggable, h.nativeDrag);
     assert.equal(h.sortable.options.update, h.nativeUpdate);
+    assert.equal(h.context.promptManager.render, nativeRender);
 });
 
 test('rendering opt-out leaves state snapshots and actions installed without touching generation paths', async () => {
