@@ -277,6 +277,32 @@ await test('toggling an unloaded tray row generates nothing and recounts the sec
     eq(h.generated, n); assert(!h.row('p25')); assert(h.sectionRecounts - recounts >= 6, 'every section header recounted');
     eq(h.sourceReads, 0);
 }, { virtualize: true }));
+await test('a renderer installed after ST painted adopts its frame: the first redraw rebuilds nothing', () => using(async h => {
+    // ST paints before Nemo installs its wrappers. Model that with a fresh install over a live frame.
+    h.runtime.dispose();
+    const runtime = installIncrementalRendering({ pm: h.pm, nemo: h.nemo, minRows: 0, enabled: () => true, modeKey: () => 'accordion' });
+    try {
+        h.nemo.organizePrompts(true); await settle();
+        const list = h.pm.listElement, frames = h.nativeFrames, before = h.generated;
+        await h.paint();
+        eq(h.nativeFrames, frames, 'frame reused'); assert(h.pm.listElement === list, 'same list');
+        eq(h.generated, before, 'no rows regenerated'); eq(runtime.getStats().reusedFrames, 1);
+    } finally { runtime.dispose(); }
+}));
+await test('section shells added to an unorganized native list never make organization look done', () => using(async h => {
+    h.mode('tray');
+    h.sources[3].name = 'Renamed'; await h.paint(); // structural change: complete native, flat list
+    const list = h.pm.listElement;
+    assert(!list.querySelector('details.nemo-engine-section'));
+    // The tray's top-level container is a section shell inserted into the flat list.
+    const shell = document.createElement('details'); shell.className = 'nemo-engine-section nemo-top-level-section';
+    list.prepend(shell);
+    await h.virtualizer.refresh(); await settle();
+    const runs = h.organizations;
+    h.nemo.organizePrompts(); await settle();
+    eq(h.organizations, runs + 1, 'organization ran');
+    assert(h.pm.listElement.querySelectorAll('details.nemo-engine-section').length > 1, 'sections formed');
+}, { virtualize: true }));
 await test('opt-out retains native rendering and does not change prompt settings', () => using(async h => {
     const order = JSON.stringify(h.order); h.enable(false); const n = h.generated; await h.paint();
     eq(h.generated - n, 120); eq(JSON.stringify(h.order), order);

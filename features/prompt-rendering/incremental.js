@@ -150,6 +150,42 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         preservedLayout = nemo.captureNativePromptLayout?.(list, signature) || null;
         return preservedLayout;
     }
+    /**
+     * ST paints its first frame before these wrappers attach. Without adopting it,
+     * the first redraw of every session (usually the first prompt toggle) rebuilt
+     * the frame, the list and every row. Adopt it only when its footer and error
+     * state provably match current metadata; otherwise the next paint is native.
+     */
+    function adoptNativeFrame() {
+        if (disposed) return;
+        const current = state(), list = pm.listElement;
+        // Likewise adopt ST's painted rows when they exactly match current order
+        // (no virtualization or before it runs), so the first toggle repaints one row.
+        if (!previous && current && list?.isConnected) {
+            const rows = complete(list, current);
+            // Only when every painted row still shows its current name and on/off state.
+            if (rows && rows.every(row => {
+                const id = row.dataset.pmIdentifier, entry = current.entries.get(id);
+                const toggle = row.querySelector('.prompt-manager-toggle-action');
+                return row.querySelector(NAME)?.dataset.pmName === current.byId.get(id)?.name
+                    && (!toggle || toggle.classList.contains('fa-toggle-on') === Boolean(entry?.enabled));
+            })) previous = remember(current, list);
+        }
+        if (frame) return;
+        const container = pm.containerElement;
+        if (!current || !list?.isConnected || !container?.contains?.(list)) return;
+        const header = list.parentElement?.querySelector('.completion_prompt_manager_header');
+        const cell = header?.lastElementChild;
+        if (!cell || cell.childNodes.length !== 2 || cell.firstChild.nodeType !== 1 || cell.lastChild.nodeType !== 3) return;
+        if (Boolean(container.querySelector(`.${pm.configuration?.prefix}prompt_manager_error`)) !== Boolean(pm.error)) return;
+        const select = container.querySelector(`#${pm.configuration?.prefix}prompt_manager_footer_append_prompt`);
+        if (pm.activeCharacter !== null) {
+            const expected = [...current.byId.values()].filter(p => !p.system_prompt).map(p => p.identifier).sort();
+            const shown = select ? [...select.options].map(o => o.value).sort() : null;
+            if (!shown || shown.length !== expected.length || shown.some((id, i) => id !== expected[i])) return;
+        }
+        frame = remember(current, list);
+    }
     function redraw() {
         if (disposed || retryFrame !== null) return;
         retryFrame = requestFrame(() => { retryFrame = null; if (!disposed) pm.render(false); });
@@ -167,9 +203,13 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         owner[name] = replacement;
         originals.push({ owner, name, original, replacement });
     }
+    // Lists Nemo's organizer has actually built. Another layer (e.g. the tray's
+    // top-level container) can add section shells to a still-flat native list;
+    // that must never be mistaken for an organized layout and skip organization.
+    const organizedLists = new WeakSet();
     function rememberOrganization() {
         const list = pm.listElement, current = state();
-        if (!active() || !list || !current || !complete(list, current)) { organization = null; return; }
+        if (!active() || !list || !organizedLists.has(list) || !current || !complete(list, current)) { organization = null; return; }
         organization = { list, owner: current.owner, mode: modeKey(), layout: layoutOf(list) };
     }
     function stableOrganization() {
@@ -372,10 +412,17 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
         return result;
     });
 
-    const onOrganized = () => rememberOrganization();
+    const onOrganized = () => {
+        if (pm.listElement && pm.listElement.dataset.nemoOrganizing !== 'true') organizedLists.add(pm.listElement);
+        adoptNativeFrame();
+        rememberOrganization();
+    };
     const onMode = () => {
         const completed = getRememberedPromptLayout(pm.listElement) || lastLayout;
+        // The native header/footer frame does not depend on Nemo's layout mode.
+        const keptFrame = frame;
         reset();
+        frame = keptFrame;
         const current = promptLayoutSignature(state(), modeKey());
         // Mode conversion changes presentation without a native/organization
         // paint. Retain only its already-proven owner metadata; content edits
@@ -394,6 +441,7 @@ export function installIncrementalRendering({ pm, nemo, document: doc = globalTh
     cleanups.push(() => doc.removeEventListener('nemo-prompts-organized', onOrganized),
         () => doc.removeEventListener('nemo-dropdown-style-changed', onMode));
     if (enabled() && nemo.observers?.listObserverContainer) scopeOptionalObserver(nemo.observers.listObserverContainer);
+    adoptNativeFrame();
 
     return {
         reset, redraw, renderRows, restoreNativeRows,

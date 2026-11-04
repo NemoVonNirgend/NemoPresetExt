@@ -49,6 +49,7 @@ let dropdownStyleChangeHandler = null;
 let presetChangedHandler = null;
 let promptsOrganizedHandler = null;
 let sectionMaterializedHandler = null;
+let promptStatesChangedHandler = null;
 const categoryTrayDocumentCleanups = new Set();
 
 function scheduleCategoryTrayTimeout(callback, delay) {
@@ -516,6 +517,13 @@ export function initCategoryTray() {
     };
     document.addEventListener('nemo-section-materialized', sectionMaterializedHandler);
 
+    // Cards and counters follow state immediately; the save completes later.
+    promptStatesChangedHandler = () => {
+        refreshSectionIndicators();
+        syncOpenTrayCards();
+    };
+    document.addEventListener('nemo-prompt-states-changed', promptStatesChangedHandler);
+
     // Try multiple times with increasing delays to catch sections (initial load backup)
     const delays = [500, 1000, 2000, 3000, 5000];
     delays.forEach(delay => {
@@ -559,6 +567,10 @@ export function cleanupCategoryTray() {
     if (sectionMaterializedHandler) {
         document.removeEventListener('nemo-section-materialized', sectionMaterializedHandler);
     }
+    if (promptStatesChangedHandler) {
+        document.removeEventListener('nemo-prompt-states-changed', promptStatesChangedHandler);
+    }
+    promptStatesChangedHandler = null;
     if (presetChangedHandler && eventSource && event_types) {
         eventSource.removeListener(event_types.OAI_PRESET_CHANGED_AFTER, presetChangedHandler);
     }
@@ -2094,7 +2106,7 @@ function openTray(section) {
 
     // Track the card grid's own scroll offset while it is live, so a native
     // redraw that detaches and reattaches this tray can put it back.
-    const trayGrid = tray.querySelector(TRAY_GRID);
+    // (trayGrid is the card grid declared above for drag-and-drop.)
     trayGrid?.addEventListener('scroll', () => {
         if (trayGrid.isConnected) tray._nemoGridScrollTop = trayGrid.scrollTop;
     }, { passive: true });
@@ -2214,17 +2226,31 @@ function refreshSectionIndicators() {
     document.querySelectorAll('details.nemo-engine-section').forEach(section => manager.updateSectionCount(section));
 }
 
-/** Bring every open tray's card checkmarks in line with the active prompt order. */
+/** Bring every open tray's cards, footer counter and toggle-all button in line with the active prompt order. */
 function syncOpenTrayCards() {
     const activeCharacter = promptManager?.activeCharacter;
     if (!activeCharacter) return;
-    document.querySelectorAll('.nemo-category-tray .nemo-prompt-card[data-identifier]').forEach(card => {
-        const entry = promptManager.getPromptOrderEntry?.(activeCharacter, card.dataset.identifier);
-        if (!entry) return;
-        const enabled = Boolean(entry.enabled);
-        card.classList.toggle('nemo-prompt-card-enabled', enabled);
-        const status = card.querySelector('.nemo-prompt-card-status');
-        if (status) status.textContent = enabled ? '✓' : '';
+    document.querySelectorAll('.nemo-category-tray').forEach(tray => {
+        let enabledCount = 0, total = 0;
+        tray.querySelectorAll('.nemo-prompt-card[data-identifier]').forEach(card => {
+            const entry = promptManager.getPromptOrderEntry?.(activeCharacter, card.dataset.identifier);
+            if (!entry) return;
+            const enabled = Boolean(entry.enabled);
+            total++; if (enabled) enabledCount++;
+            card.classList.toggle('nemo-prompt-card-enabled', enabled);
+            const status = card.querySelector('.nemo-prompt-card-status');
+            if (status) status.textContent = enabled ? '✓' : '';
+        });
+        if (!total) return;
+        const hint = tray.querySelector('.nemo-tray-hint');
+        if (hint) hint.textContent = hint.textContent.replace(/\d+\/\d+ active$/, `${enabledCount}/${total} active`);
+        const toggleAll = tray.querySelector('.nemo-tray-toggle-all');
+        if (toggleAll) {
+            const allEnabled = enabledCount === total;
+            toggleAll.classList.toggle('nemo-all-enabled', allEnabled);
+            toggleAll.innerHTML = `${allEnabled ? '☑' : '☐'} All`;
+            toggleAll.title = allEnabled ? 'Disable All' : 'Enable All';
+        }
     });
 }
 
