@@ -2,13 +2,21 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.26
+**Version:** 6.0.27
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
 ## Installation
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
+
+### 6.0.27 Empty Classic 3.4 sections and tray scroll jumps
+
+**Classic 3.4:** Sections no longer open empty while their header still shows counts like `(0/7)`. Classic 3.4 does not load the category tray, but optimized prompt rendering was reading the saved dropdown style (default: tray), so it unloaded every row of every open section. Row rendering now follows the layout actually in use. Switching between Classic 3.4 and Classic+/Modern immediately refreshes the rows each layout needs.
+
+**Classic+ and Modern tray:** Toggling a prompt card no longer scrolls the open tray back to its first card. Each toggle makes SillyTavern redraw the prompt list, which detached and reattached the tray and reset its scroll position. The tray now keeps its scroll position through that redraw.
+
+Classic+ and Modern share the same category tray and differ only in styling. If you prefer prompts listed inline under each section, as in Classic 3.4, use the layers button (**Switch View Mode (Tray/Accordion)**) next to the prompt search box. Update NemoPresetExt and reload SillyTavern; no preset reimport is needed.
 
 ### 6.0.26 Outgoing response-token mismatch
 

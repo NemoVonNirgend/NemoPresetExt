@@ -380,6 +380,32 @@ function getDropdownStyle() {
 }
 
 /**
+ * The layout the prompt list is actually using right now.
+ * Classic 3.4 never loads the category tray, so a saved 'tray' preference
+ * (the default) must not make other code treat its inline sections as trays.
+ * @returns {'tray' | 'accordion'}
+ */
+export function getActiveDropdownStyle() {
+    return categoryTrayInitialized && getDropdownStyle() === 'tray' ? 'tray' : 'accordion';
+}
+
+const TRAY_GRID = '.nemo-tray-grid';
+
+/**
+ * Restore each open tray's card-grid scroll offset. A native prompt redraw
+ * detaches the trays and Nemo reattaches the same nodes, which resets their
+ * scrollTop to 0 (the "jumps to the top after a toggle" bug).
+ */
+export function restoreTrayScrollPositions(root = document) {
+    root?.querySelectorAll?.('.nemo-category-tray').forEach(tray => {
+        const top = tray._nemoGridScrollTop;
+        const grid = tray.querySelector(TRAY_GRID);
+        if (!grid?.isConnected || !(top > 0) || grid.scrollTop === top) return;
+        grid.scrollTop = top;
+    });
+}
+
+/**
  * Apply the appropriate mode based on current setting
  */
 function applyCurrentMode() {
@@ -399,6 +425,7 @@ function applyCurrentMode() {
         disableAccordionMode();
         // Then apply tray mode
         convertToTrayMode();
+        restoreTrayScrollPositions();
         // Refresh progress bars
         scheduleCategoryTrayTimeout(() => refreshAllSectionProgressBars(), 100);
         scheduleCategoryTrayTimeout(() => refreshAllSectionProgressBars(), 300);
@@ -506,6 +533,18 @@ export function initCategoryTray() {
 
     console.log('[NemoTray] Event listeners attached');
     logger.info('Category tray system initialized - listening for prompt organization');
+    notifyActiveDropdownStyle();
+}
+
+/**
+ * Loading/unloading the tray (Classic 3.4 <-> Classic+/Modern) changes the
+ * active layout without a dropdown-style click. Tell the row renderer and
+ * virtualizer so sections get the rows that layout needs.
+ */
+function notifyActiveDropdownStyle() {
+    document.dispatchEvent(new CustomEvent('nemo-dropdown-style-changed', {
+        detail: { style: getActiveDropdownStyle() },
+    }));
 }
 /**
  * Remove category tray listeners, timers, and DOM conversions.
@@ -544,6 +583,7 @@ export function cleanupCategoryTray() {
         modal.remove();
     });
     sectionPromptIdsCache.clear();
+    notifyActiveDropdownStyle();
 }
 
 // Track top-level prompts container
@@ -2049,6 +2089,13 @@ function openTray(section) {
     // Use capture phase to intercept before ST handlers
     tray._keyCleanup = addCategoryTrayDocumentListener('keydown', keyHandler, true);
     tray._keyHandler = keyHandler;
+
+    // Track the card grid's own scroll offset while it is live, so a native
+    // redraw that detaches and reattaches this tray can put it back.
+    const trayGrid = tray.querySelector(TRAY_GRID);
+    trayGrid?.addEventListener('scroll', () => {
+        if (trayGrid.isConnected) tray._nemoGridScrollTop = trayGrid.scrollTop;
+    }, { passive: true });
 
     // Insert tray AFTER the details element (not inside it, since details is closed)
     section.after(tray);

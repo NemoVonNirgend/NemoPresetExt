@@ -45,6 +45,13 @@ export function capturePromptLayout(list, signature) {
     }
     if (!sections.size) return null;
 
+    // Open trays are reattached as the same nodes after the native redraw;
+    // record their card-grid offset while they are still laid out.
+    for (const tray of list.querySelectorAll('.nemo-category-tray')) {
+        const grid = tray.querySelector?.('.nemo-tray-grid');
+        if (grid?.isConnected) tray._nemoGridScrollTop = grid.scrollTop;
+    }
+
     const displays = new Map();
     for (const row of list.querySelectorAll(ROW)) {
         if (row.style.display) displays.set(row.dataset.pmIdentifier, row.style.display);

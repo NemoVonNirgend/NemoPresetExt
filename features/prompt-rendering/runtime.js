@@ -2,6 +2,7 @@ import { eventSource, event_types, saveSettingsDebounced } from '../../../../../
 import { extension_settings, getContext } from '../../../../../extensions.js';
 import { promptManager } from '../../../../../openai.js';
 import { NemoPresetManager } from '../prompts/prompt-manager.js';
+import { getActiveDropdownStyle } from '../prompts/category-tray.js';
 import storage from '../../core/storage-migration.js';
 import { isFeatureEnabled, NEMO_EXTENSION_NAME } from '../../core/utils.js';
 import { getAllPromptsWithState, parsePromptDirectives, validatePromptActivation } from '../directives/prompt-directives.js';
@@ -78,12 +79,12 @@ export function initializePromptRendering() {
                 notify: error => console.warn('[Nemo prompt sorting]', error),
                 redraw: () => current.controller?.redraw() });
             current.controller = installIncrementalRendering({ pm: promptManager, nemo: NemoPresetManager,
-                enabled, modeKey: () => storage.getDropdownStyle() === 'tray' ? 'tray' : 'accordion', notify });
+                enabled, modeKey: () => getActiveDropdownStyle(), notify });
             current.virtualizer = installSectionVirtualization({
                 pm: promptManager, nemo: NemoPresetManager, renderer: current.controller,
                 enabled, sectionsEnabled: () => storage.getSectionsEnabled(),
                 canVirtualize: () => current.sortGuard.protect(),
-                modeKey: () => storage.getDropdownStyle() === 'tray' ? 'tray' : 'accordion',
+                modeKey: () => getActiveDropdownStyle(),
                 notify: error => console.warn('[Nemo prompt virtualization]', error),
             });
         }
