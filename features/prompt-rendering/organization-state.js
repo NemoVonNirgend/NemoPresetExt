@@ -49,6 +49,7 @@ export function createPromptOrganizationState() {
         endPaint: token => end('paint', token),
         get active() { return active; },
         get paused() { return paused(); },
+        get painting() { return paints.size > 0; },
         get generation() { return generation; },
     };
 }

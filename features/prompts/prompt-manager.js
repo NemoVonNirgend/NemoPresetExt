@@ -9,7 +9,7 @@ import storage from '../../core/storage-migration.js';
 import '../../lib/Sortable.min.js'; // Import Sortable
 import { getTooltip } from './prompt-tooltips.js';
 import { parsePromptDirectives } from '../directives/prompt-directives.js';
-import { disableTrayMode } from './category-tray.js';
+import { disableTrayMode, getActiveDropdownStyle, restoreTrayScrollPositions } from './category-tray.js';
 import { movePromptBelowHeader as movePromptBelowHeaderState } from '../prompt-rendering/state-consumers.js';
 import { createPromptOrganizationState } from '../prompt-rendering/organization-state.js';
 import { renderState } from '../prompt-rendering/model.js';
@@ -1099,6 +1099,11 @@ export const NemoPresetManager = {
         return promptOrganizationState.paused;
     },
 
+    /** True only while a complete native prompt-manager paint is replacing the list. */
+    isNativePromptPaintInProgress: function() {
+        return promptOrganizationState.painting;
+    },
+
     captureNativePromptLayout: function(list, signature) {
         if (!promptOrganizationState.active) return null;
         if (this._nativeLayoutSnapshot && !samePromptLayout(this._nativeLayoutSnapshot.signature, signature)) {
@@ -1124,7 +1129,7 @@ export const NemoPresetManager = {
         if (!snapshot) return null;
         let current = null;
         try {
-            current = promptLayoutSignature(renderState(promptManager), storage.getDropdownStyle() === 'tray' ? 'tray' : 'accordion');
+            current = promptLayoutSignature(renderState(promptManager), getActiveDropdownStyle());
         } catch { /* An unknown native state cannot safely reuse old UI. */ }
         if (samePromptLayout(snapshot.signature, current)) return snapshot;
         this.clearNativePromptLayout();
@@ -1249,13 +1254,16 @@ export const NemoPresetManager = {
                 this.clearNativePromptLayout();
                 try {
                     rememberPromptLayout(promptsContainer, renderState(promptManager),
-                        storage.getDropdownStyle() === 'tray' ? 'tray' : 'accordion');
+                        getActiveDropdownStyle());
                 } catch { /* An unknown native state cannot establish ownership. */ }
 
                 delete promptsContainer.dataset.nemoOrganizing;
 
                 // Reveal the container after paint
                 promptsContainer.classList.remove('nemo-hidden-during-update');
+
+                // Reattached trays lose their card-grid scroll offset.
+                restoreTrayScrollPositions(promptsContainer);
 
                 // Resume observer after DOM changes are committed
                 this.resumeListObserver();

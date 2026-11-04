@@ -2,6 +2,7 @@ import { eventSource, event_types, saveSettingsDebounced } from '../../../../../
 import { extension_settings, getContext } from '../../../../../extensions.js';
 import { promptManager } from '../../../../../openai.js';
 import { NemoPresetManager } from '../prompts/prompt-manager.js';
+import { getActiveDropdownStyle } from '../prompts/category-tray.js';
 import storage from '../../core/storage-migration.js';
 import { isFeatureEnabled, NEMO_EXTENSION_NAME } from '../../core/utils.js';
 import { getAllPromptsWithState, parsePromptDirectives, validatePromptActivation } from '../directives/prompt-directives.js';
@@ -11,6 +12,7 @@ import { installStateSnapshots } from './state-snapshots.js';
 import { installStateActions } from './state-actions.js';
 import { installSectionVirtualization } from './virtualization.js';
 import { installNativeSortGuard } from './native-sort-guard.js';
+import { installDeferredTokenCounts } from './deferred-counts.js';
 
 let state = null;
 const KEY = 'enableIncrementalPromptRendering';
@@ -39,7 +41,7 @@ export function initializePromptRendering() {
             label = document.createElement('label');
             label.className = 'checkbox_label';
             label.dataset.nemoIncrementalControl = 'true';
-            label.title = 'Reuse unchanged prompt rows and unload closed-section rows. Disable to restore the complete native prompt list.';
+            label.title = 'Reuse unchanged prompt rows, unload closed-section rows, and refresh token counts at the next generation instead of on every toggle. Disable to restore the complete native prompt list and per-toggle token counting.';
             const input = document.createElement('input');
             input.type = 'checkbox';
             input.setAttribute('aria-label', 'Incremental prompt rendering');
@@ -71,6 +73,7 @@ export function initializePromptRendering() {
         if (state !== current) return;
         if (promptManager && promptManager !== current.pm && typeof promptManager.renderPromptManagerListItems === 'function') {
             void current.virtualizer?.dispose({ restore: false });
+            current.counts?.dispose();
             current.controller?.dispose();
             current.sortGuard?.dispose();
             current.pm = promptManager;
@@ -78,14 +81,16 @@ export function initializePromptRendering() {
                 notify: error => console.warn('[Nemo prompt sorting]', error),
                 redraw: () => current.controller?.redraw() });
             current.controller = installIncrementalRendering({ pm: promptManager, nemo: NemoPresetManager,
-                enabled, modeKey: () => storage.getDropdownStyle() === 'tray' ? 'tray' : 'accordion', notify });
+                enabled, modeKey: () => getActiveDropdownStyle(), notify });
             current.virtualizer = installSectionVirtualization({
                 pm: promptManager, nemo: NemoPresetManager, renderer: current.controller,
                 enabled, sectionsEnabled: () => storage.getSectionsEnabled(),
                 canVirtualize: () => current.sortGuard.protect(),
-                modeKey: () => storage.getDropdownStyle() === 'tray' ? 'tray' : 'accordion',
+                modeKey: () => getActiveDropdownStyle(),
                 notify: error => console.warn('[Nemo prompt virtualization]', error),
             });
+            current.counts = installDeferredTokenCounts({ pm: promptManager, enabled,
+                notify: error => console.warn('[Nemo token counts]', error) });
         }
         checkbox();
     }
@@ -103,6 +108,7 @@ export function initializePromptRendering() {
         virtualization: current.virtualizer?.getStats() || { active: false, virtualized: false },
         snapshots: current.snapshots.getStats(), actions: current.actions.getStats(),
         sorting: current.sortGuard?.getStats(),
+        tokenCounts: current.counts?.getStats(),
     }),
         applyChanges: changes => current.actions.applyChanges(changes),
         materializeSearch: ids => current.virtualizer?.materializeSearch(ids),
@@ -118,6 +124,7 @@ export async function cleanupPromptRendering() {
     await current.virtualizer?.dispose({ restore: true });
     current.actions?.dispose();
     current.snapshots?.dispose();
+    current.counts?.dispose();
     current.controller?.dispose();
     current.sortGuard?.dispose();
     if (NemoPresetManager.createSearchAndStatusUI === current.uiWrapper) NemoPresetManager.createSearchAndStatusUI = current.uiOriginal;

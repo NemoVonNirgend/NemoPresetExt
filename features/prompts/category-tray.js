@@ -49,6 +49,7 @@ let dropdownStyleChangeHandler = null;
 let presetChangedHandler = null;
 let promptsOrganizedHandler = null;
 let sectionMaterializedHandler = null;
+let promptStatesChangedHandler = null;
 const categoryTrayDocumentCleanups = new Set();
 
 function scheduleCategoryTrayTimeout(callback, delay) {
@@ -380,6 +381,32 @@ function getDropdownStyle() {
 }
 
 /**
+ * The layout the prompt list is actually using right now.
+ * Classic 3.4 never loads the category tray, so a saved 'tray' preference
+ * (the default) must not make other code treat its inline sections as trays.
+ * @returns {'tray' | 'accordion'}
+ */
+export function getActiveDropdownStyle() {
+    return categoryTrayInitialized && getDropdownStyle() === 'tray' ? 'tray' : 'accordion';
+}
+
+const TRAY_GRID = '.nemo-tray-grid';
+
+/**
+ * Restore each open tray's card-grid scroll offset. A native prompt redraw
+ * detaches the trays and Nemo reattaches the same nodes, which resets their
+ * scrollTop to 0 (the "jumps to the top after a toggle" bug).
+ */
+export function restoreTrayScrollPositions(root = document) {
+    root?.querySelectorAll?.('.nemo-category-tray').forEach(tray => {
+        const top = tray._nemoGridScrollTop;
+        const grid = tray.querySelector(TRAY_GRID);
+        if (!grid?.isConnected || !(top > 0) || grid.scrollTop === top) return;
+        grid.scrollTop = top;
+    });
+}
+
+/**
  * Apply the appropriate mode based on current setting
  */
 function applyCurrentMode() {
@@ -399,6 +426,7 @@ function applyCurrentMode() {
         disableAccordionMode();
         // Then apply tray mode
         convertToTrayMode();
+        restoreTrayScrollPositions();
         // Refresh progress bars
         scheduleCategoryTrayTimeout(() => refreshAllSectionProgressBars(), 100);
         scheduleCategoryTrayTimeout(() => refreshAllSectionProgressBars(), 300);
@@ -489,6 +517,13 @@ export function initCategoryTray() {
     };
     document.addEventListener('nemo-section-materialized', sectionMaterializedHandler);
 
+    // Cards and counters follow state immediately; the save completes later.
+    promptStatesChangedHandler = () => {
+        refreshSectionIndicators();
+        syncOpenTrayCards();
+    };
+    document.addEventListener('nemo-prompt-states-changed', promptStatesChangedHandler);
+
     // Try multiple times with increasing delays to catch sections (initial load backup)
     const delays = [500, 1000, 2000, 3000, 5000];
     delays.forEach(delay => {
@@ -506,6 +541,18 @@ export function initCategoryTray() {
 
     console.log('[NemoTray] Event listeners attached');
     logger.info('Category tray system initialized - listening for prompt organization');
+    notifyActiveDropdownStyle();
+}
+
+/**
+ * Loading/unloading the tray (Classic 3.4 <-> Classic+/Modern) changes the
+ * active layout without a dropdown-style click. Tell the row renderer and
+ * virtualizer so sections get the rows that layout needs.
+ */
+function notifyActiveDropdownStyle() {
+    document.dispatchEvent(new CustomEvent('nemo-dropdown-style-changed', {
+        detail: { style: getActiveDropdownStyle() },
+    }));
 }
 /**
  * Remove category tray listeners, timers, and DOM conversions.
@@ -520,6 +567,10 @@ export function cleanupCategoryTray() {
     if (sectionMaterializedHandler) {
         document.removeEventListener('nemo-section-materialized', sectionMaterializedHandler);
     }
+    if (promptStatesChangedHandler) {
+        document.removeEventListener('nemo-prompt-states-changed', promptStatesChangedHandler);
+    }
+    promptStatesChangedHandler = null;
     if (presetChangedHandler && eventSource && event_types) {
         eventSource.removeListener(event_types.OAI_PRESET_CHANGED_AFTER, presetChangedHandler);
     }
@@ -544,6 +595,7 @@ export function cleanupCategoryTray() {
         modal.remove();
     });
     sectionPromptIdsCache.clear();
+    notifyActiveDropdownStyle();
 }
 
 // Track top-level prompts container
@@ -1921,6 +1973,8 @@ function openTray(section) {
             const identifier = card.dataset.identifier;
             const prompt = prompts.find(p => p.identifier === identifier);
             if (!prompt) return;
+            // Another tray or a directive auto-resolution may have changed it.
+            refreshPromptEnabledFlags(prompts);
             const newState = !prompt.isEnabled;
             await applyCanonicalChanges([{ identifier, enabled: newState }]);
             refreshPromptEnabledFlags(prompts);
@@ -2050,6 +2104,13 @@ function openTray(section) {
     tray._keyCleanup = addCategoryTrayDocumentListener('keydown', keyHandler, true);
     tray._keyHandler = keyHandler;
 
+    // Track the card grid's own scroll offset while it is live, so a native
+    // redraw that detaches and reattaches this tray can put it back.
+    // (trayGrid is the card grid declared above for drag-and-drop.)
+    trayGrid?.addEventListener('scroll', () => {
+        if (trayGrid.isConnected) tray._nemoGridScrollTop = trayGrid.scrollTop;
+    }, { passive: true });
+
     // Insert tray AFTER the details element (not inside it, since details is closed)
     section.after(tray);
 
@@ -2145,9 +2206,52 @@ function refreshTray(section) {
 
 async function applyCanonicalChanges(changes) {
     const actionApi = globalThis.NemoPromptRendering?.applyChanges;
-    if (typeof actionApi === 'function') return actionApi(changes);
-    for (const change of changes) await performToggle(change.identifier, change.enabled);
-    return null;
+    try {
+        if (typeof actionApi === 'function') return await actionApi(changes);
+        for (const change of changes) await performToggle(change.identifier, change.enabled);
+        return null;
+    } finally {
+        // Toggles update rows in place instead of rebuilding the list, so section
+        // counters and other open trays no longer refresh as a side effect.
+        // Directive auto-resolution can also change prompts in other sections.
+        refreshSectionIndicators();
+        syncOpenTrayCards();
+    }
+}
+
+/** Recount every section header (counter + progress bar) from canonical state. */
+function refreshSectionIndicators() {
+    const manager = getStateManager();
+    if (typeof manager?.updateSectionCount !== 'function') return;
+    document.querySelectorAll('details.nemo-engine-section').forEach(section => manager.updateSectionCount(section));
+}
+
+/** Bring every open tray's cards, footer counter and toggle-all button in line with the active prompt order. */
+function syncOpenTrayCards() {
+    const activeCharacter = promptManager?.activeCharacter;
+    if (!activeCharacter) return;
+    document.querySelectorAll('.nemo-category-tray').forEach(tray => {
+        let enabledCount = 0, total = 0;
+        tray.querySelectorAll('.nemo-prompt-card[data-identifier]').forEach(card => {
+            const entry = promptManager.getPromptOrderEntry?.(activeCharacter, card.dataset.identifier);
+            if (!entry) return;
+            const enabled = Boolean(entry.enabled);
+            total++; if (enabled) enabledCount++;
+            card.classList.toggle('nemo-prompt-card-enabled', enabled);
+            const status = card.querySelector('.nemo-prompt-card-status');
+            if (status) status.textContent = enabled ? '✓' : '';
+        });
+        if (!total) return;
+        const hint = tray.querySelector('.nemo-tray-hint');
+        if (hint) hint.textContent = hint.textContent.replace(/\d+\/\d+ active$/, `${enabledCount}/${total} active`);
+        const toggleAll = tray.querySelector('.nemo-tray-toggle-all');
+        if (toggleAll) {
+            const allEnabled = enabledCount === total;
+            toggleAll.classList.toggle('nemo-all-enabled', allEnabled);
+            toggleAll.innerHTML = `${allEnabled ? '☑' : '☐'} All`;
+            toggleAll.title = allEnabled ? 'Disable All' : 'Enable All';
+        }
+    });
 }
 
 function refreshPromptEnabledFlags(prompts) {

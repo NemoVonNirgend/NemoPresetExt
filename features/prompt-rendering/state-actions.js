@@ -76,6 +76,7 @@ export function installStateActions({
         targetMutations: 0,
         resolutionMutations: 0,
         saves: 0,
+        batchedSaves: 0,
         cancelled: 0,
         locked: 0,
         failures: 0,
@@ -175,15 +176,31 @@ export function installStateActions({
         return true;
     }
 
+    // Tell open UI (tray cards, section counters) as soon as state changes,
+    // not after the settings save round-trip (ST debounces it by ~1 s).
+    function announce(identifiers) {
+        const doc = globalThis.document;
+        if (!doc?.dispatchEvent || typeof globalThis.CustomEvent !== 'function') return;
+        try { doc.dispatchEvent(new CustomEvent('nemo-prompt-states-changed', { detail: { identifiers: [...identifiers] } })); }
+        catch (error) { report(error); }
+    }
+
     function rollback(ticket, before) {
         for (const { entry, enabled } of before.values()) entry.enabled = enabled;
+        announce(before.keys());
         if (current(ticket)) {
             try { ticket.pm.render?.(); }
             catch (error) { report(error); }
         }
     }
 
-    async function commitOne(change) {
+    /**
+     * Apply one change. Without `batch`, it redraws and saves immediately. With a
+     * batch, the mutation, redraw request and toggle pause are recorded and the
+     * caller saves once for the whole batch (ST debounces each save by ~1 s, so
+     * ten sequential saves made "toggle all" and snapshots take 10+ seconds).
+     */
+    async function commitOne(change, batch = null) {
         const ticket = captureTicket();
         stats.requested++;
         if (!allowed(ticket, change.identifier)) {
@@ -220,7 +237,16 @@ export function installStateActions({
                 }
                 assertCurrent(ticket);
                 ticket.pm.render?.();
+                announce(before.keys());
                 if (typeof ticket.pm.saveServiceSettings !== 'function') throw stateError('native saveServiceSettings is unavailable.');
+                if (batch) {
+                    // The batch owns the save, rollback and the end of this toggle pause.
+                    batch.pending.push({ ticket, before, toggleToken });
+                    toggleToken = undefined;
+                    stats.targetMutations += targetChanged ? 1 : 0;
+                    stats.resolutionMutations += resolutionChanged;
+                    return { changed: true, targetChanged, resolutionChanged, locked: false, cancelled: false };
+                }
                 await ticket.pm.saveServiceSettings();
                 assertCurrent(ticket);
                 stats.saves++;
@@ -231,7 +257,7 @@ export function installStateActions({
                 rollback(ticket, before);
                 throw error;
             } finally {
-                manager.endToggle?.(toggleToken);
+                if (toggleToken !== undefined) manager.endToggle?.(toggleToken);
             }
         };
         const cold = getCold?.();
@@ -252,14 +278,31 @@ export function installStateActions({
     async function applyChanges(changes) {
         const normalized = normalizeChanges(changes);
         const result = { requested: normalized.length, changed: 0, targetChanged: 0, resolutionChanged: 0, locked: 0, cancelled: 0 };
-        for (const change of normalized) {
-            if (disposed) throw stateError('adapter was disposed.');
-            const one = await commitOne(change);
-            if (one.changed) result.changed++;
-            if (one.targetChanged) result.targetChanged++;
-            result.resolutionChanged += one.resolutionChanged;
-            if (one.locked) result.locked++;
-            if (one.cancelled) result.cancelled++;
+        const batch = normalized.length > 1 ? { pending: [] } : null;
+        try {
+            for (const change of normalized) {
+                if (disposed) throw stateError('adapter was disposed.');
+                const one = await commitOne(change, batch);
+                if (one.changed) result.changed++;
+                if (one.targetChanged) result.targetChanged++;
+                result.resolutionChanged += one.resolutionChanged;
+                if (one.locked) result.locked++;
+                if (one.cancelled) result.cancelled++;
+            }
+            if (batch?.pending.length) {
+                const { ticket } = batch.pending.at(-1);
+                assertCurrent(ticket);
+                await ticket.pm.saveServiceSettings();
+                assertCurrent(ticket);
+                stats.saves++;
+                stats.batchedSaves++;
+            }
+        } catch (error) {
+            // Undo the whole unsaved batch, newest first, so related changes stay consistent.
+            for (const { ticket, before } of [...(batch?.pending || [])].reverse()) rollback(ticket, before);
+            throw error;
+        } finally {
+            for (const { toggleToken } of batch?.pending || []) manager.endToggle?.(toggleToken);
         }
         return result;
     }

@@ -97,8 +97,48 @@ test('snapshot application mutates native order without enumerating prompt rows'
     const h = harness({ saved: ['a'] });
     await h.manager.applySnapshot();
     assert.deepEqual(enabled(h), { h: true, a: true, s: true, b: false, locked: true });
-    assert.equal(h.saves, 2); assert.equal(h.renders, 2); assert.equal(h.legacyCalls, 0);
-    assert.equal(h.adapter.getStats().targetMutations, 2); h.adapter.dispose();
+    // Two changes, one save: ST debounces each save by ~1 s.
+    assert.equal(h.saves, 1); assert.equal(h.renders, 2); assert.equal(h.legacyCalls, 0);
+    assert.equal(h.adapter.getStats().targetMutations, 2); assert.equal(h.adapter.getStats().batchedSaves, 1);
+    assert.equal(h.begin, h.end); h.adapter.dispose();
+});
+
+test('a batch saves once, keeps toggles paused until that save ends, and rolls back fully if it fails', async () => {
+    const h = harness();
+    const started = [];
+    let release, fail = false;
+    h.pm.saveServiceSettings = () => new Promise((resolve, reject) => {
+        started.push(h.end); release = () => (fail ? reject(new Error('save failed')) : resolve());
+    });
+    const work = h.adapter.applyChanges([{ identifier: 'a', enabled: true }, { identifier: 'b', enabled: false }]);
+    while (!release) await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(started.length, 1); assert.equal(started[0], 0, 'no toggle pause ended before the save');
+    assert.equal(h.begin, 2); assert.equal(h.end, 0);
+    assert.deepEqual([enabled(h).a, enabled(h).b], [true, false], 'state applied before the save completes');
+    release(); await work;
+    assert.equal(h.end, 2);
+
+    const failing = harness(); fail = true; release = null; started.length = 0;
+    failing.pm.saveServiceSettings = h.pm.saveServiceSettings;
+    const broken = failing.adapter.applyChanges([{ identifier: 'a', enabled: true }, { identifier: 'b', enabled: false }]);
+    while (!release) await new Promise(resolve => setTimeout(resolve, 0));
+    release();
+    await assert.rejects(broken, /save failed/);
+    assert.deepEqual([enabled(failing).a, enabled(failing).b], [false, true], 'every change in the batch rolled back');
+    assert.equal(failing.begin, failing.end);
+    h.adapter.dispose(); failing.adapter.dispose();
+});
+
+test('state changes are announced before the save round-trip', async () => {
+    const h = harness(), seen = [];
+    const listeners = new Map();
+    const previous = globalThis.document;
+    globalThis.document = { dispatchEvent: event => { seen.push([event.type, event.detail.identifiers, h.saves]); return true; },
+        addEventListener: (t, f) => listeners.set(t, f) };
+    try {
+        await h.adapter.applyChanges([{ identifier: 'b', enabled: false }]);
+        assert.deepEqual(seen, [['nemo-prompt-states-changed', ['b'], 0]]);
+    } finally { globalThis.document = previous; h.adapter.dispose(); }
 });
 
 test('intentionally empty snapshots disable toggleable prompts and preserve locked state', async () => {
