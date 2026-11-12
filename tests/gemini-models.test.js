@@ -79,9 +79,9 @@ function fixture(settings = {}, { memory = {}, startupSettings = settings } = {}
     return { selects, events, types, changes, observers, settings, addOption, start, notifyChange, memory, memoryWrites };
 }
 
-const modelIds = ['gemini-4-argon', 'gemini-3.8-flash'];
+const modelIds = ['gemini-4-carbon', 'gemini-4-argon', 'gemini-4-hydrogen', 'gemini-3.8-flash'];
 
-test('both providers gain both model IDs without changing an existing selection', () => {
+test('both providers gain all managed model IDs without changing an existing selection', () => {
     const h = fixture({ google_model: 'gemini-2.5-pro', vertexai_model: 'gemini-2.5-pro' });
     const runtime = h.start();
     for (const select of h.selects.values()) {
@@ -91,7 +91,7 @@ test('both providers gain both model IDs without changing an existing selection'
     h.events.emit(h.types.APP_READY);
     h.events.emit(h.types.CHATCOMPLETION_SOURCE_CHANGED, 'vertexai');
     assert.equal(h.changes.length, 0);
-    for (const select of h.selects.values()) assert.equal(select.options.length, 3);
+    for (const select of h.selects.values()) assert.equal(select.options.length, modelIds.length + 1);
     runtime.dispose();
 });
 
@@ -109,7 +109,7 @@ test('each model restores independently for each provider through the native cha
 });
 
 test('startup snapshot recovers models cleared before extension load with a payload-free SETTINGS_LOADED event', () => {
-    const saved = { google_model: 'gemini-4-argon', vertexai_model: 'gemini-3.8-flash' };
+    const saved = { google_model: 'gemini-4-carbon', vertexai_model: 'gemini-4-hydrogen' };
     const h = fixture({ google_model: '', vertexai_model: '' }, { startupSettings: saved });
     const runtime = h.start();
     h.events.emit(h.types.SETTINGS_LOADED); // Actual native event has no payload.
@@ -177,7 +177,7 @@ test('production runtime saves per-account extension settings and restores them 
     const source = readFileSync(new URL('../features/gemini-models/runtime.js', import.meta.url), 'utf8')
         .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
     let disk = {
-        oai_settings: { google_model: 'gemini-4-argon', vertexai_model: 'gemini-3.8-flash' },
+        oai_settings: { google_model: 'gemini-4-carbon', vertexai_model: 'gemini-4-hydrogen' },
         extension_settings: { NemoPresetExt: { enableReSwipe: true } },
     };
     for (let boot = 0; boot < 3; boot++) {
@@ -201,15 +201,15 @@ test('production runtime saves per-account extension settings and restores them 
         api.initializeGeminiModels();
         h.events.emit(h.types.SETTINGS_LOADED);
         h.events.emit(h.types.APP_READY);
-        assert.equal(h.settings.google_model, 'gemini-4-argon');
-        assert.equal(h.settings.vertexai_model, 'gemini-3.8-flash');
-        assert.equal(h.selects.get('#model_google_select').value, 'gemini-4-argon');
-        assert.equal(h.selects.get('#model_vertexai_select').value, 'gemini-3.8-flash');
+        assert.equal(h.settings.google_model, 'gemini-4-carbon');
+        assert.equal(h.settings.vertexai_model, 'gemini-4-hydrogen');
+        assert.equal(h.selects.get('#model_google_select').value, 'gemini-4-carbon');
+        assert.equal(h.selects.get('#model_vertexai_select').value, 'gemini-4-hydrogen');
         assert.equal(saves, boot === 0 ? 1 : 0, 'only a changed backup schedules a settings save');
         disk = JSON.parse(JSON.stringify({ oai_settings: h.settings, extension_settings: extensions }));
         assert.equal(disk.extension_settings.NemoPresetExt.enableReSwipe, true);
         assert.deepEqual(disk.extension_settings.NemoPresetExt.geminiModels, {
-            google_model: 'gemini-4-argon', vertexai_model: 'gemini-3.8-flash',
+            google_model: 'gemini-4-carbon', vertexai_model: 'gemini-4-hydrogen',
         });
         api.cleanupGeminiModels();
         assert.ok(Object.values(h.types).every(type => h.events.listenerCount(type) === 0));
@@ -236,26 +236,33 @@ test('native entries and pre-existing CustomModels entries are retained without 
     const existing = [];
     for (const select of h.selects.values()) for (const model of modelIds) existing.push(h.addOption(select, model));
     const runtime = h.start();
-    for (const select of h.selects.values()) assert.equal(select.options.length, 3);
+    for (const select of h.selects.values()) assert.equal(select.options.length, modelIds.length + 1);
     assert.equal(h.selects.get('#model_google_select').value, 'gemini-4-argon');
     runtime.dispose();
     for (const option of existing) assert.ok(option.parentElement);
 });
 
 test('CustomModels loading later supersedes only the matching Nemo entry and keeps selection', () => {
-    const h = fixture({ google_model: 'gemini-4-argon' });
+    const h = fixture({ google_model: 'gemini-4-carbon' });
     const runtime = h.start();
     const select = h.selects.get('#model_google_select');
-    const external = h.addOption(select, 'gemini-4-argon');
+    const external = h.addOption(select, 'gemini-4-carbon');
     h.observers[0].callback();
-    assert.equal(select.value, 'gemini-4-argon');
-    assert.deepEqual(select.options.filter(option => option.value === 'gemini-4-argon'), [external]);
-    const externalFlash = h.addOption(select, 'gemini-3.8-flash');
-    h.observers[0].callback();
+    assert.equal(select.value, 'gemini-4-carbon');
+    assert.deepEqual(select.options.filter(option => option.value === 'gemini-4-carbon'), [external]);
+    assert.equal(select.children.some(child => child.label === 'Nemo Models'), true);
+    let externalHydrogen;
+    for (const model of modelIds.filter(model => model !== 'gemini-4-carbon')) {
+        const option = h.addOption(select, model);
+        if (model === 'gemini-4-hydrogen') externalHydrogen = option;
+        h.observers[0].callback();
+        assert.deepEqual(select.options.filter(entry => entry.value === model), [option]);
+        assert.equal(select.value, 'gemini-4-carbon');
+    }
     assert.equal(select.children.some(child => child.label === 'Nemo Models'), false);
-    externalFlash.remove();
+    externalHydrogen.remove();
     h.observers[0].callback();
-    assert.equal(select.options.filter(option => option.value === 'gemini-3.8-flash').length, 1);
+    assert.equal(select.options.filter(option => option.value === 'gemini-4-hydrogen').length, 1);
     runtime.dispose();
     assert.ok(external.parentElement);
 });
@@ -340,14 +347,14 @@ test('late and replaced selectors bind on host events; cleanup disconnects and s
     const runtime = h.start();
     h.selects.set('#model_google_select', select);
     h.events.emit(h.types.APP_READY);
-    assert.equal(select.options.length, 3);
+    assert.equal(select.options.length, modelIds.length + 1);
     const replacement = new Element('select');
     h.addOption(replacement, 'gemini-2.5-pro');
     replacement.value = 'gemini-2.5-pro';
     h.selects.set('#model_google_select', replacement);
     h.events.emit(h.types.CHATCOMPLETION_SOURCE_CHANGED);
     assert.equal(h.observers[1].connected, false);
-    assert.equal(replacement.options.length, 3);
+    assert.equal(replacement.options.length, modelIds.length + 1);
     runtime.dispose();
     runtime.dispose();
     assert.ok(h.observers.every(observer => !observer.connected));
@@ -357,6 +364,6 @@ test('late and replaced selectors bind on host events; cleanup disconnects and s
     h.observers[0].callback();
     assert.equal(replacement.options.length, 1);
     const next = h.start();
-    assert.equal(replacement.options.length, 3);
+    assert.equal(replacement.options.length, modelIds.length + 1);
     next.dispose();
 });

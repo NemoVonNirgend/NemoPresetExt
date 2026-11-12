@@ -1,5 +1,7 @@
 export const GEMINI_MODELS = Object.freeze([
+    'gemini-4-carbon',
     'gemini-4-argon',
+    'gemini-4-hydrogen',
     'gemini-3.8-flash',
 ]);
 
