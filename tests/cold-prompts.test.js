@@ -42,7 +42,7 @@ class Events {
     removeListener(type, fn) { this.handlers.set(type, (this.handlers.get(type) ?? []).filter(f => f !== fn)); }
     async emit(type, ...args) { for (const fn of [...(this.handlers.get(type) ?? [])]) { try { await fn(...args); } catch { /* native ST catches */ } } }
 }
-const keys = ['OAI_PRESET_IMPORT_READY', 'OAI_PRESET_EXPORT_READY', 'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'APP_READY', 'GENERATION_STARTED', 'GENERATION_AFTER_COMMANDS', 'CHAT_COMPLETION_PROMPT_READY', 'CHAT_COMPLETION_SETTINGS_READY'];
+const keys = ['OAI_PRESET_IMPORT_READY', 'OAI_PRESET_EXPORT_READY', 'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'APP_READY', 'GENERATION_STARTED', 'GENERATION_AFTER_COMMANDS', 'GENERATE_AFTER_COMBINE_PROMPTS', 'GENERATE_AFTER_DATA', 'GENERATION_STOPPED', 'GENERATION_ENDED', 'GROUP_WRAPPER_STARTED', 'CHAT_COMPLETION_PROMPT_READY', 'CHAT_COMPLETION_SETTINGS_READY'];
 const types = Object.fromEntries(keys.map(k => [k, k]));
 function environment(preset = fixture(), options = {}) {
     const network = transport(), events = new Events();
@@ -615,4 +615,89 @@ test('portable ghost exports preserve a missing or null extensions field', async
             assert.deepEqual(out, expected);
         } finally { h.runtime.dispose(); }
     }
+});
+
+test('staging collects twice after a missing interceptor for all four live actions and a dry recount', async () => {
+    const h = ghostTestEnvironment();
+    try {
+        await h.runtime.importReady({ data: h.data });
+        const original = new Map(h.original.prompts.map(p => [p.identifier, p.content]));
+        for (const [type, dryRun] of [['normal', false], ['regenerate', false], ['swipe', false], ['continue', false], ['normal', true]]) {
+            await h.events.emit(types.GENERATION_STARTED, type, {}, dryRun);
+            await h.events.emit(types.GENERATION_AFTER_COMMANDS, type, {}, dryRun);
+            await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun });
+            const reads = h.store.stats.reads;
+            for (let i = 0; i < 2; i++) {
+                const rows = h.pm.getPromptCollection(type);
+                assert.deepEqual(rows.map(p => p.identifier), h.selected(type).map(p => p.identifier));
+                for (const p of rows) assert.equal(p.content, original.get(p.identifier));
+            }
+            assert.equal(h.store.stats.reads, reads);
+            await h.events.emit(types.GENERATE_AFTER_DATA, {}, dryRun);
+            assert.throws(() => h.pm.getPromptCollection(type), /not loaded/);
+        }
+    } finally { h.runtime.dispose(); }
+});
+
+test('the post-World Info boundary reads only newly selected or revised ghost sources', async () => {
+    const h = ghostTestEnvironment();
+    try {
+        await h.runtime.importReady({ data: h.data });
+        await h.events.emit(types.GENERATION_AFTER_COMMANDS, 'normal', {}, false);
+        assert(await h.runtime.preflight([], 8192, assert.fail, 'normal'));
+        const reads = h.store.stats.reads, requested = [];
+        const read = h.store.readMany.bind(h.store);
+        h.store.readMany = (rows, visit) => { requested.push(...rows.map(p => p.identifier)); return read(rows, visit); };
+        await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun: false });
+        assert.equal(h.store.stats.reads, reads);
+        await h.events.emit(types.GENERATE_AFTER_DATA, {}, false);
+        await h.events.emit(types.GENERATION_AFTER_COMMANDS, 'normal', {}, false);
+        assert(await h.runtime.preflight([], 8192, assert.fail, 'normal'));
+        requested.length = 0;
+        const order = h.data.prompt_order[0].order;
+        order.find(e => e.identifier === 'optional').enabled = true;
+        order.find(e => e.identifier === 'nemo-user-role-character').enabled = false;
+        await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun: false });
+        assert.deepEqual(requested, ['optional']);
+        const rows = h.pm.getPromptCollection('normal');
+        assert.equal(rows.find(p => p.identifier === 'optional').content, h.original.prompts.find(p => p.identifier === 'optional').content);
+        assert(!rows.some(p => p.identifier === 'nemo-user-role-character'));
+    } finally { h.runtime.dispose(); }
+});
+
+test('overlapping dry and live assemblies release after the last collection window closes', async () => {
+    const h = ghostTestEnvironment();
+    try {
+        await h.runtime.importReady({ data: h.data });
+        for (const [type, dryRun] of [['swipe', false], ['normal', true]]) {
+            await h.events.emit(types.GENERATION_AFTER_COMMANDS, type, {}, dryRun);
+            await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun });
+        }
+        assert(h.pm.getPromptCollection('swipe').some(p => p.identifier === 'swipe-only'));
+        await h.events.emit(types.GENERATE_AFTER_DATA, {}, false);
+        await h.events.emit(types.GENERATION_ENDED);
+        assert(!h.pm.getPromptCollection('normal').some(p => p.identifier === 'swipe-only'));
+        await h.events.emit(types.GENERATE_AFTER_DATA, {}, true);
+        assert.throws(() => h.pm.getPromptCollection('normal'), /not loaded/);
+    } finally { h.runtime.dispose(); }
+});
+
+test('cancelled or checksum-failed preparation never assembles a ghost shell', async () => {
+    const h = ghostTestEnvironment();
+    try {
+        await h.runtime.importReady({ data: h.data });
+        await h.events.emit(types.GENERATION_AFTER_COMMANDS, 'normal', {}, false);
+        await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun: false });
+        await h.events.emit(types.GENERATION_STOPPED);
+        assert.throws(() => h.pm.getPromptCollection('normal'), /not loaded/);
+        for (const path of h.network.files.keys()) h.network.files.set(path, '{}');
+        await h.events.emit(types.GENERATION_AFTER_COMMANDS, 'normal', {}, false);
+        await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun: false });
+        const before = h.pm.prepared.length;
+        assert.throws(() => h.pm.getPromptCollection('normal'), /not loaded/);
+        assert.equal(h.pm.prepared.length, before);
+        const data = { chat: ['previously assembled'] };
+        await h.events.emit(types.CHAT_COMPLETION_PROMPT_READY, data);
+        assert.deepEqual(data.chat, []);
+    } finally { h.runtime.dispose(); }
 });

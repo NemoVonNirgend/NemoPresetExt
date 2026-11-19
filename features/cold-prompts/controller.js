@@ -8,7 +8,13 @@ export function createColdPromptRuntime({
     autoStore = () => true, journal = null, getUser = () => null, waitForToggles = () => {},
 }) {
     let disposed = false, manager = null, editor = null, editTicket = 0, fault = null;
-    let settingsOwner = null, running = 0, journalUnavailable = false;
+    let settingsOwner = null, journalUnavailable = false;
+    // ST's final pre-assembly and completion events carry dryRun but omit the action type.
+    // Keep all overlapping actions in each lane until its last assembly finishes.
+    const lanes = [{ count: 0, announced: 0, types: new Set() }, { count: 0, announced: 0, types: new Set() }];
+    const hasFinalBoundary = Boolean(types.GENERATE_AFTER_COMBINE_PROMPTS && types.GENERATE_AFTER_DATA);
+    const laneFor = dryRun => lanes[dryRun ? 1 : 0];
+    let cancellation = 0, preparing = 0, finishedLiveAssembly = false;
     const lastFlags = new WeakMap();
     const pins = new Map();
     const hot = new WeakMap();
@@ -31,7 +37,8 @@ export function createColdPromptRuntime({
         const id = typeof record === 'object' ? record?.id : record;
         return typeof id === 'string' && /^(?:[a-f0-9]{32}|[a-f0-9]{64})$/.test(id) ? id : null;
     };
-    const ghostCandidate = preset => Boolean(catalog(preset)) || preset?.prompts?.some(isGhost) || (autoStore() && isNemoPreset(preset)
+    const usesGhostSources = preset => Boolean(catalog(preset) || preset?.prompts?.some(isGhost));
+    const ghostCandidate = preset => usesGhostSources(preset) || (autoStore() && isNemoPreset(preset)
         && !preset.extensions?.nemoRecipeRuntime && !preset.extensions?.nemoVexRuntime
         && preset.prompts.some(p => p.identifier === 'nemo-init-reset')
         && preset.prompts.some(p => p.identifier === 'nemo-runtime-state-resolver'));
@@ -331,9 +338,23 @@ export function createColdPromptRuntime({
         const original = manager[name], replacement = factory(original);
         originals.set(name, { original, replacement }); manager[name] = replacement;
     }
+    function clearLane(lane) {
+        lane.count = 0;
+        lane.announced = 0;
+        lane.types.clear();
+    }
+    function releaseIdle() {
+        if (!preparing && lanes.every(lane => !lane.count)) ghost.reset();
+    }
+    function cancelPreparation() {
+        cancellation++;
+        finishedLiveAssembly = false;
+        for (const lane of lanes) clearLane(lane);
+        ghost.reset();
+    }
     function detach() {
         if (manager) for (const [key, pair] of originals) if (manager[key] === pair.replacement) manager[key] = pair.original;
-        originals.clear(); bindSettings(null); ghost.reset(); manager = null; running = 0;
+        originals.clear(); bindSettings(null); cancelPreparation(); manager = null;
     }
     function attach() {
         const next = getManager();
@@ -370,8 +391,8 @@ export function createColdPromptRuntime({
         });
         wrap('getPromptCollection', original => function (...args) {
             assertReady(this.serviceSettings);
-            if (catalog(this.serviceSettings) || this.serviceSettings.prompts.some(isGhost)) {
-                try { return ghost.collect(this, args[0], () => original.apply(this, args)); }
+            if (usesGhostSources(this.serviceSettings)) {
+                try { return ghost.collect(this, args[0], () => original.apply(this, args), lanes.some(lane => lane.announced)); }
                 catch (error) { fail(error); stop(); throw error; }
             }
             return original.apply(this, args);
@@ -426,7 +447,7 @@ export function createColdPromptRuntime({
     on('OAI_PRESET_IMPORT_READY', importReady);
     on('OAI_PRESET_EXPORT_READY', exportReady);
     on('OAI_PRESET_CHANGED_BEFORE', async ({ preset, presetName }) => {
-        closeEditor(); attach();
+        cancelPreparation(); closeEditor(); attach();
         try { await ready(preset, { evict: true }); await restoreToggles(preset, presetName); }
         catch (error) { fail(error, preset); }
     }, true);
@@ -439,40 +460,86 @@ export function createColdPromptRuntime({
         }
         catch (error) { fail(error, preset); }
     });
-    on('GENERATION_STOPPED', () => { running = 0; ghost.reset(); });
-    on('GENERATION_ENDED', () => {
-        running = Math.max(0, running - 1);
-        if (!running) ghost.reset();
-    });
-    on('GENERATION_STARTED', async (_type, _options, dryRun) => {
+    on('GENERATION_STOPPED', cancelPreparation);
+    on('GENERATION_STARTED', async () => {
         if (!chatCompletionActive()) return;
         attach();
-        if (!dryRun) running++;
         try { await ready(); } catch (error) { fail(error); }
     }, true);
-    on('GENERATION_AFTER_COMMANDS', async (_type, _options, dryRun) => {
+    on('GENERATION_AFTER_COMMANDS', async (type, _options, dryRun) => {
         if (!chatCompletionActive()) return;
+        const lane = laneFor(dryRun), epoch = cancellation;
         try {
             await ready();
-            if (dryRun && catalog(active())) await primeGhost(_type);
+            if (epoch !== cancellation || !usesGhostSources(active())) return;
+            lane.announced++;
+            lane.types.add(type);
+            // The final hook runs only for requests that survive slash commands, group
+            // dispatch, connection checks and World Info scanning.
+            if (!hasFinalBoundary) {
+                lane.count++;
+                await primeGhost(type, false);
+            }
         } catch (error) { fail(error); if (!dryRun) stop(); }
     }, true);
+    on('GROUP_WRAPPER_STARTED', () => {
+        // The outer group request delegates to member generations before assembly.
+        const lane = laneFor(false);
+        if (lane.announced === 1 && !lane.count) clearLane(lane);
+    });
+    on('GENERATE_AFTER_COMBINE_PROMPTS', async ({ dryRun }) => {
+        const lane = laneFor(dryRun);
+        if (!hasFinalBoundary || !chatCompletionActive() || !lane.announced) return;
+        lane.count++;
+        try {
+            for (const type of lane.types) await primeGhost(type, false);
+        } catch (error) { fail(error); if (!dryRun) stop(); }
+    });
+    on('GENERATE_AFTER_DATA', (_data, dryRun) => {
+        const lane = laneFor(dryRun);
+        if (!lane.count) return;
+        lane.count--;
+        if (!dryRun) finishedLiveAssembly = true;
+        if (--lane.announced === 0) clearLane(lane);
+        releaseIdle();
+    });
+    on('GENERATION_ENDED', () => {
+        const live = laneFor(false);
+        if (!hasFinalBoundary || (!finishedLiveAssembly && !live.count)) clearLane(live);
+        finishedLiveAssembly = false;
+        if (!lanes.some(lane => lane.announced)) releaseIdle();
+    });
     on('CHAT_COMPLETION_PROMPT_READY', data => {
         try { assertReady(active()); } catch { /* fail() recorded the reason */ }
         if (fault && fault.prompts === active()?.prompts) { data.chat = []; stop(); }
+        if (!hasFinalBoundary && data.dryRun) {
+            const dry = laneFor(true);
+            if (dry.count && --dry.count === 0) clearLane(dry);
+            releaseIdle();
+        }
     });
     on('CHAT_COMPLETION_SETTINGS_READY', data => {
         try { assertReady(active()); } catch { /* ST swallows event exceptions */ }
         if (fault && fault.prompts === active()?.prompts) { blockSerialization(data, fault.error); stop(); }
     });
-    async function primeGhost(type) {
+    async function primeGhost(type, reserve = true) {
         const pm = getManager(), preset = pm.serviceSettings, prompts = preset.prompts;
-        await waitForToggles();
-        if (pm !== getManager() || active()?.prompts !== prompts) throw new Error('Preset changed while applying prompt toggles.');
-        await restoreToggles(preset);
-        await ghost.prime(pm, type);
-        if (pm !== getManager() || active()?.prompts !== prompts) throw new Error('Preset changed during prompt preparation.');
-        if (fault?.prompts === prompts) fault = null;
+        const epoch = cancellation;
+        preparing++;
+        try {
+            await waitForToggles();
+            // Serialize revisions for the same preset. A slower, older read cannot publish
+            // its selection over the result of a later preload.
+            await enqueue(preset, async () => {
+                const isCurrent = () => epoch === cancellation && pm === getManager() && active()?.prompts === prompts;
+                if (!isCurrent()) throw new Error('Preset changed or generation stopped before prompt preparation.');
+                await restoreToggles(preset);
+                if (!isCurrent()) throw new Error('Preset changed or generation stopped while applying prompt toggles.');
+                await ghost.prime(pm, type, reserve);
+                if (!isCurrent()) throw new Error('Preset changed during prompt preparation.');
+                if (fault?.prompts === prompts) fault = null;
+            });
+        } finally { preparing--; }
     }
     attach();
     return {
@@ -480,7 +547,7 @@ export function createColdPromptRuntime({
         isGhostPreset: () => Boolean(catalog(active())),
         async preflight(_chat, _size, abort, type) {
             if (!chatCompletionActive()) return true;
-            try { await ready(); assertReady(active()); if (catalog(active())) await primeGhost(type); }
+            try { await ready(); assertReady(active()); if (usesGhostSources(active())) await primeGhost(type); }
             catch (error) { fail(error); abort(true); return false; }
             return true;
         },
