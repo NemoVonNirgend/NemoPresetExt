@@ -818,3 +818,108 @@ test('native exceptions and unsafe identifiers cannot expose private text in the
         assert.doesNotMatch(JSON.stringify(notices), /private native error text|private prompt text/);
     } finally { h.runtime.dispose(); }
 });
+
+test('a normal collection during a retry reuses only verified sources matching its own triggers', async () => {
+    for (const type of ['swipe', 'regenerate']) {
+        const stops = [];
+        const h = ghostTestEnvironment({ getContext: () => ({ stopGeneration: () => stops.push(type) }) });
+        try {
+            await h.runtime.importReady({ data: h.data });
+            await h.events.emit(types.GENERATION_AFTER_COMMANDS, type, {}, false);
+            const reads = h.store.stats.reads;
+            const preview = h.pm.getPromptCollection('normal');
+            assert.deepEqual(preview.map(p => p.identifier), h.selected('normal').map(p => p.identifier));
+            assert(!preview.some(p => p.identifier === 'swipe-only'));
+            await h.runtime.preflight([], 0, assert.fail, type);
+            await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun: false });
+            const live = h.pm.getPromptCollection(type);
+            for (const row of [...preview, ...live]) {
+                assert.equal(row.content, h.original.prompts.find(p => p.identifier === row.identifier).content);
+            }
+            assert.equal(live.some(p => p.identifier === 'swipe-only'), type === 'swipe');
+            assert.equal(h.store.stats.reads, reads);
+            assert.deepEqual(stops, []);
+            await h.events.emit(types.GENERATE_AFTER_DATA, {}, false);
+            assert.throws(() => h.pm.getPromptCollection('normal'), /not loaded/);
+        } finally { h.runtime.dispose(); }
+    }
+});
+
+test('a failed normal dry run cannot cancel or block a concurrent swipe, including after retry preflight', async () => {
+    let stops = 0;
+    const h = ghostTestEnvironment({ getContext: () => ({ stopGeneration: () => { stops++; } }) });
+    try {
+        const normalOnly = h.data.prompts.find(p => p.identifier === 'optional');
+        normalOnly.injection_trigger = ['normal'];
+        h.data.prompt_order[0].order.find(e => e.identifier === 'optional').enabled = true;
+        await h.runtime.importReady({ data: h.data });
+        await h.events.emit(types.GENERATION_AFTER_COMMANDS, 'swipe', {}, false);
+        await h.runtime.preflight([], 0, assert.fail, 'swipe');
+        await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun: false });
+        const read = h.store.readMany.bind(h.store);
+        h.store.readMany = (rows, visit) => {
+            if (rows.some(p => p.identifier === 'optional')) throw Error('preview read failed');
+            return read(rows, visit);
+        };
+        await h.events.emit(types.GENERATION_STARTED, 'normal', {}, true);
+        await h.events.emit(types.GENERATION_AFTER_COMMANDS, 'normal', {}, true);
+        await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun: true });
+        assert.throws(() => h.pm.getPromptCollection('normal'));
+        const dry = { chat: [], dryRun: true };
+        await h.events.emit(types.CHAT_COMPLETION_PROMPT_READY, dry);
+        await h.events.emit(types.GENERATE_AFTER_DATA, {}, true);
+        const rows = h.pm.getPromptCollection('swipe');
+        assert(!rows.some(p => p.identifier === 'optional'));
+        assert(rows.some(p => p.identifier === 'swipe-only'));
+        const live = { chat: rows, dryRun: false };
+        await h.events.emit(types.CHAT_COMPLETION_PROMPT_READY, live);
+        assert.equal(live.chat, rows);
+        const payload = { messages: live.chat };
+        await h.events.emit(types.CHAT_COMPLETION_SETTINGS_READY, payload);
+        assert.doesNotThrow(() => JSON.stringify(payload));
+        assert.equal(stops, 0);
+    } finally { h.runtime.dispose(); }
+});
+
+test('a direct token recount prepares a normal selection and releases it when native counting returns', async () => {
+    const h = ghostTestEnvironment();
+    try {
+        await h.runtime.importReady({ data: h.data });
+        const rows = await h.pm.tryGenerate();
+        assert.deepEqual(rows.map(p => p.identifier), h.selected('normal').map(p => p.identifier));
+        for (const row of rows) assert.equal(row.content, h.original.prompts.find(p => p.identifier === row.identifier).content);
+        assert.throws(() => h.pm.getPromptCollection('normal'), /not loaded/);
+    } finally { h.runtime.dispose(); }
+});
+
+test('a completed normal preview cannot clear a blocked live retry or send its partial payload', async () => {
+    const h = ghostTestEnvironment();
+    try {
+        await h.runtime.importReady({ data: h.data });
+        await h.events.emit(types.GENERATION_AFTER_COMMANDS, 'swipe', {}, false);
+        const swipe = h.pm.getPromptById('swipe-only');
+        swipe[BODY_KEY] = { ...swipe[BODY_KEY] };
+        assert.throws(() => h.pm.getPromptCollection('swipe'), /changed/);
+        const rows = await h.pm.tryGenerate();
+        assert(rows.length);
+        const payload = { messages: ['partial live result'] };
+        await h.events.emit(types.CHAT_COMPLETION_SETTINGS_READY, payload);
+        assert.throws(() => JSON.stringify(payload), /changed/);
+    } finally { h.runtime.dispose(); }
+});
+
+test('overlapping normal Send and dry count can collect before and after live preload', async () => {
+    const h = ghostTestEnvironment();
+    try {
+        await h.runtime.importReady({ data: h.data });
+        await h.events.emit(types.GENERATION_AFTER_COMMANDS, 'normal', {}, false);
+        await h.events.emit(types.GENERATION_AFTER_COMMANDS, 'normal', {}, true);
+        await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun: true });
+        const dry = h.pm.getPromptCollection('normal');
+        await h.events.emit(types.GENERATE_AFTER_DATA, {}, true);
+        await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun: false });
+        assert.deepEqual(h.pm.getPromptCollection('normal'), dry);
+        await h.events.emit(types.GENERATE_AFTER_DATA, {}, false);
+        assert.throws(() => h.pm.getPromptCollection('normal'), /not loaded/);
+    } finally { h.runtime.dispose(); }
+});

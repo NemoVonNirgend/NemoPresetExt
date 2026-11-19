@@ -50,6 +50,8 @@ Metadata comments are retained, including directives placed late in a prompt. Th
 
 Automatic conversion can be disabled by setting `extension_settings.NemoPresetExt.enableColdPromptStorage = false` and saving/reloading. This advanced setting is not a new settings-panel control. Existing references still load: disabling conversion must not disable access to already externalized source.
 
+Swipe and Regenerate prepare their selected sources before chat history changes for that generation. If a listener requests a normal collection during a retry, Nemo can reuse verified sources common to both selections. SillyTavern still applies the requested action’s triggers and evaluates its macros. A token-count dry run has its own preparation and failure state. Counts can fail while a valid retry continues, and a successful count cannot clear a failed live request.
+
 ## Diagnosing a blocked generation
 
 If Nemo blocks Send, Regenerate, Swipe, or Continue, tap **Tap to copy report** on the red toast. If the browser cannot write to the clipboard, a selectable copy opens in SillyTavern. The report is also logged automatically under `[Nemo prompt assembly]`. You can retrieve the latest failure until the page reloads.

@@ -24,6 +24,9 @@ export class GhostPreparation {
         this.pending = new WeakMap();
         this.current = null;
     }
+    hasPlan(pm, requestedType) {
+        return this.pending.get(pm.serviceSettings.prompts)?.has(generationType(pm, requestedType)) ?? false;
+    }
     targets(pm, type) {
         const order = pm.getPromptOrderForCharacter(pm.activeCharacter) || [];
         const enabled = new Set(order.filter(e => e.enabled).map(e => e.identifier));
@@ -60,15 +63,24 @@ export class GhostPreparation {
         types.set(type, { bodies, uses });
         this.trace('prime.ready', { type: diagnosticLabel(type), prepared: bodies.size, reservations: uses });
     }
-    collect(pm, requestedType, assemble, repeatable = false) {
+    collect(pm, requestedType, assemble, repeatable = false, retryTypes) {
         const type = generationType(pm, requestedType), types = this.pending.get(pm.serviceSettings.prompts);
         const plan = types?.get(type);
         if (plan && !repeatable && --plan.uses <= 0) types.delete(type);
+        // A retry can also ask for a normal collection. Reuse only source strings whose
+        // rows are independently selected for normal and still have the same descriptor.
+        const retries = !plan && type === 'normal' && retryTypes && types
+            ? [...retryTypes].filter(t => t === 'swipe' || t === 'regenerate').map(t => types.get(t)).filter(Boolean)
+            : [];
         const selected = new Map(), targets = this.targets(pm, type);
         this.trace('collect', { requested: diagnosticLabel(requestedType), type: diagnosticLabel(type), selected: targets.length,
-            prepared: plan?.bodies.size ?? 0, hasPlan: Boolean(plan), repeatable });
+            prepared: plan?.bodies.size ?? 0, hasPlan: Boolean(plan), retryPlans: retries.length, repeatable });
         for (const p of targets) {
-            const record = plan?.bodies.get(p);
+            let record = plan?.bodies.get(p);
+            for (const retry of retries) {
+                const candidate = retry.bodies.get(p);
+                if (matches(candidate, p)) { record = candidate; break; }
+            }
             if (!matches(record, p)) {
                 const details = { type: diagnosticLabel(type), promptId: diagnosticLabel(p.identifier) };
                 if (!plan) throw new PromptPreparationError('PLAN_MISSING', 'Prompt sources were not loaded before assembly. Retry generation.', details);

@@ -10,7 +10,7 @@ export function createColdPromptRuntime({
     autoStore = () => true, journal = null, getUser = () => null, waitForToggles = () => {},
 }) {
     let disposed = false, manager = null, editor = null, editTicket = 0, fault = null;
-    let settingsOwner = null, journalUnavailable = false;
+    let settingsOwner = null, journalUnavailable = false, previewFault = null;
     // ST's final pre-assembly and completion events carry dryRun but omit the action type.
     // Keep all overlapping actions in each lane until its last assembly finishes.
     const lanes = [{ count: 0, announced: 0, types: new Set() }, { count: 0, announced: 0, types: new Set() }];
@@ -35,6 +35,9 @@ export function createColdPromptRuntime({
     const diagnostics = createPreparationDiagnostics(debug, getVersion);
     const trace = diagnostics.trace;
     const ghost = new GhostPreparation(store, trace);
+    const countGhost = new GhostPreparation(store, trace);
+    const recounts = new Set();
+    let collection = null; // The synchronous native assembly currently calling preparePrompt.
     const catalogKey = 'nemoGhostCatalog';
     const catalog = preset => {
         const record = preset?.extensions?.[catalogKey];
@@ -111,23 +114,31 @@ export function createColdPromptRuntime({
     function required(p, s, state = enabled(s)) {
         return pins.has(p) || state.has(p.identifier) || p.system_prompt || p.marker || ['main', 'nsfw', 'jailbreak'].includes(p.identifier);
     }
-    function fail(error, s = active(), stage) {
-        if (!s?.prompts || (fault && fault.error === error && fault.prompts === s.prompts)) return error;
+    function fail(error, s = active(), stage, dryRun = false) {
+        const prior = dryRun ? previewFault : fault;
+        if (!s?.prompts || (prior && prior.error === error && prior.prompts === s.prompts)) return error;
         let message = error?.message || 'Prompt preparation failed unexpectedly.', report;
         if (stage) {
-            const previous = fault?.prompts === s.prompts ? fault.report : null;
+            const previous = prior?.prompts === s.prompts ? prior.report : null;
             report = diagnostics.capture(error, stage, {
-                postWorldInfoHook: hasFinalBoundary, priming: preparing,
+                dryRun, postWorldInfoHook: hasFinalBoundary, priming: preparing,
                 liveAnnounced: lanes[0].announced, dryAnnounced: lanes[1].announced,
                 liveAssembling: lanes[0].count, dryAssembling: lanes[1].count,
             }, previous);
             const reason = error instanceof PromptPreparationError ? error.message : 'Prompt preparation failed unexpectedly.';
             message = `[${report.code} · ${stage}] ${reason}`;
         }
-        fault = { prompts: s.prompts, error, report };
+        const failure = { prompts: s.prompts, error, report };
+        if (dryRun) previewFault = failure;
+        else fault = failure;
         if (current(s) && getManager()) getManager().error = message;
         notify(message, 'error', report);
         return error;
+    }
+    function clearFault(prompts, dryRun) {
+        if (dryRun) {
+            if (previewFault?.prompts === prompts) previewFault = null;
+        } else if (fault?.prompts === prompts) fault = null;
     }
     function enqueue(s, action) {
         const previous = queues.get(s.prompts) ?? Promise.resolve();
@@ -220,7 +231,7 @@ export function createColdPromptRuntime({
             onChange(p);
         }
     }
-    async function ready(preset = active(), { evict = false } = {}) {
+    async function ready(preset = active(), { evict = false, dryRun = false } = {}) {
         if (!managed(preset)) return;
         if (preset === active()) bindSettings(preset);
         const s = snapshot(preset);
@@ -251,7 +262,7 @@ export function createColdPromptRuntime({
             const state = enabled(s);
             const pending = s.prompts.find(p => needsBody(p, state));
             if (pending) throw new PromptPreparationError('SELECTION_UNSTABLE', 'Prompt selection changed while loading. Retry after it settles.', { promptId: diagnosticLabel(pending.identifier) });
-            if (!useGhost && fault?.prompts === s.prompts) fault = null;
+            if (!useGhost) clearFault(s.prompts, dryRun);
             if (!useGhost && evict) await maintain();
         });
     }
@@ -360,14 +371,25 @@ export function createColdPromptRuntime({
         lane.announced = 0;
         lane.types.clear();
     }
-    function releaseIdle() {
-        if (!preparing && lanes.every(lane => !lane.count)) ghost.reset();
+    function releaseIdle(dryRun) {
+        if (dryRun) {
+            if (!laneFor(true).announced && !recounts.size) countGhost.reset();
+        } else if (!preparing && !laneFor(false).announced) ghost.reset();
+    }
+    function collectingPreview(pm, type) {
+        const action = String(type || 'normal').toLowerCase().trim();
+        const dry = laneFor(true), live = laneFor(false);
+        if (!live.announced && dry.announced && typeof pm.shouldTrigger !== 'function') return true;
+        if (!dry.types.has(action) && !(action === 'normal' && recounts.size)) return false;
+        // ST does not pass dryRun to getPromptCollection. When the same action is live
+        // and counting, keep the live request's blocking behavior on ambiguous failures.
+        return !live.announced || (typeof pm.shouldTrigger === 'function' && !live.types.has(action));
     }
     function cancelPreparation() {
         cancellation++;
         finishedLiveAssembly = false;
         for (const lane of lanes) clearLane(lane);
-        ghost.reset();
+        recounts.clear(); previewFault = null; countGhost.reset(); ghost.reset();
     }
     function detach() {
         if (manager) for (const [key, pair] of originals) if (manager[key] === pair.replacement) manager[key] = pair.original;
@@ -379,11 +401,22 @@ export function createColdPromptRuntime({
         trace('managerAttached'); detach(); manager = next;
         wrap('tryGenerate', original => async function (...args) {
             trace('tryGenerate');
-            const s = snapshot(this.serviceSettings);
-            try { await ready(this.serviceSettings, { evict: true }); }
-            catch (error) { fail(error, s, 'tryGenerate'); return; }
-            if (!current(s)) return;
-            return original.apply(this, args);
+            const s = snapshot(this.serviceSettings), ticket = {};
+            recounts.add(ticket);
+            try {
+                try {
+                    await ready(this.serviceSettings, { evict: true, dryRun: true });
+                    if (!current(s) || !recounts.has(ticket)) return;
+                    if (usesGhostSources(this.serviceSettings)) await primeGhost('normal', false, true);
+                } catch (error) {
+                    if (current(s) && recounts.has(ticket)) fail(error, s, 'tryGenerate', true);
+                    return;
+                }
+                if (current(s) && recounts.has(ticket)) return await original.apply(this, args);
+            } finally {
+                recounts.delete(ticket);
+                releaseIdle(true);
+            }
         });
         wrap('saveServiceSettings', original => async function (...args) {
             const s = snapshot(this.serviceSettings);
@@ -400,23 +433,36 @@ export function createColdPromptRuntime({
             return original.apply(this, args);
         });
         wrap('preparePrompt', original => function (prompt, ...args) {
-            if (isGhost(prompt)) {
-                try { return original.call(this, { ...prompt, content: ghost.source(prompt) }, ...args); }
-                catch (error) { fail(error, active(), 'preparePrompt'); stop(); throw error; }
+            if (!isGhost(prompt) && !isCold(prompt)) return original.call(this, prompt, ...args);
+            try {
+                if (isGhost(prompt)) return original.call(this, { ...prompt, content: (collection ?? ghost).source(prompt) }, ...args);
+                throw new PromptPreparationError('COLD_SOURCE_UNLOADED', 'A cold prompt reached native preparation. Generation was blocked.', { promptId: diagnosticLabel(prompt.identifier) });
+            } catch (error) {
+                // The enclosing collection reports once and knows whether this is a recount.
+                if (!collection) { fail(error, active(), 'preparePrompt'); stop(); }
+                throw error;
             }
-            if (isCold(prompt)) {
-                const error = new PromptPreparationError('COLD_SOURCE_UNLOADED', 'A cold prompt reached native preparation. Generation was blocked.', { promptId: diagnosticLabel(prompt.identifier) });
-                fail(error, active(), 'preparePrompt'); stop(); throw error;
-            }
-            return original.call(this, prompt, ...args);
         });
         wrap('getPromptCollection', original => function (...args) {
-            try { assertReady(this.serviceSettings); }
-            catch (error) { fail(error, this.serviceSettings, 'getPromptCollection'); stop(); throw error; }
-            if (usesGhostSources(this.serviceSettings)) {
-                try { return ghost.collect(this, args[0], () => original.apply(this, args), lanes.some(lane => lane.announced)); }
-                catch (error) { fail(error, this.serviceSettings, 'getPromptCollection'); stop(); throw error; }
-            }
+            const dryRun = collectingPreview(this, args[0]);
+            const previous = collection;
+            // When Send and its normal recount overlap, ST supplies the same type for both.
+            // Both sets contain verified source. A live failure still blocks serialization.
+            const useCountSource = dryRun || ((laneFor(true).announced || recounts.size)
+                && !ghost.hasPlan(this, args[0]) && countGhost.hasPlan(this, args[0]));
+            collection = useCountSource ? countGhost : ghost;
+            try {
+                assertReady(this.serviceSettings);
+                if (usesGhostSources(this.serviceSettings)) {
+                    const lane = laneFor(dryRun);
+                    return collection.collect(this, args[0], () => original.apply(this, args),
+                        Boolean(lane.announced || dryRun), dryRun ? null : lane.types);
+                }
+            } catch (error) {
+                fail(error, this.serviceSettings, 'getPromptCollection', dryRun);
+                if (!dryRun) stop();
+                throw error;
+            } finally { collection = previous; }
             return original.apply(this, args);
         });
         wrap('loadPromptIntoEditForm', original => function (prompt, ...args) {
@@ -488,29 +534,36 @@ export function createColdPromptRuntime({
         if (!chatCompletionActive()) return;
         attach();
         trace('generationStarted', { type: diagnosticLabel(type), dryRun: Boolean(dryRun) });
-        try { await ready(); } catch (error) { fail(error, active(), 'generationStarted'); }
+        try { await ready(active(), { dryRun }); } catch (error) { fail(error, active(), 'generationStarted', dryRun); }
     }, true);
     on('GENERATION_AFTER_COMMANDS', async (type, _options, dryRun) => {
         if (!chatCompletionActive()) return;
         const lane = laneFor(dryRun), epoch = cancellation;
         trace('afterCommands', { type: diagnosticLabel(type), dryRun: Boolean(dryRun) });
         try {
-            await ready();
+            await ready(active(), { dryRun });
             if (epoch !== cancellation || !usesGhostSources(active())) return;
             lane.announced++;
-            lane.types.add(type);
+            lane.types.add(String(type || 'normal').toLowerCase().trim());
             // The final hook runs only for requests that survive slash commands, group
             // dispatch, connection checks and World Info scanning.
             if (!hasFinalBoundary) {
                 lane.count++;
+                await primeGhost(type, false, dryRun);
+            } else if (!dryRun && (type === 'swipe' || type === 'regenerate')) {
+                // Regenerate deletes the previous reply before interceptors run. A listener
+                // may collect here. The post-World Info boundary still rechecks the selection.
                 await primeGhost(type, false);
             }
-        } catch (error) { fail(error, active(), 'afterCommands'); if (!dryRun) stop(); }
+        } catch (error) {
+            if (epoch !== cancellation) return;
+            fail(error, active(), 'afterCommands', dryRun); if (!dryRun) stop();
+        }
     }, true);
     on('GROUP_WRAPPER_STARTED', () => {
         // The outer group request delegates to member generations before assembly.
         const lane = laneFor(false);
-        if (lane.announced === 1 && !lane.count) clearLane(lane);
+        if (lane.announced === 1 && !lane.count) { clearLane(lane); releaseIdle(false); }
     });
     on('GENERATE_AFTER_COMBINE_PROMPTS', async ({ dryRun }) => {
         const lane = laneFor(dryRun);
@@ -518,9 +571,13 @@ export function createColdPromptRuntime({
         trace('afterCombine', { dryRun: Boolean(dryRun), announced: lane.announced });
         if (!hasFinalBoundary || !lane.announced) return;
         lane.count++;
+        const epoch = cancellation;
         try {
-            for (const type of lane.types) await primeGhost(type, false);
-        } catch (error) { fail(error, active(), 'afterCombine'); if (!dryRun) stop(); }
+            for (const type of lane.types) await primeGhost(type, false, dryRun);
+        } catch (error) {
+            if (epoch !== cancellation) return;
+            fail(error, active(), 'afterCombine', dryRun); if (!dryRun) stop();
+        }
     });
     on('GENERATE_AFTER_DATA', (_data, dryRun) => {
         const lane = laneFor(dryRun);
@@ -529,32 +586,39 @@ export function createColdPromptRuntime({
         lane.count--;
         if (!dryRun) finishedLiveAssembly = true;
         if (--lane.announced === 0) clearLane(lane);
-        releaseIdle();
+        releaseIdle(dryRun);
     });
     on('GENERATION_ENDED', () => {
         trace('generationEnded');
         const live = laneFor(false);
         if (!hasFinalBoundary || (!finishedLiveAssembly && !live.count)) clearLane(live);
         finishedLiveAssembly = false;
-        if (!lanes.some(lane => lane.announced)) releaseIdle();
+        releaseIdle(false);
     });
     on('CHAT_COMPLETION_PROMPT_READY', data => {
-        try { assertReady(active()); } catch (error) { if (!fault || fault.prompts !== active()?.prompts) fail(error, active(), 'promptReady'); }
-        if (fault && fault.prompts === active()?.prompts) { data.chat = []; stop(); }
+        const dryRun = Boolean(data.dryRun);
+        const relevantFault = () => dryRun ? previewFault : fault;
+        try { assertReady(active()); } catch (error) {
+            if (relevantFault()?.prompts !== active()?.prompts) fail(error, active(), 'promptReady', dryRun);
+        }
+        if (relevantFault() && relevantFault().prompts === active()?.prompts) {
+            data.chat = [];
+            if (!dryRun) stop();
+        }
         if (!hasFinalBoundary && data.dryRun) {
             const dry = laneFor(true);
             if (dry.count && --dry.count === 0) clearLane(dry);
-            releaseIdle();
+            releaseIdle(true);
         }
     });
     on('CHAT_COMPLETION_SETTINGS_READY', data => {
         try { assertReady(active()); } catch (error) { if (!fault || fault.prompts !== active()?.prompts) fail(error, active(), 'settingsReady'); }
         if (fault && fault.prompts === active()?.prompts) { blockSerialization(data, fault.error); stop(); }
     });
-    async function primeGhost(type, reserve = true) {
+    async function primeGhost(type, reserve = true, dryRun = false) {
         const pm = getManager(), preset = pm.serviceSettings, prompts = preset.prompts;
         const epoch = cancellation;
-        preparing++;
+        if (!dryRun) preparing++;
         try {
             await waitForToggles();
             // Serialize revisions for the same preset. A slower, older read cannot publish
@@ -564,11 +628,11 @@ export function createColdPromptRuntime({
                 if (!isCurrent()) throw new PromptPreparationError('PREPARATION_INVALIDATED', 'Preset changed or generation stopped before prompt preparation.');
                 await restoreToggles(preset);
                 if (!isCurrent()) throw new PromptPreparationError('PREPARATION_INVALIDATED', 'Preset changed or generation stopped while applying prompt toggles.');
-                await ghost.prime(pm, type, reserve);
+                await (dryRun ? countGhost : ghost).prime(pm, type, reserve);
                 if (!isCurrent()) throw new PromptPreparationError('PREPARATION_INVALIDATED', 'Preset changed during prompt preparation.');
-                if (fault?.prompts === prompts) fault = null;
+                clearFault(prompts, dryRun);
             });
-        } finally { preparing--; }
+        } finally { if (!dryRun) preparing--; }
     }
     attach();
     return {
@@ -576,9 +640,14 @@ export function createColdPromptRuntime({
         isGhostPreset: () => Boolean(catalog(active())),
         async preflight(_chat, _size, abort, type) {
             if (!chatCompletionActive()) return true;
+            const epoch = cancellation, owner = active()?.prompts;
             trace('preflight', { type: diagnosticLabel(type) });
             try { await ready(); assertReady(active()); if (usesGhostSources(active())) await primeGhost(type); }
-            catch (error) { fail(error, active(), 'preflight'); abort(true); return false; }
+            catch (error) {
+                if (epoch === cancellation && owner === active()?.prompts) fail(error, active(), 'preflight');
+                abort(true);
+                return false;
+            }
             return true;
         },
         getLastFailure: diagnostics.getLastFailure,
