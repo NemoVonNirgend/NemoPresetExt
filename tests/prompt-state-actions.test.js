@@ -41,6 +41,7 @@ function harness({ directives = false, api = 'openai', saved = ['b'] } = {}) {
         showStatusMessage(...args) { notices.push(args); },
         showPromptRestorationNotification(...args) { restorations.push(args); },
         beginToggle() { begin++; }, endToggle() { end++; }, updateSectionCount() {},
+        paintSectionCounts(sections, read = section => this.getAggregatedCounts(section)) { return sections.map(read); },
         getDividerInfo(element) { return classify(element.querySelector().textContent); },
         applySnapshot(...args) { legacyCalls++; return ['legacy-apply', ...args]; },
         restorePromptStates(...args) { legacyCalls++; return ['legacy-restore', ...args]; },
@@ -234,4 +235,15 @@ test('teardown restores owned methods and retained wrappers fall through to orig
     h.manager.applySnapshot = later; h.adapter.dispose(); h.adapter.dispose();
     assert.equal(h.manager.applySnapshot, later);
     assert.deepEqual(await h.manager.applySnapshot('after'), ['legacy-apply', 'after']);
+});
+
+test('all counters in one visual refresh share one current canonical index', () => {
+    const h = harness(), sections = ['h', 's'].map(h.section);
+    const first = h.manager.paintSectionCounts(sections);
+    assert.deepEqual(first, [{ enabled: 1, total: 3 }, { enabled: 1, total: 2 }]);
+    assert.equal(h.adapter.getStats().sectionReads, 1);
+    h.pm.getPromptOrderForCharacter().find(e => e.identifier === 'a').enabled = true;
+    assert.deepEqual(h.manager.paintSectionCounts(sections)[0], { enabled: 2, total: 3 });
+    assert.equal(h.adapter.getStats().sectionReads, 2);
+    h.adapter.dispose();
 });

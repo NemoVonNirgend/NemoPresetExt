@@ -1,3 +1,4 @@
+import { saveToggleChanges } from '../prompt-rendering/state-actions.js';
 /**
  * Nemo Directive System UI Components
  * Toast notifications and conflict resolution UI
@@ -309,7 +310,7 @@ function setPromptEnabled(identifier, enabled) {
 
         promptOrderEntry.enabled = enabled;
         promptManager.render();
-        const saveResult = promptManager.saveServiceSettings();
+        const saveResult = saveToggleChanges(promptManager, [[identifier, enabled]]);
         saveResult?.catch?.(error => logger.error('Error saving prompt state:', error));
         return true;
     } catch (error) {

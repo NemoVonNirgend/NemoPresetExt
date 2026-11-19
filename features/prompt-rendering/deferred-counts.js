@@ -48,9 +48,10 @@ export function isToggleOnlyChange(before, after) {
     return toggled;
 }
 
-export function installDeferredTokenCounts({ pm, enabled = () => true, notify = () => {} }) {
-    let disposed = false, baseline = toggleSignature(pm);
-    const stats = { deferredDryRuns: 0, nativeDryRuns: 0, refreshes: 0 };
+export function installDeferredTokenCounts({ pm, enabled = () => true, notify = () => {}, ghostMode = () => globalThis.NemoColdPrompts?.isGhostPreset?.() }) {
+    let disposed = false, baseline = toggleSignature(pm), drawerObserver = null;
+    const stats = { deferredDryRuns: 0, hiddenDryRuns: 0, nativeDryRuns: 0, refreshes: 0 };
+    let explicitCount = false;
     const originals = [];
     const container = () => pm.containerElement || null;
 
@@ -65,7 +66,42 @@ export function installDeferredTokenCounts({ pm, enabled = () => true, notify = 
         originals.push({ name, original, replacement, own });
     }
 
+    // ST binds renderDebounced to its original render during construction. Both
+    // render paths still call tryGenerate exclusively for panel token estimates.
+    function clearDrawerObserver() {
+        drawerObserver?.disconnect();
+        drawerObserver = null;
+    }
+    wrap('tryGenerate', original => function (...args) {
+        if (!disposed && enabled() && ghostMode() && !explicitCount) {
+            setStale(true); stats.deferredDryRuns++;
+            return Promise.resolve();
+        }
+        const drawer = container()?.closest?.('#left-nav-panel');
+        if (disposed || !enabled() || !(this.serviceSettings?.prompts?.length >= 64)
+            || !drawer?.classList.contains('closedDrawer') || typeof MutationObserver !== 'function') {
+            if (!disposed) stats.nativeDryRuns++;
+            return original.apply(this, args);
+        }
+        setStale(true);
+        stats.hiddenDryRuns++;
+        if (!drawerObserver) {
+            drawerObserver = new MutationObserver(() => {
+                if (disposed || drawer.classList.contains('closedDrawer')) return;
+                clearDrawerObserver();
+                baseline = null;
+                pm.render();
+            });
+            drawerObserver.observe(drawer, { attributes: true, attributeFilter: ['class'] });
+        }
+        return Promise.resolve();
+    });
+
     wrap('render', original => function (afterTryGenerate = true, ...args) {
+        if (!disposed && afterTryGenerate === true && enabled() && ghostMode()) {
+            setStale(true); stats.deferredDryRuns++;
+            return original.call(this, false, ...args);
+        }
         if (disposed || afterTryGenerate === false || !enabled()) {
             if (!disposed) baseline = toggleSignature(this);
             return original.call(this, afterTryGenerate, ...args);
@@ -77,7 +113,6 @@ export function installDeferredTokenCounts({ pm, enabled = () => true, notify = 
         } catch (error) { notify(error); }
         baseline = current;
         if (!defer) {
-            stats.nativeDryRuns++;
             return original.call(this, afterTryGenerate, ...args);
         }
         stats.deferredDryRuns++;
@@ -87,7 +122,7 @@ export function installDeferredTokenCounts({ pm, enabled = () => true, notify = 
     // Called by ST once counts are fresh: after a dry run and after a real generation.
     wrap('setChatCompletion', original => function (...args) {
         const result = original.apply(this, args);
-        if (!disposed) setStale(false);
+        if (!disposed) { clearDrawerObserver(); setStale(false); }
         return result;
     });
 
@@ -98,7 +133,11 @@ export function installDeferredTokenCounts({ pm, enabled = () => true, notify = 
         if (!event.target?.closest?.('.completion_prompt_manager_header')) return;
         stats.refreshes++;
         baseline = null;
-        pm.render();
+        if (ghostMode()) {
+            explicitCount = true;
+            try { Promise.resolve(pm.tryGenerate()).then(() => { if (!disposed) pm.render(false); }).catch(notify); }
+            finally { explicitCount = false; }
+        } else pm.render();
     };
     host?.addEventListener?.('click', onClick);
 
@@ -108,6 +147,7 @@ export function installDeferredTokenCounts({ pm, enabled = () => true, notify = 
         dispose() {
             if (disposed) return;
             disposed = true;
+            clearDrawerObserver();
             host?.removeEventListener?.('click', onClick);
             setStale(false);
             for (const { name, original, replacement, own } of originals.reverse()) {

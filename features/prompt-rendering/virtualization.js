@@ -72,6 +72,7 @@ export function installSectionVirtualization({
     function destroySectionDrag(section) {
         const content = section?.querySelector?.(CONTENT);
         if (!content) return;
+        content.classList.remove('nemo-accordion-sortable');
         for (const key of ['sortable', '_accordionSortable']) {
             const sortable = content[key];
             if (!sortable) continue;

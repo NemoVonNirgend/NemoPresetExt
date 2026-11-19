@@ -1,3 +1,4 @@
+import { metadataContent } from '../cold-prompts/format.js';
 /**
  * Category Tray UI Component
  * Converts category sections into folder/drawer style with tray-based selection
@@ -1288,6 +1289,10 @@ async function movePromptToTopLevel(identifier, promptData, fromSection, fromTra
  * Toggle the tray for a section
  */
 function toggleTray(section) {
+    // Touch search shows the matching rows directly. Leave the full tray closed
+    // so tapping a search-result heading does not open it behind those results.
+    if (promptManager?.listElement?.hasAttribute('data-nemo-filtering')
+        && globalThis.matchMedia?.('(pointer: coarse)').matches) return;
     const sectionId = getSectionId(section);
     // Check stored reference instead of querySelector (tray is sibling, not child)
     const existingTray = section._nemoCategoryTray;
@@ -1973,10 +1978,20 @@ function openTray(section) {
             const identifier = card.dataset.identifier;
             const prompt = prompts.find(p => p.identifier === identifier);
             if (!prompt) return;
-            // Another tray or a directive auto-resolution may have changed it.
-            refreshPromptEnabledFlags(prompts);
-            const newState = !prompt.isEnabled;
-            await applyCanonicalChanges([{ identifier, enabled: newState }]);
+            const toggle = globalThis.NemoPromptRendering?.togglePrompt;
+            try {
+                // Resolve the next state inside the queue. Several clicks can arrive
+                // while a previous toggle is still saving.
+                if (typeof toggle === 'function') {
+                    await toggle(identifier);
+                } else {
+                    refreshPromptEnabledFlags(prompts);
+                    await applyCanonicalChanges([{ identifier, enabled: !prompt.isEnabled }]);
+                }
+            } catch (error) {
+                logger.error('Could not save prompt toggle:', error);
+                globalThis.toastr?.error?.(error.message, 'Nemo prompt switch');
+            }
             refreshPromptEnabledFlags(prompts);
             const enabled = Boolean(prompt.isEnabled);
             card.classList.toggle('nemo-prompt-card-enabled', enabled);
@@ -2645,9 +2660,9 @@ async function loadPromptTokenCount(identifier) {
 function handleAutoResolution(issues, promptId) {
     const allPrompts = getAllPromptsWithState();
     const prompt = allPrompts.find(p => p.identifier === promptId);
-    if (!prompt || !prompt.content) return;
+    if (!metadataContent(prompt)) return;
 
-    const directives = parsePromptDirectives(prompt.content);
+    const directives = parsePromptDirectives(metadataContent(prompt));
 
     for (const issue of issues) {
         // Auto-disable conflicting prompts if specified in @auto-disable
@@ -3243,6 +3258,7 @@ function initAccordionDragDrop(section) {
             ghostClass: 'nemo-accordion-drag-ghost',
             forceFallback: false, // Use native drag for better performance
             filter: '.nemo-header-item, details.nemo-engine-section', // Don't allow dragging headers or sub-sections
+            onMove: () => !promptManager?.listElement?.hasAttribute('data-nemo-filtering'),
             onEnd: async (evt) => {
                 const { from, to, item } = evt;
                 const fromSection = from.closest('details.nemo-engine-section');
@@ -3296,6 +3312,7 @@ function initAccordionDragDrop(section) {
                 }
             }
         });
+        content.classList.add('nemo-accordion-sortable');
         console.log('[NemoTray] Initialized accordion drag-drop for section:', getSectionId(section));
     }
 }
@@ -3363,6 +3380,7 @@ function disableAccordionMode() {
                 content._accordionSortable.destroy();
                 delete content._accordionSortable;
             }
+            content.classList.remove('nemo-accordion-sortable');
         }
 
         // Clean up prompt item enhancements

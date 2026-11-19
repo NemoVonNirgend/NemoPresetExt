@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, basename } from 'node:path';
 import { PromptBodyStore, digest } from '../features/cold-prompts/store.js';
 import { createColdPromptRuntime } from '../features/cold-prompts/controller.js';
-import { descriptorOf, isCold, shellFor } from '../features/cold-prompts/format.js';
+import { descriptorOf, isCold, idleContent, matchesShell } from '../features/cold-prompts/format.js';
 
 if (!process.argv[2]) throw new Error('Usage: node scripts/validate-cold-preset.mjs PRESET.json [REPORT.json]');
 const text = await readFile(process.argv[2], 'utf8');
@@ -27,7 +27,12 @@ const fileFetch = async (url, options = {}) => {
 const pm = {
     serviceSettings: preset, activeCharacter: { id: preset.prompt_order[0].character_id },
     getPromptOrderForCharacter(c) { return this.serviceSettings.prompt_order.find(p => p.character_id === c.id).order; },
-    preparePrompt(p) { return p; }, getPromptCollection() {}, loadPromptIntoEditForm() {},
+    preparePrompt(p) { return p; },
+    getPromptCollection() {
+        const entries = this.getPromptOrderForCharacter(this.activeCharacter);
+        return entries.filter(e => e.enabled).map(e => this.preparePrompt(this.serviceSettings.prompts.find(p => p.identifier === e.identifier)));
+    },
+    loadPromptIntoEditForm() {},
     export() {}, import() {}, async tryGenerate() {}, async saveServiceSettings() {},
 };
 const runtime = createColdPromptRuntime({
@@ -40,24 +45,27 @@ try {
     assert.ok(descriptors.length > 0, 'No supported prompt bodies were stored.');
     for (const p of descriptors) {
         const before = original.prompts.find(o => o.identifier === p.identifier);
-        assert.equal(p.content, shellFor(before.content));
+        assert.equal(p.content, idleContent(descriptorOf(p)));
+        assert.ok(matchesShell(before.content, descriptorOf(p)));
     }
     const profiles = [];
     for (const profile of preset.prompt_order) {
         pm.activeCharacter.id = profile.character_id;
         await runtime.ready(preset, { evict: true });
         const enabled = new Set(profile.order.filter(e => e.enabled).map(e => e.identifier));
-        for (const p of preset.prompts) {
-            if (enabled.has(p.identifier)) {
-                assert.equal(p.content, original.prompts.find(o => o.identifier === p.identifier).content);
-                assert.equal(isCold(p), false);
-            } else if (descriptorOf(p)) assert.equal(isCold(p), true);
-        }
+        assert.ok(await runtime.preflight([], 0, assert.fail, 'normal'));
+        const prepared = pm.getPromptCollection();
+        for (const p of prepared) assert.equal(p.content, original.prompts.find(o => o.identifier === p.identifier).content);
+        for (const p of descriptors) assert.equal(isCold(p), runtime.isGhostPreset() || !enabled.has(p.identifier));
         profiles.push({ characterId: profile.character_id, enabled: enabled.size, ...runtime.getStats() });
     }
     // Simulate a fresh browser/runtime: no shared object, hot cache or IndexedDB.
     const freshStore = new PromptBodyStore({ fetchFn: fileFetch });
-    const restored = { ...preset, prompts: await freshStore.restorePrompts(JSON.parse(JSON.stringify(preset.prompts))) };
+    const restored = JSON.parse(JSON.stringify(preset));
+    const fresh = createColdPromptRuntime({
+        events: { on() {}, removeListener() {} }, types: {}, getManager: () => null, store: freshStore,
+    });
+    try { await fresh.exportReady(restored); } finally { fresh.dispose(); }
     assert.deepEqual(restored, original);
     assert.equal(JSON.stringify(restored), JSON.stringify(original));
     const report = {

@@ -1,3 +1,4 @@
+import { metadataContent } from '../cold-prompts/format.js';
 /** Metadata-only views. Source objects remain owned by ST; no full-body string keys. */
 export function directiveProjection(content) {
     if (typeof content !== 'string' || !content) return '';
@@ -37,7 +38,7 @@ export class PromptMetadataIndex {
         for (const prompt of prompts) {
             if (!prompt || typeof prompt !== 'object') continue;
             this.byId.set(prompt.identifier, prompt);
-            const length = typeof prompt.content === 'string' ? prompt.content.length : 0;
+            const length = metadataContent(prompt).length;
             if (!this.byLength.has(length)) this.byLength.set(length, []);
             this.byLength.get(length).push(prompt);
         }
@@ -50,7 +51,7 @@ export class PromptMetadataIndex {
     }
     get(source) {
         if (source && typeof source === 'object') {
-            const content = typeof source.content === 'string' ? source.content : '';
+            const content = metadataContent(source);
             const cached = this.records.get(source);
             if (cached && cached.content === content) {
                 this.stats.hits++;
@@ -64,11 +65,11 @@ export class PromptMetadataIndex {
         // Compatibility with existing parsePromptDirectives(prompt.content) calls.
         // Length buckets avoid hashing megabytes just to find the owning prompt.
         for (const prompt of this.byLength.get(content.length) || []) {
-            if (prompt.content === content) return this.get(prompt);
+            if (metadataContent(prompt) === content) return this.get(prompt);
         }
         // An edit may change length before the host's settings event arrives.
         for (const prompt of this.byId.values()) {
-            if (prompt.content === content) {
+            if (metadataContent(prompt) === content) {
                 this.bind([...this.byId.values()]);
                 return this.get(prompt);
             }
@@ -126,7 +127,7 @@ export function createDirectiveFacade(rules, getPrompts = () => []) {
     function projection(prompt) {
         const metadata = sync();
         const canonical = metadata.byId.get(prompt.identifier);
-        const source = canonical?.content === prompt.content ? canonical : prompt;
+        const source = canonical && metadataContent(canonical) === metadataContent(prompt) ? canonical : prompt;
         return { ...prompt, content: metadata.get(source).projection };
     }
     return {

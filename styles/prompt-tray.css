@@ -4,6 +4,21 @@ body[data-nemo-prompt-ui] .nemo-tray-section > .nemo-section-content.nemo-tray-h
     display: none !important;
 }
 
+/* ST hides handles unless its own sorter marked them. Nemo supplies the sorter here. */
+#completion_prompt_manager #completion_prompt_manager_list .nemo-accordion-sortable > .completion_prompt_manager_prompt:not(.nemo-header-item) {
+    position: relative;
+    padding-left: 20px;
+}
+
+#completion_prompt_manager #completion_prompt_manager_list .nemo-accordion-sortable > .completion_prompt_manager_prompt:not(.nemo-header-item) > .drag-handle {
+    display: flex;
+    left: 0;
+}
+
+#completion_prompt_manager_list[data-nemo-filtering] .drag-handle {
+    visibility: hidden;
+}
+
 body[data-nemo-prompt-ui] .nemo-tray-section > summary::after {
     content: '\1F4C1 ';
     margin-left: 7px;

@@ -1,5 +1,5 @@
 /** Verified, immutable packs in ST's authenticated files directory. No localStorage body copies. */
-import { BODY_KEY, MAX_BODY_CHARS, checkedDescriptor, descriptorOf, isCold, shellFor, portablePrompt } from './format.js';
+import { BODY_KEY, MAX_BODY_CHARS, checkedDescriptor, descriptorOf, isCold, shellFor, matchesShell, portablePrompt } from './format.js';
 import { alternateUserFilePath, currentUserFilePath, matchedUserFilePath } from '../../core/user-file-path.js';
 import { digest } from '../../core/sha256.js';
 const encoder = new TextEncoder();
@@ -52,7 +52,7 @@ export class PromptBodyStore {
     unpack(pack, descriptor) {
         const d = checkedDescriptor(descriptor);
         const content = pack.bodies[d.index];
-        if (typeof content !== 'string' || content.length !== d.characters || shellFor(content) !== d.shell) {
+        if (typeof content !== 'string' || content.length !== d.characters || !matchesShell(content, d)) {
             throw new Error('Prompt body does not match its metadata reference.');
         }
         return content;

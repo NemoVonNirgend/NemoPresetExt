@@ -1,3 +1,4 @@
+import { metadataContent } from '../cold-prompts/format.js';
 /** Public directive API: cached metadata views over the unchanged language rules. */
 import * as rules from './prompt-directive-rules.js';
 import { promptManager } from '../../../../../openai.js';
@@ -21,7 +22,7 @@ export function getAllPromptsWithState() {
     return [...index.byId.values()].map(prompt => ({
         identifier: prompt.identifier,
         name: prompt.name,
-        content: prompt.content,
+        content: metadataContent(prompt),
         enabled: states.has(prompt.identifier) ? Boolean(states.get(prompt.identifier)) : true,
         role: prompt.role,
         system_prompt: prompt.system_prompt,

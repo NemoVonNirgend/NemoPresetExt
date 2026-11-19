@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { BODY_KEY, checkedDescriptor, isCold, isNemoPreset, eligible, shellFor, bodyRevision, blockSerialization } from '../features/cold-prompts/format.js';
+import { ToggleJournal } from '../features/cold-prompts/toggle-journal.js';
 import { PromptBodyStore, digest } from '../features/cold-prompts/store.js';
 import { createColdPromptRuntime } from '../features/cold-prompts/controller.js';
 import { installCommentView } from '../features/prompt-performance/comment-view.js';
@@ -365,7 +366,7 @@ function browserHarness(env) {
         extension_settings: {}, promptManager: env.pm, NemoPresetManager: nm,
         syncPromptMetadata: () => ({ records: new WeakMap() }),
         PromptBodyStore: class { constructor() { return env.store; } },
-        createColdPromptRuntime, isCold, BODY_KEY, recipeCalls: 0,
+        createColdPromptRuntime, ToggleJournal, accountsEnabled: false, currentUser: null, isCold, BODY_KEY, recipeCalls: 0,
         nemoRecipeRuntimePreflight: originalPreflight,
         document: {
             addEventListener(type, fn) { handlers.set(type, fn); },
@@ -415,4 +416,203 @@ test('failed cold preflight never reaches the recipe generation interceptor', as
     let abort = false;
     await browser.sandbox.nemoRecipeRuntimePreflight([], 1000, () => { abort = true; });
     assert.equal(abort, true); assert.equal(browser.sandbox.recipeCalls, 0); browser.cleanupColdPrompts();
+});
+
+test('global saves use verified shells, reload the saved order, and preserve inline edits on failure', async () => {
+    const env = await installed(), { pm, runtime } = env;
+    const disk = () => JSON.parse(JSON.stringify({ oai_settings: pm.serviceSettings })).oai_settings;
+    try {
+        const order = pm.getPromptOrderForCharacter(pm.activeCharacter);
+        order.find(e => e.identifier === 'optional').enabled = true;
+        await pm.saveServiceSettings();
+        const active = pm.getPromptById('optional'), body = active.content;
+        const snapshot = disk();
+        assert(isCold(snapshot.prompts.find(p => p.identifier === 'optional')));
+        assert.equal(JSON.parse(JSON.stringify(pm.serviceSettings)).prompts[3].content, body);
+        assert.equal(structuredClone(pm.serviceSettings).prompts[3].content, body);
+        pm.serviceSettings = snapshot;
+        const messages = await pm.tryGenerate();
+        assert(messages.some(p => p.content === body));
+        assert.deepEqual(pm.getPromptOrderForCharacter(pm.activeCharacter), order);
+        assert.equal(pm.getPromptById('optional').content, body);
+
+        pm.getPromptById('optional').content = 'unsaved current source';
+        assert.equal(disk().prompts[3].content, 'unsaved current source');
+        env.network.failWrites();
+        await pm.saveServiceSettings();
+        assert.equal(disk().prompts[3].content, 'unsaved current source');
+        assert.equal(snapshot.toJSON instanceof Function, true);
+        runtime.dispose();
+        assert.equal(snapshot.toJSON, undefined);
+    } finally { runtime.dispose(); }
+});
+
+test('upgrades a previously inline active preset and writes its verified bodies once', async () => {
+    const env = environment();
+    try {
+        await env.runtime.ready(env.pm.serviceSettings, { evict: true });
+        const writes = env.store.stats.writes;
+        assert(writes > 0);
+        const p = env.pm.getPromptById('nemo-user-role-character');
+        const serialized = () => JSON.parse(JSON.stringify({ oai_settings: env.pm.serviceSettings })).oai_settings;
+        assert(isCold(serialized().prompts[1]));
+        assert.equal(isCold(p), false);
+        await env.pm.saveServiceSettings();
+        assert.equal(env.store.stats.writes, writes);
+        p[BODY_KEY].index++;
+        assert.equal(serialized().prompts[1].content, p.content, 'altered reference cannot replace live source');
+    } finally { env.runtime.dispose(); }
+});
+
+
+test('disabling automatic storage leaves enabled bodies inline on global saves', async () => {
+    let automatic = true;
+    const env = await installed({ autoStore: () => automatic });
+    try {
+        await env.pm.tryGenerate();
+        automatic = false;
+        const saved = JSON.parse(JSON.stringify({ oai_settings: env.pm.serviceSettings })).oai_settings;
+        assert.equal(saved.prompts[1].content, env.original.prompts[1].content);
+    } finally { env.runtime.dispose(); }
+});
+
+function ghostFixture() {
+    const data = fixture();
+    data.preset_settings_openai = 'Test Ghost';
+    for (const prompt of [
+        { identifier: 'nemo-init-reset', name: 'Reset', content: '{{setvar::active::}}' },
+        { identifier: 'nemo-runtime-state-resolver', name: 'Settings resolver', content: '{{getvar::active}}' },
+        { identifier: 'swipe-only', name: 'Swipe', content: 'Only for a swipe', injection_trigger: ['swipe'] },
+    ]) {
+        data.prompts.push(prompt);
+        for (const profile of data.prompt_order) profile.order.push({ identifier: prompt.identifier, enabled: true });
+    }
+    return data;
+}
+
+function ghostTestEnvironment(options = {}) {
+    const data = ghostFixture(), original = structuredClone(data);
+    const env = environment(data, options);
+    env.pm.shouldTrigger = (p, type) => !p?.injection_trigger?.length || p.injection_trigger.includes(type);
+    const selected = type => env.pm.getPromptOrderForCharacter(env.pm.activeCharacter)
+        .map(e => e.enabled && env.pm.getPromptById(e.identifier)).filter(p => p && env.pm.shouldTrigger(p, type));
+    // Install the controller around the same synchronous collection shape used by ST.
+    env.runtime.dispose();
+    env.pm.getPromptCollection = function (type = 'normal') { return selected(type).map(p => this.preparePrompt(p)); };
+    const runtime = createColdPromptRuntime({ events: env.events, types, getManager: () => env.pm, store: env.store, ...options });
+    return { ...env, data, original, runtime, selected };
+}
+
+test('ghost source exists only inside a triggered assembly, including setter-only prompts', async () => {
+    const h = ghostTestEnvironment();
+    try {
+        await h.runtime.importReady({ data: h.data });
+        await h.runtime.ready(h.data, { evict: true });
+        const sources = new Map(h.original.prompts.map(p => [p.identifier, p.content]));
+        const requested = [], read = h.store.readMany.bind(h.store);
+        h.store.readMany = (rows, callback) => { requested.push(...rows.map(p => p.identifier)); return read(rows, callback); };
+        const p = h.pm.getPromptById('nemo-init-reset');
+        assert.equal(p.content, '');
+        assert.equal(await h.runtime.preflight([], 0, assert.fail, 'normal'), true);
+        assert(requested.includes(p.identifier)); assert(!requested.includes('swipe-only')); assert(!requested.includes('optional'));
+        assert.equal(p.content, '');
+        const prepared = h.pm.getPromptCollection('normal');
+        for (const entry of prepared) assert.equal(entry.content, sources.get(entry.identifier));
+        assert.equal(p.content, '');
+        assert.throws(() => h.pm.getPromptCollection('normal'), /not loaded/);
+        const out = structuredClone(h.data); await h.runtime.exportReady(out);
+        assert.deepEqual(out, h.original);
+    } finally { h.runtime.dispose(); }
+});
+
+test('overlapping ghost requests consume their own passes and late enables fail before macros run', async () => {
+    const h = ghostTestEnvironment();
+    try {
+        await h.runtime.importReady({ data: h.data });
+        await Promise.all([h.runtime.preflight([], 0, assert.fail, 'normal'), h.runtime.preflight([], 0, assert.fail, 'normal')]);
+        assert.deepEqual(h.pm.getPromptCollection('normal'), h.pm.getPromptCollection('normal'));
+        await h.runtime.preflight([], 0, assert.fail, 'normal');
+        h.data.prompt_order[0].order.find(e => e.identifier === 'optional').enabled = true;
+        const before = h.pm.prepared.length;
+        assert.throws(() => h.pm.getPromptCollection('normal'), /selection changed/);
+        assert.equal(h.pm.prepared.length, before);
+        await h.runtime.preflight([], 0, assert.fail, 'normal');
+        assert(h.pm.getPromptCollection('normal').some(p => p.identifier === 'optional'));
+    } finally { h.runtime.dispose(); }
+});
+
+test('ghost journal isolates profiles, restores a fresh session, and respects a newer native edit', async () => {
+    const records = new Map(), journal = { async access(key, edits) {
+        const id = JSON.stringify(key), flags = new Map(records.get(id));
+        for (const [name, enabled] of edits || []) flags.set(name, enabled);
+        records.set(id, [...flags]); return flags;
+    } };
+    const h = ghostTestEnvironment({ journal, getUser: () => 'test-user' });
+    try {
+        await h.runtime.importReady({ data: h.data });
+        const persisted = structuredClone(h.data);
+        const order = h.pm.getPromptOrderForCharacter(h.pm.activeCharacter);
+        order.find(e => e.identifier === 'optional').enabled = true;
+        assert(await h.runtime.saveToggles(h.pm, [['optional', true]]));
+        assert.equal(h.saved.length, 0);
+        const other = structuredClone(persisted);
+        await h.runtime.restoreToggles(other, 'Other preset');
+        assert.equal(other.prompt_order[0].order.find(e => e.identifier === 'optional').enabled, false);
+        h.pm.serviceSettings = persisted; await h.runtime.restoreToggles(persisted);
+        const entry = persisted.prompt_order[0].order.find(e => e.identifier === 'optional');
+        assert.equal(entry.enabled, true);
+        entry.enabled = false;
+        await h.pm.saveServiceSettings(); await h.runtime.restoreToggles(persisted);
+        assert.equal(entry.enabled, false);
+    } finally { h.runtime.dispose(); }
+});
+
+test('export overlays switches onto the older named preset after upgrading legacy source packs', async () => {
+    const changes = new Map(), journal = { async access(key, edits) {
+        const id = JSON.stringify(key), flags = new Map(changes.get(id));
+        for (const pair of edits || []) flags.set(...pair);
+        changes.set(id, flags); return flags;
+    } };
+    const h = ghostTestEnvironment({ journal, getUser: () => 'test-user' });
+    try {
+        const rows = h.data.prompts.filter(p => eligible(p));
+        const refs = await h.store.writeMany(rows.map(prompt => ({ prompt, content: prompt.content })));
+        for (const p of rows) { p[BODY_KEY] = refs.get(p); p.content = refs.get(p).shell; }
+        const savedNamedPreset = structuredClone(h.data);
+        await h.runtime.ready(h.data, { evict: true });
+        assert(h.runtime.isGhostPreset());
+        await h.runtime.saveToggles(h.pm, [['optional', true]]);
+        await h.runtime.exportReady(savedNamedPreset);
+        h.original.prompt_order[0].order.find(e => e.identifier === 'optional').enabled = true;
+        assert.deepEqual(savedNamedPreset, h.original);
+    } finally { h.runtime.dispose(); }
+});
+
+test('a ghost row delegates native button clicks without fetching or replaying ST’s toggle', async () => {
+    const h = ghostTestEnvironment();
+    await h.runtime.importReady({ data: h.data });
+    const browser = browserHarness(h);
+    const id = 'optional', row = { dataset: { pmIdentifier: id } }, calls = [];
+    const button = { closest: () => row, click: () => assert.fail('unexpected native toggle') };
+    browser.sandbox.NemoPromptRendering = { async togglePrompt(value) { calls.push(value); } };
+    const reads = h.store.stats.reads;
+    try {
+        const click = { target: { closest: () => button }, preventDefault() {}, stopImmediatePropagation() {} };
+        browser.handlers.get('click')(click);
+        assert.deepEqual(calls, [id]); assert.equal(h.store.stats.reads, reads);
+        assert.equal(h.pm.getPromptById(id).content, '');
+    } finally { browser.cleanupColdPrompts(); }
+});
+
+test('portable ghost exports preserve a missing or null extensions field', async () => {
+    for (const kind of ['absent', 'null']) {
+        const h = ghostTestEnvironment();
+        try {
+            if (kind === 'absent') delete h.data.extensions; else h.data.extensions = null;
+            const expected = structuredClone(h.data);
+            await h.runtime.importReady({ data: h.data });
+            const out = structuredClone(h.data); await h.runtime.exportReady(out);
+            assert.deepEqual(out, expected);
+        } finally { h.runtime.dispose(); }
+    }
 });

@@ -8,7 +8,11 @@ export function applySearchMatches(container, matches) {
     for (const row of container.querySelectorAll(ROW)) {
         const visible = matches.has(row.dataset.pmIdentifier);
         row.style.display = visible ? '' : 'none';
-        if (!visible) continue;
+        if (!visible) {
+            delete row.dataset.nemoSearchMatch;
+            continue;
+        }
+        row.dataset.nemoSearchMatch = '';
         let section = row.closest(SECTION);
         while (section && container.contains(section)) {
             section.style.display = '';
@@ -54,7 +58,7 @@ export function installSearchUI({ manager, root = document, getRows, getSources,
     }
     function status(text) {
         const node = root.getElementById('nemoSearchProgress');
-        if (node) node.textContent = text;
+        if (node) node.textContent = text ? `${text} · Clear search to reorder prompts.` : '';
     }
     async function search() {
         if (!active) return originalSearch.call(manager);
@@ -72,8 +76,10 @@ export function installSearchUI({ manager, root = document, getRows, getSources,
             const result = originalSearch.call(manager);
             const clearVirtual = globalThis.NemoPromptRendering?.clearSearchMaterialization;
             if (typeof clearVirtual === 'function') await clearVirtual();
+            if (request === current) container.removeAttribute('data-nemo-filtering');
             return result;
         }
+        container.setAttribute('data-nemo-filtering', '');
         const matches = metadataMatches(getRows(), query);
         const materialize = globalThis.NemoPromptRendering?.materializeSearch;
         if (typeof materialize === 'function') {
@@ -123,6 +129,7 @@ export function installSearchUI({ manager, root = document, getRows, getSources,
         refresh() { request++; bodySearch.dispose(); if (active) void search(); },
         cleanup() {
             active = false;
+            root.querySelector('#completion_prompt_manager_list')?.removeAttribute('data-nemo-filtering');
             request++;
             bodySearch.dispose();
             if (manager.handlePresetSearch === search) manager.handlePresetSearch = originalSearch;

@@ -18,7 +18,10 @@ export function installNativeSortGuard({ pm, jquery = () => globalThis.jQuery ||
     const stats = { blocked: 0, allowed: 0 };
 
     function release() {
-        if (binding && binding.instance.options.update === binding.guarded) binding.instance.options.update = binding.original;
+        if (!binding) return;
+        const { options } = binding.instance;
+        if (options.update === binding.guarded) options.update = binding.original;
+        if (options.cancel === binding.guardedCancel) options.cancel = binding.originalCancel;
         binding = null;
     }
 
@@ -57,8 +60,15 @@ export function installNativeSortGuard({ pm, jquery = () => globalThis.jQuery ||
                 stats.allowed++;
                 return nativeUpdate.apply(this, args);
             };
+            const originalCancel = instance.options.cancel;
+            // The accordion has its own SortableJS instance. Let its rows handle
+            // pointer input before the native root sorter can claim the drag.
+            const guardedCancel = [originalCancel, '.nemo-accordion-sortable > .completion_prompt_manager_prompt',
+                '#completion_prompt_manager_list[data-nemo-filtering] .completion_prompt_manager_prompt']
+                .filter(Boolean).join(', ');
+            instance.options.cancel = guardedCancel;
             instance.options.update = guarded;
-            binding = { instance, original: nativeUpdate, guarded, owner, activeId };
+            binding = { instance, original: nativeUpdate, guarded, originalCancel, guardedCancel, owner, activeId };
             return true;
         } catch (error) { notify(error); return false; }
     }

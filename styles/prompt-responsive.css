@@ -184,8 +184,29 @@
         opacity: 1;
     }
 
-    body[data-nemo-prompt-ui] :is(.nemo-search-controls, .nemo-right-controls-wrapper) button {
+    body[data-nemo-prompt-ui] :is(.nemo-search-controls, .nemo-right-controls-wrapper) button,
+    body[data-nemo-prompt-ui] #nemoPresetSearchContainer .nemo-search-controls > button.menu_button,
+    body[data-nemo-prompt-ui] .nemo-category-tray .nemo-tray-close {
         min-width: 40px;
         min-height: 40px;
+    }
+
+    body[data-nemo-prompt-ui] #nemoPresetSearchInput {
+        min-height: 40px;
+    }
+
+    body[data-nemo-prompt-ui] #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt .prompt_manager_prompt_controls > .prompt-manager-toggle-action {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Show only the matching rows during touch search, even in tray mode. */
+    body[data-nemo-prompt-ui] #completion_prompt_manager_list[data-nemo-filtering] .nemo-tray-section > .nemo-section-content.nemo-tray-hidden-content,
+    body[data-nemo-prompt-ui] #completion_prompt_manager_list[data-nemo-filtering] .nemo-tray-hidden-prompt[data-nemo-search-match] {
+        display: flex !important;
+    }
+
+    body[data-nemo-prompt-ui] #completion_prompt_manager_list[data-nemo-filtering] .nemo-category-tray {
+        display: none;
     }
 }
