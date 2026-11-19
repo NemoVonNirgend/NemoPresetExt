@@ -99,3 +99,47 @@ test('toggle detection compares visual metadata only, never prompt bodies', () =
     assert.equal(isToggleOnlyChange(before, before), false);
     assert.equal(isToggleOnlyChange(null, before), false);
 });
+
+test('a hidden drawer skips the bound native debounced count and recounts once on open', async t => {
+    const pm = new NativeManager(80);
+    const drawer = { classList: classList() };
+    pm.containerElement.closest = () => drawer;
+    let observe, disconnects = 0, native = 0;
+    const previous = globalThis.MutationObserver;
+    globalThis.MutationObserver = class {
+        constructor(fn) { observe = fn; }
+        observe() {}
+        disconnect() { disconnects++; }
+    };
+    t.after(() => {
+        if (previous) globalThis.MutationObserver = previous; else delete globalThis.MutationObserver;
+    });
+    pm.tryGenerate = async () => { native++; pm.setChatCompletion({}); };
+    pm.render = function (recount = true) { if (recount) return this.tryGenerate(); };
+    const nativeDebouncedCallback = pm.render.bind(pm);
+    const counts = installDeferredTokenCounts({ pm });
+    try {
+        drawer.classList.toggle('closedDrawer', true);
+        await nativeDebouncedCallback(); await nativeDebouncedCallback();
+        assert.equal(native, 0); assert.equal(counts.getStats().hiddenDryRuns, 2); assert(stale(pm));
+        drawer.classList.toggle('closedDrawer', false); observe();
+        assert.equal(native, 1); assert.equal(disconnects, 1); assert(!stale(pm));
+        drawer.classList.toggle('closedDrawer', true);
+        await nativeDebouncedCallback();
+        pm.setChatCompletion({});
+        assert.equal(disconnects, 2); assert(!stale(pm));
+    } finally { counts.dispose(); }
+});
+
+test('ghost redraws and the pre-bound native redraw skip counting until the user requests a count', async () => {
+    const pm = new NativeManager(), seen = [];
+    pm.tryGenerate = async () => { seen.push('native dry run'); pm.setChatCompletion({}); };
+    const counts = installDeferredTokenCounts({ pm, ghostMode: () => true });
+    try {
+        pm.render(); await pm.tryGenerate();
+        assert.deepEqual(pm.calls, [false]); assert.deepEqual(seen, []); assert(stale(pm));
+        pm.containerElement.listeners[0]({ target: header });
+        await new Promise(resolve => setImmediate(resolve));
+        assert.deepEqual(seen, ['native dry run']); assert(!stale(pm)); assert.equal(pm.calls.at(-1), false);
+    } finally { counts.dispose(); }
+});

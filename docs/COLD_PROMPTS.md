@@ -1,4 +1,14 @@
-# Disabled prompt storage: Stage 3/5
+# Prompt source storage
+
+## Ghost presets in 6.0.29 beta
+
+Ghost mode applies automatically to supported Nemo presets with the v12.7 reset and runtime-state resolver. Managed prompt bodies live in checksum-verified files in the ST user's files directory. The catalog keeps each identifier, name, role, injection settings, order, and directive metadata. Its managed `content` fields are empty, including the reset initializer. Native ST markers retain their original placeholder content.
+
+Normal generation loads sources only for enabled entries matching ST’s generation trigger. Nemo passes the originals into ST in native order and releases its preparation map after the synchronous collection. Enabled prompts that set variables or resolve settings still execute even if they emit zero text. A pack can contain several sources. ST receives only the selected entries. Opening an editor or explicitly searching prompt text can also read source. Clicking the stale token total requests a count.
+
+Switching prompts through Nemo saves the touched flags in IndexedDB, scoped to this ST account, named preset, catalog revision, and order profile. The flags survive a page reload in the same browser. Use **Save Preset** for a configuration you want on other devices, and export a portable copy before using the preset with another installation or an older extension. Clearing browser site data discards local toggle overrides. ST can still perform its own global saves and load older portable presets at startup.
+
+## Legacy cold-prompt storage
 
 Version 6.0.3 adds durable source storage for ordinary prompts in recognized Nemo ST presets. This is separate from Stage 1's writing-recipe database and Stage 4's planned Vex library extraction. It does not virtualize the DOM; that is Stage 5.
 

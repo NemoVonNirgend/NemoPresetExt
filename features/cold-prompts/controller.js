@@ -1,12 +1,15 @@
-import { BODY_KEY, descriptorOf, isCold, eligible, hasBodies, isNemoPreset, validatePreset, portablePrompt, blockSerialization } from './format.js';
+import { GhostPreparation } from './ghost-preparation.js';
+import { BODY_KEY, descriptorOf, isCold, eligible, hasBodies, isNemoPreset, validatePreset, idleContent, isGhost, ghostDescriptor, GHOST_SCHEMA, blockSerialization } from './format.js';
 
 /** Explicit async boundaries around ST's synchronous prompt preparation. */
 export function createColdPromptRuntime({
     events, types, getManager, store, getContext = () => ({}),
     notify = () => {}, sourceChanged = () => {}, editorLoading = () => {},
-    autoStore = () => true,
+    autoStore = () => true, journal = null, getUser = () => null, waitForToggles = () => {},
 }) {
     let disposed = false, manager = null, editor = null, editTicket = 0, fault = null;
+    let settingsOwner = null, running = 0, journalUnavailable = false;
+    const lastFlags = new WeakMap();
     const pins = new Map();
     const hot = new WeakMap();
     const queues = new WeakMap();
@@ -21,6 +24,65 @@ export function createColdPromptRuntime({
     const onChange = p => { sourceChanged(p); };
     const pin = p => pins.set(p, (pins.get(p) ?? 0) + 1);
     const unpin = p => { if ((pins.get(p) ?? 0) <= 1) pins.delete(p); else pins.set(p, pins.get(p) - 1); };
+    const ghost = new GhostPreparation(store);
+    const catalogKey = 'nemoGhostCatalog';
+    const catalog = preset => {
+        const record = preset?.extensions?.[catalogKey];
+        const id = typeof record === 'object' ? record?.id : record;
+        return typeof id === 'string' && /^(?:[a-f0-9]{32}|[a-f0-9]{64})$/.test(id) ? id : null;
+    };
+    const ghostCandidate = preset => Boolean(catalog(preset)) || preset?.prompts?.some(isGhost) || (autoStore() && isNemoPreset(preset)
+        && !preset.extensions?.nemoRecipeRuntime && !preset.extensions?.nemoVexRuntime
+        && preset.prompts.some(p => p.identifier === 'nemo-init-reset')
+        && preset.prompts.some(p => p.identifier === 'nemo-runtime-state-resolver'));
+    function ensureCatalog(preset, id) {
+        if (catalog(preset)) return;
+        const original = preset.extensions;
+        preset.extensions ??= {};
+        preset.extensions[catalogKey] = original == null
+            ? { id, container: original === null ? 'null' : 'absent' } : id;
+    }
+    function scope(preset, name, profile) {
+        const user = getUser();
+        return journal && !journalUnavailable && user && catalog(preset) && name
+            ? [user, name, catalog(preset), String(profile)] : null;
+    }
+    async function restoreToggles(preset, name = preset?.preset_settings_openai) {
+        if (!catalog(preset)) return false;
+        let changed = false;
+        for (const profile of preset.prompt_order || []) {
+            const key = scope(preset, name, profile.character_id);
+            if (!key) continue;
+            const before = new Map(profile.order.map(e => [e.identifier, e.enabled]));
+            let flags;
+            try { flags = await journal.access(key); }
+            catch (error) {
+                journalUnavailable = true;
+                notify(`Local prompt switches could not be read. Using ST’s current flags and native saves in this session. ${error.message}`, 'warning');
+                return changed;
+            }
+            const previous = lastFlags.get(profile.order);
+            for (const entry of profile.order) {
+                const id = entry.identifier;
+                if (!flags.has(id) || entry.enabled !== before.get(id)
+                    || (previous?.has(id) && entry.enabled !== previous.get(id))) continue;
+                if (entry.enabled !== flags.get(id)) { entry.enabled = flags.get(id); changed = true; }
+            }
+            lastFlags.set(profile.order, flags);
+        }
+        return changed;
+    }
+    async function saveToggles(pm, changes) {
+        const preset = pm.serviceSettings;
+        const key = scope(preset, preset.preset_settings_openai, pm.activeCharacter?.id);
+        if (!key) return false;
+        const order = pm.getPromptOrderForCharacter(pm.activeCharacter);
+        const flags = lastFlags.get(order) || new Map();
+        await journal.access(key, changes);
+        for (const [id, enabled] of changes) flags.set(id, enabled);
+        lastFlags.set(order, flags);
+        return true;
+    }
     function orderFor(preset) {
         const pm = getManager();
         if (preset === pm?.serviceSettings) return pm.getPromptOrderForCharacter(pm.activeCharacter) ?? [];
@@ -55,6 +117,33 @@ export function createColdPromptRuntime({
         work.finally(() => { if (queues.get(s.prompts) === work) queues.delete(s.prompts); }).catch(() => {});
         return work;
     }
+    function markVerified(p) {
+        const descriptor = descriptorOf(p);
+        hot.set(p, { descriptor, content: p.content, shell: descriptor.shell, index: descriptor.index,
+            characters: descriptor.characters, path: descriptor.ref.path, hash: descriptor.ref.sha256 });
+    }
+    function hasVerifiedBody(p) {
+        const stamp = hot.get(p), d = descriptorOf(p);
+        return Boolean(stamp && stamp.content === p.content && stamp.descriptor === d && (d.schema === 1 || d.schema === GHOST_SCHEMA)
+            && stamp.index === d.index && stamp.characters === d.characters && stamp.shell === d.shell
+            && stamp.path === d.ref?.path && stamp.hash === d.ref?.sha256);
+    }
+    // Stock ST serializes the live settings object under this key. Use the same
+    // verified shell format as a cold import without changing live prompt bodies.
+    function settingsJSON(key) {
+        if (disposed || key !== 'oai_settings' || this !== settingsOwner || !autoStore() || !Array.isArray(this.prompts)) return this;
+        return { ...this, prompts: this.prompts.map(p => hasVerifiedBody(p)
+            ? { ...p, content: idleContent(descriptorOf(p)) } : p) };
+    }
+    function bindSettings(owner) {
+        if (settingsOwner === owner) return;
+        if (settingsOwner?.toJSON === settingsJSON) delete settingsOwner.toJSON;
+        settingsOwner = null;
+        if (owner && !('toJSON' in owner) && Object.isExtensible(owner)) {
+            Object.defineProperty(owner, 'toJSON', { configurable: true, writable: true, value: settingsJSON });
+            settingsOwner = owner;
+        }
+    }
     async function hydrateList(prompts) {
         const waiting = prompts.filter(isCold);
         const before = new Map(waiting.map(p => [p, { descriptor: descriptorOf(p), content: p.content }]));
@@ -64,23 +153,30 @@ export function createColdPromptRuntime({
                 stats.rejectedStale++; return;
             }
             p.content = content;
-            hot.set(p, { descriptor: descriptorOf(p), content });
+            markVerified(p);
             stats.hydrated++;
             onChange(p);
         });
     }
-    async function evictDisabled(s) {
+    async function storeBodies(s, useGhost) {
         if (!managed(s)) return;
         const dirty = [];
         const state = enabled(s);
         for (const p of s.prompts) {
-            if (required(p, s, state) || isCold(p)) continue;
+            if (isCold(p)) {
+                if (useGhost && !isGhost(p)) {
+                    p[BODY_KEY] = ghostDescriptor(descriptorOf(p));
+                    p.content = ''; onChange(p);
+                }
+                continue;
+            }
             const d = descriptorOf(p);
-            const stamp = hot.get(p);
-            if (d && stamp?.descriptor === d && stamp.content === p.content) {
-                p.content = d.shell;
+            if (hasVerifiedBody(p)) {
+                if (pins.has(p) || (!useGhost && required(p, s, state))) continue;
+                if (useGhost && d.schema !== GHOST_SCHEMA) p[BODY_KEY] = ghostDescriptor(d);
+                p.content = idleContent(descriptorOf(p));
                 hot.delete(p); onChange(p); stats.evicted++;
-            } else if (d || eligible(p)) {
+            } else if (d || (autoStore() && eligible(p, useGhost))) {
                 dirty.push({ prompt: p, content: p.content, descriptor: d });
             }
         }
@@ -93,10 +189,10 @@ export function createColdPromptRuntime({
             if (disposed || p.content !== record.content || descriptorOf(p) !== record.descriptor || !s.prompts.includes(p)) {
                 stats.rejectedStale++; continue;
             }
-            p[BODY_KEY] = descriptors.get(p);
-            hot.set(p, { descriptor: descriptorOf(p), content: p.content });
-            if (!required(p, s, nextState)) {
-                p.content = descriptorOf(p).shell;
+            p[BODY_KEY] = useGhost ? ghostDescriptor(descriptors.get(p)) : descriptors.get(p);
+            markVerified(p);
+            if (useGhost ? !pins.has(p) : !required(p, s, nextState)) {
+                p.content = idleContent(descriptorOf(p));
                 hot.delete(p); stats.evicted++;
             }
             onChange(p);
@@ -104,24 +200,36 @@ export function createColdPromptRuntime({
     }
     async function ready(preset = active(), { evict = false } = {}) {
         if (!managed(preset)) return;
+        if (preset === active()) bindSettings(preset);
         const s = snapshot(preset);
+        const useGhost = ghostCandidate(preset);
         return enqueue(s, async () => {
+            async function maintain() {
+                try {
+                    await storeBodies(s, useGhost);
+                } catch (error) {
+                    notify(`Prompt kept in memory because storage failed: ${error.message}`, 'warning');
+                }
+                if (useGhost && !catalog(preset) && preset.prompts === s.prompts) {
+                    const anchor = s.prompts.find(p => p.identifier === 'nemo-init-reset' && descriptorOf(p))
+                        || s.prompts.find(isGhost);
+                    if (anchor) ensureCatalog(preset, descriptorOf(anchor).ref.sha256);
+                }
+            }
+            // Convert legacy shells before considering eager hydration. On storage
+            // failure any remaining legacy entries keep their original boundaries.
+            if (useGhost && (evict || !catalog(preset))) await maintain();
+            const needsBody = (p, state) => required(p, s, state) && !isGhost(p) && isCold(p);
             for (let attempt = 0; attempt < 4; attempt++) {
                 const state = enabled(s);
-                const targets = s.prompts.filter(p => required(p, s, state) && isCold(p));
+                const targets = s.prompts.filter(p => needsBody(p, state));
                 if (!targets.length) break;
                 await hydrateList(targets);
             }
             const state = enabled(s);
-            if (s.prompts.some(p => required(p, s, state) && isCold(p))) throw new Error('Prompt selection changed while loading. Retry after it settles.');
-            if (fault?.prompts === s.prompts) fault = null;
-            if (evict) {
-                try { await evictDisabled(s); }
-                catch (error) {
-                    // A failed optimization must not erase or prevent saving the full edited source.
-                    notify(`Prompt kept in memory because storage failed: ${error.message}`, 'warning');
-                }
-            }
+            if (s.prompts.some(p => needsBody(p, state))) throw new Error('Prompt selection changed while loading. Retry after it settles.');
+            if (!useGhost && fault?.prompts === s.prompts) fault = null;
+            if (!useGhost && evict) await maintain();
         });
     }
     async function importReady({ data }) {
@@ -143,13 +251,19 @@ export function createColdPromptRuntime({
                 await store.readMany(data.prompts.filter(isCold), () => {});
                 return;
             }
-            const records = data.prompts.filter(eligible).map(prompt => ({ prompt, content: prompt.content }));
+            const useGhost = ghostCandidate(data);
+            const records = data.prompts.filter(p => eligible(p, useGhost)).map(prompt => ({ prompt, content: prompt.content }));
             if (!records.length) return;
             const descriptors = await store.writeMany(records);
             if (disposed) throw new Error('Prompt import was cancelled.');
             const prompts = data.prompts.map(p => descriptors.has(p) ? {
-                ...p, [BODY_KEY]: descriptors.get(p), content: descriptors.get(p).shell,
+                ...p, [BODY_KEY]: useGhost ? ghostDescriptor(descriptors.get(p)) : descriptors.get(p),
+                content: useGhost ? '' : descriptors.get(p).shell,
             } : p);
+            if (useGhost) {
+                const id = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
+                ensureCatalog(data, id);
+            }
             data.prompts = prompts;
             stats.imports++;
             notify(`Nemo prompt storage: ${records.length} source bodies saved; enabled bodies load before use.`, 'success');
@@ -160,8 +274,28 @@ export function createColdPromptRuntime({
         }
     }
     async function exportReady(data) {
-        if (!hasBodies(data)) return;
-        try { data.prompts = await store.restorePrompts(data.prompts); }
+        try {
+            const live = active();
+            if (catalog(live)) await waitForToggles();
+            // ST exports its named preset, which may still be a portable or
+            // legacy shell copy. Apply this catalog's switches to matching IDs.
+            const id = catalog(data) || (catalog(live) && ghostCandidate(data) && catalog(live));
+            if (id) {
+                const view = { ...data, extensions: { ...data.extensions, [catalogKey]: id } };
+                await restoreToggles(view, live?.preset_settings_openai || data.preset_settings_openai);
+            }
+            if (!hasBodies(data)) return;
+            data.prompts = await store.restorePrompts(data.prompts);
+            if (catalog(data)) {
+                const record = data.extensions[catalogKey];
+                data.extensions = { ...data.extensions };
+                delete data.extensions[catalogKey];
+                if (!Object.keys(data.extensions).length) {
+                    if (record.container === 'absent') delete data.extensions;
+                    else if (record.container === 'null') data.extensions = null;
+                }
+            }
+        }
         catch (error) { blockSerialization(data, error); notify(error.message, 'error'); throw error; }
     }
     async function readBody(prompt) {
@@ -190,7 +324,7 @@ export function createColdPromptRuntime({
         if (!managed(preset)) return;
         const s = snapshot(preset);
         const state = enabled(s);
-        if (s.prompts.some(p => required(p, s, state) && isCold(p))) throw fail(new Error('An enabled prompt is not loaded. Generation was blocked; retry after loading completes.'), s);
+        if (s.prompts.some(p => required(p, s, state) && isCold(p) && !isGhost(p))) throw fail(new Error('An enabled prompt is not loaded. Generation was blocked; retry after loading completes.'), s);
     }
     function wrap(name, factory) {
         if (typeof manager[name] !== 'function') return;
@@ -199,7 +333,7 @@ export function createColdPromptRuntime({
     }
     function detach() {
         if (manager) for (const [key, pair] of originals) if (manager[key] === pair.replacement) manager[key] = pair.original;
-        originals.clear(); manager = null;
+        originals.clear(); bindSettings(null); ghost.reset(); manager = null; running = 0;
     }
     function attach() {
         const next = getManager();
@@ -214,17 +348,32 @@ export function createColdPromptRuntime({
         });
         wrap('saveServiceSettings', original => async function (...args) {
             const s = snapshot(this.serviceSettings);
+            // A native editor or another extension can change a previously staged
+            // flag. Its explicit save is authoritative for that flag on reload.
+            const order = orderFor(this.serviceSettings), flags = lastFlags.get(order);
+            if (flags) {
+                const changes = order.filter(e => flags.has(e.identifier) && flags.get(e.identifier) !== e.enabled);
+                if (changes.length) await saveToggles(this, changes.map(e => [e.identifier, e.enabled]));
+            }
             try { await ready(this.serviceSettings, { evict: true }); }
             catch (error) { fail(error, s); return; }
             if (!current(s)) { notify('Preset changed during prompt save; the new preset was not overwritten.', 'warning'); return; }
             return original.apply(this, args);
         });
         wrap('preparePrompt', original => function (prompt, ...args) {
+            if (isGhost(prompt)) {
+                try { return original.call(this, { ...prompt, content: ghost.source(prompt) }, ...args); }
+                catch (error) { fail(error); stop(); throw error; }
+            }
             if (isCold(prompt)) { const error = fail(new Error('A cold prompt reached native preparation. Generation was blocked.')); stop(); throw error; }
             return original.call(this, prompt, ...args);
         });
         wrap('getPromptCollection', original => function (...args) {
             assertReady(this.serviceSettings);
+            if (catalog(this.serviceSettings) || this.serviceSettings.prompts.some(isGhost)) {
+                try { return ghost.collect(this, args[0], () => original.apply(this, args)); }
+                catch (error) { fail(error); stop(); throw error; }
+            }
             return original.apply(this, args);
         });
         wrap('loadPromptIntoEditForm', original => function (prompt, ...args) {
@@ -276,20 +425,37 @@ export function createColdPromptRuntime({
     }
     on('OAI_PRESET_IMPORT_READY', importReady);
     on('OAI_PRESET_EXPORT_READY', exportReady);
-    on('OAI_PRESET_CHANGED_BEFORE', async ({ preset }) => {
+    on('OAI_PRESET_CHANGED_BEFORE', async ({ preset, presetName }) => {
         closeEditor(); attach();
-        try { await ready(preset, { evict: true }); }
+        try { await ready(preset, { evict: true }); await restoreToggles(preset, presetName); }
         catch (error) { fail(error, preset); }
     }, true);
     on('OAI_PRESET_CHANGED_AFTER', () => { attach(); void ready(active(), { evict: true }).catch(error => fail(error)); });
-    on('APP_READY', () => { attach(); void ready(active(), { evict: true }).catch(error => fail(error)); });
-    on('GENERATION_STARTED', async () => {
+    on('APP_READY', async () => {
+        attach(); const preset = active();
+        try {
+            await ready(preset, { evict: true });
+            if (await restoreToggles(preset) && preset === active()) getManager().render?.(false);
+        }
+        catch (error) { fail(error, preset); }
+    });
+    on('GENERATION_STOPPED', () => { running = 0; ghost.reset(); });
+    on('GENERATION_ENDED', () => {
+        running = Math.max(0, running - 1);
+        if (!running) ghost.reset();
+    });
+    on('GENERATION_STARTED', async (_type, _options, dryRun) => {
         if (!chatCompletionActive()) return;
-        attach(); try { await ready(); } catch (error) { fail(error); }
+        attach();
+        if (!dryRun) running++;
+        try { await ready(); } catch (error) { fail(error); }
     }, true);
     on('GENERATION_AFTER_COMMANDS', async (_type, _options, dryRun) => {
         if (!chatCompletionActive()) return;
-        try { await ready(); } catch (error) { fail(error); if (!dryRun) stop(); }
+        try {
+            await ready();
+            if (dryRun && catalog(active())) await primeGhost(_type);
+        } catch (error) { fail(error); if (!dryRun) stop(); }
     }, true);
     on('CHAT_COMPLETION_PROMPT_READY', data => {
         try { assertReady(active()); } catch { /* fail() recorded the reason */ }
@@ -299,19 +465,31 @@ export function createColdPromptRuntime({
         try { assertReady(active()); } catch { /* ST swallows event exceptions */ }
         if (fault && fault.prompts === active()?.prompts) { blockSerialization(data, fault.error); stop(); }
     });
+    async function primeGhost(type) {
+        const pm = getManager(), preset = pm.serviceSettings, prompts = preset.prompts;
+        await waitForToggles();
+        if (pm !== getManager() || active()?.prompts !== prompts) throw new Error('Preset changed while applying prompt toggles.');
+        await restoreToggles(preset);
+        await ghost.prime(pm, type);
+        if (pm !== getManager() || active()?.prompts !== prompts) throw new Error('Preset changed during prompt preparation.');
+        if (fault?.prompts === prompts) fault = null;
+    }
     attach();
     return {
-        ready, importReady, exportReady, readBody, withBody, attach,
-        async preflight(_chat, _size, abort) {
+        ready, importReady, exportReady, readBody, withBody, attach, saveToggles, restoreToggles,
+        isGhostPreset: () => Boolean(catalog(active())),
+        async preflight(_chat, _size, abort, type) {
             if (!chatCompletionActive()) return true;
-            try { await ready(); assertReady(active()); }
+            try { await ready(); assertReady(active()); if (catalog(active())) await primeGhost(type); }
             catch (error) { fail(error); abort(true); return false; }
             return true;
         },
         getStats() {
             const prompts = active()?.prompts ?? [];
             const refs = prompts.filter(p => descriptorOf(p));
-            return { stage: '3/5', ...stats, trackedPrompts: refs.length,
+            return { stage: '3/5', ...stats, trackedPrompts: refs.length, ghostPreset: Boolean(catalog(active())),
+                ghostPrompts: refs.filter(isGhost).length,
+                hostSourceCharacters: prompts.reduce((n, p) => n + (p.content?.length || 0), 0),
                 coldPrompts: refs.filter(isCold).length,
                 coldSourceCharacters: refs.filter(isCold).reduce((n, p) => n + descriptorOf(p).characters, 0),
                 pinnedEditors: pins.size, store: store.diagnostics?.() };

@@ -52,6 +52,11 @@ function autoResolutionChanges(issues, allPrompts, promptId, parseDirectives) {
     return [...changes.values()];
 }
 
+export async function saveToggleChanges(pm, changes, cold = globalThis.NemoColdPrompts) {
+    if (await cold?.saveToggles?.(pm, changes)) return;
+    await pm.saveServiceSettings();
+}
+
 /**
  * Stage 5B.2A: move state-changing Prompt Manager consumers off rendered rows.
  * This adapter deliberately leaves tray/navigation/movement and row virtualization
@@ -194,6 +199,12 @@ export function installStateActions({
         }
     }
 
+    async function persist(ticket, edits) {
+        const changes = new Map();
+        for (const before of edits) for (const [id, { entry }] of before) changes.set(id, entry.enabled);
+        await saveToggleChanges(ticket.pm, changes, getCold?.());
+    }
+
     /**
      * Apply one change. Without `batch`, it redraws and saves immediately. With a
      * batch, the mutation, redraw request and toggle pause are recorded and the
@@ -247,7 +258,7 @@ export function installStateActions({
                     stats.resolutionMutations += resolutionChanged;
                     return { changed: true, targetChanged, resolutionChanged, locked: false, cancelled: false };
                 }
-                await ticket.pm.saveServiceSettings();
+                await persist(ticket, [before]);
                 assertCurrent(ticket);
                 stats.saves++;
                 stats.targetMutations += targetChanged ? 1 : 0;
@@ -261,7 +272,7 @@ export function installStateActions({
             }
         };
         const cold = getCold?.();
-        if (change.enabled && typeof cold?.withBody === 'function') return cold.withBody(targetPrompt, run);
+        if (change.enabled && !cold?.isGhostPreset?.() && typeof cold?.withBody === 'function') return cold.withBody(targetPrompt, run);
         return run();
     }
 
@@ -292,7 +303,7 @@ export function installStateActions({
             if (batch?.pending.length) {
                 const { ticket } = batch.pending.at(-1);
                 assertCurrent(ticket);
-                await ticket.pm.saveServiceSettings();
+                await persist(ticket, batch.pending.map(p => p.before));
                 assertCurrent(ticket);
                 stats.saves++;
                 stats.batchedSaves++;
@@ -347,6 +358,17 @@ export function installStateActions({
         originals.set(name, { original, replacement });
         manager[name] = replacement;
     }
+
+    wrap('paintSectionCounts', original => function (sections) {
+        let index;
+        try { if (api() === 'openai') index = sectionIndex(); }
+        catch (error) { report(error); }
+        if (!index) return original.call(this, sections);
+        return original.call(this, sections, section => {
+            const id = sectionIdentifier(section);
+            return index.getSection(id) ? index.counts(id) : this.getAggregatedCounts(section);
+        });
+    });
 
     wrap('applySnapshot', original => async function (...args) {
         let currentApi;
@@ -448,7 +470,18 @@ export function installStateActions({
     });
 
     return {
-        applyChanges: changes => enqueue(() => applyChanges(changes)),
+        whenSettled: () => queue,
+        togglePrompt(identifier) {
+            const ticket = captureTicket();
+            return enqueue(() => {
+                assertCurrent(ticket);
+                return applyChanges([{ identifier, enabled: !entryFor(ticket, identifier).enabled }]);
+            });
+        },
+        applyChanges: changes => {
+            const ticket = captureTicket();
+            return enqueue(() => { assertCurrent(ticket); return applyChanges(changes); });
+        },
         reconcile: saved => enqueue(() => reconcile(saved)),
         getStats: () => ({ ...stats, attached: !disposed && originals.size > 0, stage: '5B.2A/5', virtualized: false }),
         dispose() {

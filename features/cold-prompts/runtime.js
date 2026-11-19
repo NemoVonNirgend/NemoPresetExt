@@ -1,3 +1,5 @@
+import { ToggleJournal } from './toggle-journal.js';
+import { accountsEnabled, currentUser } from '../../../../../user.js';
 import { eventSource, event_types, getRequestHeaders } from '../../../../../../script.js';
 import { getContext, extension_settings } from '../../../../../extensions.js';
 import { promptManager } from '../../../../../openai.js';
@@ -35,6 +37,8 @@ export function initializeColdPrompts() {
     if (runtime) return;
     runtime = createColdPromptRuntime({
         events: eventSource, types: event_types, getManager: () => promptManager, getContext,
+        journal: new ToggleJournal(), getUser: () => accountsEnabled ? currentUser?.handle : 'default-user',
+        waitForToggles: () => globalThis.NemoPromptRendering?.whenSettled?.(),
         store: new PromptBodyStore({ headers: getRequestHeaders }), notify, editorLoading,
         autoStore: () => extension_settings.NemoPresetExt?.enableColdPromptStorage !== false,
         sourceChanged(prompt) {
@@ -50,6 +54,11 @@ export function initializeColdPrompts() {
         const row = button?.closest('[data-pm-identifier]');
         if (!row || !runtime) return;
         const prompt = promptManager.getPromptById(row.dataset.pmIdentifier);
+        if (prompt && owner.isGhostPreset() && globalThis.NemoPromptRendering?.togglePrompt) {
+            event.preventDefault(); event.stopImmediatePropagation();
+            void globalThis.NemoPromptRendering.togglePrompt(prompt.identifier).catch(error => notify(error.message, 'error'));
+            return;
+        }
         if (!prompt || !isCold(prompt)) return;
         event.preventDefault(); event.stopImmediatePropagation();
         if (pendingClicks.has(button)) return;
@@ -89,7 +98,7 @@ export function initializeColdPrompts() {
         };
         NemoPresetManager.extractPromptData = extractWrapper;
     }
-    api = Object.freeze({ stage: '3/5', getStats: owner.getStats, readBody: owner.readBody, ready: owner.ready, withBody: owner.withBody });
+    api = Object.freeze({ stage: '3/5', isGhostPreset: owner.isGhostPreset, saveToggles: owner.saveToggles, getStats: owner.getStats, readBody: owner.readBody, ready: owner.ready, withBody: owner.withBody });
     globalThis.NemoColdPrompts = api;
     recipePreflight = globalThis.nemoRecipeRuntimePreflight;
     const previous = recipePreflight;

@@ -2,6 +2,7 @@ import { matchedUserFilePath } from '../../core/user-file-path.js';
 /** Stage 3/5: reversible ordinary-prompt storage. Never evaluates prompt macros. */
 export const BODY_KEY = 'nemoPromptBody';
 export const SCHEMA = 1;
+export const GHOST_SCHEMA = 2;
 export const MAX_BODY_CHARS = 2 * 1024 * 1024;
 export const MAX_SHELL_CHARS = 65536;
 const HEX = /^[a-f0-9]{64}$/;
@@ -26,7 +27,7 @@ export function descriptorOf(prompt) {
 export function checkedDescriptor(d) {
     const sha256 = d?.ref?.sha256;
     const name = HEX.test(sha256 ?? '') ? `nemo-prompts-${sha256}.json` : '';
-    if (!d || d.schema !== SCHEMA || !HEX.test(sha256 ?? '') ||
+    if (!d || (d.schema !== SCHEMA && d.schema !== GHOST_SCHEMA) || !HEX.test(sha256 ?? '') ||
         !matchedUserFilePath(d.ref?.path, name) ||
         !Number.isSafeInteger(d.index) || d.index < 0 || d.index > 4096 ||
         !Number.isSafeInteger(d.characters) || d.characters < 0 || d.characters > MAX_BODY_CHARS ||
@@ -37,8 +38,21 @@ export function checkedDescriptor(d) {
 }
 export function isCold(prompt) {
     const d = descriptorOf(prompt);
-    return Boolean(d && prompt.content === checkedDescriptor(d).shell);
+    return Boolean(d && prompt.content === idleContent(checkedDescriptor(d)));
 }
+export const idleContent = descriptor => descriptor.schema === GHOST_SCHEMA ? '' : descriptor.shell;
+export const isGhost = prompt => prompt?.nemoPromptBody?.schema === GHOST_SCHEMA && prompt.content === '';
+export function metadataContent(prompt) {
+    if (isGhost(prompt)) return descriptorOf(prompt).shell || ' ';
+    return typeof prompt?.content === 'string' ? prompt.content : '';
+}
+// Ghosts have an explicit format and need only the directive/tooltip metadata.
+export const ghostDescriptor = d => ({ ...d, schema: GHOST_SCHEMA, shell: d.shell.slice(0, -WARNING.length) });
+export const matchesShell = (source, d) => {
+    const shell = shellFor(source);
+    return d.shell === (d.schema === GHOST_SCHEMA ? shell.slice(0, -WARNING.length) : shell);
+};
+
 export function bodyRevision(prompt) {
     const d = descriptorOf(prompt);
     return isCold(prompt) ? `${d.ref.sha256}:${d.index}` : prompt.content;
@@ -53,11 +67,11 @@ export function isNemoPreset(preset) {
         !/tavo/i.test(preset.preset_name ?? '') &&
         !(preset.prompts ?? []).some(p => /^\s*<%/.test(p.content ?? ''));
 }
-export function eligible(prompt) {
+export function eligible(prompt, ghost = false) {
     return prompt && typeof prompt.content === 'string' && Boolean(prompt.content.length) &&
-        prompt.content.length <= MAX_BODY_CHARS && !prompt.marker && !prompt.system_prompt &&
+        prompt.content.length <= MAX_BODY_CHARS && (!prompt.marker || (ghost && /^nemo-section-/.test(prompt.identifier))) && !prompt.system_prompt &&
         !['main', 'nsfw', 'jailbreak', 'nc-writing-resolver'].includes(prompt.identifier) &&
-        !/^nemo-init-/.test(prompt.identifier) && !descriptorOf(prompt) &&
+        (!/^nemo-init-/.test(prompt.identifier) || (ghost && prompt.identifier === 'nemo-init-reset')) && !descriptorOf(prompt) &&
         shellFor(prompt.content).length <= MAX_SHELL_CHARS;
 }
 export function validatePreset(preset) {

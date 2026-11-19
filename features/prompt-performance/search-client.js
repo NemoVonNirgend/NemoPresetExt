@@ -1,3 +1,4 @@
+import { isGhost } from '../cold-prompts/format.js';
 /** One lazily created worker, chunked uploads, latest-query-wins and idle eviction. */
 export class PromptBodySearch {
     constructor({
@@ -6,13 +7,13 @@ export class PromptBodySearch {
         timeoutMs = 15000,
         yieldTask = () => new Promise(resolve => setTimeout(resolve, 0)),
         readContent = async entry => {
-            if (entry.nemoPromptBody && entry.content === entry.nemoPromptBody.shell) {
+            if ((isGhost(entry) || (entry.nemoPromptBody && entry.content === entry.nemoPromptBody.shell))) {
                 if (!globalThis.NemoColdPrompts) throw new Error('Prompt storage is unavailable. Restore NemoPresetExt before searching stored text.');
                 return globalThis.NemoColdPrompts.readBody(entry);
             }
             return typeof entry.content === 'string' ? entry.content : '';
         },
-        revisionOf = entry => entry.nemoPromptBody && entry.content === entry.nemoPromptBody.shell ? entry.nemoPromptBody : entry.content,
+        revisionOf = entry => (isGhost(entry) || (entry.nemoPromptBody && entry.content === entry.nemoPromptBody.shell)) ? entry.nemoPromptBody : entry.content,
     } = {}) {
         Object.assign(this, { createWorker, idleMs, timeoutMs, yieldTask, readContent, revisionOf });
         this.worker = null;

@@ -110,6 +110,7 @@ export function initializePromptRendering() {
         sorting: current.sortGuard?.getStats(),
         tokenCounts: current.counts?.getStats(),
     }),
+        togglePrompt: id => current.actions.togglePrompt(id), whenSettled: () => current.actions.whenSettled(),
         applyChanges: changes => current.actions.applyChanges(changes),
         materializeSearch: ids => current.virtualizer?.materializeSearch(ids),
         clearSearchMaterialization: () => current.virtualizer?.clearSearch(),

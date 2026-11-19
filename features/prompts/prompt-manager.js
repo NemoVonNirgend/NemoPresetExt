@@ -1,3 +1,4 @@
+import { metadataContent } from '../cold-prompts/format.js';
 import { saveSettingsDebounced, eventSource, event_types } from '../../../../../../script.js';
 import { extension_settings, getContext } from '../../../../../extensions.js';
 import { LOG_PREFIX, NEMO_EXTENSION_NAME, ensureSettingsNamespace, escapeRegex, delay, getSortableDelay, debounce, debounce_timeout } from '../../core/utils.js';
@@ -31,7 +32,9 @@ const SELECTORS = {
 };
 
 // State Variables
-let DIVIDER_PREFIX_REGEX;
+let DIVIDER_PREFIX_REGEX = new RegExp(`^(${NEMO_BUILT_IN_PATTERNS.join('|')})`);
+const pendingSectionCounts = new Set();
+let sectionCountTimer = null;
 let openSectionStates = storage.getOpenSectionStates();
 let isSectionsFeatureEnabled = storage.getSectionsEnabled();
 // Save completion and native paint completion are independent. Defer UI work
@@ -73,12 +76,12 @@ function extractTooltipFromPrompt(identifier) {
 
         // Get the prompt by identifier
         const prompt = promptManager.getPromptById(identifier);
-        if (!prompt || !prompt.content) {
+        if (!metadataContent(prompt)) {
             return null;
         }
 
         // First, try to parse @tooltip directive using the directive parser
-        const directives = parsePromptDirectives(prompt.content);
+        const directives = parsePromptDirectives(metadataContent(prompt));
         if (directives.tooltip) {
             return directives.tooltip;
         }
@@ -86,7 +89,7 @@ function extractTooltipFromPrompt(identifier) {
         // Fallback: Look for plain {{// text }} at the start (backward compatibility)
         // This allows users to still use plain comments for tooltips
         const tooltipRegex = /^\s*\{\{\/\/\s*([\s\S]*?)\s*\}\}/;
-        const match = prompt.content.match(tooltipRegex);
+        const match = metadataContent(prompt).match(tooltipRegex);
 
         if (match && match[1]) {
             const tooltip = match[1].trim();
@@ -567,25 +570,31 @@ export const NemoPresetManager = {
     updateSectionCount: function(sectionElement) {
         if (!sectionElement || !sectionElement.matches('details.nemo-engine-section')) return;
 
-        // Debounce updates to prevent thrashing during bulk operations
-        if (sectionElement._updateTimeout) clearTimeout(sectionElement._updateTimeout);
+        pendingSectionCounts.add(sectionElement);
+        if (sectionCountTimer !== null) return;
+        sectionCountTimer = setTimeout(() => {
+            sectionCountTimer = null;
+            const sections = [...pendingSectionCounts];
+            pendingSectionCounts.clear();
+            this.paintSectionCounts(sections);
+        }, 10);
+    },
 
-        sectionElement._updateTimeout = setTimeout(() => {
-            const content = sectionElement.querySelector('.nemo-section-content');
-            if (!content) return;
-
-            // Get aggregated counts (includes all sub-sections recursively)
-            const { enabled: enabledCount, total: totalCount } = this.getAggregatedCounts(sectionElement);
-
+    paintSectionCounts: function(sections, countsForSection = section => this.getAggregatedCounts(section)) {
+        for (const sectionElement of sections) {
+            if (!sectionElement.querySelector('.nemo-section-content')) continue;
+            const { enabled: enabledCount, total: totalCount } = countsForSection(sectionElement);
             const countSpan = sectionElement.querySelector('summary .nemo-enabled-count');
-            if (countSpan) countSpan.textContent = ` (${enabledCount}/${totalCount})`;
+            const label = ` (${enabledCount}/${totalCount})`;
+            if (countSpan && countSpan.textContent !== label) countSpan.textContent = label;
 
             const masterToggle = sectionElement.querySelector('.nemo-section-master-toggle');
             if (masterToggle) masterToggle.classList.toggle('nemo-active', enabledCount > 0);
 
             // Update progress bar
             const progressBar = sectionElement.querySelector('summary .nemo-section-progress');
-            if (progressBar) {
+            if (progressBar && (progressBar.dataset.enabled !== String(enabledCount)
+                || progressBar.dataset.total !== String(totalCount))) {
                 const percentage = totalCount > 0 ? (enabledCount / totalCount) * 100 : 0;
                 progressBar.style.setProperty('--progress-width', `${percentage}%`);
                 progressBar.setAttribute('data-enabled', enabledCount);
@@ -601,9 +610,7 @@ export const NemoPresetManager = {
                     progressBar.classList.add('nemo-progress-partial');
                 }
             }
-
-            sectionElement._updateTimeout = null;
-        }, 10);
+        }
     },
 
     // Core Logic
@@ -2270,6 +2277,7 @@ export const NemoPresetManager = {
 
             // Prevent dragging over summary elements (headers)
             onMove: (evt) => {
+                if (container.hasAttribute('data-nemo-filtering')) return false;
                 const draggedElement = evt.dragged;
                 const relatedElement = evt.related;
                 const toElement = evt.to;

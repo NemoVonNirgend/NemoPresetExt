@@ -1,3 +1,5 @@
+import { saveToggleChanges } from '../prompt-rendering/state-actions.js';
+import { metadataContent } from '../cold-prompts/format.js';
 /**
  * Nemo Prompt Directive Hooks
  * Intercepts prompt toggle events to validate directives
@@ -187,9 +189,9 @@ function validateAndToggle(promptId) {
  */
 function checkAutoResolution(issues, allPrompts, promptId) {
     const prompt = allPrompts.find(p => p.identifier === promptId);
-    if (!prompt || !prompt.content) return false;
+    if (!metadataContent(prompt)) return false;
 
-    const directives = parsePromptDirectives(prompt.content);
+    const directives = parsePromptDirectives(metadataContent(prompt));
 
     // Can auto-resolve if:
     // 1. Has auto-disable directives that match exclusive conflicts
@@ -231,9 +233,9 @@ function checkAutoResolution(issues, allPrompts, promptId) {
  */
 function performAutoResolution(issues, allPrompts, promptId) {
     const prompt = allPrompts.find(p => p.identifier === promptId);
-    if (!prompt || !prompt.content) return;
+    if (!metadataContent(prompt)) return;
 
-    const directives = parsePromptDirectives(prompt.content);
+    const directives = parsePromptDirectives(metadataContent(prompt));
 
     for (const issue of issues) {
         if (issue.type === 'exclusive' || issue.type === 'category-limit' || issue.type === 'mutual-exclusive-group') {
@@ -299,7 +301,7 @@ function performToggle(identifier, enable) {
         promptManager.render();
 
         // Save settings
-        promptManager.saveServiceSettings();
+        void saveToggleChanges(promptManager, [[identifier, enable]]).catch(error => logger.error('Error saving prompt state:', error));
 
         logger.debug(`Toggled prompt ${identifier} to ${enable ? 'enabled' : 'disabled'}`);
     } catch (error) {

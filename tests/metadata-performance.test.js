@@ -258,6 +258,8 @@ test('search results reveal every nested parent section', async () => {
     applySearchMatches(container,new Set(['a']));
     assert.equal(other.style.display,'none');
     assert.equal(match.style.display,'');
+    assert.equal(match.dataset.nemoSearchMatch,'');
+    assert.equal(other.dataset.nemoSearchMatch,undefined);
     assert.equal(outer.open,true);assert.equal(inner.open,true);
     assert.equal(outerHeader.style.display,'');assert.equal(innerHeader.style.display,'');
 });
@@ -269,7 +271,9 @@ test('search UI does not read bodies by default and ignores stale async results'
     const fields={nemoPresetSearchInput:input,nemoSearchBodiesLabel:{},nemoSearchBodies:checkbox,nemoSearchProgress:progress};
     const a={style:{},dataset:{pmIdentifier:'a'},closest:()=>null};
     const b={style:{},dataset:{pmIdentifier:'b'},closest:()=>null};
-    const container={querySelectorAll:s=>s.startsWith('li')?[a,b]:[],contains:()=>true};
+    const attributes=new Set();
+    const container={querySelectorAll:s=>s.startsWith('li')?[a,b]:[],contains:()=>true,
+        setAttribute:key=>attributes.add(key),removeAttribute:key=>attributes.delete(key)};
     const root={getElementById:id=>fields[id],querySelector:()=>container};
     let reads=0,clears=0;const pending=[];
     const manager={handlePresetSearch(){clears++;},createSearchAndStatusUI(){}};
@@ -278,13 +282,16 @@ test('search UI does not read bodies by default and ignores stale async results'
     const ui=installSearchUI({manager,root,getRows:()=>[{identifier:'a',name:'alpha'},{identifier:'b',name:'beta'}],getSources:()=>{reads++;return[];},bodySearch:bodies});
     manager.handlePresetSearch();
     assert.equal(reads,0);assert.equal(b.style.display,'none');
+    assert.ok(attributes.has('data-nemo-filtering'));
+    assert.match(progress.textContent,/Clear search to reorder/);
     checkbox.checked=true;manager.handlePresetSearch();
     input.value='beta';manager.handlePresetSearch();
     pending[0](new Set(['a']));await Promise.resolve();
     assert.equal(a.style.display,'none');
     pending[1](new Set(['b']));await Promise.resolve();
     assert.match(progress.textContent,/metadata and prompt text/);
-    input.value='';manager.handlePresetSearch();assert.equal(clears,1);
+    input.value='';await manager.handlePresetSearch();assert.equal(clears,1);
+    assert.ok(!attributes.has('data-nemo-filtering'));
     ui.cleanup();assert.equal(manager.handlePresetSearch,original);
 });
 
@@ -305,7 +312,7 @@ test('search controls are created once per UI and removed on teardown', async ()
     const nodes=[];
     const make=()=>{const n={listeners:{},append(){},setAttribute(){},addEventListener(k,f){this.listeners[k]=f;},remove(){this.removed=true;},insertAdjacentElement(){},style:{}};nodes.push(n);return n;};
     const input=make();input.id='nemoPresetSearchInput';input.value='';input.parentElement=make();
-    const root={getElementById:id=>nodes.find(n=>n.id===id&&!n.removed),createElement:make,createTextNode:text=>({text}),querySelector:()=>({})};
+    const root={getElementById:id=>nodes.find(n=>n.id===id&&!n.removed),createElement:make,createTextNode:text=>({text}),querySelector:()=>({removeAttribute(){}})};
     const manager={handlePresetSearch(){},createSearchAndStatusUI(){}};
     const c={dispose(){},cancel(){}};
     const ui=installSearchUI({manager,root,getRows:()=>[],getSources:()=>[],bodySearch:c});
