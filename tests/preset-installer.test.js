@@ -132,6 +132,7 @@ test('host adapter imports the chosen asset, awaits native selection, and rememb
     const select = { querySelector() { return null; }, appendChild() {} };
     const applied = gate(), entered = gate(), calls = [], settings = { preset_settings_openai: 'Previous' };
     const extensionSettings = {}, names = {}, presets = [], storedBodies = new Map();
+    let macroReady = true;
     const api = new Script(source + '\n({ installBundledNemoEnginePreset, getNemoEngineSetupReport })').runInNewContext({
         NEMO_ENGINE_VERSION, DEFAULT_PRESET_ID, NEMO_ENGINE_PRESETS, getNemoEnginePreset, createPresetInstaller,
         loadNemoEnginePreset: async (entry, { url }) => {
@@ -155,7 +156,8 @@ test('host adapter imports the chosen asset, awaits native selection, and rememb
         } }),
         document: { querySelector: () => select, createElement: () => ({}) }, CSS: { escape: v => v },
         structuredClone, logger: {}, getExtensionPath: p => `/extension/${p}`, escapeHtml: v => String(v),
-        NemoColdPrompts: { readBody: async prompt => storedBodies.get(prompt.testBodyKey) },
+        NemoColdPrompts: { readBody: async prompt => storedBodies.get(prompt.testBodyKey),
+            getMacroEngineStatus: () => ({ ready: macroReady, message: macroReady ? 'Probe passed.' : 'Reload required.' }) },
         fetch: async (_url, { body }) => ({ ok: true, json: async () => ({ name: JSON.parse(body).name }) }),
     });
     const pending = api.installBundledNemoEnginePreset({ presetId: 'full' });
@@ -164,6 +166,10 @@ test('host adapter imports the chosen asset, awaits native selection, and rememb
     applied.resolve(); await pending;
     assert.equal((await api.getNemoEngineSetupReport({ presetId: 'full' })).hasErrors, false);
     assert.equal((await api.getNemoEngineSetupReport({ presetId: 'full' })).hasWarnings, false);
+    macroReady = false;
+    const blocked = await api.getNemoEngineSetupReport({ presetId: 'full' });
+    assert.equal(blocked.hasErrors, true);
+    assert(blocked.checks.some(check => check.state === 'error' && check.detail === 'Reload required.'));
     await api.installBundledNemoEnginePreset({ presetId: 'standard', selectAfterInstall: false });
     assert.equal(Object.keys(extensionSettings.NemoPresetExt.nemoEnginePresetInstaller.presets).length, 2);
     assert.equal(settings.preset_settings_openai, getNemoEnginePreset('full').name);

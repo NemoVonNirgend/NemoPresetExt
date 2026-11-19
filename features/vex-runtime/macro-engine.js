@@ -9,12 +9,16 @@ function incompatible() {
     return Object.assign(new Error(RECOVERY), { code: MACRO_ENGINE_ERROR });
 }
 
+export function nativeNemoMacrosWork(context) {
+    if (typeof context?.substituteParams !== 'function') return false;
+    try { return context.substituteParams(PROBE) === 'nemo-vex-native-ready'; }
+    catch { return false; }
+}
+
 export function requireNativeVexMacros(context) {
     if (context?.powerUserSettings?.experimental_macro_engine === false) throw incompatible();
     if (typeof context?.substituteParams === 'function') {
-        let result;
-        try { result = context.substituteParams(PROBE); } catch { /* Use the actionable recovery message. */ }
-        if (result !== 'nemo-vex-native-ready') throw incompatible();
+        if (!nativeNemoMacrosWork(context)) throw incompatible();
     } else if (context?.powerUserSettings?.experimental_macro_engine !== true) {
         throw incompatible();
     }

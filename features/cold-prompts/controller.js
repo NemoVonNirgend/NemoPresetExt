@@ -6,7 +6,7 @@ import { BODY_KEY, descriptorOf, isCold, eligible, hasBodies, isNemoPreset, vali
 export function createColdPromptRuntime({
     events, types, getManager, store, getContext = () => ({}),
     notify = () => {}, sourceChanged = () => {}, editorLoading = () => {},
-    debug = () => {}, getVersion = () => null,
+    debug = () => {}, getVersion = () => null, macroSetup = null,
     autoStore = () => true, journal = null, getUser = () => null, waitForToggles = () => {},
 }) {
     let disposed = false, manager = null, editor = null, editTicket = 0, fault = null;
@@ -354,6 +354,14 @@ export function createColdPromptRuntime({
         editorLoading(false);
         if (!disposed) void ready(active(), { evict: true }).catch(error => fail(error));
     }
+    function hasMacroFault(preset, dryRun) {
+        const previous = dryRun ? previewFault : fault;
+        return previous && previous.prompts === preset?.prompts && previous.report?.code.startsWith('MACRO_ENGINE_');
+    }
+    function verifyGenerationMacros(preset, dryRun) {
+        macroSetup?.verify(preset);
+        if (hasMacroFault(preset, dryRun)) clearFault(preset.prompts, dryRun);
+    }
     function assertReady(preset) {
         if (!managed(preset)) return;
         const s = snapshot(preset);
@@ -452,6 +460,7 @@ export function createColdPromptRuntime({
                 && !ghost.hasPlan(this, args[0]) && countGhost.hasPlan(this, args[0]));
             collection = useCountSource ? countGhost : ghost;
             try {
+                macroSetup?.verify(this.serviceSettings);
                 assertReady(this.serviceSettings);
                 if (usesGhostSources(this.serviceSettings)) {
                     const lane = laneFor(dryRun);
@@ -512,16 +521,23 @@ export function createColdPromptRuntime({
         if (first && typeof events.makeFirst === 'function') events.makeFirst(type, fn); else events.on(type, fn);
         listeners.push([type, fn]);
     }
+    if (macroSetup) on('OAI_PRESET_IMPORT_READY', ({ data }) => macroSetup.configure(data), true);
     on('OAI_PRESET_IMPORT_READY', importReady);
     on('OAI_PRESET_EXPORT_READY', exportReady);
     on('OAI_PRESET_CHANGED_BEFORE', async ({ preset, presetName }) => {
+        if (chatCompletionActive()) macroSetup?.configure(preset);
         trace('presetChanged'); cancelPreparation(); closeEditor(); attach();
         try { await ready(preset, { evict: true }); await restoreToggles(preset, presetName); }
         catch (error) { fail(error, preset); }
     }, true);
     on('OAI_PRESET_CHANGED_AFTER', () => { attach(); void ready(active(), { evict: true }).catch(error => fail(error)); });
+    const configureActive = () => {
+        if (chatCompletionActive()) macroSetup?.configure(active() ?? getContext()?.chatCompletionSettings);
+    };
+    on('MAIN_API_CHANGED', configureActive);
     on('APP_READY', async () => {
         attach(); const preset = active();
+        configureActive();
         try {
             await ready(preset, { evict: true });
             if (await restoreToggles(preset) && preset === active()) getManager().render?.(false);
@@ -534,7 +550,11 @@ export function createColdPromptRuntime({
         if (!chatCompletionActive()) return;
         attach();
         trace('generationStarted', { type: diagnosticLabel(type), dryRun: Boolean(dryRun) });
-        try { await ready(active(), { dryRun }); } catch (error) { fail(error, active(), 'generationStarted', dryRun); }
+        try {
+            const preset = active();
+            if (hasMacroFault(preset, dryRun)) verifyGenerationMacros(preset, dryRun);
+            await ready(preset, { dryRun });
+        } catch (error) { fail(error, active(), 'generationStarted', dryRun); }
     }, true);
     on('GENERATION_AFTER_COMMANDS', async (type, _options, dryRun) => {
         if (!chatCompletionActive()) return;
@@ -642,7 +662,11 @@ export function createColdPromptRuntime({
             if (!chatCompletionActive()) return true;
             const epoch = cancellation, owner = active()?.prompts;
             trace('preflight', { type: diagnosticLabel(type) });
-            try { await ready(); assertReady(active()); if (usesGhostSources(active())) await primeGhost(type); }
+            try {
+                verifyGenerationMacros(active(), false);
+                await ready(); assertReady(active());
+                if (usesGhostSources(active())) await primeGhost(type);
+            }
             catch (error) {
                 if (epoch === cancellation && owner === active()?.prompts) fail(error, active(), 'preflight');
                 abort(true);

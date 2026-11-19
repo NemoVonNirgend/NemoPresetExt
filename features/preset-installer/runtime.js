@@ -279,6 +279,12 @@ export async function getNemoEngineSetupReport({ presetId = DEFAULT_PRESET_ID } 
         detail: report.activeName ? `Active preset: ${report.activeName}.` : 'No active OpenAI preset detected yet.',
     });
 
+    if (report.activeIsInstalled && globalThis.NemoColdPrompts?.getMacroEngineStatus) {
+        const macro = globalThis.NemoColdPrompts.getMacroEngineStatus();
+        report.checks.push({ state: macro.ready ? 'ok' : 'error',
+            label: 'SillyTavern can run Nemo Engine macros', detail: macro.message });
+    }
+
     for (const [label, runtime] of [['Recipes', globalThis.NemoRecipeRuntime], ['Vex', globalThis.NemoVexRuntime]]) {
         const compatibility = runtime?.getStats?.().compatibility;
         if (!report.installed || compatibility?.presetName !== report.installedName) continue;

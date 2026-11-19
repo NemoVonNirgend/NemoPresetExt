@@ -3,6 +3,7 @@ import test from 'node:test';
 import { BODY_KEY, checkedDescriptor, isCold, isNemoPreset, eligible, shellFor, bodyRevision, blockSerialization } from '../features/cold-prompts/format.js';
 import { ToggleJournal } from '../features/cold-prompts/toggle-journal.js';
 import { PromptBodyStore, digest } from '../features/cold-prompts/store.js';
+import { createNemoMacroSetup } from '../features/cold-prompts/macro-setup.js';
 import { createColdPromptRuntime } from '../features/cold-prompts/controller.js';
 import { installCommentView } from '../features/prompt-performance/comment-view.js';
 
@@ -362,11 +363,11 @@ function browserHarness(env, overrides = {}) {
     };
     const sandbox = {
         logger: { debug() {} }, console: { info() {}, error() {} }, eventSource: env.events, event_types: types,
-        getRequestHeaders: () => ({}), getContext: () => ({ mainApi: 'openai' }),
+        getRequestHeaders: () => ({}), getContext: () => ({ mainApi: 'openai', powerUserSettings: { experimental_macro_engine: true }, substituteParams: () => 'nemo-vex-native-ready' }),
         extension_settings: {}, promptManager: env.pm, NemoPresetManager: nm,
         syncPromptMetadata: () => ({ records: new WeakMap() }),
         PromptBodyStore: class { constructor() { return env.store; } },
-        createColdPromptRuntime, ToggleJournal, accountsEnabled: false, currentUser: null, isCold, BODY_KEY, recipeCalls: 0,
+        createColdPromptRuntime, createNemoMacroSetup, ToggleJournal, accountsEnabled: false, currentUser: null, isCold, BODY_KEY, recipeCalls: 0,
         nemoRecipeRuntimePreflight: originalPreflight,
         document: {
             addEventListener(type, fn) { handlers.set(type, fn); },
@@ -922,4 +923,131 @@ test('overlapping normal Send and dry count can collect before and after live pr
         await h.events.emit(types.GENERATE_AFTER_DATA, {}, false);
         assert.throws(() => h.pm.getPromptCollection('normal'), /not loaded/);
     } finally { h.runtime.dispose(); }
+});
+
+function macroHost({ enabled = false, works = true, control = true } = {}) {
+    const stats = { saves: 0, probes: 0, inputs: 0 }, warnings = [];
+    const settings = { experimental_macro_engine: enabled };
+    const ctx = { mainApi: 'openai', powerUserSettings: settings,
+        saveSettingsDebounced() { stats.saves++; },
+        substituteParams(source) { stats.probes++; return works ? 'nemo-vex-native-ready' : source; } };
+    const checkbox = new EventTarget();
+    checkbox.checked = enabled;
+    checkbox.addEventListener('input', event => {
+        assert.equal(event.bubbles, true);
+        stats.inputs++;
+        settings.experimental_macro_engine = checkbox.checked;
+        ctx.saveSettingsDebounced();
+    });
+    const newPage = () => createNemoMacroSetup({ getContext: () => ctx, getCheckbox: () => control ? checkbox : null,
+        notify: message => warnings.push(message) });
+    return { ctx, settings, stats, checkbox, warnings, newPage };
+}
+
+test('an installed active Nemo preset enables the host checkbox once and verifies macros after reload', async () => {
+    const h = macroHost();
+    const setup = h.newPage();
+    const env = environment(fixture(), { macroSetup: setup, getContext: () => h.ctx, autoStore: () => false });
+    try {
+        await env.events.emit(types.APP_READY);
+        assert(h.settings.experimental_macro_engine && h.checkbox.checked);
+        assert.deepEqual(h.stats, { saves: 1, probes: 0, inputs: 1 });
+        await env.events.emit(types.OAI_PRESET_CHANGED_BEFORE, { preset: env.pm.serviceSettings });
+        assert.equal(h.warnings.length, 1);
+        assert.equal(setup.getStatus().ready, false);
+        let aborted = false;
+        await env.runtime.preflight([], 0, () => { aborted = true; }, 'normal');
+        assert(aborted);
+        assert.equal(env.runtime.getLastFailure().code, 'MACRO_ENGINE_RELOAD');
+        assert.throws(() => env.pm.getPromptCollection('normal'), /reload/i);
+        assert.equal(env.pm.prepared.length, 0);
+        assert.equal(h.stats.saves, 1);
+    } finally { env.runtime.dispose(); }
+    const reloaded = h.newPage();
+    reloaded.configure(fixture());
+    assert.equal(reloaded.getStatus().ready, true);
+    assert.doesNotThrow(() => reloaded.verify(fixture()));
+    assert(h.stats.probes > 0);
+    assert.equal(h.stats.saves, 1);
+});
+
+test('import-time activation precedes other import processors and keeps the native import and export usable', async () => {
+    const h = macroHost(), setup = h.newPage();
+    const env = environment({ prompts: [], prompt_order: [] });
+    env.runtime.dispose();
+    const observed = [];
+    env.events.on(types.OAI_PRESET_IMPORT_READY, () => observed.push(h.settings.experimental_macro_engine));
+    const rt = createColdPromptRuntime({ events: env.events, types, getManager: () => env.pm,
+        getContext: () => h.ctx, store: env.store, macroSetup: setup });
+    try {
+        await env.events.emit(types.APP_READY);
+        assert.equal(h.stats.saves, 0);
+        const data = fixture(), original = structuredClone(data);
+        await env.events.emit(types.OAI_PRESET_IMPORT_READY, { data });
+        assert.deepEqual(observed, [true]);
+        assert.doesNotThrow(() => JSON.stringify(data));
+        assert.equal(rt.getStats().imports, 1);
+        await rt.exportReady(data);
+        assert.deepEqual(data, original);
+        assert.doesNotThrow(() => setup.verify(env.pm.serviceSettings));
+        assert(h.settings.experimental_macro_engine);
+    } finally { rt.dispose(); }
+});
+
+test('switching from text to chat completion enables a selected Nemo preset, independent of storage optimization', async () => {
+    const h = macroHost();
+    h.ctx.mainApi = 'textgenerationwebui';
+    const env = environment(fixture(), { types: { ...types, MAIN_API_CHANGED: 'api' }, getContext: () => h.ctx,
+        macroSetup: h.newPage(), autoStore: () => false });
+    try {
+        await env.events.emit(types.APP_READY);
+        assert.equal(h.stats.saves, 0);
+        h.ctx.mainApi = 'openai';
+        await env.events.emit('api', { apiId: 'openai' });
+        assert.equal(h.stats.saves, 1);
+    } finally { env.runtime.dispose(); }
+});
+
+test('macro setup checks only Nemo presets, accepts always-on forks, and reports an enabled but broken evaluator', () => {
+    const h = macroHost({ works: false }), setup = h.newPage();
+    setup.configure({ prompts: [{ identifier: 'other', content: '{{#if 1}}x{{/if}}' }] });
+    setup.configure({ ...fixture(), preset_name: 'Tavo' });
+    assert.deepEqual(h.stats, { saves: 0, inputs: 0, probes: 0 });
+    h.settings.experimental_macro_engine = true;
+    assert.throws(() => setup.verify(fixture()), { code: 'MACRO_ENGINE_PROBE' });
+    delete h.settings.experimental_macro_engine;
+    assert.throws(() => setup.verify(fixture()), { code: 'MACRO_ENGINE_UNAVAILABLE' });
+    h.ctx.substituteParams = () => 'nemo-vex-native-ready';
+    assert.doesNotThrow(() => setup.verify(fixture()));
+    assert(!Object.hasOwn(h.settings, 'experimental_macro_engine'));
+    assert.equal(h.stats.saves, 0);
+});
+
+test('a host without the checkbox persists a supported option and reports a failed save accurately', () => {
+    const h = macroHost({ control: false }), setup = h.newPage();
+    h.ctx.saveSettingsDebounced = () => { throw Error('unavailable'); };
+    assert.throws(() => setup.verify(fixture()), { code: 'MACRO_ENGINE_SETTING' });
+    assert.equal(h.settings.experimental_macro_engine, false);
+    h.ctx.saveSettingsDebounced = () => { h.stats.saves++; };
+    assert.throws(() => setup.verify(fixture()), { code: 'MACRO_ENGINE_RELOAD' });
+    assert(h.settings.experimental_macro_engine);
+    assert.equal(h.stats.saves, 1);
+});
+
+
+test('a repaired always-on host can retry after a failed probe with cold storage disabled', async () => {
+    const h = macroHost({ enabled: true, works: false });
+    const env = environment(fixture(), { macroSetup: h.newPage(), getContext: () => h.ctx, autoStore: () => false });
+    try {
+        assert.equal(await env.runtime.preflight([], 0, () => {}, 'normal'), false);
+        const before = { messages: [] };
+        await env.events.emit(types.CHAT_COMPLETION_SETTINGS_READY, before);
+        assert.throws(() => JSON.stringify(before), /nested conditional/);
+        h.ctx.substituteParams = () => 'nemo-vex-native-ready';
+        await env.events.emit(types.GENERATION_STARTED, 'normal', {}, false);
+        const rows = env.pm.getPromptCollection('normal');
+        const after = { messages: rows };
+        await env.events.emit(types.CHAT_COMPLETION_SETTINGS_READY, after);
+        assert.doesNotThrow(() => JSON.stringify(after));
+    } finally { env.runtime.dispose(); }
 });

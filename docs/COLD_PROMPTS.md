@@ -71,6 +71,8 @@ The report includes the failed stage and up to 32 recent lifecycle events in ord
 | `PACK_CHECKSUM` / `PACK_INVALID` / `PACK_TOO_LARGE` | The stored pack failed verification. |
 | `SOURCE_REFERENCE_INVALID` / `SOURCE_MISMATCH` | Stored metadata could not be validated or did not match the source. |
 | `SOURCE_UNPREPARED` / `COLD_SOURCE_UNLOADED` / `SELECTION_UNSTABLE` | A source reached native preparation unloaded, or the enabled set kept changing during loading. |
+| `MACRO_ENGINE_RELOAD` | Nemo enabled the host macro setting. Finish any import and reload SillyTavern once. |
+| `MACRO_ENGINE_SETTING` / `MACRO_ENGINE_PROBE` / `MACRO_ENGINE_UNAVAILABLE` | The host could not save the setting, evaluate the nested conditional, or provide a compatible engine. Follow the message in the report. |
 | `UNEXPECTED` | An unclassified exception occurred at the recorded stage. |
 
 For live console debugging, enable Nemo's existing debug mode, reproduce the issue, and filter the console for `[Nemo prompt assembly]`. The switch persists across reloads.
