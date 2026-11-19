@@ -2,7 +2,7 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.29-beta.2
+**Version:** 6.0.29-beta.4
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 

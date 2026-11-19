@@ -50,6 +50,36 @@ Metadata comments are retained, including directives placed late in a prompt. Th
 
 Automatic conversion can be disabled by setting `extension_settings.NemoPresetExt.enableColdPromptStorage = false` and saving/reloading. This advanced setting is not a new settings-panel control. Existing references still load: disabling conversion must not disable access to already externalized source.
 
+Swipe and Regenerate prepare their selected sources before chat history changes for that generation. If a listener requests a normal collection during a retry, Nemo can reuse verified sources common to both selections. SillyTavern still applies the requested action’s triggers and evaluates its macros. A token-count dry run has its own preparation and failure state. Counts can fail while a valid retry continues, and a successful count cannot clear a failed live request.
+
+## Diagnosing a blocked generation
+
+If Nemo blocks Send, Regenerate, Swipe, or Continue, tap **Tap to copy report** on the red toast. If the browser cannot write to the clipboard, a selectable copy opens in SillyTavern. The report is also logged automatically under `[Nemo prompt assembly]`. You can retrieve the latest failure until the page reloads.
+
+```js
+window.NemoColdPrompts.getLastFailure()
+```
+
+The report includes the failed stage and up to 32 recent lifecycle events in order. Look for the announced action and dry-run flag, the preflight, any World Info activation, the final assembly boundary, how many sources were reused or read, and each collection attempt. Overlapping actions share this timeline. A World Info activation records only the number of entries. ST can scan without activating any entries. Prompt identifiers, HTTP status and a short pack fingerprint appear when relevant. Reports omit chat messages, prompt bodies, lorebook text, account names and request payloads.
+
+| Code | What Nemo observed |
+| --- | --- |
+| `PLAN_MISSING` | ST requested a collection without a prepared selection for that action. Check the event order and any earlier fault. |
+| `SELECTION_CHANGED` / `SOURCE_REVISED` | A selected prompt row was absent from the prepared set, or its stored source reference changed after preparation. |
+| `PREPARATION_INVALIDATED` / `SOURCE_CHANGED_DURING_READ` | The preset or generation changed while Nemo was preparing, or a selected source changed during a read. |
+| `STORAGE_HTTP` / `STORAGE_TIMEOUT` / `STORAGE_NETWORK` | The server returned the recorded status, the request timed out, or the browser could not complete the request. |
+| `PACK_CHECKSUM` / `PACK_INVALID` / `PACK_TOO_LARGE` | The stored pack failed verification. |
+| `SOURCE_REFERENCE_INVALID` / `SOURCE_MISMATCH` | Stored metadata could not be validated or did not match the source. |
+| `SOURCE_UNPREPARED` / `COLD_SOURCE_UNLOADED` / `SELECTION_UNSTABLE` | A source reached native preparation unloaded, or the enabled set kept changing during loading. |
+| `UNEXPECTED` | An unclassified exception occurred at the recorded stage. |
+
+For live console debugging, enable Nemo's existing debug mode, reproduce the issue, and filter the console for `[Nemo prompt assembly]`. The switch persists across reloads.
+
+```js
+window.NemoPresetExtLogger.enableDebug()
+window.NemoPresetExtLogger.disableDebug() // after reproducing
+```
+
 ## Diagnostics and validation
 
 ```js

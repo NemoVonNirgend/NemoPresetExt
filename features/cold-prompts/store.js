@@ -1,4 +1,5 @@
 /** Verified, immutable packs in ST's authenticated files directory. No localStorage body copies. */
+import { diagnosticLabel, PromptPreparationError } from './diagnostics.js';
 import { BODY_KEY, MAX_BODY_CHARS, checkedDescriptor, descriptorOf, isCold, shellFor, matchesShell, portablePrompt } from './format.js';
 import { alternateUserFilePath, currentUserFilePath, matchedUserFilePath } from '../../core/user-file-path.js';
 import { digest } from '../../core/sha256.js';
@@ -23,8 +24,12 @@ export class PromptBodyStore {
         try {
             const r = await this.fetchFn(url, { ...options, signal: controller.signal, credentials: 'same-origin', redirect: 'error', cache: 'no-store' });
             const text = await r.text();
-            if (text.length > MAX_PACK_CHARS) throw new Error('Nemo prompt storage response is too large.');
+            if (text.length > MAX_PACK_CHARS) throw new PromptPreparationError('PACK_TOO_LARGE', 'Nemo prompt storage response is too large.');
             return { ok: r.ok, status: r.status, text };
+        } catch (error) {
+            if (error instanceof PromptPreparationError) throw error;
+            if (controller.signal.aborted) throw new PromptPreparationError('STORAGE_TIMEOUT', 'The prompt storage request timed out.');
+            throw new PromptPreparationError('STORAGE_NETWORK', 'The prompt storage request failed to connect or finish.');
         } finally { clearTimeout(timer); }
     }
     async pack(ref) {
@@ -38,11 +43,16 @@ export class PromptBodyStore {
                 const alternate = alternateUserFilePath(primary, name);
                 if (alternate) r = await this.request(alternate);
             }
-            if (!r.ok) throw new Error(`Prompt storage unavailable (${r.status}). Reimport a portable preset to repair it.`);
-            if (await digest(r.text) !== ref.sha256) throw new Error('Prompt storage checksum mismatch.');
-            const value = JSON.parse(r.text);
+            if (!r.ok) {
+                const reason = r.status === 404 ? ' Reimport a portable preset to restore missing files.' : '';
+                throw new PromptPreparationError('STORAGE_HTTP', `Prompt storage unavailable (${r.status}).${reason}`, { status: r.status });
+            }
+            if (await digest(r.text) !== ref.sha256) throw new PromptPreparationError('PACK_CHECKSUM', 'Prompt storage checksum mismatch.');
+            let value;
+            try { value = JSON.parse(r.text); }
+            catch { throw new PromptPreparationError('PACK_INVALID', 'Invalid prompt storage pack.'); }
             if (value?.schema !== 1 || !Array.isArray(value.bodies) || value.bodies.length > 4096 ||
-                value.bodies.some(s => typeof s !== 'string' || s.length > MAX_BODY_CHARS)) throw new Error('Invalid prompt storage pack.');
+                value.bodies.some(s => typeof s !== 'string' || s.length > MAX_BODY_CHARS)) throw new PromptPreparationError('PACK_INVALID', 'Invalid prompt storage pack.');
             this.stats.reads++;
             return value;
         })();
@@ -53,7 +63,7 @@ export class PromptBodyStore {
         const d = checkedDescriptor(descriptor);
         const content = pack.bodies[d.index];
         if (typeof content !== 'string' || content.length !== d.characters || !matchesShell(content, d)) {
-            throw new Error('Prompt body does not match its metadata reference.');
+            throw new PromptPreparationError('SOURCE_MISMATCH', 'Prompt body does not match its metadata reference.');
         }
         return content;
     }
@@ -69,8 +79,24 @@ export class PromptBodyStore {
             groups.get(d.ref.sha256).push([p, d]);
         }
         for (const group of groups.values()) {
-            const pack = await this.pack(group[0][1].ref);
-            for (const [p, d] of group) await visit(p, this.unpack(pack, d));
+            const ref = group[0][1].ref;
+            let pack;
+            try { pack = await this.pack(ref); }
+            catch (error) {
+                if (!(error instanceof PromptPreparationError)) throw error;
+                throw new PromptPreparationError(error.code, error.message, {
+                    ...error.details, pack: ref.sha256.slice(0, 12), requestedFromPack: group.length,
+                });
+            }
+            for (const [p, d] of group) {
+                let content;
+                try { content = this.unpack(pack, d); }
+                catch (error) {
+                    if (!(error instanceof PromptPreparationError)) throw error;
+                    throw new PromptPreparationError(error.code, error.message, { promptId: diagnosticLabel(p.identifier) });
+                }
+                await visit(p, content);
+            }
         }
     }
     async writePack(bodies) {

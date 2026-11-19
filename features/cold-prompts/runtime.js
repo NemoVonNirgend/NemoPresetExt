@@ -1,3 +1,5 @@
+import { callGenericPopup, POPUP_TYPE } from '../../../../../popup.js';
+import logger from '../../core/logger.js';
 import { ToggleJournal } from './toggle-journal.js';
 import { accountsEnabled, currentUser } from '../../../../../user.js';
 import { eventSource, event_types, getRequestHeaders } from '../../../../../../script.js';
@@ -12,7 +14,35 @@ import { isCold, BODY_KEY } from './format.js';
 let runtime = null, api = null, clickHandler = null, archiveOriginal = null, archiveWrapper = null;
 let recipePreflight = null, combinedPreflight = null, extractOriginal = null, extractWrapper = null;
 const pendingClicks = new WeakSet();
-function notify(message, level) {
+async function copyFailureReport(report) {
+    const text = JSON.stringify(report, null, 2);
+    try {
+        await navigator.clipboard.writeText(text);
+        globalThis.toastr?.success?.('Prompt diagnostic report copied.', 'Nemo Engine');
+    } catch {
+        const field = document.createElement('textarea');
+        field.readOnly = true;
+        field.className = 'text_pole';
+        field.rows = 14;
+        field.value = text;
+        field.setAttribute('aria-label', 'Prompt diagnostic report');
+        const panel = document.createElement('div');
+        const label = document.createElement('p');
+        label.textContent = 'Select and copy this prompt diagnostic report.';
+        panel.append(label, field);
+        void callGenericPopup(panel, POPUP_TYPE.DISPLAY, '', { wide: true });
+        field.focus();
+        field.select();
+    }
+}
+function notify(message, level, report) {
+    if (report) {
+        console.error('[Nemo prompt assembly]', message, report);
+        globalThis.toastr?.error?.(`${message} Tap to copy report.`, 'Nemo Engine', {
+            timeOut: 15000, preventDuplicates: true, escapeHtml: true, onclick: () => copyFailureReport(report),
+        });
+        return;
+    }
     console[level === 'error' ? 'error' : 'info']('[Nemo prompt storage]', message);
     globalThis.toastr?.[level]?.(message, 'Nemo Engine', { preventDuplicates: true, timeOut: 8000 });
 }
@@ -37,6 +67,8 @@ export function initializeColdPrompts() {
     if (runtime) return;
     runtime = createColdPromptRuntime({
         events: eventSource, types: event_types, getManager: () => promptManager, getContext,
+        debug: entry => logger.debug('[Nemo prompt assembly]', entry),
+        getVersion: () => getContext()?.getExtensionManifest?.('NemoPresetExt')?.version,
         journal: new ToggleJournal(), getUser: () => accountsEnabled ? currentUser?.handle : 'default-user',
         waitForToggles: () => globalThis.NemoPromptRendering?.whenSettled?.(),
         store: new PromptBodyStore({ headers: getRequestHeaders }), notify, editorLoading,
@@ -98,7 +130,7 @@ export function initializeColdPrompts() {
         };
         NemoPresetManager.extractPromptData = extractWrapper;
     }
-    api = Object.freeze({ stage: '3/5', isGhostPreset: owner.isGhostPreset, saveToggles: owner.saveToggles, getStats: owner.getStats, readBody: owner.readBody, ready: owner.ready, withBody: owner.withBody });
+    api = Object.freeze({ stage: '3/5', isGhostPreset: owner.isGhostPreset, saveToggles: owner.saveToggles, getStats: owner.getStats, getLastFailure: owner.getLastFailure, readBody: owner.readBody, ready: owner.ready, withBody: owner.withBody });
     globalThis.NemoColdPrompts = api;
     recipePreflight = globalThis.nemoRecipeRuntimePreflight;
     const previous = recipePreflight;
