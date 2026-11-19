@@ -1,5 +1,6 @@
 import { callGenericPopup, POPUP_TYPE } from '../../../../../popup.js';
 import logger from '../../core/logger.js';
+import { createNemoMacroSetup } from './macro-setup.js';
 import { ToggleJournal } from './toggle-journal.js';
 import { accountsEnabled, currentUser } from '../../../../../user.js';
 import { eventSource, event_types, getRequestHeaders } from '../../../../../../script.js';
@@ -10,6 +11,11 @@ import { syncPromptMetadata } from '../directives/prompt-directives.js';
 import { PromptBodyStore } from './store.js';
 import { createColdPromptRuntime } from './controller.js';
 import { isCold, BODY_KEY } from './format.js';
+
+// Keep the reload requirement for the page lifetime, including extension cleanup/reinit.
+const macroSetup = createNemoMacroSetup({
+    getContext, getCheckbox: () => document.getElementById('experimental_macro_engine'), notify,
+});
 
 let runtime = null, api = null, clickHandler = null, archiveOriginal = null, archiveWrapper = null;
 let recipePreflight = null, combinedPreflight = null, extractOriginal = null, extractWrapper = null;
@@ -66,7 +72,7 @@ function editorLoading(loading, label = '') {
 export function initializeColdPrompts() {
     if (runtime) return;
     runtime = createColdPromptRuntime({
-        events: eventSource, types: event_types, getManager: () => promptManager, getContext,
+        events: eventSource, types: event_types, getManager: () => promptManager, getContext, macroSetup,
         debug: entry => logger.debug('[Nemo prompt assembly]', entry),
         getVersion: () => getContext()?.getExtensionManifest?.('NemoPresetExt')?.version,
         journal: new ToggleJournal(), getUser: () => accountsEnabled ? currentUser?.handle : 'default-user',
@@ -130,7 +136,7 @@ export function initializeColdPrompts() {
         };
         NemoPresetManager.extractPromptData = extractWrapper;
     }
-    api = Object.freeze({ stage: '3/5', isGhostPreset: owner.isGhostPreset, saveToggles: owner.saveToggles, getStats: owner.getStats, getLastFailure: owner.getLastFailure, readBody: owner.readBody, ready: owner.ready, withBody: owner.withBody });
+    api = Object.freeze({ stage: '3/5', getMacroEngineStatus: macroSetup.getStatus, isGhostPreset: owner.isGhostPreset, saveToggles: owner.saveToggles, getStats: owner.getStats, getLastFailure: owner.getLastFailure, readBody: owner.readBody, ready: owner.ready, withBody: owner.withBody });
     globalThis.NemoColdPrompts = api;
     recipePreflight = globalThis.nemoRecipeRuntimePreflight;
     const previous = recipePreflight;

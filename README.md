@@ -2,7 +2,7 @@
 
 NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combines prompt organization, preset and character navigation, reasoning capture, prompt directives, custom dividers, NemoEngine installation, and Nemo Hub in one extension.
 
-**Version:** 6.0.29-beta.4
+**Version:** 6.0.29-beta.5
 
 **Homepage:** https://github.com/NemoVonNirgend/NemoPresetExt
 
@@ -82,7 +82,7 @@ Update NemoPresetExt and fully reload SillyTavern. This prevents new loss of pro
 
 ### 6.0.18 Vex macro-engine compatibility
 
-The legacy SillyTavern macro engine cannot evaluate Vex's nested lookups and scoped conditionals. It can leave literal macro fragments in `NVCR1_code`, causing **“native Vex route diverged”** even with intact stored source. Enable **User Settings → Experimental Macro Engine**, then fully reload SillyTavern. Update SillyTavern if that option is missing. Reimporting or deleting stored Vex files is not necessary for this configuration problem.
+The legacy SillyTavern macro engine cannot evaluate Vex's nested lookups and scoped conditionals. It can leave literal macro fragments in `NVCR1_code`, causing **“native Vex route diverged”** even with intact stored source. NemoPresetExt now enables **User Settings → Experimental Macro Engine** automatically when you import or select a recognized Nemo Engine preset, or start with one selected. If it switched the setting on, finish any import and reload SillyTavern once. The Setup Wizard checks that SillyTavern can evaluate a nested conditional. Reimporting or deleting stored Vex files is not necessary for this configuration problem.
 
 Nemo now checks the host engine before loading managed Vex source, including cached selections and direct prompt preparation, and gives those recovery instructions early. Incompatible portable imports keep their original source. Portable export remains available with the engine disabled. Genuine routing mismatches still block the request.
 
