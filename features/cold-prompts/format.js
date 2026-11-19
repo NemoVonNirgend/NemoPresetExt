@@ -1,3 +1,4 @@
+import { PromptPreparationError } from './diagnostics.js';
 import { matchedUserFilePath } from '../../core/user-file-path.js';
 /** Stage 3/5: reversible ordinary-prompt storage. Never evaluates prompt macros. */
 export const BODY_KEY = 'nemoPromptBody';
@@ -32,7 +33,7 @@ export function checkedDescriptor(d) {
         !Number.isSafeInteger(d.index) || d.index < 0 || d.index > 4096 ||
         !Number.isSafeInteger(d.characters) || d.characters < 0 || d.characters > MAX_BODY_CHARS ||
         typeof d.shell !== 'string' || d.shell.length > MAX_SHELL_CHARS) {
-        throw new Error('Invalid Nemo prompt-body reference. Restore a portable preset.');
+        throw new PromptPreparationError('SOURCE_REFERENCE_INVALID', 'Invalid Nemo prompt-body reference. Restore a portable preset.');
     }
     return d;
 }

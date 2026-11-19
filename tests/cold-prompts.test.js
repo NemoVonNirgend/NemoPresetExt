@@ -42,7 +42,7 @@ class Events {
     removeListener(type, fn) { this.handlers.set(type, (this.handlers.get(type) ?? []).filter(f => f !== fn)); }
     async emit(type, ...args) { for (const fn of [...(this.handlers.get(type) ?? [])]) { try { await fn(...args); } catch { /* native ST catches */ } } }
 }
-const keys = ['OAI_PRESET_IMPORT_READY', 'OAI_PRESET_EXPORT_READY', 'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'APP_READY', 'GENERATION_STARTED', 'GENERATION_AFTER_COMMANDS', 'GENERATE_AFTER_COMBINE_PROMPTS', 'GENERATE_AFTER_DATA', 'GENERATION_STOPPED', 'GENERATION_ENDED', 'GROUP_WRAPPER_STARTED', 'CHAT_COMPLETION_PROMPT_READY', 'CHAT_COMPLETION_SETTINGS_READY'];
+const keys = ['OAI_PRESET_IMPORT_READY', 'OAI_PRESET_EXPORT_READY', 'OAI_PRESET_CHANGED_BEFORE', 'OAI_PRESET_CHANGED_AFTER', 'APP_READY', 'GENERATION_STARTED', 'GENERATION_AFTER_COMMANDS', 'GENERATE_AFTER_COMBINE_PROMPTS', 'GENERATE_AFTER_DATA', 'GENERATION_STOPPED', 'GENERATION_ENDED', 'WORLD_INFO_ACTIVATED', 'GROUP_WRAPPER_STARTED', 'CHAT_COMPLETION_PROMPT_READY', 'CHAT_COMPLETION_SETTINGS_READY'];
 const types = Object.fromEntries(keys.map(k => [k, k]));
 function environment(preset = fixture(), options = {}) {
     const network = transport(), events = new Events();
@@ -351,7 +351,7 @@ test('metadata reference mutation during a load does not overwrite current conte
 // Exercise the browser entrypoint with a DOM/event boundary harness, not a real ST client.
 import { readFileSync } from 'node:fs';
 import { Script } from 'node:vm';
-function browserHarness(env) {
+function browserHarness(env, overrides = {}) {
     env.runtime.dispose();
     const handlers = new Map(), fields = new Map();
     const originalPreflight = async () => { sandbox.recipeCalls++; };
@@ -361,7 +361,7 @@ function browserHarness(env) {
         showSavePromptDialog() { this.archiveCopy = this.extractPromptData(this.selectedPromptItem); },
     };
     const sandbox = {
-        console: { info() {}, error() {} }, eventSource: env.events, event_types: types,
+        logger: { debug() {} }, console: { info() {}, error() {} }, eventSource: env.events, event_types: types,
         getRequestHeaders: () => ({}), getContext: () => ({ mainApi: 'openai' }),
         extension_settings: {}, promptManager: env.pm, NemoPresetManager: nm,
         syncPromptMetadata: () => ({ records: new WeakMap() }),
@@ -377,6 +377,7 @@ function browserHarness(env) {
             },
         },
     };
+    Object.assign(sandbox, overrides);
     const source = readFileSync(new URL('../features/cold-prompts/runtime.js', import.meta.url), 'utf8')
         .replace(/^import .*;\r?$/gm, '').replace(/^export /gm, '');
     const api = new Script(`(() => { ${source}\nreturn { initializeColdPrompts, cleanupColdPrompts }; })()`).runInNewContext(sandbox);
@@ -699,5 +700,121 @@ test('cancelled or checksum-failed preparation never assembles a ghost shell', a
         const data = { chat: ['previously assembled'] };
         await h.events.emit(types.CHAT_COMPLETION_PROMPT_READY, data);
         assert.deepEqual(data.chat, []);
+    } finally { h.runtime.dispose(); }
+});
+
+test('assembly reports distinguish absent, late, replaced and revised rows without reading disabled text', async () => {
+    const live = [], notices = [];
+    const h = ghostTestEnvironment({ debug: entry => live.push(entry), notify: (...args) => notices.push(args) });
+    try {
+        await h.runtime.importReady({ data: h.data });
+        assert.equal(h.runtime.getLastFailure(), null);
+        const failWith = code => {
+            assert.throws(() => h.pm.getPromptCollection('swipe'));
+            const report = h.runtime.getLastFailure();
+            assert.equal(report.code, code);
+            assert.equal(report.stage, 'getPromptCollection');
+            assert.equal(report.type, 'swipe');
+            assert.equal(notices.at(-1)[2], report);
+            return report;
+        };
+        const first = failWith('PLAN_MISSING');
+        assert.equal(first.trace.at(-2).hasPlan, false);
+        const prime = () => h.runtime.preflight([], 0, assert.fail, 'swipe');
+        await prime();
+        h.data.prompt_order[0].order.find(e => e.identifier === 'optional').enabled = true;
+        assert.equal(failWith('SELECTION_CHANGED').row, 'newly-selected');
+        await prime();
+        const index = h.data.prompts.findIndex(p => p.identifier === 'optional');
+        h.data.prompts[index] = { ...h.data.prompts[index] };
+        assert.equal(failWith('SELECTION_CHANGED').row, 'replaced');
+        await prime();
+        const p = h.data.prompts[index];
+        p[BODY_KEY] = { ...p[BODY_KEY] };
+        assert.equal(failWith('SOURCE_REVISED').promptId, 'optional');
+        const lastFailure = h.runtime.getLastFailure();
+        await prime();
+        for (let i = 0; i < 40; i++) await h.events.emit(types.GENERATION_ENDED);
+        assert.equal(h.runtime.getLastFailure(), lastFailure);
+        assert.equal(first.trace.at(-1).code, 'PLAN_MISSING');
+        assert(Object.isFrozen(first.trace));
+        assert(live.some(e => e.stage === 'prime.ready'));
+        failWith('PLAN_MISSING');
+        assert.equal(h.runtime.getLastFailure().trace.length, 32);
+    } finally { h.runtime.dispose(); }
+});
+
+test('post-scan storage failure keeps its HTTP status through a secondary guard and excludes host content', async () => {
+    const h = ghostTestEnvironment({ getVersion: () => '6.0.29-beta.3' });
+    try {
+        await h.runtime.importReady({ data: h.data });
+        h.network.files.clear();
+        await h.events.emit(types.GENERATION_STARTED, 'continue', { quiet_prompt: 'PRIVATE CHAT' }, false);
+        await h.events.emit(types.GENERATION_AFTER_COMMANDS, 'continue', {}, false);
+        // Real ST emits the activated entries directly.
+        await h.events.emit(types.WORLD_INFO_ACTIVATED, [{ content: 'PRIVATE ENTRY' }]);
+        await h.events.emit(types.GENERATE_AFTER_COMBINE_PROMPTS, { dryRun: false, prompt: 'PRIVATE LORE' });
+        const failure = h.runtime.getLastFailure();
+        assert.equal(failure.stage, 'afterCombine');
+        assert.equal(failure.code, 'STORAGE_HTTP');
+        assert.equal(failure.status, 404);
+        assert.match(failure.pack, /^[0-9a-f]{12}$/);
+        assert(failure.requestedFromPack > 0);
+        assert.equal(failure.liveAnnounced, 1);
+        assert.equal(failure.trace.find(e => e.stage === 'worldInfoActivated').entries, 1);
+        assert(!failure.trace.some(e => e.stage === 'preflight'));
+        assert.throws(() => h.pm.getPromptCollection('continue'));
+        const secondary = h.runtime.getLastFailure();
+        assert.deepEqual(secondary.previousFault, { code: 'STORAGE_HTTP', status: 404, stage: 'afterCombine', seq: failure.trace.at(-1).seq });
+        assert.equal(secondary.version, '6.0.29-beta.3');
+        assert.doesNotMatch(JSON.stringify(secondary), /PRIVATE|USER CONTROL|Test Ghost|nemo-prompts-|\/user\/files\/|Rare prose/);
+    } finally { h.runtime.dispose(); }
+});
+
+test('toast copies the captured report, exposes the same console snapshot and offers selectable text if blocked', async () => {
+    const env = await installed();
+    const errors = [], toastOptions = [], writes = [], popups = [];
+    let deny = false;
+    const browser = browserHarness(env, {
+        console: { info() {}, error: (...args) => errors.push(args) },
+        toastr: { error: (_message, _title, options) => toastOptions.push(options) },
+        navigator: { clipboard: { async writeText(text) { if (deny) throw Error(); writes.push(text); } } },
+        callGenericPopup: panel => popups.push(panel), POPUP_TYPE: { DISPLAY: 1 },
+    });
+    try {
+        const api = browser.sandbox.NemoColdPrompts;
+        env.network.files.clear();
+        await browser.sandbox.nemoRecipeRuntimePreflight([], 0, () => {}, 'regenerate');
+        const report = api.getLastFailure(), click = toastOptions.at(-1).onclick;
+        assert.equal(errors.at(-1)[0], '[Nemo prompt assembly]');
+        assert.equal(errors.at(-1)[2], report);
+        await click();
+        assert.deepEqual(JSON.parse(writes[0]), report);
+        deny = true;
+        browser.sandbox.document.createElement = () => ({
+            append(...children) { this.children = children; }, setAttribute() {}, focus() {}, select() { this.selected = true; },
+        });
+        await click();
+        const field = popups[0].children[1];
+        assert.equal(field.readOnly, true);
+        assert.equal(field.selected, true);
+        assert.deepEqual(JSON.parse(field.value), report);
+    } finally { browser.cleanupColdPrompts(); }
+});
+
+test('native exceptions and unsafe identifiers cannot expose private text in the report or toast', async () => {
+    const notices = [];
+    const h = ghostTestEnvironment({ notify: (...args) => notices.push(args) });
+    try {
+        await h.runtime.importReady({ data: h.data });
+        const p = h.pm.getPromptById('optional');
+        assert.throws(() => h.pm.preparePrompt({ ...p, identifier: '<private prompt text>' }));
+        assert.equal(h.runtime.getLastFailure().promptId, '[redacted]');
+        h.pm.shouldTrigger = () => { throw new TypeError('private native error text'); };
+        assert.throws(() => h.pm.getPromptCollection('swipe'), TypeError);
+        const report = h.runtime.getLastFailure();
+        assert.equal(report.code, 'UNEXPECTED');
+        assert.equal(report.exception, 'TypeError');
+        assert.doesNotMatch(JSON.stringify(notices), /private native error text|private prompt text/);
     } finally { h.runtime.dispose(); }
 });
