@@ -273,7 +273,7 @@ test('search UI does not read bodies by default and ignores stale async results'
     const b={style:{},dataset:{pmIdentifier:'b'},closest:()=>null};
     const attributes=new Set();
     const container={querySelectorAll:s=>s.startsWith('li')?[a,b]:[],contains:()=>true,
-        setAttribute:key=>attributes.add(key),removeAttribute:key=>attributes.delete(key)};
+        hasAttribute:key=>attributes.has(key),setAttribute:key=>attributes.add(key),removeAttribute:key=>attributes.delete(key)};
     const root={getElementById:id=>fields[id],querySelector:()=>container};
     let reads=0,clears=0;const pending=[];
     const manager={handlePresetSearch(){clears++;},createSearchAndStatusUI(){}};
@@ -290,8 +290,12 @@ test('search UI does not read bodies by default and ignores stale async results'
     assert.equal(a.style.display,'none');
     pending[1](new Set(['b']));await Promise.resolve();
     assert.match(progress.textContent,/metadata and prompt text/);
-    input.value='';await manager.handlePresetSearch();assert.equal(clears,1);
+    input.value='';ui.refresh();assert.equal(clears,1);
     assert.ok(!attributes.has('data-nemo-filtering'));
+    ui.refresh();assert.equal(clears,1);
+    input.value='alpha';checkbox.checked=false;ui.refresh();
+    assert.equal(b.style.display,'none');
+    input.value='';await manager.handlePresetSearch();assert.equal(clears,2);
     ui.cleanup();assert.equal(manager.handlePresetSearch,original);
 });
 
