@@ -24,6 +24,7 @@ test('settings expose every merged prompt gate and all three interface modes', (
         'nemoEnableReasoningSection',
         'nemoEnableLorebookManagement',
         'nemoForceLastUserRole',
+        'nemoEnableInfiniteChatScrolling',
         'nemoDividerRegexPattern',
         'nemoEnableDirectives',
         'nemoEnableDirectiveAutocomplete',

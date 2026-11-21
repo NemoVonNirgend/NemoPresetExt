@@ -25,6 +25,7 @@ import { initializeReSwipe, cleanupReSwipe } from './features/reswipe/runtime.js
 import { buildPresetIndex } from './features/preset-index/discovery.js';
 import { initializeGeminiModels, cleanupGeminiModels } from './features/gemini-models/runtime.js';
 import { initializeResponseTokens, cleanupResponseTokens } from './features/response-tokens/runtime.js';
+import { initializeChatHistoryScrolling, cleanupChatHistoryScrolling } from './features/chat-history/runtime.js';
 
 let initialized = false;
 let cleanupInProgress = false;
@@ -88,6 +89,7 @@ export async function cleanupExtension() {
         cleanupFinalUserRole();
         cleanupGeminiModels();
         cleanupResponseTokens();
+        cleanupChatHistoryScrolling();
         cleanupDirectiveAutocomplete();
         cleanupMessageTriggerHooks();
         cleanupPromptDirectiveHooks();
@@ -111,6 +113,7 @@ export async function initializeExtension() {
     try {
         ensureSettingsNamespace();
         initializeResponseTokens();
+        initializeChatHistoryScrolling();
         initializeGeminiModels();
         validateDividerPatterns();
         initializeLorebookSpacing();

@@ -23,6 +23,7 @@ test('core teardown owns every active runtime', () => {
     for (const cleanup of [
         'cleanupPromptTools()',
         'cleanupFinalUserRole()',
+        'cleanupChatHistoryScrolling()',
         'cleanupDirectiveAutocomplete()',
         'cleanupMessageTriggerHooks()',
         'cleanupPromptDirectiveHooks()',

@@ -6,6 +6,7 @@ import { validateDividerPatterns } from '../core/divider-patterns.js';
 import logger from '../core/logger.js';
 import { NemoExtensionHub } from '../features/hub/hub-ui.js';
 import { DEFAULT_RESWIPE_INSTRUCTION, getReSwipeInstruction } from '../features/reswipe/controller.js';
+import { syncChatHistoryScrolling } from '../features/chat-history/runtime.js';
 
 export const NemoSettingsUI = {
     _settingsObserver: null,
@@ -101,12 +102,14 @@ export const NemoSettingsUI = {
             ['nemoEnableDirectiveAutocomplete', 'enableDirectiveAutocomplete'],
             ['nemoEnableNemoEngineInstaller', 'enableNemoEngineInstaller'],
             ['nemoEnableReSwipe', 'enableReSwipe'],
+            ['nemoEnableInfiniteChatScrolling', 'enableInfiniteChatScrolling'],
         ]) {
             const input = document.getElementById(id);
             if (!input) continue;
             input.checked = settings[key] === true;
             input.addEventListener('change', () => {
                 settings[key] = input.checked;
+                if (key === 'enableInfiniteChatScrolling') syncChatHistoryScrolling();
                 this._persist();
                 if (key === 'enableReasoningSection' || key === 'enableLorebookManagement') {
                     this._syncOptionalPromptSections();
