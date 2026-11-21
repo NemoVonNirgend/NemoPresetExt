@@ -126,7 +126,16 @@ export function installSearchUI({ manager, root = document, getRows, getSources,
     manager.createSearchAndStatusUI = create;
     attachControls();
     return {
-        refresh() { request++; bodySearch.dispose(); if (active) void search(); },
+        refresh() {
+            request++;
+            bodySearch.dispose();
+            if (!active) return;
+            const input = root.getElementById('nemoPresetSearchInput');
+            const container = root.querySelector('#completion_prompt_manager_list');
+            if (!input || !container) return;
+            // Chat opens and settings saves do not need to reset an already unfiltered list.
+            if (input.value.trim() || container.hasAttribute('data-nemo-filtering')) void search();
+        },
         cleanup() {
             active = false;
             root.querySelector('#completion_prompt_manager_list')?.removeAttribute('data-nemo-filtering');

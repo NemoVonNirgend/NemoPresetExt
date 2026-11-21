@@ -18,6 +18,7 @@ const EXPECTED_DEFAULTS = {
     enableDirectiveAutocomplete: true,
     enableNemoEngineInstaller: true,
     enableReSwipe: false,
+    enableInfiniteChatScrolling: false,
     enableReasoningSection: true,
     enableLorebookManagement: false,
     forceLastUserRole: false,
@@ -34,6 +35,7 @@ test('new namespaces receive Classic 3.4 and prompt workstation defaults', () =>
     assert.equal(settings.promptUiMode, PROMPT_UI_MODES.CLASSIC);
     assert.equal(settings.enablePromptManager, true);
     assert.equal(settings.enableDirectives, true);
+    assert.equal(settings.enableInfiniteChatScrolling, false);
     assert.equal(settings.dividerRegexPattern, '');
 });
 

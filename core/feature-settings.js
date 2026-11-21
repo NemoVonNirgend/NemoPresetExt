@@ -15,6 +15,7 @@ export const FEATURE_DEFAULTS = Object.freeze({
     enableDirectiveAutocomplete: true,
     enableNemoEngineInstaller: true,
     enableReSwipe: false,
+    enableInfiniteChatScrolling: false,
     enableReasoningSection: true,
     enableLorebookManagement: false,
     forceLastUserRole: false,

@@ -10,6 +10,10 @@ NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combin
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
 
+### Scroll to load older messages
+
+In **Extensions → NemoPresetExt → Chat history**, enable **Load older messages as you scroll up**. SillyTavern opens the chat with the number of rows set in **# Messages to Load** and renders older messages in batches as you reach the top. **Show more messages** stays available. The setting is off by default and applies immediately. A **# Messages to Load** value of 0 displays the entire chat as usual.
+
 ### 6.0.29 beta · Ghost prompt storage
 
 Nemo Engine presets using the v12.7 reset and settings-resolver architecture show their complete prompt list while ST holds empty source fields for managed rows. Nemo loads enabled sources for generation or an explicit token recount. Prompt switches are remembered in this browser. Use ST’s **Save Preset** to make that configuration the named preset default and **Export** to create a portable copy. [Prompt storage details](docs/COLD_PROMPTS.md)
