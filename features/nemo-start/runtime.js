@@ -1,3 +1,4 @@
+import * as st from '../../../../../../script.js';
 import { isFeatureEnabled, NEMO_EXTENSION_NAME } from '../../core/utils.js';
 import logger from '../../core/logger.js';
 import { showSwipePicker } from './picker.js';
@@ -16,6 +17,8 @@ let unsubscribe = null;
 let chatElement = null;
 let observer = null;
 let picker = null;
+let repairFrame = null;
+let lastRepair = null;
 
 function getContext() {
     return globalThis.SillyTavern?.getContext?.();
@@ -63,7 +66,38 @@ function getRowState(context, row) {
 function syncPicker(context) {
     if (!picker) return;
     const current = getRowState(context, picker.row);
-    if (!isSameMessage(current, picker.state) || current.canSwitch !== picker.state.canSwitch) closePicker();
+    if (!isSameMessage(current, picker.state) || current.canSwitch !== picker.state.canSwitch
+        || current.active !== picker.state.active) closePicker();
+}
+
+// Only the host knows how to rebuild a greeting with its current formatting and listeners.
+function checkGreetingRows(context, state) {
+    if (!state?.isGreeting || context.chat.length !== 1 || typeof st.redisplayChat !== 'function') return;
+    const rows = chatElement.querySelectorAll(':scope > .mes');
+    if (rows.length <= 1) {
+        lastRepair = null;
+        return;
+    }
+    if (repairFrame !== null || lastRepair === state.message) return;
+    const container = chatElement;
+    repairFrame = requestAnimationFrame(async () => {
+        repairFrame = null;
+        const latest = getContext();
+        if (container !== chatElement || container !== document.getElementById('chat')
+            || latest?.chat?.length !== 1 || !isSameMessage(getSwipeState(latest, 0), state)
+            || !latest.swipe?.isAllowed?.() || container.querySelector('.edit_textarea, .reasoning_edit_textarea')) return;
+        const visible = [...container.querySelectorAll(':scope > .mes')];
+        if (visible.length < 2 || !visible.every(row => row.getAttribute('mesid') === '0')) return;
+        lastRepair = state.message;
+        logger.warn('NemoStart found duplicate greeting rows. Redrawing from the current chat.', {
+            chatMessages: latest.chat.length, renderedRows: visible.length, activeSwipe: latest.chat[0].swipe_id,
+        });
+        try {
+            await st.redisplayChat({ startIndex: 0, fade: false });
+        } catch (error) {
+            logger.warn('NemoStart could not redraw the greeting', error);
+        }
+    });
 }
 
 async function useSwipe(row, original, choice) {
@@ -78,7 +112,12 @@ async function useSwipe(row, original, choice) {
     if (!context.swipe.isAllowed()) {
         return 'Switching requires swipes to be enabled and the chat to be idle.';
     }
+    if (current.isGreeting && chatElement.querySelectorAll(':scope > .mes[mesid="0"]').length > 1) {
+        checkGreetingRows(context, current);
+        return 'The greeting is displayed twice. Reopen the picker after the chat redraws.';
+    }
 
+    closePicker();
     try {
         // A saved target and the native guards keep this on the existing-swipe path.
         await context.swipe.to(null, choice.index > current.active ? 'right' : 'left', {
@@ -89,8 +128,15 @@ async function useSwipe(row, original, choice) {
         if (Number(current.message.swipe_id) === choice.index) return '';
     } catch (error) {
         logger.warn('NemoStart could not switch saved swipes', error);
+    } finally {
+        const latest = getContext();
+        const state = getRowState(latest, row);
+        if (isSameMessage(state, original)) checkGreetingRows(latest, state);
     }
-    return 'SillyTavern could not switch swipes. Finish any message edit and try again.';
+    if (isSameMessage(getSwipeState(getContext(), original.messageId), original)) {
+        globalThis.toastr?.warning('SillyTavern could not switch swipes. Finish any message edit and try again.', 'NemoStart');
+    }
+    return '';
 }
 
 function openPicker(event) {
@@ -119,6 +165,7 @@ function syncRow(context, row) {
         opener?.remove();
         return;
     }
+    checkGreetingRows(context, state);
 
     if (!opener) {
         opener = document.createElement('button');
@@ -138,6 +185,9 @@ function syncRow(context, row) {
 }
 
 function detachChat() {
+    if (repairFrame !== null) cancelAnimationFrame(repairFrame);
+    repairFrame = null;
+    lastRepair = null;
     observer?.disconnect();
     chatElement?.querySelectorAll(TRIGGER).forEach(button => button.remove());
     chatElement = null;

@@ -23,8 +23,8 @@
     border: 1px solid var(--SmartThemeBorderColor, #505461);
     border-radius: 0.75rem;
     color: var(--SmartThemeBodyColor, #eee);
-    background: var(--SmartThemeBlurTintColor, #252732);
-    backdrop-filter: blur(16px);
+    background-color: #252732;
+    background-color: rgb(from var(--SmartThemeBlurTintColor, #252732) r g b / 1);
     box-shadow: 0 1rem 3rem #0006;
 }
 
