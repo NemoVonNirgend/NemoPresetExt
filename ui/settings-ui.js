@@ -7,6 +7,7 @@ import logger from '../core/logger.js';
 import { NemoExtensionHub } from '../features/hub/hub-ui.js';
 import { DEFAULT_RESWIPE_INSTRUCTION, getReSwipeInstruction } from '../features/reswipe/controller.js';
 import { syncChatHistoryScrolling } from '../features/chat-history/runtime.js';
+import { syncNemoStart } from '../features/nemo-start/runtime.js';
 
 export const NemoSettingsUI = {
     _settingsObserver: null,
@@ -103,6 +104,7 @@ export const NemoSettingsUI = {
             ['nemoEnableNemoEngineInstaller', 'enableNemoEngineInstaller'],
             ['nemoEnableReSwipe', 'enableReSwipe'],
             ['nemoEnableInfiniteChatScrolling', 'enableInfiniteChatScrolling'],
+            ['nemoEnableNemoStart', 'enableNemoStart'],
         ]) {
             const input = document.getElementById(id);
             if (!input) continue;
@@ -110,6 +112,7 @@ export const NemoSettingsUI = {
             input.addEventListener('change', () => {
                 settings[key] = input.checked;
                 if (key === 'enableInfiniteChatScrolling') syncChatHistoryScrolling();
+                if (key === 'enableNemoStart') syncNemoStart();
                 this._persist();
                 if (key === 'enableReasoningSection' || key === 'enableLorebookManagement') {
                     this._syncOptionalPromptSections();

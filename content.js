@@ -26,6 +26,7 @@ import { buildPresetIndex } from './features/preset-index/discovery.js';
 import { initializeGeminiModels, cleanupGeminiModels } from './features/gemini-models/runtime.js';
 import { initializeResponseTokens, cleanupResponseTokens } from './features/response-tokens/runtime.js';
 import { initializeChatHistoryScrolling, cleanupChatHistoryScrolling } from './features/chat-history/runtime.js';
+import { initializeNemoStart, cleanupNemoStart } from './features/nemo-start/runtime.js';
 
 let initialized = false;
 let cleanupInProgress = false;
@@ -90,6 +91,7 @@ export async function cleanupExtension() {
         cleanupGeminiModels();
         cleanupResponseTokens();
         cleanupChatHistoryScrolling();
+        cleanupNemoStart();
         cleanupDirectiveAutocomplete();
         cleanupMessageTriggerHooks();
         cleanupPromptDirectiveHooks();
@@ -114,6 +116,7 @@ export async function initializeExtension() {
         ensureSettingsNamespace();
         initializeResponseTokens();
         initializeChatHistoryScrolling();
+        initializeNemoStart();
         initializeGeminiModels();
         validateDividerPatterns();
         initializeLorebookSpacing();
