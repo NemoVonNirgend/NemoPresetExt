@@ -16,6 +16,7 @@ export const FEATURE_DEFAULTS = Object.freeze({
     enableNemoEngineInstaller: true,
     enableReSwipe: false,
     enableInfiniteChatScrolling: false,
+    enableNemoStart: true,
     enableReasoningSection: true,
     enableLorebookManagement: false,
     forceLastUserRole: false,

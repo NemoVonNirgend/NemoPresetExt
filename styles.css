@@ -9,6 +9,7 @@
 @import url('./styles/prompt-modern.css');
 @import url('./styles/prompt-classic-plus.css');
 @import url('./styles/prompt-responsive.css');
+@import url('./styles/nemo-start.css');
 
 /* NemoPresetExt: prompt workstation, directives, dividers, NemoEngine, and Nemo Hub. */
 .nemo-settings-host,

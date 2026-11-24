@@ -1,0 +1,201 @@
+#chat > .mes:has(> .swipeRightBlock > .nemo-start-trigger) {
+    --nemo-start-trigger-size: 30px;
+    min-block-size: calc(var(--swipeCounterHeight, 15px) + var(--swipeCounterMargin, 5px) + var(--nemo-start-trigger-size) + 27px);
+}
+
+#chat .swipeRightBlock > .nemo-start-trigger {
+    align-self: center;
+    margin: 0 0 2px;
+    padding: 0;
+    inline-size: var(--nemo-start-trigger-size, 30px);
+    block-size: var(--nemo-start-trigger-size, 30px);
+    font-size: 0.85rem;
+    pointer-events: auto;
+}
+
+.nemo-start {
+    --nemo-start-border: color-mix(in srgb, var(--SmartThemeBorderColor, #505461), currentColor 25%);
+    box-sizing: border-box;
+    inline-size: min(54rem, calc(100% - 2rem));
+    block-size: min(36rem, calc(100dvh - 2rem));
+    padding: clamp(0.75rem, 3vw, 1.25rem);
+    overflow: hidden;
+    border: 1px solid var(--SmartThemeBorderColor, #505461);
+    border-radius: 0.75rem;
+    color: var(--SmartThemeBodyColor, #eee);
+    background: var(--SmartThemeBlurTintColor, #252732);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 1rem 3rem #0006;
+}
+
+.nemo-start::backdrop {
+    background: #0009;
+}
+
+.nemo-start__body {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    block-size: 100%;
+}
+
+.nemo-start h2,
+.nemo-start h3,
+.nemo-start p {
+    margin: 0;
+}
+
+.nemo-start__search {
+    display: grid;
+    gap: 0.25rem;
+    font-size: 0.875em;
+}
+
+.nemo-start__search input {
+    margin: 0;
+    min-inline-size: 0;
+    min-block-size: 2.5rem;
+}
+
+.nemo-start__panes {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+    gap: 0.75rem;
+    min-block-size: 0;
+}
+
+.nemo-start__choices,
+.nemo-start__text {
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+.nemo-start__choices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 2px;
+}
+
+.nemo-start__choice {
+    display: grid;
+    flex: 0 0 auto;
+    gap: 0.3rem;
+    min-inline-size: 0;
+    min-block-size: 2.75rem;
+    padding: 0.6rem 0.75rem;
+    text-align: start;
+    font: inherit;
+    color: inherit;
+    border: 1px solid var(--nemo-start-border);
+    border-radius: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.nemo-start__choice:hover,
+.nemo-start__choice[aria-pressed='true'] {
+    background: color-mix(in srgb, currentColor 9%, transparent);
+}
+
+.nemo-start__choice[aria-pressed='true'] {
+    border-color: var(--SmartThemeQuoteColor, #91b8ed);
+}
+
+.nemo-start__choice-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem;
+    font-weight: 700;
+}
+
+.nemo-start__current {
+    font-size: 0.75em;
+    color: var(--SmartThemeQuoteColor, #91b8ed);
+}
+
+.nemo-start__excerpt {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-size: 0.85em;
+    line-height: 1.35;
+}
+
+.nemo-start__preview:not([hidden]) {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.5rem;
+    min-block-size: 0;
+    padding: 0.75rem;
+    border: 1px solid var(--nemo-start-border);
+    border-radius: 0.5rem;
+}
+
+.nemo-start__text {
+    overflow-wrap: anywhere;
+    line-height: 1.55;
+}
+
+.nemo-start__text > :not(:first-child) {
+    margin-block-start: 0.85em;
+}
+
+.nemo-start__text pre {
+    white-space: pre-wrap;
+}
+
+.nemo-start__text img {
+    display: block;
+    max-inline-size: 100%;
+    max-block-size: min(24rem, 45dvh);
+    object-fit: contain;
+    margin-block: 0.5em;
+}
+
+.nemo-start__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.nemo-start__actions .menu_button {
+    margin: 0;
+    width: auto;
+    min-block-size: 2.5rem;
+    padding: 0.4rem 0.8rem;
+}
+
+.nemo-start__actions [data-action='use']:enabled {
+    border-color: var(--SmartThemeQuoteColor, #91b8ed);
+}
+
+.nemo-start :focus-visible,
+.nemo-start-trigger:focus-visible {
+    outline: 2px solid var(--SmartThemeQuoteColor, #91b8ed);
+    outline-offset: 1px;
+}
+
+@media (max-width: 40rem) {
+    .nemo-start {
+        inline-size: calc(100% - 1rem);
+        block-size: min(42rem, calc(100dvh - 1rem));
+    }
+
+    .nemo-start__panes {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 9fr) minmax(0, 11fr);
+    }
+
+    .nemo-start__excerpt {
+        display: block;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+}

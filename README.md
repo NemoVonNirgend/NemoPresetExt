@@ -10,6 +10,14 @@ NemoPresetExt is the complete Nemo prompt workstation for SillyTavern. It combin
 
 Install `https://github.com/NemoVonNirgend/NemoPresetExt` with SillyTavern's third-party extension installer, then reload. No SillyTavern source modifications are required.
 
+### NemoStart greeting and swipe pickers
+
+Click the list icon above the right swipe arrow to open **Browse first messages** on a greeting or **Browse swipes** on any other message with saved alternatives. Earlier messages can be browsed even when SillyTavern hides their swipe arrows.
+
+Search the choices and read the full preview, including basic Markdown and inline images written as Markdown or HTML. Remote images follow SillyTavern's external media settings. On the last swipeable message, **Use this greeting** or **Use this swipe** jumps directly to the selected choice when SillyTavern's swipe controls are enabled.
+
+NemoStart is enabled by default. Toggle it in **Extensions → NemoPresetExt → NemoStart**.
+
 ### Scroll to load older messages
 
 In **Extensions → NemoPresetExt → Chat history**, enable **Load older messages as you scroll up**. SillyTavern opens the chat with the number of rows set in **# Messages to Load** and renders older messages in batches as you reach the top. **Show more messages** stays available. The setting is off by default and applies immediately. A **# Messages to Load** value of 0 displays the entire chat as usual.
