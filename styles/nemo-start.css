@@ -1,5 +1,7 @@
 #chat > .mes:has(> .swipeRightBlock > .nemo-start-trigger) {
     --nemo-start-trigger-size: 30px;
+    /* The controls need a minimum height, but long replies must keep their full height. */
+    flex-shrink: 0;
     min-block-size: calc(var(--swipeCounterHeight, 15px) + var(--swipeCounterMargin, 5px) + var(--nemo-start-trigger-size) + 27px);
 }
 
